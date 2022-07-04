@@ -367,7 +367,9 @@ void RSMission::parsePART(IffChunk* chunk) {
                         }
                     }
                 }
-                area.AddObject(prt);
+                if (strlen(prt->MemberName)>0) {
+                    area.AddObject(prt);
+                }
             }
         }
     }

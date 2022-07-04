@@ -882,8 +882,8 @@ void SCRenderer::RenderWorldSolid(RSArea* area, int LOD, int verticesPerBlock){
         
         //Render objects on the map
         //for(int i=97 ; i < 98 ; i++)
-        for(int i=0 ; i < BLOCKS_PER_MAP ; i++)
-           RenderObjects(area,i);
+        //for(int i=0 ; i < BLOCKS_PER_MAP ; i++)
+        RenderObjects(area,0);
         
         RenderJets(area);
         
@@ -905,16 +905,18 @@ void SCRenderer::RenderObjects(RSArea* area,size_t blockID){
         
         std::map<std::string, RSEntity *>::iterator it;
         std::string key = object.name;
-        it = area->objCache.find(key);
-        if (it != area->objCache.end()) {
-            DrawModel(it->second, BLOCK_LOD_MAX);
-        }
-        else {
-            printf("OBJECT [%s] NOT FOUND\n", object.name);
-            glBegin(GL_POINTS);
+        if (key != "") {
+            it = area->objCache.find(key);
+            if (it != area->objCache.end()) {
+                DrawModel(it->second, BLOCK_LOD_MAX);
+            }
+            else {
+                printf("OBJECT [%s] NOT FOUND\n", object.name);
                 glColor3f(0, 1, 0);
-                glVertex3d(0, 0, 0);
-            glEnd();
+                glBegin(GL_POINTS);
+                    glVertex3d(0, 0, 0);
+                glEnd();
+            }
         }
 
         glPopMatrix();
@@ -995,12 +997,7 @@ void SCRenderer::RenderWorldPoints(RSArea* area, int LOD, int verticesPerBlock)
         }
             glEnd();
         
-        
-        //Render objects on the map
-        for(int i=0 ; i < 324 ; i++)
-            RenderObjects(area,i);
-        
-        
+        //RenderObjects(area,0);
     }
 
 }
