@@ -18,12 +18,12 @@ SCStrike::~SCStrike(){
 }
 
 void SCStrike::Init(void ){
-    area.InitFromPAKFileName("ARENA.PAK");
-    
+    //area.InitFromPAKFileName("ARENA.PAK");
+    mission.InitFromName("TEMPLATE.IFF");
 }
 
 void SCStrike::RunFrame(void){
     
-    Renderer.RenderWorldSolid(&area,BLOCK_LOD_MAX,400);
+    Renderer.RenderWorldSolid(&mission.area,BLOCK_LOD_MAX,400);
     
 }

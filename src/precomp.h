@@ -66,6 +66,7 @@ extern "C" {
     #include "RSSound.h"
     #include "RSMapTextureSet.h"
     #include "RSArea.h"
+    #include "RSMission.h"
     #include "RLEShape.h"
 
 //Fonts stuff

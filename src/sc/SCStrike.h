@@ -21,6 +21,7 @@ public:
 
 private:
     RSArea area ;
+    RSMission mission;
 };
 
 #endif /* defined(__libRealSpace__SCStrike__) */

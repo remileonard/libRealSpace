@@ -302,7 +302,7 @@ void RSArea::ParseObjects(){
             printf("\n");
                 
             LoadObject(mapObject.name);
-            objects[i].push_back(mapObject);
+            objects.push_back(mapObject);
             
         }
         
@@ -311,6 +311,10 @@ void RSArea::ParseObjects(){
     
 }
 
+void RSArea::AddObject(MapObject *mapObject) {
+    LoadObject(mapObject->name);
+    objects.push_back(*mapObject);
+}
 
 void RSArea::ParseTriFile(PakEntry* entry){
     

@@ -9,20 +9,35 @@
 #ifndef __libRealSpace__RSMap__
 #define __libRealSpace__RSMap__
 
-//DIRTY HACK !!! DELETE ME ASAP
-#define  HEIGHT_DIVIDER 17
-
 
 typedef struct MapObject{
     
     char name[9];
     char destroyedName[9];
-    
     int32_t position[3];
+    uint8_t MemberNumber;
+    char MemberName[16];
+    char WeaponLoad[8];
+    uint16_t Unknown0;
+    uint16_t Unknown1;
+    unsigned char Controls[22];
     
     RSEntity* entity;
     
 } MapObject;
+
+typedef struct MissionArea {
+    int id;
+    
+    unsigned char AreaType;
+    char AreaName[33];
+    long XAxis;
+    long YAxis;
+    long ZAxis;
+    unsigned int AreaWidth;
+    unsigned int AreaHeight;
+    unsigned char Unknown[5];
+} MissionArea;
 
 typedef struct AreaBlock{
     
@@ -68,7 +83,8 @@ public:
     RSImage* GetImageByID(size_t ID);
     
     //Per block objects list
-    std::vector<MapObject> objects[BLOCKS_PER_MAP];
+    std::vector<MapObject> objects;
+    std::vector<MissionArea *> missionAreas;
     std::map<std::string, RSEntity *> objCache;
     
     float elevation[BLOCKS_PER_MAP];
@@ -76,7 +92,7 @@ public:
     size_t GetNumJets(void);
     RSEntity* GetJet(size_t jetID);
     void LoadObject(char *name);
-    
+    void AddObject(MapObject *mapObject);
 private:
     
     void ParseMetadata(void );

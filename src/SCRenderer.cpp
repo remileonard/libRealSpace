@@ -894,7 +894,7 @@ void SCRenderer::RenderWorldSolid(RSArea* area, int LOD, int verticesPerBlock){
 
 void SCRenderer::RenderObjects(RSArea* area,size_t blockID){
     
-    std::vector<MapObject> *objects = &area->objects[blockID];
+    std::vector<MapObject> *objects = &area->objects;
 
     for (size_t i =0 ; i < objects->size(); i++) {
         MapObject object = objects->at(i);
