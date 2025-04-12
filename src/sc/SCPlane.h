@@ -76,10 +76,6 @@ private:
     /* hold the plane id	*/
     unsigned short lost;
 
-
-
-    int thrust;
-
     char mtype;
 
     float ELEVF_CSTE;
@@ -186,7 +182,7 @@ public:
     float b;
     float W;
     float Mthrust;
-    
+    int thrust;
     float elevation_speedf;
     float azimuth_speedf;
 

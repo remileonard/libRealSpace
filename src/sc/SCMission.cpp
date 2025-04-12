@@ -348,8 +348,8 @@ void SCMission::update() {
         if (ai_actor->plane->status == 0) {
             continue;
         }
-        ai_actor->plane->Simulate();
-        ai_actor->pilot->AutoPilot();
+        ai_actor->plane->OrigSimulate();
+        ai_actor->pilot->PilotPlane();
         
         Vector3D npos;
         ai_actor->plane->getPosition(&npos);
