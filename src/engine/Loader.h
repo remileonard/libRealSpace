@@ -11,36 +11,26 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include <queue>
 class Loader {
-public:
-    Loader();
-    ~Loader();
-
-    void init();
-    
-    // Fonction pour démarrer le chargement en arrière-plan
-    void startLoading(std::function<void(Loader*)> loadingCallback);
-    
-    // Affiche un frame de l'écran de chargement
-    void runFrame();
-    
-    // Vérifie si le chargement est terminé
-    bool isLoadingComplete() const;
-    void log(const std::string& message);
-    // Fonction pour mettre à jour la progression du chargement
-    void setProgress(float progress);
-    void close();
-    void debugOpenGLState();
-    static Loader& getInstance() {
-        static Loader instance;
-        return instance;
-    };
 private:
     std::thread loadingThread;
     std::atomic<bool> loadingComplete;
     std::atomic<float> loadingProgress;
     std::vector<std::string> logMessages;
     std::mutex progressMutex;
-    
+public:
+    Loader();
+    ~Loader();
+
+    void init();
+    void startLoading(std::function<void(Loader*)> loadingCallback);
+    void runFrame();
+    bool isLoadingComplete() const;
+    void log(const std::string& message);
+    void setProgress(float progress);
+    void close();
+    static Loader& getInstance() {
+        static Loader instance;
+        return instance;
+    };    
 };

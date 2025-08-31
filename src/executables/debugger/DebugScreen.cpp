@@ -58,7 +58,7 @@ void DebugScreen::init(int w, int h, bool fullscreen){
     }
 
     // 3. UNE seule création de fenêtre
-    sdlWindow = SDL_CreateWindow("RealSpace OBJ Viewer",
+    sdlWindow = SDL_CreateWindow("Neo Strike Commander DebugTool",
                                  SDL_WINDOWPOS_UNDEFINED,
                                  SDL_WINDOWPOS_UNDEFINED,
                                  this->width,

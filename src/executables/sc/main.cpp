@@ -87,10 +87,7 @@ int main(int argc, char* argv[]) {
         loader->setProgress(100.0f);
     });
     while (!loader.isLoadingComplete()) {
-        // Dessiner l'écran de chargement
         loader.runFrame();
-        
-        // Mettre à jour l'affichage
         Screen->refresh();
         SDL_PumpEvents();
     }

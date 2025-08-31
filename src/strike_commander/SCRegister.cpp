@@ -24,13 +24,11 @@ SCRegister::SCRegister() {
 
 SCRegister::~SCRegister() {
     m_keyboard = nullptr;
-    // Restaurer l'ancien callback (ou effacer si aucun)
     InputActionSystem::getInstance().setSpecialKeyCallback(m_prevSpecialKeyCB);
     m_keyboard = nullptr;
 }
 
 void SCRegister::init() {
-    // --- Chargements existants (reprendre l’ancien code init) ---
     TreEntry* entryMountain = Assets.GetEntryByName(Assets.optshps_filename);
     PakArchive pak;
     pak.InitFromRAM("",entryMountain->data,entryMountain->size);
@@ -54,16 +52,12 @@ void SCRegister::init() {
 
     this->font = FontManager.GetFont("..\\..\\DATA\\FONTS\\SM-FONT.SHP");
 
-    // Zones d’édition (positions d’après ton rendu existant)
-    // Prénom: 172,104
-    // Nom:    88,104
-    // Callsign: 122,110
     m_zoneName = new SCZone();
     m_zoneName->id = 0;
     m_zoneName->position = {87,99};
     m_zoneName->dimension = {60,6};
     m_zoneName->active = true;
-    m_zoneName->onclick = [this](void*, int){ activateEditor(1); };
+    m_zoneName->onclick = [this](void*, int){ activateEditor(0); };
     zones.push_back(m_zoneName);
 
     m_zoneFirstName = new SCZone();
@@ -71,7 +65,7 @@ void SCRegister::init() {
     m_zoneFirstName->position = {171,99};
     m_zoneFirstName->dimension = {60,6};
     m_zoneFirstName->active = true;
-    m_zoneFirstName->onclick = [this](void*, int){ activateEditor(0); };
+    m_zoneFirstName->onclick = [this](void*, int){ activateEditor(1); };
     zones.push_back(m_zoneFirstName);
 
     m_zoneCallsign = new SCZone();
@@ -82,24 +76,20 @@ void SCRegister::init() {
     m_zoneCallsign->onclick = [this](void*, int){ activateEditor(2); };
     zones.push_back(m_zoneCallsign);
 
-    // Initialiser les textes dans les éditeurs
     m_editorFirstName->setText(GameState.player_firstname);
     m_editorName->setText(GameState.player_name);
     m_editorCallsign->setText(GameState.player_callsign);
 
-    // Activer l’éditeur prénom par défaut
     activateEditor(0);
 }
 
 void SCRegister::activateEditor(int index) {
     if (index < 0 || index > 2) return;
 
-    // Commit avant de changer
     commitActiveEditor();
 
     m_activeEditor = index;
 
-    // Désactiver tous
     m_editorFirstName->setActive(false);
     m_editorName->setActive(false);
     m_editorCallsign->setActive(false);
@@ -128,7 +118,6 @@ void SCRegister::activateEditor(int index) {
 }
 
 void SCRegister::commitActiveEditor() {
-    // Sauvegarde le contenu de l’éditeur actif dans GameState
     switch (m_activeEditor) {
         case 1:
             GameState.player_firstname = m_editorFirstName->getText();
@@ -146,17 +135,15 @@ void SCRegister::checkKeyboard(void) {
     checkZones();
     if (!m_keyboard) return;
     if (m_tabSuppressFrames > 0) m_tabSuppressFrames--;
-    // Mettre à jour en continu (commit plus tard si besoin)
+    
     commitActiveEditor();
 
-    // TAB : changer le focus
     if (m_tabSuppressFrames == 0 && m_keyboard->isActionJustPressed(InputAction::KEY_TAB)) {
         int next = (m_activeEditor + 1) % 3;
         activateEditor(next);
-        m_tabSuppressFrames = 1; // Empêche re-switch dans la même frame (optionnel)
+        m_tabSuppressFrames = 1;
     }
 
-    // RETURN : logique d’origine
     if (m_keyboard->isActionJustPressed(InputAction::KEY_RETURN)) {
         if (!GameState.player_callsign.empty() &&
             !GameState.player_firstname.empty() &&
@@ -171,7 +158,6 @@ void SCRegister::checkKeyboard(void) {
 
             stop();
         } else {
-            // Passer au suivant (priorité aux champs vides)
             if (GameState.player_firstname.empty())
                 activateEditor(0);
             else if (GameState.player_name.empty())
@@ -193,8 +179,10 @@ void SCRegister::checkZones() {
                 // HIT !
                 Mouse.SetMode(SCMouse::VISOR);
 
-                if (m_keyboard->isActionJustPressed(InputAction::MOUSE_LEFT)) {
+                if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
+                    Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
                     zone->onclick(nullptr, zone->id);
+
                 }
                 return;
             }
@@ -212,10 +200,9 @@ void SCRegister::runFrame(void) {
     fb->Clear();
     VGA.SetPalette(&this->palette);
 
-    // Dessin statique (existant)
+    
     fb->DrawShape(&book);
 
-    // Affichage des trois champs (éditeur actif = texte avec curseur)
     std::string firstNameDisplay = (m_activeEditor==1) ? m_editorFirstName->getDisplayText()
                                                        : GameState.player_firstname;
     std::string nameDisplay      = (m_activeEditor==0) ? m_editorName->getDisplayText()
@@ -227,15 +214,6 @@ void SCRegister::runFrame(void) {
     fb->PrintText(this->font, {88,104},  nameDisplay, 0);
     fb->PrintText(this->font, {122,110}, callsignDisplay, 0);
 
-    // Indicateur visuel de focus (cadre simple)
-    auto drawFocus = [&](SCZone* z){
-        z->drawQuad();
-    };
-    if (m_activeEditor==1) drawFocus(m_zoneFirstName);
-    if (m_activeEditor==0) drawFocus(m_zoneName);
-    if (m_activeEditor==2) drawFocus(m_zoneCallsign);
-
-    // Souris
     Mouse.Draw();
 
     VGA.VSync();

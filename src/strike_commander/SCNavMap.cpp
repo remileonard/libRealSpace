@@ -171,6 +171,8 @@ void SCNavMap::SetName(char *name) {
  */
 void SCNavMap::runFrame(void) {
     this->checkKeyboard();
+    bool upscaled = VGA.upscale;
+    VGA.upscale = false;
     VGA.Activate();
     VGA.GetFrameBuffer()->Clear();
     ResetLabelBoxes();
@@ -396,6 +398,7 @@ void SCNavMap::runFrame(void) {
     
     Mouse.Draw();
     VGA.VSync();
+    VGA.upscale = upscaled;
 }
 
 void SCNavMap::showArea(AREA *area, float center, float map_width, int w, int h, int t, int l, int c) {

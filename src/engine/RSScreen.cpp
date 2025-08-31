@@ -58,7 +58,7 @@ void RSScreen::init(int width, int height, bool fullscreen){
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     }
     
-    sdlWindow = SDL_CreateWindow("RealSpace OBJ Viewer",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,this->width,this->height,SDL_WINDOW_OPENGL);
+    sdlWindow = SDL_CreateWindow("Neo Strike Commander",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,this->width,this->height,SDL_WINDOW_OPENGL);
     
     // Create an OpenGL context associated with the window.
     SDL_GLContext gl_context = SDL_GL_CreateContext(sdlWindow);
