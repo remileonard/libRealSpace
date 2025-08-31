@@ -359,6 +359,12 @@ void SCProg::execute() {
                     this->mission->mission->mission_data.flags[prog.arg] = 1;
                 }
             break;
+            case OP_SET_FLAG_TO_FALSE:
+                if (exec) {
+                    this->actor->executed_opcodes.push_back(i);
+                    this->mission->mission->mission_data.flags[prog.arg] = 0;
+                }
+            break;
             case OP_GET_FLAG_ID:
                 if (exec) {
                     this->actor->executed_opcodes.push_back(i);
