@@ -106,19 +106,25 @@ void DebugGame::pumpEvents(void) {
 
 void DebugGame::run() {
     IActivity *currentActivity;
+    
     while (activities.size() > 0) {
 
         pumpEvents();
-
-        currentActivity = activities.top();
-        if (currentActivity->isRunning()) {
-            currentActivity->focus();
-            currentActivity->runFrame();
+        Loader &loader = Loader::getInstance();
+        if (!loader.isLoadingComplete()) {
+            //Screen->openScreen();
+            loader.runFrame();
         } else {
-            activities.pop();
-            delete currentActivity;
+            currentActivity = activities.top();
+            if (currentActivity->isRunning()) {
+                currentActivity->focus();
+                currentActivity->runFrame();
+            } else {
+                activities.pop();
+                delete currentActivity;
+            }
         }
-
+        
         Screen->refresh();
 
         Mouse.FlushEvents(); // On peut le garder si sa logique interne reste valable.
@@ -127,44 +133,49 @@ void DebugGame::run() {
 
 void DebugGame::loadSC() {
     
+
     Assets.SetBase("./assets");
     // Load all TREs and PAKs
-    
-    std::vector<std::string> cdTreFiles = {
-        "GAMEFLOW.TRE",
-        "MISC.TRE",
-        "MISSIONS.TRE",
-        "OBJECTS.TRE",
-        "SOUND.TRE",
-        "TEXTURES.TRE"
-    };
-    Assets.init(cdTreFiles);
-    
-    Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
-    Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
-    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
-    Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
-    Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
-    Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+    Loader& loader = Loader::getInstance();
+    loader.init();
+    loader.startLoading([](Loader* loader) {
+        std::vector<std::string> cdTreFiles = {
+            "GAMEFLOW.TRE",
+            "MISC.TRE",
+            "MISSIONS.TRE",
+            "OBJECTS.TRE",
+            "SOUND.TRE",
+            "TEXTURES.TRE"
+        };
+        Assets.init(cdTreFiles);
+        
+        Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+        Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+        Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+        Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+        Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+        Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
 
-    Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
-    Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
-    Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
-    Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
-    Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-    Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
-    Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
-    Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
-    Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
-    Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
-    Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
-    Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
-    
-    FontManager.init(&Assets);
+        Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
+        Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+        Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+        Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+        Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+        Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+        Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+        Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
+        
+        FontManager.init(&Assets);
 
-    // Load assets needed for Conversations (char and background)
-    ConvAssets.init();
-    RSSound::getInstance().init(&Assets);
+        // Load assets needed for Conversations (char and background)
+        ConvAssets.init();
+        RSSound::getInstance().init(&Assets);
+    });
+    
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
     //SCMainMenu* main = new SCMainMenu();
@@ -184,40 +195,47 @@ void DebugGame::loadSCCD() {
     
     Assets.SetBase("./assets");
     // Load all TREs and PAKs
-    
-    Assets.ReadISOImage("./SC.DAT");
-    std::vector<std::string> treFiles = {
-        "BIGTRE.TRE",
-        "LILTRE.TRE",
-        "VOCLIST.TRE"
-    };
-    Assets.init(treFiles);
-    
-    Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
-    Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
-    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
-    Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
-    Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
-    Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+    Loader& loader = Loader::getInstance();
+    loader.init();
+    loader.startLoading([](Loader* loader) {
+        loader->setProgress(0.0f);
+        Assets.ReadISOImage("./SC.DAT");
+        loader->setProgress(20.0f);
+        std::vector<std::string> treFiles = {
+            "BIGTRE.TRE",
+            "LILTRE.TRE",
+            "VOCLIST.TRE"
+        };
+        Assets.init(treFiles);
+        loader->setProgress(50.0f);
+        Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+        Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+        Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+        Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+        Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+        Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
 
-    Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
-    Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
-    Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
-    Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
-    Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-    Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
-    Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
-    Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
-    Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
-    Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
-    Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
-    Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
-    
-    FontManager.init(&Assets);
-
-    // Load assets needed for Conversations (char and background)
-    ConvAssets.init();
-    RSSound::getInstance().init(&Assets);
+        Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
+        Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+        Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+        Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+        Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+        Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+        Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+        Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
+        
+        FontManager.init(&Assets);
+        loader->setProgress(60.0f);
+        // Load assets needed for Conversations (char and background)
+        ConvAssets.init();
+        loader->setProgress(85.0f);
+        RSSound::getInstance().init(&Assets);
+        loader->setProgress(100.0f);
+    });
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
     
@@ -237,37 +255,41 @@ void DebugGame::testMissionSC() {
     
     Assets.SetBase("./assets");
     // Load all TREs and PAKs
-    Assets.ReadISOImage("./SC.DAT");
-    std::vector<std::string> treFiles = {
-        "BIGTRE.TRE",
-        "LILTRE.TRE",
-        "TOBIGTRE.TRE",
-        "PACIFIC.DAT"
-    };
-    Assets.init(treFiles);
-    
-    Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
-    Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
-    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
-    Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
-    Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
-    Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+    Loader& loader = Loader::getInstance();
+    loader.init();
+    loader.startLoading([](Loader* loader) {
+        Assets.ReadISOImage("./SC.DAT");
+        std::vector<std::string> treFiles = {
+            "BIGTRE.TRE",
+            "LILTRE.TRE",
+            "TOBIGTRE.TRE",
+            "PACIFIC.DAT"
+        };
+        Assets.init(treFiles);
+        
+        Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+        Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+        Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+        Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+        Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+        Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
 
-    Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
-    Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
-    Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
-    Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
-    Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-    Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
-    Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
-    Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
-    Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
-    Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
-    Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
-    Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
-    
-    FontManager.init(&Assets);
-    RSSound::getInstance().init(&Assets);
+        Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
+        Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+        Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+        Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+        Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+        Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+        Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+        Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
+        
+        FontManager.init(&Assets);
+        RSSound::getInstance().init(&Assets);
+    });
     //Add MainMenu activity on the game stack.
     DebugStrike * main = new DebugStrike();
     main->init();
@@ -277,40 +299,44 @@ void DebugGame::testMissionSC() {
 }
 
 void DebugGame::loadTO() {
-    Assets.SetBase("./assets");
-    // Load all TREs and PAKs
-    
-    std::vector<std::string> cdTreFiles = {
-        "TOBIGTRE.TRE",
-        "LILTRE.TRE",
-        "TOVOCLST.TRE"
-    };
-    Assets.ReadISOImage("./SC.DAT");
-    Assets.init(cdTreFiles);
-    Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
-    Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
-    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
-    Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
-    Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
-    Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+    Loader& loader = Loader::getInstance();
+    loader.init();
+    loader.startLoading([](Loader* loader) {
+        Assets.SetBase("./assets");
+        // Load all TREs and PAKs
+        
+        std::vector<std::string> cdTreFiles = {
+            "TOBIGTRE.TRE",
+            "LILTRE.TRE",
+            "TOVOCLST.TRE"
+        };
+        Assets.ReadISOImage("./SC.DAT");
+        Assets.init(cdTreFiles);
+        Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+        Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+        Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+        Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+        Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+        Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
 
-    Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLO2.IFF";
-    Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
-    Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
-    Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
-    Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
-    Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
-    Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
-    Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
-    Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
-    Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
-    Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
-    Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
-    
-    FontManager.init(&Assets);
-    // Load assets needed for Conversations (char and background)
-    ConvAssets.init();
-    RSSound::getInstance().init(&Assets);
+        Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLO2.IFF";
+        Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+        Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+        Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
+        Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+        Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+        Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+        Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+        Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
+        
+        FontManager.init(&Assets);
+        // Load assets needed for Conversations (char and background)
+        ConvAssets.init();
+        RSSound::getInstance().init(&Assets);
+    });
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
     
@@ -329,18 +355,18 @@ void DebugGame::loadTO() {
 void DebugGame::testObjects() {
     Assets.SetBase("./assets");
     // Load all TREs and PAKs
-    std::vector<std::string> cdTreFiles = {
-        "TOBIGTRE.TRE",
-        "LILTRE.TRE"
-    };
-    Assets.ReadISOImage("./SC.DAT");
-    Assets.init(cdTreFiles);
-    
-    FontManager.init(&Assets);
-
-    // Load assets needed for Conversations (char and background)
-    // ConvAssets.init();
-
+    Loader& loader = Loader::getInstance();
+    loader.init();
+    loader.startLoading([](Loader* loader) {
+        std::vector<std::string> cdTreFiles = {
+            "TOBIGTRE.TRE",
+            "LILTRE.TRE"
+        };
+        Assets.ReadISOImage("./SC.DAT");
+        Assets.init(cdTreFiles);
+        
+        FontManager.init(&Assets);
+    });
     //Add MainMenu activity on the game stack.
     DebugObjectViewer* main = new DebugObjectViewer();
     main->init();

@@ -164,6 +164,11 @@ void SCRegister::checkKeyboard(void) {
 
             for (int i=0; i<256; i++)
                 GameState.requierd_flags[i] = false;
+
+            m_editorFirstName->setActive(false);
+            m_editorName->setActive(false);
+            m_editorCallsign->setActive(false);
+
             stop();
         } else {
             // Passer au suivant (priorité aux champs vides)

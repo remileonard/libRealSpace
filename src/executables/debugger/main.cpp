@@ -27,7 +27,7 @@ RSMixer Mixer;
 int main(int argc, char* argv[]) {
     
 
-    Loader loader;
+    Loader& loader = Loader::getInstance();
     
     Screen->init(1200,800,0);
     Assets.SetBase("./assets");
@@ -35,11 +35,11 @@ int main(int argc, char* argv[]) {
 
     // Démarrer le chargement des assets en arrière-plan
     Screen->is_spfx_finished = false; // Reset the TV effect state
-    while (!Screen->is_spfx_finished) {
+    /*while (!Screen->is_spfx_finished) {
         Screen->fxTurnOnTv();
         Screen->refresh();
         SDL_PumpEvents();
-    }
+    }*/
     loader.startLoading([](Loader* loader) {
         loader->setProgress(0.0f);
         // Load all TREs and PAKs
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
         Screen->refresh();
         SDL_PumpEvents();
     }
-
+    loader.close();
     Game->init();
     Game->run();
 

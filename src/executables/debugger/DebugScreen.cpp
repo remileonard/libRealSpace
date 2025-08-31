@@ -95,9 +95,7 @@ void DebugScreen::init(int w, int h, bool fullscreen){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glViewport(0, 0, this->width, this->height);
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    RSScreen::openScreen();
 
     SDL_ShowWindow(sdlWindow);
 }

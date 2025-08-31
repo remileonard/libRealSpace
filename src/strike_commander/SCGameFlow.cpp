@@ -676,9 +676,7 @@ void SCGameFlow::runFrame(void) {
         delete this->frequest;
         this->frequest = nullptr;
     }
-    if (this->frequest == nullptr || !this->frequest->opened) {
-        this->CheckZones();
-    }
+    
     
     if (this->cutsenes.size() > 0) {
         SCShot *c = this->cutsenes.front();
@@ -723,13 +721,16 @@ void SCGameFlow::runFrame(void) {
     }
     VGA.Activate();
     VGA.GetFrameBuffer()->FillWithColor(0);
+    
     if (this->scen != nullptr) {
         this->scen->Render();
         if (this->test_shape != nullptr) {
             VGA.GetFrameBuffer()->DrawShape(this->test_shape);
         }
     }
-    
+    if (this->frequest == nullptr || !this->frequest->opened) {
+        this->CheckZones();
+    }
     if (this->frequest != nullptr && this->frequest->opened) {
         this->frequest->draw(VGA.GetFrameBuffer());
     }

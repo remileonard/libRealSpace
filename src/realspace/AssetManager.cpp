@@ -99,9 +99,10 @@ void AssetManager::init(std::vector<std::string> nameIds){
             continue;
         }
         tre->InitFromRAM(nameId.c_str(), fileData->data, fileData->size);
-        
+        this->loader.log("Loading TRE " + nameId);
         if (tre->IsValid()) {
             this->tres.push_back(tre);
+            this->loader.log("Loaded TRE " + nameId + " with " + std::to_string(tre->GetNumEntries()) + " entries.");
             for (auto treEntry : tre->entries) {
                 std::string *name = new std::string(treEntry->name);
                 if (treEntries.find(*name) != treEntries.end()) {
@@ -109,6 +110,7 @@ void AssetManager::init(std::vector<std::string> nameIds){
                     //exit(-1);
                 }
                 auto res = treEntries.insert(std::pair<std::string,TreEntry*>(*name,treEntry));
+                this->loader.log("Inserted entry " + *name + " from TRE " + nameId);
                 if (!res.second) {
                     printf("ERROR INSERTING name %s", name->c_str());
                 }
@@ -124,6 +126,7 @@ TreEntry * AssetManager::GetEntryByName(std::string name){
     if (treEntries.find(name) == treEntries.end()) {
         return nullptr;
     }
+    loader.log("Fetching entry " + name);
     return treEntries[name];
 }
 AssetManager::AssetManager(){
@@ -143,6 +146,7 @@ AssetManager::~AssetManager(){
 
 bool AssetManager::ReadISOImage(const std::string& isoPath) {
     this->cacheFileData.clear();
+    loader.log("Reading ISO Image");
     std::ifstream isoFile(isoPath, std::ios::binary);
     if (!isoFile.is_open()) {
         std::cerr << "Failed to open ISO file: " << isoPath << std::endl;
@@ -163,6 +167,7 @@ bool AssetManager::ReadISOImage(const std::string& isoPath) {
         if (!entry.second.isDirectory) {
             FileData *fileData = ReadFileEntry(entry.second, isoPath);
             if (fileData != nullptr) {
+                loader.log("Caching " + entry.first);
                 this->cacheFileData[entry.first] = fileData;
             }
         }
@@ -381,6 +386,7 @@ void AssetManager::writeFileData(const std::string fileName, FileData *fileData)
 
 FileData * AssetManager::GetFileData(std::string filename) {
     FileData *fileData;
+    loader.log("Requesting " + filename);
     if (cacheFileData.find(filename) == cacheFileData.end()) {
         fileData = new FileData();
         fileData->data = nullptr;

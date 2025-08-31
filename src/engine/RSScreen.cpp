@@ -77,11 +77,20 @@ void RSScreen::init(int width, int height, bool fullscreen){
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(sdlWindow, gl_context);
     ImGui_ImplOpenGL2_Init();
-    int w = (int) ((float)this->height * (4.0f/3.0f));
-    glViewport((int)((float)(this->width - w)/2.0f),0,w,this->height);			// Reset The Current Viewport
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				// Black Background
-    glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
+    openScreen();
     SDL_ShowWindow(sdlWindow);
+}
+
+void RSScreen::openScreen(void){
+    int w = (int) ((float)this->height * (4.0f/3.0f));
+    
+	glClearColor(0.0f, 0.3f, 0.0f, 1.0f);				// Black Background
+    glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glViewport((int)((float)(this->width - w)/2.0f),0,w,this->height);			// Reset The Current Viewport
 }
 
 void RSScreen::refresh(void){

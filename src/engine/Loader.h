@@ -11,7 +11,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-
+#include <queue>
 class Loader {
 public:
     Loader();
@@ -27,14 +27,20 @@ public:
     
     // Vérifie si le chargement est terminé
     bool isLoadingComplete() const;
-    
+    void log(const std::string& message);
     // Fonction pour mettre à jour la progression du chargement
     void setProgress(float progress);
-    static Loader& getInstance();
+    void close();
+    void debugOpenGLState();
+    static Loader& getInstance() {
+        static Loader instance;
+        return instance;
+    };
 private:
     std::thread loadingThread;
     std::atomic<bool> loadingComplete;
     std::atomic<float> loadingProgress;
+    std::vector<std::string> logMessages;
     std::mutex progressMutex;
     
 };

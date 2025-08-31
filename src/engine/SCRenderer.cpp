@@ -1697,7 +1697,6 @@ void SCRenderer::initRenderCameraView(){
     const float verticalOffset = 0.45f;
     Matrix *projectionMatrix = camera.GetProjectionMatrix();
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
     glLoadIdentity();
     glTranslatef(0.0f, verticalOffset, 0.0f);
     glMultMatrixf(projectionMatrix->ToGL());

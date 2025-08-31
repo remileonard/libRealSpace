@@ -276,7 +276,7 @@ void SCObjectViewer::runFrame(void) {
     }
     
     glPopMatrix();
-    glPushMatrix();
+    glPopMatrix();
     glDisable(GL_DEPTH_TEST);
 
     VGA.Activate();

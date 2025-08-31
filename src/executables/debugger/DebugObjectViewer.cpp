@@ -102,7 +102,7 @@ void DebugObjectViewer::runFrame()  {
     }
     
     glPopMatrix();
-    glPushMatrix();
+    glPopMatrix();
     glDisable(GL_DEPTH_TEST);
 
     VGA.Activate();

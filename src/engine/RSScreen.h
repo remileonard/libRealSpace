@@ -30,6 +30,7 @@ public:
     ~RSScreen();
     
     virtual void init(int width, int height, bool fullscreen);
+    virtual void openScreen(void);
     virtual void setTitle(const char* title);
     virtual void refresh(void);
     virtual void fxTurnOnTv();

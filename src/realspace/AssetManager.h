@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 #include <map>
-
+#include "../engine/Loader.h"
 
 #include "TreArchive.h"
 // Structure pour stocker le Root Directory Record (selon ISO9660)
@@ -109,6 +109,7 @@ private:
     bool ExtractPrimaryVolumeDescriptor(std::ifstream &isoFile, PrimaryVolumeDescriptor &pvd);
     bool ExtractFileListFromRootDirectory(std::ifstream &isoFile, const PrimaryVolumeDescriptor &pvd);
     FileData *ReadFileEntry(const FileEntry &entry, const std::string &isoPath);
+    Loader &loader = Loader::getInstance();
     
 };
 #endif /* defined(__libRealSpace__AssetManager__) */

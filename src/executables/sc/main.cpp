@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     Game = new GameEngine();
     Screen = new RSScreen();
     Screen->init(WIDTH,HEIGHT,FULLSCREEN);
-    Loader loader;
+    Loader& loader = Loader::getInstance();
     Screen->is_spfx_finished = false;
     while (!Screen->is_spfx_finished) {
         Screen->fxTurnOnTv();
@@ -82,6 +82,8 @@ int main(int argc, char* argv[]) {
         loader->setProgress(70.0f);
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
+        loader->setProgress(90.0f);
+        RSSound::getInstance().init(&Assets);
         loader->setProgress(100.0f);
     });
     while (!loader.isLoadingComplete()) {
