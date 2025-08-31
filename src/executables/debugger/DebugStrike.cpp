@@ -1195,6 +1195,7 @@ void DebugStrike::renderMenu() {
             for (auto area : this->current_mission->mission->mission_data.areas) {
                 if (ImGui::TreeNode((void *)(intptr_t)area->id, "Area id %d", area->id)) {
                     ImGui::Text("Area name %s", area->AreaName);
+                    ImGui::Text("Area Type %c", area->AreaType);
                     ImGui::Text("Area x %.0f y %.0f z %.0f", area->position.x, area->position.y, area->position.z);
                     ImGui::Text("Area width %d height %d", area->AreaWidth, area->AreaHeight);
                     for (auto ub : area->unknown_bytes) {

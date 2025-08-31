@@ -19,4 +19,8 @@ public:
     std::map<uint8_t, InGameVoice *> inGameVoices;
     std::vector<MemSound *> sounds;
     void init(AssetManager *assetManager);
+    static RSSound &getInstance() {
+        static RSSound instance;
+        return instance;
+    };
 };

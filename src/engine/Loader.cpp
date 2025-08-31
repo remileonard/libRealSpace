@@ -1,6 +1,12 @@
 #include "Loader.h"
 #include "SDL_ttf.h"
 
+
+Loader& Loader::getInstance() {
+    static Loader instance;
+    return instance;
+}
+
 Loader::Loader() : loadingComplete(false), loadingProgress(0.0f) {}
 
 Loader::~Loader() {

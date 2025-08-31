@@ -164,7 +164,7 @@ void DebugGame::loadSC() {
 
     // Load assets needed for Conversations (char and background)
     ConvAssets.init();
-
+    RSSound::getInstance().init(&Assets);
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
     //SCMainMenu* main = new SCMainMenu();
@@ -217,7 +217,7 @@ void DebugGame::loadSCCD() {
 
     // Load assets needed for Conversations (char and background)
     ConvAssets.init();
-
+    RSSound::getInstance().init(&Assets);
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
     
@@ -267,7 +267,7 @@ void DebugGame::testMissionSC() {
     Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
     
     FontManager.init(&Assets);
-
+    RSSound::getInstance().init(&Assets);
     //Add MainMenu activity on the game stack.
     DebugStrike * main = new DebugStrike();
     main->init();
@@ -310,7 +310,7 @@ void DebugGame::loadTO() {
     FontManager.init(&Assets);
     // Load assets needed for Conversations (char and background)
     ConvAssets.init();
-    
+    RSSound::getInstance().init(&Assets);
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
     

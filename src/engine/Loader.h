@@ -30,7 +30,7 @@ public:
     
     // Fonction pour mettre à jour la progression du chargement
     void setProgress(float progress);
-
+    static Loader& getInstance();
 private:
     std::thread loadingThread;
     std::atomic<bool> loadingComplete;

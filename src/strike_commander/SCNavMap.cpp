@@ -403,31 +403,25 @@ void SCNavMap::showArea(AREA *area, float center, float map_width, int w, int h,
     int newy = (int) (((area->position.z+center)/map_width)*h)+t;
     int neww = (int) ((area->AreaWidth / map_width) * w);
     int newh = neww;
+    bool isCircle = true;
     if (area->AreaHeight != 0) {
         newh = (int) ((area->AreaHeight / map_width) * h);
+        isCircle = false;
     }
     if (newx>0 && newx<320 && newy>0 && newy<200) {
         int txtw = (int) strlen(area->AreaName) * (this->navMap->font->GetShapeForChar('A')->GetWidth()+1);
         int txtl = (int) strlen(area->AreaName);
         Point2D *p1 = new Point2D({newx-(txtw/2)<0?newx:newx-(txtw/2), newy});
-        switch (area->AreaType) {
-            case 'S':
-                VGA.GetFrameBuffer()->circle_slow(newx, newy, neww, 1);
-                /*VGA.GetFrameBuffer()->line(newx-neww, newy-neww, newx+neww, newy-neww, 1);
-                VGA.GetFrameBuffer()->line(newx-neww, newy+neww, newx+neww, newy+neww, 1);
-                VGA.GetFrameBuffer()->line(newx-neww, newy-neww, newx-neww, newy+neww, 1);
-                VGA.GetFrameBuffer()->line(newx+neww, newy-neww, newx+neww, newy+neww, 1);*/
-                break;
-            case 'C':
-                VGA.GetFrameBuffer()->circle_slow(newx, newy, neww, 1);
-                break;
-            default:
-                VGA.GetFrameBuffer()->plot_pixel(newx, newy, 1);
-                VGA.GetFrameBuffer()->line(newx-neww, newy-neww, newx+neww, newy-neww, 1);
-                VGA.GetFrameBuffer()->line(newx-neww, newy+neww, newx+neww, newy+neww, 1);
-                VGA.GetFrameBuffer()->line(newx-neww, newy-neww, newx-neww, newy+neww, 1);
-                VGA.GetFrameBuffer()->line(newx+neww, newy-neww, newx+neww, newy+neww, 1);
-                break;
+        if (isCircle) {
+            VGA.GetFrameBuffer()->circle_slow(newx, newy, neww, c);
+        } else if (area->AreaType != 'C') {
+            VGA.GetFrameBuffer()->plot_pixel(newx, newy, 1);
+            VGA.GetFrameBuffer()->line(newx-neww, newy-newh, newx+neww, newy-newh, c);
+            VGA.GetFrameBuffer()->line(newx-neww, newy+newh, newx+neww, newy+newh, c);
+            VGA.GetFrameBuffer()->line(newx-neww, newy-newh, newx-neww, newy+newh, c);
+            VGA.GetFrameBuffer()->line(newx+neww, newy-newh, newx+neww, newy+newh, c);
+        } else if (area->AreaType == 'C') {
+            VGA.GetFrameBuffer()->circle_slow(newx, newy, newh+1, c);
         }
         int glyphW = this->navMap->font->GetShapeForChar('A')->GetWidth();
         int glyphH = this->navMap->font->GetShapeForChar('A')->GetHeight();
