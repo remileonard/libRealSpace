@@ -291,6 +291,18 @@ void SCMission::update() {
         
         for (auto scene: this->mission->mission_data.scenes) {
             if (scene->area_id == this->current_area_id-1 && scene->on_leaving != -1) {
+                // leaving current area
+                if (scene->on_leaving < this->mission->mission_data.prog.size()) {
+                    std::vector<PROG> prog;
+                    for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
+                        prog.push_back(prg);
+                    }
+                    SCProg *p = new SCProg(this->player, prog, this);
+                    p->execute();
+                }
+            }
+            if (scene->area_id == area_id-1 && scene->on_leaving != -1) {
+                // entering new area
                 if (scene->on_leaving < this->mission->mission_data.prog.size()) {
                     std::vector<PROG> prog;
                     for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {

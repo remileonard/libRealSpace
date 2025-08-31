@@ -1503,15 +1503,29 @@ void DebugStrike::renderUI() {
                         }
                     }
                     if (has_progs) {
-                        if (ImGui::TreeNode("Progs")) {
-                            for (auto prog : this->debug_scene->progs_id) {
-                                if (prog != -1) {
-                                    ImGui::Text("Prog %d", prog);
-                                    std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[prog]);
-                                    printProgTable(p, nullptr);
-                                }
+                        if (this->debug_scene->on_is_activated > 0) {
+                            if (ImGui::TreeNode("On is activated Prog")) {
+                                ImGui::Text("On is activated: %d", this->debug_scene->on_is_activated);
+                                std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[this->debug_scene->on_is_activated]);
+                                printProgTable(p, nullptr);
+                                ImGui::TreePop();
                             }
-                            ImGui::TreePop();
+                        }
+                        if (this->debug_scene->on_mission_update > 0) {
+                            if (ImGui::TreeNode("On updated Prog")) {
+                                ImGui::Text("On updated: %d", this->debug_scene->on_mission_update);
+                                std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[this->debug_scene->on_mission_update]);
+                                printProgTable(p, nullptr);
+                                ImGui::TreePop();
+                            }
+                        }
+                        if (this->debug_scene->on_leaving > 0) {
+                            if (ImGui::TreeNode("On leaving Prog")) {
+                                ImGui::Text("On leaving: %d", this->debug_scene->on_leaving);
+                                std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[this->debug_scene->on_leaving]);
+                                printProgTable(p, nullptr);
+                                ImGui::TreePop();
+                            }
                         }
                     }
                     if (ImGui::TreeNode("Unknown Bytes")) {
