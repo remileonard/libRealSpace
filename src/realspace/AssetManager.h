@@ -6,8 +6,6 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 #pragma once
-#ifndef __libRealSpace__AssetManager__
-#define __libRealSpace__AssetManager__
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -65,20 +63,21 @@ struct FileData {
 };
 
 class AssetManager{
-    
+private:
+    bool isIsoImage{false};
+    std::string *basePath;
+    std::map<std::string, FileData*> cacheFileData;
+    std::map<std::string, TreEntry *> treEntries;
+    std::map<std::string, FileEntry> fileContents;
+    bool ExtractPrimaryVolumeDescriptor(std::ifstream &isoFile, PrimaryVolumeDescriptor &pvd);
+    bool ExtractFileListFromRootDirectory(std::ifstream &isoFile, const PrimaryVolumeDescriptor &pvd);
+    FileData *ReadFileEntry(const FileEntry &entry, const std::string &isoPath);
+    Loader &loader = Loader::getInstance();
+    inline static std::unique_ptr<AssetManager> s_instance{};
+
 public:
-    void SetBase(const char* base);
-    void init(void);
-    void init(std::vector<std::string> nameIds);
+
     enum TreID {TRE_GAMEFLOW, TRE_OBJECTS, TRE_MISC, TRE_SOUND, TRE_MISSIONS,TRE_TEXTURES } ;
-    
-    std::vector<TreArchive*> tres;
-    TreEntry *GetEntryByName(std::string name);
-    AssetManager();
-    ~AssetManager();
-    bool ReadISOImage(const std::string& isoPath);
-    FileData *GetFileData(const std::string fileName);
-    void writeFileData(const std::string fileName, FileData *fileData);
     std::string conv_pak_filename;
     std::string option_filename;
     std::string gameflow_filename;
@@ -100,16 +99,30 @@ public:
     std::string sound_root_path;
     std::string texture_root_path;
     std::string gameflow_root_path;
-private:
-    bool isIsoImage{false};
-    std::string *basePath;
-    std::map<std::string, FileData*> cacheFileData;
-    std::map<std::string, TreEntry *> treEntries;
-    std::map<std::string, FileEntry> fileContents;
-    bool ExtractPrimaryVolumeDescriptor(std::ifstream &isoFile, PrimaryVolumeDescriptor &pvd);
-    bool ExtractFileListFromRootDirectory(std::ifstream &isoFile, const PrimaryVolumeDescriptor &pvd);
-    FileData *ReadFileEntry(const FileEntry &entry, const std::string &isoPath);
-    Loader &loader = Loader::getInstance();
-    
+    std::vector<TreArchive*> tres;
+
+    static AssetManager& getInstance() {
+        if (!AssetManager::hasInstance()) {
+            AssetManager::setInstance(std::make_unique<AssetManager>());
+        }
+        AssetManager& instance = AssetManager::instance();
+        return instance;
+    };
+    static AssetManager& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<AssetManager> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+
+    TreEntry *GetEntryByName(std::string name);
+    AssetManager();
+    ~AssetManager();
+    bool ReadISOImage(const std::string& isoPath);
+    FileData *GetFileData(const std::string fileName);
+    void writeFileData(const std::string fileName, FileData *fileData);
+    void SetBase(const char* base);
+    void init(void);
+    void init(std::vector<std::string> nameIds);
 };
-#endif /* defined(__libRealSpace__AssetManager__) */

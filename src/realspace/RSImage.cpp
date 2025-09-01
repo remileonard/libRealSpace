@@ -8,9 +8,7 @@
 
 #include "precomp.h"
 #include "RSImage.h"
-
-
-extern SCRenderer Renderer;
+#include "../engine/SCRenderer.h"
 
 RSImage::RSImage() :
 data(0),
@@ -31,6 +29,7 @@ void RSImage::Create(const char name[8],uint32_t width,uint32_t height, uint32_t
     this->width = width;
     this->height = height;
     this->data = (uint8_t*)malloc(this->width*this->height);
+    SCRenderer &Renderer = SCRenderer::getInstance();
     this->palette = Renderer.getPalette();
     this->nbframes = 1;
     this->texture.set(this);
@@ -44,7 +43,7 @@ void RSImage::UpdateContent(uint8_t* src) {
 
 
 void RSImage::SyncTexture(void){
-    
+    SCRenderer &Renderer = SCRenderer::getInstance();
     //Check that we have a texture with an id on the GPU
     if ((texture.locFlag & Texture::VRAM) != Texture::VRAM){
         //Create texture in the GPU
@@ -74,6 +73,7 @@ void RSImage::ClearContent(void){
 }
 
 void RSImage::GetNextFrame() {
+    SCRenderer &Renderer = SCRenderer::getInstance();
     if (this->sub_frame_buffer ==  nullptr) {
         this->sub_frame_buffer = (uint8_t*)malloc(this->width * this->height);
     }

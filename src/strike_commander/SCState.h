@@ -7,9 +7,10 @@
 //
 
 #pragma once
-#include "precomp.h"
 
 class SCState {
+private:
+    inline static std::unique_ptr<SCState> s_instance{};    
 public:
     std::map<uint8_t, bool> requierd_flags;
     std::map<uint8_t, bool> mission_flyed_success;
@@ -38,6 +39,23 @@ public:
     int32_t score{0};
     int32_t ground_kills{0};
     int32_t air_kills{0};
+
+    static SCState& getInstance() {
+        if (!SCState::hasInstance()) {
+            SCState::setInstance(std::make_unique<SCState>());
+        }
+        SCState& instance = SCState::instance();
+        return instance;
+    };
+    static SCState& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<SCState> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+
+
     SCState();
     void Load(std::string filename);
     void Save(std::string filename);

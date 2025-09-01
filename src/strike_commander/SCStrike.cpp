@@ -26,7 +26,13 @@ SCStrike::SCStrike() {
     this->camera_mode = 0;
     this->camera_pos = {-169.0f, 79.0f, -189.0f};
     this->counter = 0;
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
     this->m_keyboard = Game->getKeyboard();
+    if (this->Screen == nullptr) {
+        this->Screen = &RSScreen::instance();
+    }
 }
 
 SCStrike::~SCStrike() {}
@@ -694,7 +700,7 @@ void SCStrike::init(void) {
 
 RSEntity * SCStrike::loadWeapon(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";
-    RSEntity *objct = new RSEntity(&Assets);
+    RSEntity *objct = new RSEntity();
     TreEntry *entry = Assets.GetEntryByName(tmpname);
     if (entry != nullptr) {
         objct->InitFromRAM(entry->data, entry->size);
@@ -728,7 +734,7 @@ void SCStrike::setMission(char const *missionName) {
     ai_planes.shrink_to_fit();
     
     MISN_PART *playerCoord = this->current_mission->player->object;
-    this->area = *this->current_mission->area;
+    this->area = this->current_mission->area;
     new_position.x = playerCoord->position.x;
     new_position.z = playerCoord->position.z;
     new_position.y = playerCoord->position.y;
@@ -741,7 +747,7 @@ void SCStrike::setMission(char const *missionName) {
     this->player_plane = this->current_mission->player->plane;
     this->player_plane->yaw = (360 - playerCoord->azymuth) * 10.0f;
     this->player_plane->object = playerCoord;
-    float ground = this->area.getY(new_position.x, new_position.z);
+    float ground = this->area->getY(new_position.x, new_position.z);
     if (ground < new_position.y) {
         this->player_plane->SetThrottle(100);
         this->player_plane->SetWheel();
@@ -916,7 +922,7 @@ void SCStrike::runFrame(void) {
             this->setCameraLookat(target_position);
             Renderer.initRenderToTexture();
             Renderer.initRenderCameraView();
-            Renderer.renderWorldToTexture(&area);
+            Renderer.renderWorldToTexture(area);
             
             this->player_plane->Render();
             if (this->target->plane != nullptr) {
@@ -1045,7 +1051,7 @@ void SCStrike::runFrame(void) {
     }
 
     Renderer.bindCameraProjectionAndView(0.45f);
-    Renderer.renderWorldSolid(&area, BLOCK_LOD_MAX, 400);
+    Renderer.renderWorldSolid(area, BLOCK_LOD_MAX, 400);
 
     if (this->show_bbox) {
         for (auto rrarea: this->current_mission->mission->mission_data.areas) {

@@ -9,14 +9,10 @@
 #include "RSArea.h"
 #include "../engine/SCRenderer.h"
 #include <cmath>
-extern SCRenderer Renderer;
 
 
 RSArea::RSArea() {
 
-}
-RSArea::RSArea(AssetManager *amanager) {
-    this->assetsManager = amanager;
 }
 RSArea::~RSArea() {
     //delete archive;
@@ -348,7 +344,7 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
     strcpy(name, pakFilename);
 
     // Check the PAK has 5 entries
-    FileData *fileData = assetsManager->GetFileData(pakFilename);
+    FileData *fileData = assetsManager.GetFileData(pakFilename);
     this->archive = new PakArchive();
     this->archive->InitFromRAM(pakFilename, fileData->data, fileData->size);
     this->objects.clear();
@@ -384,7 +380,7 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
     TreEntry *treEntry = NULL;
     RSMapTextureSet *set;
 
-    treEntry = assetsManager->GetEntryByName(Assets.txm_filename);
+    treEntry = assetsManager.GetEntryByName(assetsManager.txm_filename);
     PakArchive txmPakArchive;
     txmPakArchive.InitFromRAM("TXMPACK", treEntry->data, treEntry->size);
     set = new RSMapTextureSet();
@@ -392,7 +388,7 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
     textures.push_back(set);
 
     // ACCPACK.PAK seems to contain runway textures
-    treEntry = assetsManager->GetEntryByName(Assets.acc_filename);
+    treEntry = assetsManager.GetEntryByName(assetsManager.acc_filename);
     PakArchive accPakArchive;
     accPakArchive.InitFromRAM("ACCPACK.PAK", treEntry->data, treEntry->size);
     set = new RSMapTextureSet();

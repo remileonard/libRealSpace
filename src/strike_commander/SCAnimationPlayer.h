@@ -72,6 +72,10 @@ typedef struct MIDGAME_DATA {
 
 class SCAnimationPlayer: public IActivity {
 private:
+    AssetManager &Assets = AssetManager::getInstance();
+    RSMixer &Mixer = RSMixer::getInstance();
+    GameEngine *Game{nullptr};
+    RSVGA &VGA = RSVGA::getInstance();
     PakArchive midgames;
     PakArchive optShps;
     PakArchive optPals;

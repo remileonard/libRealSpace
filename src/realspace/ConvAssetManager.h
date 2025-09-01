@@ -5,9 +5,7 @@
 //  Created by Fabien Sanglard on 2/1/2014.
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
-
-#ifndef __libRealSpace__ConAssetManager__
-#define __libRealSpace__ConAssetManager__
+#pragma once
 
 #define CONV_TOP_BAR_HEIGHT 23
 #define CONV_BOTTOM_BAR_HEIGHT 48
@@ -20,7 +18,6 @@
 #include "RSImageSet.h"
 #include "../commons/IFFSaxLexer.h"
 
-extern AssetManager Assets;
 typedef struct CharFace {
 
     char name[9];
@@ -51,19 +48,6 @@ typedef struct ConvBackGround {
 } ConvBackGround;
 
 class ConvAssetManager {
-
-public:
-    ConvAssetManager();
-    ~ConvAssetManager();
-
-    void init(void);
-
-    CharFace *GetCharFace(char *name);
-    ConvBackGround *GetBackGround(char *name);
-    CharFigure *GetFigure(char *name);
-
-    uint8_t GetFacePaletteID(char *name);
-    std::string conv_file_name;
 private:
     void BuildDB(void);
 
@@ -95,6 +79,33 @@ private:
     void parseFCPL_DATA(uint8_t *data, size_t size);
     void parseFGPL(uint8_t *data, size_t size);
     void parseFGPL_DATA(uint8_t *data, size_t size);
-};
+    inline static std::unique_ptr<ConvAssetManager> s_instance{};
+    AssetManager &Assets = AssetManager::getInstance();
+public:
+    static ConvAssetManager& getInstance() {
+        if (!ConvAssetManager::hasInstance()) {
+            ConvAssetManager::setInstance(std::make_unique<ConvAssetManager>());
+        }
+        ConvAssetManager& instance = ConvAssetManager::instance();
+        return instance;
+    };
+    static ConvAssetManager& instance() {
+        return *s_instance; 
+    }
+    static void setInstance(std::unique_ptr<ConvAssetManager> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+    ConvAssetManager();
+    ~ConvAssetManager();
 
-#endif /* defined(__libRealSpace__ConAssetManager__) */
+    void init(void);
+
+    CharFace *GetCharFace(char *name);
+    ConvBackGround *GetBackGround(char *name);
+    CharFigure *GetFigure(char *name);
+
+    uint8_t GetFacePaletteID(char *name);
+    std::string conv_file_name;
+
+};

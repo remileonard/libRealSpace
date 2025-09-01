@@ -15,15 +15,30 @@
 #include "TreArchive.h"
 
 class RSFontManager{
+private:
+    std::map<std::string, RSFont*> fonts;
+    inline static std::unique_ptr<RSFontManager> s_instance{};
 public:
+    static RSFontManager& getInstance() {
+        if (!RSFontManager::hasInstance()) {
+            RSFontManager::setInstance(std::make_unique<RSFontManager>());
+        }
+        RSFontManager& instance = RSFontManager::instance();
+        return instance;
+    };
+    static RSFontManager& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<RSFontManager> inst) {
+        s_instance = std::move(inst);
+    }
+
+    static bool hasInstance() { return (bool)s_instance; }
+
     RSFontManager();
     ~RSFontManager();
     
-    void init(AssetManager* amana);
+    void init();
     RSFont* GetFont(const char* name);
-    
-protected:
-private:
-    std::map<std::string, RSFont*> fonts;
 };
 

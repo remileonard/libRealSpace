@@ -47,17 +47,55 @@ struct AABB {
     Vector3D max;
 };
 class SCRenderer {
+private:
+    inline static std::unique_ptr<SCRenderer> s_instance{};
+    bool initialized;
+    int scale;
+    VGAPalette palette;
+    bool running;
+    bool paused;
+    uint32_t counter;
+    Camera camera;
+    
+    Point3D playerPosition;
+    TextureVertexMap textureSortedVertex;
+    GLuint framebuffer;
+    
+    std::unordered_map<uint64_t, AABB> blockAABBCache_;
+    struct AreaAABBCache {
+        std::unordered_map<uint64_t, AABB> byKey;
+    };
+    std::unordered_map<const RSArea*, AreaAABBCache> aabbCache_;
+
+    void extractFrustumPlanes(Plane planes[6]) const;
+    static bool isAABBVisible(const AABB& box, const Plane planes[6]);
+    
+    const AABB &computeBlockAABB(RSArea *area, int LOD, int blockId);
+    void getNormal(RSEntity *object, Triangle *triangle, Vector3D *normal);
+    void renderWorldSkyAndGround();
 
 public:
     static SCRenderer& getInstance() {
-        static SCRenderer instance; 
+        if (!SCRenderer::hasInstance()) {
+            SCRenderer::setInstance(std::make_unique<SCRenderer>());
+        }
+        SCRenderer& instance = SCRenderer::instance();
         return instance;
     };
+    static SCRenderer& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<SCRenderer> inst) {
+        s_instance = std::move(inst);
+    }
+
+    static bool hasInstance() { return (bool)s_instance; }
+
     GLuint texture;
     SCRenderer();
     ~SCRenderer();
 
-    void init(int width, int height, AssetManager *amana);
+    void init(int width, int height);
 
     void clear(void);
 
@@ -127,36 +165,6 @@ public:
     int32_t width;
     int32_t height;
     Point3D light;
-private:
-    bool initialized;
-    AssetManager *assets;
-    void getNormal(RSEntity *object, Triangle *triangle, Vector3D *normal);
-    void renderWorldSkyAndGround();
-    
-    int scale;
 
-    VGAPalette palette;
-    bool running;
-    bool paused;
-    uint32_t counter;
-    Camera camera;
-    
-    Point3D playerPosition;
-    TextureVertexMap textureSortedVertex;
-    GLuint framebuffer;
-    // Cache des AABB par (LOD, blockId)
-    std::unordered_map<uint64_t, AABB> blockAABBCache_;
-
-    void extractFrustumPlanes(Plane planes[6]) const;
-    static bool isAABBVisible(const AABB& box, const Plane planes[6]);
-    
-    const AABB &computeBlockAABB(RSArea *area, int LOD, int blockId);
-
-    struct AreaAABBCache {
-        std::unordered_map<uint64_t, AABB> byKey; // key = (LOD<<32)|blockId
-    };
-    // Cache par carte (clé = pointeur RSArea)
-    std::unordered_map<const RSArea*, AreaAABBCache> aabbCache_;
-    
-    
+     
 };

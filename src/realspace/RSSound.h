@@ -15,12 +15,27 @@ struct InGameVoice {
 };
 
 class RSSound {
+private:
+    AssetManager &Assets = AssetManager::instance();
+    inline static std::unique_ptr<RSSound> s_instance{};
+    
 public:
     std::map<uint8_t, InGameVoice *> inGameVoices;
     std::vector<MemSound *> sounds;
-    void init(AssetManager *assetManager);
-    static RSSound &getInstance() {
-        static RSSound instance;
+    void init();
+    static RSSound& getInstance() {
+        if (!RSSound::hasInstance()) {
+            RSSound::setInstance(std::make_unique<RSSound>());
+        }
+        RSSound& instance = RSSound::instance();
         return instance;
     };
+    static RSSound& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<RSSound> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+
 };

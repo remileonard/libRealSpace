@@ -8,10 +8,8 @@
 
 #include "Texture.h"
 #include "../realspace/RSImage.h"
-#include "SCRenderer.h"
+#include "../engine/SCRenderer.h"
 #include <cassert>
-
-extern SCRenderer Renderer;
 
 Texture::Texture()
  : data(0),
@@ -22,7 +20,7 @@ Texture::Texture()
 }
 
 Texture::~Texture(){
-    
+    SCRenderer &Renderer = SCRenderer::getInstance();
     if (id)
         Renderer.deleteTextureInGPU(this);
     if (data)

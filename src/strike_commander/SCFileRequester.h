@@ -5,9 +5,14 @@
 #include <vector>
 #include "../engine/keyboard.h"  // Inclure notre nouveau gestionnaire d'événements
 
-extern AssetManager Assets;
 
 class SCFileRequester {
+private:
+    AssetManager &Assets = AssetManager::getInstance();
+    GameEngine *Game{nullptr};
+    RSVGA &VGA = RSVGA::getInstance();
+    RSFontManager &FontManager = RSFontManager::getInstance();
+    SCMouse &Mouse = SCMouse::getInstance();
 public:
     SCFileRequester(std::function<void(std::string)> callback, uint8_t shape_id_offset = 42);
     SCFileRequester(std::function<void(std::string)> callback, uint8_t shape_id_offset, bool save);

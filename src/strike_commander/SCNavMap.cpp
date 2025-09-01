@@ -67,6 +67,9 @@ namespace {
 
 SCNavMap::SCNavMap(){
     this->navMap = nullptr;
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
 }
 SCNavMap::~SCNavMap(){
 

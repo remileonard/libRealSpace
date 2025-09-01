@@ -22,15 +22,32 @@ extern "C" {
 #endif
 #include <GL/gl.h>
 #include <SDL.h>
-class RSScreen{
-    
+#include <memory>
+
+class RSScreen {
+private:
+    inline static std::unique_ptr<RSScreen> s_instance{};
 public:
+    RSScreen() = default;
+    virtual ~RSScreen() = default;
+    
     static RSScreen& getInstance() {
-        static RSScreen instance; 
+        if (!RSScreen::hasInstance()) {
+            RSScreen::setInstance(std::make_unique<RSScreen>());
+        }
+        RSScreen& instance = RSScreen::instance();
         return instance;
     };
-    RSScreen();
-    ~RSScreen();
+    static RSScreen& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<RSScreen> inst) {
+        s_instance = std::move(inst);
+    }
+
+    // Optionnel : tester présence
+    static bool hasInstance() { return (bool)s_instance; }
+
     
     virtual void init(int width, int height, bool fullscreen);
     virtual void openScreen(void);

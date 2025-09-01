@@ -17,11 +17,7 @@
 #include "../../engine/EventManager.h"  
 
 #include "../../strike_commander/precomp.h"
-extern RSScreen *Screen;
-extern SCMouse Mouse;
-extern AssetManager Assets;
-extern SCRenderer Renderer;
-extern RSVGA VGA;
+
 
 DebugGame::DebugGame() {
     printf("DebugGame constructor\n");
@@ -30,11 +26,13 @@ DebugGame::DebugGame() {
 DebugGame::~DebugGame() {}
 
 void DebugGame::init() {
-
+    if (Screen == nullptr) {
+        Screen = &RSScreen::instance();
+    }
     // Load Main Palette and Initialize the GL
-    
-    VGA.init(1200,800, &Assets);
-    Renderer.init(1200,800, &Assets);
+
+    VGA.init(1200,800);
+    Renderer.init(1200,800);
     // Load the Mouse Cursor
     Mouse.init();
     // Crée le clavier (abstraction)
@@ -112,7 +110,7 @@ void DebugGame::run() {
         pumpEvents();
         Loader &loader = Loader::getInstance();
         if (!loader.isLoadingComplete()) {
-            //Screen->openScreen();
+            //Screen.openScreen();
             loader.runFrame();
         } else {
             currentActivity = activities.top();
@@ -139,6 +137,9 @@ void DebugGame::loadSC() {
     Loader& loader = Loader::getInstance();
     loader.init();
     loader.startLoading([](Loader* loader) {
+        AssetManager &Assets = AssetManager::getInstance();
+        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+        RSFontManager &FontManager = RSFontManager::getInstance();
         std::vector<std::string> cdTreFiles = {
             "GAMEFLOW.TRE",
             "MISC.TRE",
@@ -169,11 +170,11 @@ void DebugGame::loadSC() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
         
-        FontManager.init(&Assets);
+        FontManager.init();
 
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
-        RSSound::getInstance().init(&Assets);
+        RSSound::getInstance().init();
     });
     
     //Add MainMenu activity on the game stack.
@@ -187,7 +188,7 @@ void DebugGame::loadSC() {
         GameState.requierd_flags[i] = false;
     }
     main->init();
-    Game->addActivity(main);
+    this->addActivity(main);
 }
 
 
@@ -198,6 +199,9 @@ void DebugGame::loadSCCD() {
     Loader& loader = Loader::getInstance();
     loader.init();
     loader.startLoading([](Loader* loader) {
+        AssetManager &Assets = AssetManager::getInstance();
+        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+        RSFontManager &FontManager = RSFontManager::getInstance();
         loader->setProgress(0.0f);
         Assets.ReadISOImage("./SC.DAT");
         loader->setProgress(20.0f);
@@ -228,12 +232,12 @@ void DebugGame::loadSCCD() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
         
-        FontManager.init(&Assets);
+        FontManager.init();
         loader->setProgress(60.0f);
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
         loader->setProgress(85.0f);
-        RSSound::getInstance().init(&Assets);
+        RSSound::getInstance().init();
         loader->setProgress(100.0f);
     });
     //Add MainMenu activity on the game stack.
@@ -247,7 +251,7 @@ void DebugGame::loadSCCD() {
         GameState.requierd_flags[i] = false;
     }
     main->init();
-    Game->addActivity(main);
+    this->addActivity(main);
 }
 
 
@@ -258,6 +262,9 @@ void DebugGame::testMissionSC() {
     Loader& loader = Loader::getInstance();
     loader.init();
     loader.startLoading([](Loader* loader) {
+        AssetManager &Assets = AssetManager::getInstance();
+        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+        RSFontManager &FontManager = RSFontManager::getInstance();
         Assets.ReadISOImage("./SC.DAT");
         std::vector<std::string> treFiles = {
             "BIGTRE.TRE",
@@ -287,21 +294,23 @@ void DebugGame::testMissionSC() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
         
-        FontManager.init(&Assets);
-        RSSound::getInstance().init(&Assets);
+        FontManager.init();
+        RSSound::getInstance().init();
     });
     //Add MainMenu activity on the game stack.
     DebugStrike * main = new DebugStrike();
     main->init();
     main->setMission("MISN-1A.IFF");
-    Game->addActivity(main);
-    
+    this->addActivity(main);
 }
 
 void DebugGame::loadTO() {
     Loader& loader = Loader::getInstance();
     loader.init();
     loader.startLoading([](Loader* loader) {
+        AssetManager &Assets = AssetManager::getInstance();
+        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+        RSFontManager &FontManager = RSFontManager::getInstance();
         Assets.SetBase("./assets");
         // Load all TREs and PAKs
         
@@ -332,10 +341,10 @@ void DebugGame::loadTO() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
         
-        FontManager.init(&Assets);
+        FontManager.init();
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
-        RSSound::getInstance().init(&Assets);
+        RSSound::getInstance().init();
     });
     //Add MainMenu activity on the game stack.
     DebugGameFlow* main = new DebugGameFlow();
@@ -348,7 +357,7 @@ void DebugGame::loadTO() {
         GameState.requierd_flags[i] = false;
     }
     main->init();
-    Game->addActivity(main);
+    this->addActivity(main);
 }
 
 
@@ -358,6 +367,9 @@ void DebugGame::testObjects() {
     Loader& loader = Loader::getInstance();
     loader.init();
     loader.startLoading([](Loader* loader) {
+        AssetManager &Assets = AssetManager::getInstance();
+        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+        RSFontManager &FontManager = RSFontManager::getInstance();
         std::vector<std::string> cdTreFiles = {
             "TOBIGTRE.TRE",
             "LILTRE.TRE"
@@ -365,12 +377,12 @@ void DebugGame::testObjects() {
         Assets.ReadISOImage("./SC.DAT");
         Assets.init(cdTreFiles);
         
-        FontManager.init(&Assets);
+        FontManager.init();
     });
     //Add MainMenu activity on the game stack.
     DebugObjectViewer* main = new DebugObjectViewer();
     main->init();
-    Game->addActivity(main);
+    this->addActivity(main);
 }
 
 void DebugGame::loadPacific() {
@@ -382,7 +394,7 @@ void DebugGame::loadPacific() {
     };
     Assets.init(cdTreFiles);
     
-    FontManager.init(&Assets);
+    FontManager.init();
 
     // Load assets needed for Conversations (char and background)
     // ConvAssets.init();
@@ -390,7 +402,7 @@ void DebugGame::loadPacific() {
     //Add MainMenu activity on the game stack.
     SCObjectViewer* main = new SCObjectViewer();
     main->init();
-    Game->addActivity(main);
+    this->addActivity(main);
 }
 
 void DebugGame::terminate(const char *reason, ...) {

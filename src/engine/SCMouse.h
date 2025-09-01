@@ -13,17 +13,12 @@
 #include "RSVGA.h"
 #include "../realspace/AssetManager.h"
 
-extern AssetManager Assets;
-extern RSVGA VGA;
 
 typedef struct MouseButton{
-    
     enum BUTTON_ID {LEFT, MIDDLE, RIGHT} ;
-    
     enum EventType{NONE, PRESSED, RELEASED} ;
     
     EventType event;
-    
 } MouseButton;
 
 class SCMouse{
@@ -34,11 +29,24 @@ private:
     Mode mode;
     Point2D position;
     bool visible;
+    inline static std::unique_ptr<SCMouse> s_instance{};
+    RSVGA &VGA = RSVGA::getInstance();
 public:
     static SCMouse& getInstance() {
-        static SCMouse instance; 
+        if (!SCMouse::hasInstance()) {
+            SCMouse::setInstance(std::make_unique<SCMouse>());
+        }
+        SCMouse& instance = SCMouse::instance();
         return instance;
     };
+    static SCMouse& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<SCMouse> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+
     SCMouse();
     ~SCMouse();
     

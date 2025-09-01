@@ -47,7 +47,6 @@ RSProf *SCMission::LoadProfile(std::string name) {
     return profile;
 }
 void SCMission::loadMission() {
-    this->sound = RSSound::getInstance();
     std::string miss_file_name = Assets.mission_root_path + this->mission_name; 
     std::transform(miss_file_name.begin(), miss_file_name.end(), miss_file_name.begin(), ::toupper);
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
@@ -65,7 +64,7 @@ void SCMission::loadMission() {
     }
     std::string area_fn = this->world->tera+".PAK";
     std::transform(area_fn.begin(), area_fn.end(), area_fn.begin(), ::toupper);
-    this->area = new RSArea(&Assets);
+    this->area = new RSArea();
     this->area->InitFromPAKFileName(area_fn.c_str());
 
     Renderer.InvalidateAABBCache();           // ou InvalidateAABBCache(oldArea);
@@ -267,7 +266,7 @@ void SCMission::loadMission() {
 }
 RSEntity * SCMission::LoadEntity(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";
-    RSEntity *objct = new RSEntity(&Assets);
+    RSEntity *objct = new RSEntity();
     TreEntry *entry = Assets.GetEntryByName((char *)tmpname.c_str());
     if (entry != nullptr) {
         objct->InitFromRAM(entry->data, entry->size);

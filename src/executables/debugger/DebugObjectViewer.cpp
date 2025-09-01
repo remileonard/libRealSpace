@@ -138,7 +138,7 @@ void DebugObjectViewer::renderMenu() {
                         // Your logic here if entry->name contains "OBJECT"
                         if (ImGui::Selectable(entry->name, false)) {
                             printf("load object");
-                            RSEntity *obj = new RSEntity(&Assets);
+                            RSEntity *obj = new RSEntity();
                             obj->InitFromRAM(entry->data, entry->size);
                             objs.showCases[0].entity = obj;
                             objs.showCases[0].filename = std::string(entry->name);
@@ -178,7 +178,7 @@ void DebugObjectViewer::renderUI() {
                     if (std::string(entry->name).find("OBJECT") != std::string::npos) {
                         if (ImGui::Selectable(entry->name, false)) {
                             printf("load object");
-                            RSEntity *obj = new RSEntity(&Assets);
+                            RSEntity *obj = new RSEntity();
                             obj->InitFromRAM(entry->data, entry->size);
                             objs.showCases[0].entity = obj;
                             objs.showCases[0].filename = std::string(entry->name);

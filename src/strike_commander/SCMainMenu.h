@@ -49,7 +49,7 @@ private:
     void OnStartNewGame();
     void OnLoadGame();
     void OnContinue(void);
-
+    SCState &GameState = SCState::getInstance();
 };
 
 #endif /* defined(__libRealSpace__SCMainMenu__) */

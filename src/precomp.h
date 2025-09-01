@@ -91,7 +91,6 @@ extern "C" {
     #include "RSScreen.h"
     #include "FrameBuffer.h"
     #include "RSVGA.h"
-    extern SCRenderer Renderer;
 #endif
 
 #endif

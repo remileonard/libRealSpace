@@ -30,6 +30,9 @@ SCGameFlow::SCGameFlow() {
     this->fps = SDL_GetTicks() / 10;
     this->zones = new std::vector<SCZone *>();
     this->frequest = nullptr;
+    if (Game == nullptr) {
+        this->Game = &GameEngine::getInstance();
+    }
     this->m_keyboard = Game->getKeyboard();
 }
 

@@ -14,12 +14,8 @@
 #include "RSScreen.h"
 #include "SCMouse.h"
 
-class GameEngine;
 
-extern RSScreen *Screen;
-extern GameEngine *Game;
-extern SCMouse Mouse;
-extern RSVGA VGA;
+class GameEngine;
 
 char* strtoupper(char* dest, const char* src);
 bool isPointInQuad(const Point2D &p, const std::vector<Point2D *> *quad);
@@ -36,6 +32,15 @@ protected:
     SCButton* checkButtons(void);
     std::vector<SCButton*> buttons;
     void drawButtons(void);
+    RSScreen *Screen{nullptr};
+    GameEngine *Game{nullptr};
+    RSVGA &vga = RSVGA::getInstance();
+    AssetManager &Assets = AssetManager::getInstance();
+    RSFontManager &FontManager = RSFontManager::getInstance();
+    RSMixer &Mixer = RSMixer::getInstance();
+    RSVGA &VGA = RSVGA::getInstance();
+    SCMouse &Mouse = SCMouse::getInstance();
+    SCRenderer &Renderer = SCRenderer::getInstance();
     
 public:
     VGAPalette palette;

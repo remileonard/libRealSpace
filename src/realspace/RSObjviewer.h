@@ -12,7 +12,6 @@ typedef struct RSShowCase{
     
 } RSShowCase;
 
-extern AssetManager Assets;
 
 class RSObjViewer {
 public:
@@ -22,6 +21,7 @@ public:
     void initFromRam(uint8_t *data, size_t size);
     std::vector<RSShowCase> showCases;
 private:
+    AssetManager &Assets = AssetManager::getInstance();
     void parseVIEW(uint8_t *data, size_t size);
     void parseVIEW_OBJS(uint8_t *data, size_t size);
 };

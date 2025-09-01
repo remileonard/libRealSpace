@@ -17,7 +17,6 @@
 #include <vector>
 #include <string>
 
-extern RSVGA VGA;
 /**
  * Structure representing a bounding box for a sprite.
  *
@@ -67,6 +66,7 @@ class SCZone{
 private:
     int fps;
     bool enabled{false};
+    RSVGA &VGA = RSVGA::getInstance();
 public:
     uint8_t id;
     bool active{true};

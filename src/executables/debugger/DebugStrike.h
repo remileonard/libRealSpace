@@ -23,7 +23,7 @@ private:
     MISN_SCEN* debug_scene{nullptr};
     AREA* debug_area{nullptr};
     SPOT* debug_spot{nullptr};
-
+    SCState &GameState = SCState::getInstance();
 public:
     DebugStrike();
     ~DebugStrike();

@@ -84,7 +84,6 @@ class RSArea{
 public:
     
     RSArea();
-    RSArea(AssetManager *amanager);
     ~RSArea();
     
     void InitFromPAKFileName(const char* pakFilename);
@@ -101,7 +100,7 @@ public:
     }
     
     RSImage* GetImageByID(size_t ID);
-    AssetManager *assetsManager{nullptr};
+   
     //Per block objects list
     std::vector<MapObject> objects;
     std::vector<AreaOverlay> objectOverlay;
@@ -112,7 +111,8 @@ public:
     void BuildSkirts();                  // pré-calcul des jupes (une fois après ParseHeightMap)
     const PrecomputedSkirts& GetSkirts() const { return skirts_; }
 private:
-    
+    AssetManager &assetsManager = AssetManager::getInstance();
+    SCRenderer &Renderer = SCRenderer::getInstance();
     void ParseObjects(void );
     
     void ParseTrigo(void );

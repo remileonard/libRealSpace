@@ -8,6 +8,9 @@
 
 #include "precomp.h"
 SCRegister::SCRegister() {
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
     m_keyboard = Game->getKeyboard();
 
     // Actions nécessaires (à ajouter dans enum InputAction)

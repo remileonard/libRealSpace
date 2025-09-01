@@ -148,6 +148,8 @@ protected:
     virtual void computeThrust();
     virtual void processInput();
     virtual void updatePlaneStatus();
+    SCRenderer &Renderer = SCRenderer::getInstance();
+    RSMixer &Mixer = RSMixer::getInstance();
 public:
     unsigned int status;
     int wp_cooldown{0};

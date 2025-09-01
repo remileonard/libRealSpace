@@ -27,7 +27,11 @@ protected:
     SCZone *createZone(SPRT *sprts, uint8_t sprtId);
     int fps{12};
     bool music{true};
-
+    RSMixer &Mixer = RSMixer::getInstance();
+    RSVGA &VGA = RSVGA::getInstance();
+    SCState &GameState = SCState::getInstance();
+    RSFontManager &FontManager = RSFontManager::getInstance();
+    AssetManager &Assets = AssetManager::getInstance();
 public:
     SCEN *sceneOpts;
     SCScene(PakArchive *optShps, PakArchive *optPals);

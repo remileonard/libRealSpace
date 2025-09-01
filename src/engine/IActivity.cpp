@@ -40,20 +40,29 @@ bool isPointInQuad(const Point2D &p, const std::vector<Point2D *> *quad) {
     }
     return (intersections % 2) != 0;
 }
-IActivity::IActivity() {}
+IActivity::IActivity() {
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
+}
 
 IActivity::~IActivity() {}
 
 void IActivity::stop(void) {
-    VGA.fadeOut(30, 6);
+    vga.fadeOut(30, 6);
     this->running = false; 
 }
 
-void IActivity::setTitle(const char *title) { Screen->setTitle(title); }
+void IActivity::setTitle(const char *title) { 
+    if (this->Screen == nullptr) {
+        this->Screen = &RSScreen::instance();
+    }
+    Screen->setTitle(title);
+}
 
 void IActivity::checkKeyboard(void) {
-    if (!Game)
-        return;
+    if (Game == nullptr)
+        Game = &GameEngine::getInstance();
     Keyboard* kb = Game->getKeyboard();
     if (!kb)
         return;
@@ -84,7 +93,7 @@ SCButton *IActivity::checkButtons(void) {
         if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
             button->setAppearance(SCButton::APR_DOWN);
         }
-        // If the mouse button has just been released: trigger action.
+        // If the Mouse button has just been released: trigger action.
         if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
             Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
             button->setAppearance(SCButton::APR_UP);
@@ -103,6 +112,6 @@ void IActivity::drawButtons(void) {
 
     for (auto button : buttons) {
         RLEShape ap = button->appearance[button->getAppearance()];
-        VGA.getFrameBuffer()->drawShape(&ap);
+        vga.getFrameBuffer()->drawShape(&ap);
     }
 }

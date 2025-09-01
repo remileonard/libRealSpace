@@ -6,8 +6,9 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 
-#ifndef __libRealSpace__SCConvPlayer__
-#define __libRealSpace__SCConvPlayer__
+#pragma once
+#include "../realspace/ConvAssetManager.h"
+
 bool isNextFrameIsConv(uint8_t type);
 class SCConvPlayer;
 class ConvFrame {
@@ -51,7 +52,8 @@ public:
     int yes_no_path{0}; // current path taken for yes/no choice
 private:
     bool expired;
-    
+    SCState &GameState = SCState::getInstance();
+    ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
 };
 
 class SCConvPlayer : public IActivity {
@@ -76,6 +78,7 @@ protected:
     void DrawText(void);
     int txt_color{0};
     int yes_no_path{0}; // current path taken for yes/no choice
+    SCState &GameState = SCState::getInstance();
 public:
     uint8_t noOffset{0};
     uint8_t yesOffset{0};
@@ -91,5 +94,3 @@ public:
     void clicked(void *none, uint8_t id);
     void selectWingMan(void *none, uint8_t id);
 };
-
-#endif /* defined(__libRealSpace__SCConvPlayer__) */

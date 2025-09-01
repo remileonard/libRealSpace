@@ -13,6 +13,9 @@ SCObjectViewer::SCObjectViewer() {
     this->zoomFactor = 1;
     this->rotateLeftRightAngle = 0;
     this->music_playing = false;
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
 }
 
 SCObjectViewer::~SCObjectViewer() {}

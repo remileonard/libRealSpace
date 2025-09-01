@@ -1,8 +1,8 @@
 #include "precomp.h"
 #include <string>
 
-void RSSound::init(AssetManager *assetManager) {
-    TreEntry *tre = assetManager->GetEntryByName(Assets.intel_root_path + "SPEECH.PAK");
+void RSSound::init() {
+    TreEntry *tre = Assets.GetEntryByName(Assets.intel_root_path + "SPEECH.PAK");
     if (tre != nullptr) {
         PakArchive *pak = new PakArchive();
         pak->InitFromRAM("SPEECH.PAK", tre->data, tre->size);
@@ -33,7 +33,7 @@ void RSSound::init(AssetManager *assetManager) {
         }
     }
     
-    tre = assetManager->GetEntryByName(Assets.sound_root_path + "DSOUNDFX.PAK");
+    tre = Assets.GetEntryByName(Assets.sound_root_path + "DSOUNDFX.PAK");
     if (tre != nullptr) {
         PakArchive *pak = new PakArchive();
         pak->InitFromRAM("DSOUNDFX.PAK", tre->data, tre->size);

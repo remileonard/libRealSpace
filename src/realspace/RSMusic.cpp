@@ -7,9 +7,9 @@
 //
 
 #include "precomp.h"
-void RSMusic::init(AssetManager *assetManager) {
+void RSMusic::init() {
     PakArchive *pak = new PakArchive();
-    TreEntry *entry = assetManager->GetEntryByName("..\\..\\DATA\\MIDGAMES\\AMUSIC.PAK");
+    TreEntry *entry = assetManager.GetEntryByName("..\\..\\DATA\\MIDGAMES\\AMUSIC.PAK");
     pak->InitFromRAM("..\\..\\DATA\\MIDGAMES\\AMUSIC.PAK", entry->data, entry->size);
 
     for (size_t i = 0; i < pak->GetNumEntries(); i++) {
@@ -21,7 +21,7 @@ void RSMusic::init(AssetManager *assetManager) {
         music->size = e->size;
         musics[0].push_back(music);
     }
-    TreEntry *gameflow = assetManager->GetEntryByName("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL");
+    TreEntry *gameflow = assetManager.GetEntryByName("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL");
     pak = new PakArchive();
     pak->InitFromRAM("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL", gameflow->data, gameflow->size);
     for (size_t i = 0; i < pak->GetNumEntries(); i++) {
@@ -57,7 +57,7 @@ void RSMusic::init(AssetManager *assetManager) {
         }
     }
 
-    TreEntry *combat = assetManager->GetEntryByName("..\\..\\DATA\\SOUND\\COMBAT.ADL");
+    TreEntry *combat = assetManager.GetEntryByName("..\\..\\DATA\\SOUND\\COMBAT.ADL");
     pak = new PakArchive();
     pak->InitFromRAM("..\\..\\DATA\\SOUND\\COMBAT.ADL", combat->data, combat->size);
     for (size_t i = 0; i < pak->GetNumEntries(); i++) {

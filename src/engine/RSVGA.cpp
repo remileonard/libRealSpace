@@ -11,7 +11,7 @@
 #include "../realspace/RSPalette.h"
 #include "SDL2/SDL_opengl_glext.h"
 // Ajouter après la fonction applyEagle2x existante
-extern RSScreen *Screen;
+
 // Fonction auxiliaire pour comparer deux couleurs (utilisée par SuperEagle)
 bool colorEqual(uint32_t c1, uint32_t c2, int threshold = 0) {
     if (c1 == c2) return true;
@@ -176,13 +176,16 @@ RSVGA::~RSVGA() {
         free(this->upscaled_framebuffer);
     }
 }
-void RSVGA::init(int width, int height, AssetManager *amana) {
+void RSVGA::init(int width, int height) {
+    if (Screen == nullptr) {
+        Screen = &RSScreen::instance();
+    }
     this->width = width;
     this->height = height;
-    this->assets = amana;
+    AssetManager &assets = AssetManager::instance();
 
     RSPalette palette;
-    palette.initFromFileData(this->assets->GetFileData("PALETTE.IFF"));
+    palette.initFromFileData(assets.GetFileData("PALETTE.IFF"));
     this->palette = *palette.GetColorPalette();
 
     glGenTextures(1, &textureID);

@@ -81,7 +81,7 @@ protected:
     /**
      * @brief The current area
      */
-    RSArea area;
+    RSArea *area;
     /**
      * @brief The navigation screen
      */
@@ -208,7 +208,7 @@ protected:
     };
     float mouseAxisAccumX = 0.0f;
     float mouseAxisAccumY = 0.0f;
-    
+    SCState &GameState = SCState::getInstance();
 public:
     /**
      * @brief Constructor

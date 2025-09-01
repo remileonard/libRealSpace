@@ -22,8 +22,7 @@
 #include <algorithm>
 #include <limits>
 
-extern SCRenderer Renderer;
-
+SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
     if (!obj) return;
@@ -331,13 +330,13 @@ VGAPalette *SCRenderer::getPalette(void) { return &this->palette; }
 
 void SCRenderer::setPlayerPosition(Point3D *position) { camera.SetPosition(position); }
 
-void SCRenderer::init(int width, int height, AssetManager *amana) {
-    this->assets = amana;
+void SCRenderer::init(int width, int height) {
+    AssetManager &assets = AssetManager::instance();
 
     this->counter = 0;
 
     RSPalette palette;
-    palette.initFromFileData(this->assets->GetFileData("PALETTE.IFF"));
+    palette.initFromFileData(assets.GetFileData("PALETTE.IFF"));
     this->palette = *palette.GetColorPalette();
 
     this->width = width;

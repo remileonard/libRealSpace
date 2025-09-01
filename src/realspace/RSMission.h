@@ -10,12 +10,13 @@ extern "C" {
 #endif
 
 #include "../commons/IFFSaxLexer.h"
-#include "RSEntity.h"
 #include "TreArchive.h"
+#include "RSEntity.h"
 #include "RSProf.h"
 #include <stdint.h>
 #include <string>
 #include <algorithm>
+
 
 struct AREA {
     int id;

@@ -248,9 +248,8 @@ public:
     // Has the entity been sent to te GPU and is ready to be renderer.
 
     bool prepared{false};
-    AssetManager *assetsManager{nullptr};
+    AssetManager &assetsManager = AssetManager::instance();
 
-    RSEntity(AssetManager *amana);
     ~RSEntity();
 
     void InitFromRAM(uint8_t *data, size_t size);

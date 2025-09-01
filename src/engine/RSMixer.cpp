@@ -3,11 +3,11 @@
 RSMixer::RSMixer() {
     
 }
-void RSMixer::init(AssetManager *amana) {
+void RSMixer::init() {
     this->initted = Mix_Init(MIX_INIT_MID);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024);
     this->music = new RSMusic();
-    this->music->init(amana);
+    this->music->init();
     this->isplaying = false;
     
 }

@@ -17,8 +17,8 @@ RSFontManager::~RSFontManager(){
     
 }
 
-void RSFontManager::init(AssetManager* amana){
-    
+void RSFontManager::init(){
+    AssetManager &amana = AssetManager::instance();
     std::vector<std::string> fonts_index = {
         "..\\..\\DATA\\FONTS\\CALCFONT.SHP",
         "..\\..\\DATA\\FONTS\\CAMROPT.SHP",
@@ -55,7 +55,7 @@ void RSFontManager::init(AssetManager* amana){
     
 
     for (auto font_item : fonts_index) {
-        TreEntry* convFontEntry = amana->GetEntryByName(font_item);
+        TreEntry* convFontEntry = amana.GetEntryByName(font_item);
         if (convFontEntry == NULL) continue;
         PakArchive fontArch;
         fontArch.InitFromRAM(font_item.c_str(),convFontEntry->data,convFontEntry->size);

@@ -15,14 +15,6 @@
 static SDL_Window *sdlWindow;
 static SDL_Renderer *sdlRenderer;
 
-RSScreen::RSScreen(){
-    
-}
-
-
-RSScreen::~RSScreen(){
-    
-}
 
 void RSScreen::setTitle(const char* title){
     SDL_SetWindowTitle(sdlWindow, title);

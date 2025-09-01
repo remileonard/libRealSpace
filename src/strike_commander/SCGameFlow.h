@@ -67,6 +67,7 @@ public:
     void checkKeyboard(void);
     std::string gameflow_file;
 protected:
+    SCState &GameState = SCState::getInstance();
     RSGameFlow gameFlowParser;
     RSOption optionParser;
     SCEN *sceneOpts;

@@ -10,38 +10,33 @@
 #include "DebugGame.h"
 #include "DebugScreen.h"
 #define FLOPPY 0
-//Here are all the mean subsystems interacting together
-DebugGame debugGameInstance;
-SCState         GameState;
-GameEngine      *Game = &debugGameInstance;
-DebugScreen     debugScreen;
-RSScreen        *Screen = &debugScreen;
-RSVGA           VGA;
-SCMouse         Mouse;
-AssetManager    Assets;
-SCRenderer      Renderer;
-ConvAssetManager ConvAssets;
-RSFontManager FontManager;
-RSMixer Mixer;
+
 
 int main(int argc, char* argv[]) {
+    GameEngine::setInstance(std::make_unique<DebugGame>());
+    RSScreen::setInstance(std::make_unique<DebugScreen>());
     
-
+    GameEngine &game = GameEngine::instance();
+    RSScreen &screen = RSScreen::instance();
+    game.Screen = &screen;
+    //game.Screen = screen;
     Loader& loader = Loader::getInstance();
-    
-    Screen->init(1200,800,0);
-    Assets.SetBase("./assets");
+    AssetManager& assets = AssetManager::getInstance();
+    screen.init(1200,800,0);
+    assets.SetBase("./assets");
     loader.init();
 
-    // Démarrer le chargement des assets en arrière-plan
-    Screen->is_spfx_finished = false; // Reset the TV effect state
-    /*while (!Screen->is_spfx_finished) {
-        Screen->fxTurnOnTv();
-        Screen->refresh();
+    screen.is_spfx_finished = false;
+    while (!screen.is_spfx_finished) {
+        screen.fxTurnOnTv();
+        screen.refresh();
         SDL_PumpEvents();
-    }*/
+    }
     loader.startLoading([](Loader* loader) {
         loader->setProgress(0.0f);
+        AssetManager& assets = AssetManager::getInstance();
+        RSMixer& Mixer = RSMixer::getInstance();
+        RSFontManager& FontManager = RSFontManager::getInstance();
         // Load all TREs and PAKs
         if (FLOPPY) {
             std::vector<std::string> treFiles = {
@@ -52,7 +47,7 @@ int main(int argc, char* argv[]) {
                 "MISSIONS.TRE",
                 "TEXTURES.TRE"
             };
-            Assets.init(treFiles);
+            assets.init(treFiles);
             loader->setProgress(80.0f);
         } else {
             std::vector<std::string> cdTreFiles = {
@@ -61,53 +56,49 @@ int main(int argc, char* argv[]) {
                 "VOCLIST.TRE"
             };
             loader->setProgress(10.0f);
-            Assets.ReadISOImage("./SC.DAT");
+            assets.ReadISOImage("./SC.DAT");
             loader->setProgress(20.0f);
-            Assets.init(cdTreFiles);
+            assets.init(cdTreFiles);
             loader->setProgress(30.0f);
         }
-        Mixer.init(&Assets);
+        Mixer.init();
         loader->setProgress(35.0f);
-        FontManager.init(&Assets);
+        FontManager.init();
         loader->setProgress(40.0f);
         // Load assets needed for Conversations (char and background)
-        Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
-        Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
-        Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
-        Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
-        Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
-        Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+        assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+        assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+        assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+        assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+        assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+        assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
 
-        Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
-        Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
-        Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
-        Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+        assets.gameflow_filename = assets.gameflow_root_path+"GAMEFLOW.IFF";
+        assets.optshps_filename = assets.gameflow_root_path+"OPTSHPS.PAK";
+        assets.optpals_filename = assets.gameflow_root_path+"OPTPALS.PAK";
+        assets.optfont_filename = assets.gameflow_root_path+"OPTFONT.IFF";
         
-        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-        Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
-        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
-        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
-        Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
-        Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
-        Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
-        Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
+        assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        assets.conv_pak_filename = assets.gameflow_root_path+"CONVSHPS.PAK";
+        assets.option_filename = assets.gameflow_root_path+"OPTIONS.IFF";
+        assets.conv_data_filename = assets.gameflow_root_path+"CONVDATA.IFF";
+        assets.conv_pal_filename = assets.gameflow_root_path+"CONVPALS.PAK";
+        assets.txm_filename = assets.texture_root_path+"TXMPACK.PAK";
+        assets.acc_filename = assets.texture_root_path+"ACCPACK.PAK";
+        assets.convpak_filename = assets.gameflow_root_path+"CONV.PAK";
         // Load assets needed for Conversations (char and background)
         loader->setProgress(100.0f);
     });
 
     // Boucle de chargement
     while (!loader.isLoadingComplete()) {
-        // Dessiner l'écran de chargement
         loader.runFrame();
-        
-        // Mettre à jour l'affichage
-        Screen->refresh();
+        screen.refresh();
         SDL_PumpEvents();
     }
     loader.close();
-    Game->init();
-    Game->run();
+    game.init();
+    game.run();
 
-    
     return EXIT_SUCCESS;
 }

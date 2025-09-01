@@ -24,10 +24,29 @@
 #include "IActivity.h"
 #include "Loader.h"
 #include "keyboard.h"
+#include "../realspace/AssetManager.h"
+#include "../realspace/RSSound.h"
+#include "../realspace/ConvAssetManager.h"
+#include "../strike_commander/SCState.h"
+#include "../realspace/RSFontManager.h"
 class GameEngine{
     
 public:
-    
+    static GameEngine& getInstance() {
+        if (!GameEngine::hasInstance()) {
+            GameEngine::setInstance(std::make_unique<GameEngine>());
+        }
+        GameEngine& instance = GameEngine::instance();
+        return instance;
+    };
+    static GameEngine& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<GameEngine> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+
     GameEngine();
     ~GameEngine();
     
@@ -42,12 +61,21 @@ public:
     virtual IActivity* getCurrentActivity(void);
     Keyboard* getKeyboard() const { return m_keyboard; }
     virtual void pumpEvents(void);
-    
+    RSScreen *Screen{nullptr};
 protected:
-    Loader *loader;
-    Keyboard *m_keyboard;
+    Loader *loader{nullptr};
+    Keyboard *m_keyboard{nullptr};
+    RSVGA &VGA = RSVGA::getInstance();
+    SCRenderer &Renderer = SCRenderer::instance();
+    SCMouse &Mouse = SCMouse::getInstance();
+    AssetManager &Assets = AssetManager::getInstance();
+    RSSound &Sound = RSSound::getInstance();
+    ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+    SCState &GameState = SCState::getInstance();
+    RSFontManager &FontManager = RSFontManager::getInstance();
+
 private:
-    
+    inline static std::unique_ptr<GameEngine> s_instance{};
     std::stack<IActivity*> activities;
     
     

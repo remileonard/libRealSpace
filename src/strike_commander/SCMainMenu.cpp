@@ -73,6 +73,12 @@ void SCMainMenu::unFocus(void) {
 }
 void SCMainMenu::init(void) {
 
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
+    if (this->Screen == nullptr) {
+        this->Screen = &RSScreen::instance();
+    }
     TreEntry *entry = Assets.GetEntryByName(MAINMENU_PAK_PATH);
     mainMenupak.InitFromRAM("MAINMENU.PAK", entry->data, entry->size);
     

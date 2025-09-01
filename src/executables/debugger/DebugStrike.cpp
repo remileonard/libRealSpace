@@ -126,7 +126,7 @@ void DebugStrike::loadPlane() {
 
     if (ImGui::Button("Load") && plane_name != "") {
         // this->plane_to_load = planes.indexOf(plane);
-        RSEntity *plane_to_load = new RSEntity(&Assets);
+        RSEntity *plane_to_load = new RSEntity();
         TreEntry *entry = Assets.GetEntryByName(Assets.object_root_path + plane_name + ".IFF");
         if (entry == nullptr) {
             printf("Unable to load plane %s\n", plane_name.c_str());
@@ -647,6 +647,7 @@ void DebugStrike::radar() {
 }
 void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor) {
     static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+    SCState &GameState = SCState::getInstance();
     if (ImGui::BeginTable("Flags", 2, flags)) {
         auto it = GameState.requierd_flags.begin();
         int cpt = 0;
@@ -1207,8 +1208,8 @@ void DebugStrike::renderMenu() {
             ImGui::TreePop();
         }
         if (ImGui::TreeNode("Area Objects")) {
-            for (int g = 0; g < area.objects.size(); g++) {
-                auto obj = &area.objects.at(g);
+            for (int g = 0; g < area->objects.size(); g++) {
+                auto obj = &area->objects.at(g);
                 if (ImGui::TreeNode((void *)(intptr_t)g, "Object id %d", g)) {
                     ImGui::Text("Object name %s", obj->name);
                     ImGui::Text("Object x %.3f y %.3f z %.3f", obj->position.x, obj->position.y, obj->position.z);

@@ -577,6 +577,9 @@ void SCConvPlayer::SetID(int32_t id) {
 }
 
 void SCConvPlayer::init() {
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
     VGAPalette *rendererPalette = VGA.getPalette();
     this->palette               = *rendererPalette;
     TreEntry *convEntry = Assets.GetEntryByName(Assets.convpak_filename);
@@ -598,8 +601,6 @@ void SCConvPlayer::init() {
  */
 void SCConvPlayer::CheckFrameExpired(void) {
     if (this->current_frame->mode != ConvFrame::CONV_CONTRACT_CHOICE && this->current_frame->mode != ConvFrame::CONV_WINGMAN_CHOICE) {
-        if (!Game)
-        return;
         Keyboard* kb = Game->getKeyboard();
         if (!kb)
             return;

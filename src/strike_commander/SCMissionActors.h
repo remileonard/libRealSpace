@@ -53,6 +53,7 @@ public:
 private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};
     int target_position_update{0};
+    AssetManager &Assets = AssetManager::getInstance();
 };
 
 class SCMissionActorsPlayer : public SCMissionActors {

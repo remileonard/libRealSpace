@@ -30,6 +30,10 @@ private:
     uint32_t last_tick;
     uint32_t tick_counter;
     uint32_t tps;
+    SCState &GameState = SCState::getInstance();
+    AssetManager &Assets = AssetManager::getInstance();
+    SCRenderer &Renderer = SCRenderer::getInstance();
+    RSMixer &Mixer = RSMixer::getInstance();
 public:    
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;
@@ -45,7 +49,7 @@ public:
     RSArea *area{nullptr};
     RSMission *mission{nullptr};
     RSWorld *world{nullptr};
-    RSSound sound;
+    RSSound &sound = RSSound::getInstance();;
     std::vector<RadioMessages*> radio_messages;
     
     SCMission(std::string mission_name, std::map<std::string, RSEntity *> *objCache);

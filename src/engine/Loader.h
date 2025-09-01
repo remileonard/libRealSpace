@@ -18,7 +18,25 @@ private:
     std::atomic<float> loadingProgress;
     std::vector<std::string> logMessages;
     std::mutex progressMutex;
+    inline static std::unique_ptr<Loader> s_instance{};
 public:
+
+    static Loader& getInstance() {
+        if (!Loader::hasInstance()) {
+            Loader::setInstance(std::make_unique<Loader>());
+        }
+        Loader& instance = Loader::instance();
+        return instance;
+    };
+    static Loader& instance() {
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<Loader> inst) {
+        s_instance = std::move(inst);
+    }
+
+    static bool hasInstance() { return (bool)s_instance; }
+
     Loader();
     ~Loader();
 
@@ -28,9 +46,5 @@ public:
     bool isLoadingComplete() const;
     void log(const std::string& message);
     void setProgress(float progress);
-    void close();
-    static Loader& getInstance() {
-        static Loader instance;
-        return instance;
-    };    
+    void close();    
 };

@@ -13,13 +13,17 @@
 #include "../../engine/SCRenderer.h"
 #include "../../engine/IActivity.h"
 #include "../../engine/Loader.h"
+#include "../../strike_commander/SCState.h"
+
 class DebugGame : public GameEngine {
+private:
+    std::stack<IActivity*> activities;
     
 public:
     
     DebugGame();
     ~DebugGame();
-    
+
     void init(void);
     void run(void);
     void terminate(const char* reason, ...);
@@ -27,7 +31,6 @@ public:
     void log(const char* text, ...);
     void logError(const char* text, ...);
     
-    //Add an activity on the top of the stack.
     void addActivity(IActivity* activity);
     void stopTopActivity(void);
     IActivity* getCurrentActivity(void);
@@ -38,9 +41,4 @@ public:
     void loadPacific();
     void testMissionSC();
     void testObjects();
-
-private:
-    std::stack<IActivity*> activities;
-    
-    
 };

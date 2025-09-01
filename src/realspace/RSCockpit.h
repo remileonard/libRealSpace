@@ -201,7 +201,7 @@ public:
     Moni MONI;
     RSPlaque PLAQ;
     
-    RSCockpit(AssetManager *amana);
+    RSCockpit();
     ~RSCockpit();
     void InitFromRam(uint8_t* data, size_t size);
 };

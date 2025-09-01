@@ -14,27 +14,27 @@
 #include "InputActionSystem.h"  
 #include "EventManager.h"
 #include "keyboard.h" 
-extern RSScreen *Screen;
-extern GameEngine *Game;
-extern SCMouse Mouse;
-extern AssetManager Assets;
-extern SCRenderer Renderer;
-extern RSVGA VGA;
 
-GameEngine::GameEngine() {}
+
+GameEngine::GameEngine() {
+}
 
 GameEngine::~GameEngine() {
-    delete m_keyboard;
-    m_keyboard = nullptr;
+    if (m_keyboard != nullptr) {
+        delete m_keyboard;
+        m_keyboard = nullptr;
+    }
 }
 
 
 void GameEngine::init() {
 
     // Load Main Palette and Initialize the GL
-    
-    VGA.init(WIDTH,HEIGHT, &Assets);
-    Renderer.init(WIDTH,HEIGHT, &Assets);
+    if (Screen == nullptr) {
+        Screen = &RSScreen::instance();
+    }
+    VGA.init(WIDTH,HEIGHT);
+    Renderer.init(WIDTH,HEIGHT);
     // Load the Mouse Cursor
     Mouse.init();
     // Crée le clavier (abstraction)

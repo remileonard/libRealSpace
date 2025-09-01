@@ -16,6 +16,8 @@ protected:
     int tps{30};
     std::vector<Vector3D> smoke_positions;
     int run_iterations{0};
+    SCRenderer &Renderer = SCRenderer::getInstance();
+    RSMixer &Mixer = RSMixer::getInstance();
 public:
     float x{0.0f};
     float y{0.0f};

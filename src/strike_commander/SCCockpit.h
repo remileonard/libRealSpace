@@ -19,7 +19,11 @@ struct HudLine {
 
 class SCCockpit {
 private:
-    
+    AssetManager &Assets = AssetManager::getInstance();
+    RSFontManager &FontManager = RSFontManager::getInstance();
+    RSMixer &Mixer = RSMixer::getInstance();
+    RSVGA &VGA = RSVGA::getInstance();
+    SCMouse &Mouse = SCMouse::getInstance();
     std::vector<HudLine> horizon;
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);

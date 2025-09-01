@@ -14,7 +14,7 @@
 
 static SDL_Window *sdlWindow;
 static SDL_Renderer *sdlRenderer;
-extern DebugGame debugGameInstance;
+
 
 DebugScreen::DebugScreen(){
     
@@ -30,7 +30,9 @@ void DebugScreen::setTitle(const char* title){
 }
 
 void DebugScreen::init(int w, int h, bool fullscreen){
-    
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
     width = w;
     height = h;
 
@@ -101,6 +103,7 @@ void DebugScreen::init(int w, int h, bool fullscreen){
 }
 
 void DebugScreen::refresh(void){
+    DebugGame &debugGameInstance = static_cast<DebugGame&>(GameEngine::instance());
     glBindTexture(GL_TEXTURE_2D, this->screen_texture);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, this->width, this->height, 0);
     glViewport(0,0,this->width,this->height);			// Reset The Current Viewport

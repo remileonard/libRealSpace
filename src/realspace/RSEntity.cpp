@@ -14,9 +14,6 @@
 #include "RSImageSet.h"
 #include "../commons/RLEBuffer.h"
 
-RSEntity::RSEntity(AssetManager *amana) {
-    this->assetsManager = amana;
-}
 
 RSEntity::~RSEntity() {
     while (!images.empty()) {
@@ -486,10 +483,10 @@ void RSEntity::parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size) {
     swpn_data->weapons_round2 = bs.ReadShort();
     swpn_data->weapon_name = bs.ReadString(8);
     std::transform(swpn_data->weapon_name.begin(), swpn_data->weapon_name.end(), swpn_data->weapon_name.begin(), ::toupper);
-    swpn_data->weapon_name = assetsManager->object_root_path + swpn_data->weapon_name + ".IFF";
-    TreEntry *entry = assetsManager->GetEntryByName(swpn_data->weapon_name);
+    swpn_data->weapon_name = assetsManager.object_root_path + swpn_data->weapon_name + ".IFF";
+    TreEntry *entry = assetsManager.GetEntryByName(swpn_data->weapon_name);
     if (entry != nullptr) {
-        RSEntity *objct = new RSEntity(this->assetsManager);
+        RSEntity *objct = new RSEntity();
         objct->InitFromRAM(entry->data, entry->size);
         swpn_data->weapon_entity = objct;
     } else {
@@ -505,12 +502,12 @@ void RSEntity::parseREAL_OBJT_JETP_EXPL(uint8_t *data, size_t size) {
     std::string tmpname;
     ByteStream bs(data);
     expl->name = bs.ReadString(8);
-    tmpname = assetsManager->object_root_path + expl->name + ".IFF";
+    tmpname = assetsManager.object_root_path + expl->name + ".IFF";
     expl->x = bs.ReadShort();
     expl->y = bs.ReadShort();
     std::transform (tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
-    expl->objct = new RSEntity(this->assetsManager);
-    TreEntry *entry = assetsManager->GetEntryByName(tmpname);
+    expl->objct = new RSEntity();
+    TreEntry *entry = assetsManager.GetEntryByName(tmpname);
     if (entry != nullptr) {
         expl->objct->InitFromRAM(entry->data, entry->size);
     }
@@ -521,9 +518,9 @@ void RSEntity::parseREAL_OBJT_JETP_DEST(uint8_t *data, size_t size) {
     ByteStream bs(data);
     std::string tmpname = bs.ReadString(8);
     std::transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
-    this->destroyed_object_name = assetsManager->object_root_path + tmpname + ".IFF";
-    RSEntity *objct = new RSEntity(this->assetsManager);
-    TreEntry *entry = assetsManager->GetEntryByName(this->destroyed_object_name);
+    this->destroyed_object_name = assetsManager.object_root_path + tmpname + ".IFF";
+    RSEntity *objct = new RSEntity();
+    TreEntry *entry = assetsManager.GetEntryByName(this->destroyed_object_name);
     if (entry != nullptr) { 
         objct->InitFromRAM(entry->data, entry->size);
         this->destroyed_object = objct;
@@ -543,7 +540,7 @@ void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
         
         std::string tmpname = bs.ReadString(8);
         std::transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
-        chld->name = assetsManager->object_root_path+tmpname+".IFF";
+        chld->name = assetsManager.object_root_path+tmpname+".IFF";
         chld->x = bs.ReadInt32LE();
         chld->z = bs.ReadInt32LE();
         chld->y = bs.ReadInt32LE();
@@ -551,9 +548,9 @@ void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
         for (size_t j = 0; j < 12; j++) {
             chld->data.push_back(bs.ReadByte());
         }
-        RSEntity *objct = new RSEntity(this->assetsManager);
+        RSEntity *objct = new RSEntity();
         
-        TreEntry *entry = assetsManager->GetEntryByName(chld->name);
+        TreEntry *entry = assetsManager.GetEntryByName(chld->name);
         if (entry != nullptr) {
             objct->InitFromRAM(entry->data, entry->size);
             chld->objct = objct;
@@ -704,9 +701,9 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_WPNS(uint8_t *data, size_t size) {
         htps->nb_weap = bs.ReadShort();
         htps->name = bs.ReadString(8);
         std::transform(htps->name.begin(), htps->name.end(), htps->name.begin(), ::toupper);
-        std::string tmpname = assetsManager->object_root_path + htps->name + ".IFF";
-        RSEntity *objct = new RSEntity(this->assetsManager);
-        TreEntry *entry = assetsManager->GetEntryByName(tmpname);
+        std::string tmpname = assetsManager.object_root_path + htps->name + ".IFF";
+        RSEntity *objct = new RSEntity();
+        TreEntry *entry = assetsManager.GetEntryByName(tmpname);
         if (entry != nullptr) {
             objct->InitFromRAM(entry->data, entry->size);
             htps->objct = objct;
@@ -1157,7 +1154,7 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
     }
     
     RSPalette palette;
-    palette.initFromFileData(this->assetsManager->GetFileData("PALETTE.IFF"));
+    palette.initFromFileData(this->assetsManager.GetFileData("PALETTE.IFF"));
 
     for (auto img : img_set->shapes) {
         Texture *tex = new Texture();

@@ -2,6 +2,8 @@
 #include "precomp.h"
 
 class SCExplosion {
+private:
+    SCRenderer &Renderer = SCRenderer::getInstance();
 public:
     RSEntity *obj{nullptr};
     int fps{0};

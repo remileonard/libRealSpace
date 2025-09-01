@@ -8,7 +8,8 @@
 
 #pragma once
 #include "../../engine/RSScreen.h"
-
+#include "../../engine/GameEngine.h"
+#include "../../engine/RSVGA.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,16 +26,17 @@ extern "C" {
 #include <SDL.h>
 
 class DebugScreen: public RSScreen{
-    
+private:
+    GLuint screen_texture;
+    GameEngine *Game{nullptr};
+    RSVGA &VGA = RSVGA::getInstance();
 public:
     
     DebugScreen();
-    ~DebugScreen();
+    ~DebugScreen() override;
     
     void init(int width, int height, bool fullscreen);
     void setTitle(const char* title);
     void refresh(void);
-private:
-    GLuint screen_texture;
-    
+  
 };

@@ -15,6 +15,7 @@
 #include "../realspace/AssetManager.h"
 #include "../realspace/RLEShape.h"
 #include "../realspace/RSFont.h"
+#include "RSScreen.h"
 #include "Texture.h"
 #include "FrameBuffer.h"
 
@@ -26,27 +27,35 @@ class RSVGA{
 private:
     int width;
     int height;
-    AssetManager* assets;
     VGAPalette palette;
     FrameBuffer* frameBuffer;
     uint32_t *upscaled_framebuffer{nullptr};
     uint32_t textureID;
     Texel data[320 * 200];
+    inline static std::unique_ptr<RSVGA> s_instance{};
     void displayBuffer(uint32_t* buffer, int width, int height);
-
+    RSScreen *Screen{nullptr};
 public:
     bool upscale{false};
     
     static RSVGA& getInstance() {
-        static RSVGA instance; 
+        if (!RSVGA::hasInstance()) {
+            RSVGA::setInstance(std::make_unique<RSVGA>());
+        }
+        RSVGA& instance = RSVGA::instance();
         return instance;
     };    
+    static RSVGA& instance() {
+        return *s_instance; 
+    }
+    static void setInstance(std::unique_ptr<RSVGA> inst) {
+        s_instance = std::move(inst);
+    }
+    static bool hasInstance() { return (bool)s_instance; }
+
     RSVGA();
     ~RSVGA();
-    
-    
-    void init(int width, int height, AssetManager* amana);
-    
+    void init(int width, int height);
     void activate(void);
     void setPalette(VGAPalette* newPalette);
     VGAPalette* getPalette(void);

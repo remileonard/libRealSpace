@@ -50,7 +50,7 @@ void RSObjViewer::parseVIEW_OBJS(uint8_t *data, size_t size) {
             continue;
         }
 
-        showCase.entity = new RSEntity(&Assets);
+        showCase.entity = new RSEntity();
         showCase.entity->InitFromRAM(entry->data, entry->size);
 
         showCase.displayName = stream.ReadString(20);

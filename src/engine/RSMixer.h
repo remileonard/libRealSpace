@@ -26,7 +26,7 @@ public:
     }
     RSMixer();
     ~RSMixer();
-    void init(AssetManager *amana);
+    void init();
     void playMusic(uint32_t index, int loop=1);
     void switchBank(uint8_t bank);
     void stopMusic();
