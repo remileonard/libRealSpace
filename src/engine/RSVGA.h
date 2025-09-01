@@ -23,23 +23,6 @@
 struct VGAPalette;
 
 class RSVGA{
-    
-public:
-    
-    RSVGA();
-    ~RSVGA();
-    
-    
-    void init(int width, int height, AssetManager* amana);
-    
-    void Activate(void);
-    void SetPalette(VGAPalette* newPalette);
-    VGAPalette* GetPalette(void);
-    void VSync(void);
-    void fadeOut(int steps = 10, int delayMs = 50);
-    FrameBuffer* GetFrameBuffer(void){ return frameBuffer;};
-    bool upscale{false};
-
 private:
     int width;
     int height;
@@ -50,4 +33,25 @@ private:
     uint32_t textureID;
     Texel data[320 * 200];
     void displayBuffer(uint32_t* buffer, int width, int height);
+
+public:
+    bool upscale{false};
+    
+    static RSVGA& getInstance() {
+        static RSVGA instance; 
+        return instance;
+    };    
+    RSVGA();
+    ~RSVGA();
+    
+    
+    void init(int width, int height, AssetManager* amana);
+    
+    void activate(void);
+    void setPalette(VGAPalette* newPalette);
+    VGAPalette* getPalette(void);
+    void vSync(void);
+    void fadeOut(int steps = 10, int delayMs = 50);
+    FrameBuffer* getFrameBuffer(void){ return frameBuffer;};
+
 };

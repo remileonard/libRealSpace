@@ -39,7 +39,7 @@ void SCRegister::init() {
                         pak.GetEntry(OptionShapeID::START_GAME_REGISTRATION)->size);
     book.init(bookPak.GetEntry(0)->data, bookPak.GetEntry(0)->size);
 
-    VGAPalette* rendererPalette = VGA.GetPalette();
+    VGAPalette* rendererPalette = VGA.getPalette();
     this->palette = *rendererPalette;
 
     TreEntry* palettesEntry = Assets.GetEntryByName(Assets.optpals_filename);
@@ -172,12 +172,12 @@ void SCRegister::checkKeyboard(void) {
 void SCRegister::checkZones() {
     for (auto zone : zones) {
         if (zone->active) {
-            if (Mouse.GetPosition().x > zone->position.x &&
-                Mouse.GetPosition().x < zone->position.x + zone->dimension.x &&
-                Mouse.GetPosition().y > zone->position.y &&
-                Mouse.GetPosition().y < zone->position.y + zone->dimension.y) {
+            if (Mouse.getPosition().x > zone->position.x &&
+                Mouse.getPosition().x < zone->position.x + zone->dimension.x &&
+                Mouse.getPosition().y > zone->position.y &&
+                Mouse.getPosition().y < zone->position.y + zone->dimension.y) {
                 // HIT !
-                Mouse.SetMode(SCMouse::VISOR);
+                Mouse.setMode(SCMouse::VISOR);
 
                 if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
                     Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
@@ -189,19 +189,19 @@ void SCRegister::checkZones() {
         }
     }
 
-    Mouse.SetMode(SCMouse::CURSOR);
+    Mouse.setMode(SCMouse::CURSOR);
 }
 void SCRegister::runFrame(void) {
     checkButtons();
     checkKeyboard();
 
-    VGA.Activate();
-    FrameBuffer *fb = VGA.GetFrameBuffer();
-    fb->Clear();
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->clear();
+    VGA.setPalette(&this->palette);
 
     
-    fb->DrawShape(&book);
+    fb->drawShape(&book);
 
     std::string firstNameDisplay = (m_activeEditor==1) ? m_editorFirstName->getDisplayText()
                                                        : GameState.player_firstname;
@@ -210,11 +210,11 @@ void SCRegister::runFrame(void) {
     std::string callsignDisplay  = (m_activeEditor==2) ? m_editorCallsign->getDisplayText()
                                                        : GameState.player_callsign;
 
-    fb->PrintText(this->font, {172,104}, firstNameDisplay, 0);
-    fb->PrintText(this->font, {88,104},  nameDisplay, 0);
-    fb->PrintText(this->font, {122,110}, callsignDisplay, 0);
+    fb->printText(this->font, {172,104}, firstNameDisplay, 0);
+    fb->printText(this->font, {88,104},  nameDisplay, 0);
+    fb->printText(this->font, {122,110}, callsignDisplay, 0);
 
-    Mouse.Draw();
+    Mouse.draw();
 
-    VGA.VSync();
+    VGA.vSync();
 }

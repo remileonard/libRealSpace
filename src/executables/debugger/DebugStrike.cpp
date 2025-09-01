@@ -972,11 +972,11 @@ void DebugStrike::renderMenu() {
         }
         ImGui::PopItemWidth();
         if (ImGui::Button("Play")) {
-            Mixer.PlayMusic(music_id);
+            Mixer.playMusic(music_id);
         }
         ImGui::SameLine();
         if (ImGui::Button("Stop")) {
-            Mixer.StopMusic();
+            Mixer.stopMusic();
         }
         ImGui::SameLine();
         if (ImGui::Button("Next")) {
@@ -984,7 +984,7 @@ void DebugStrike::renderMenu() {
             if (music_id >= Mixer.music->musics[2].size()) {
                 music_id = 0;
             }
-            Mixer.PlayMusic(music_id);
+            Mixer.playMusic(music_id);
         }
         ImGui::SameLine();
         if (ImGui::Button("Prev")) {
@@ -992,7 +992,7 @@ void DebugStrike::renderMenu() {
             if (music_id < 0) {
                 music_id = (int) Mixer.music->musics[2].size() - 1;
             }
-            Mixer.PlayMusic(music_id);
+            Mixer.playMusic(music_id);
         }
         ImGui::End();
     }
@@ -1091,7 +1091,7 @@ void DebugStrike::renderMenu() {
 
         Camera totarget;
         totarget.SetPosition(&playerPos);
-        totarget.LookAt(&targetPos);
+        totarget.lookAt(&targetPos);
         float raw;
         float yawn;
         float pitch;
@@ -1099,7 +1099,7 @@ void DebugStrike::renderMenu() {
         yawn = 0.0f;
         pitch = 0.0f;
 
-        totarget.GetOrientation().GetAngles(pitch, yawn, raw);
+        totarget.getOrientation().GetAngles(pitch, yawn, raw);
 
         Vector3D directionVector = {targetPos.x - playerPos.x, targetPos.y - playerPos.y, targetPos.z - playerPos.z};
 

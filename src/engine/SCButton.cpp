@@ -21,13 +21,13 @@ SCButton::~SCButton(){
     
 }
 
-void SCButton::InitBehavior(std::function<void()> fct, Point2D position,Point2D dimension){
+void SCButton::initBehavior(std::function<void()> fct, Point2D position,Point2D dimension){
     this->onClick = fct;
     this->position = position;
     this->dimension = dimension;
 }
 
-void SCButton::OnAction(void){
+void SCButton::onAction(void){
     if (this->onClick != nullptr)
         this->onClick();
 }

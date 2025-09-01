@@ -13,7 +13,7 @@ void RSMixer::init(AssetManager *amana) {
 }
 RSMixer::~RSMixer() { Mix_Quit(); }
 
-void RSMixer::PlayMusic(uint32_t index, int loop) {
+void RSMixer::playMusic(uint32_t index, int loop) {
     if (this->current_music == index) {
         return;
     }
@@ -28,14 +28,14 @@ void RSMixer::PlayMusic(uint32_t index, int loop) {
         printf("Error playing music: %s\n", Mix_GetError());
     }
 }
-void RSMixer::SwitchBank(uint8_t bank) { 
+void RSMixer::switchBank(uint8_t bank) { 
     this->music->SwitchBank(bank);
 }
-void RSMixer::StopMusic() { 
+void RSMixer::stopMusic() { 
     Mix_HaltMusic();
     this->isplaying = false;
 }
-void RSMixer::PlaySoundVoc(uint8_t *data, size_t vocSize) {
+void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
     if (voc_data == data) {
         return;
     }
@@ -51,7 +51,7 @@ void RSMixer::PlaySoundVoc(uint8_t *data, size_t vocSize) {
         printf("Error playing VOC sound: %s\n", Mix_GetError());
     }
 }
-void RSMixer::PlaySoundVoc(uint8_t *data, size_t vocSize, int channel, int loop) {
+void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop) {
     if (voc_data == data) {
         return;
     }
@@ -69,12 +69,12 @@ void RSMixer::PlaySoundVoc(uint8_t *data, size_t vocSize, int channel, int loop)
         printf("Error playing VOC sound on channel %d: %s\n", channel, Mix_GetError());
     }
 }
-void RSMixer::StopSound() { Mix_HaltChannel(channel); };
-void RSMixer::StopSound(int chanl) { Mix_HaltChannel(chanl); };
-bool RSMixer::IsSoundPlaying() {
+void RSMixer::stopSound() { Mix_HaltChannel(channel); };
+void RSMixer::stopSound(int chanl) { Mix_HaltChannel(chanl); };
+bool RSMixer::isSoundPlaying() {
     return Mix_Playing(channel) != 0;
 }
-bool RSMixer::IsSoundPlaying(int chanl) {
+bool RSMixer::isSoundPlaying(int chanl) {
     return Mix_Playing(-1) != 0;
 }
 void RSMixer::setVolume(int volume, int channel) {

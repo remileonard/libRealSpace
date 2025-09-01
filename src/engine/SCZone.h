@@ -6,8 +6,8 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 
-#ifndef __libRealSpace__Zone__
-#define __libRealSpace__Zone__
+#pragma once
+
 #include <functional>
 #include "../realspace/RLEShape.h"
 #include "../realspace/RSImageSet.h"
@@ -64,34 +64,26 @@ struct animatedSprites {
 };
 
 class SCZone{
-    
+private:
+    int fps;
+    bool enabled{false};
 public:
-    bool active{true};
-    SCZone();
-    ~SCZone();
     uint8_t id;
-     
+    bool active{true};
     Point2D position;
     Point2D dimension;
     std::vector<Point2D*> *quad{nullptr};
     std::string *label{nullptr};
     std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick;
-
-    void OnAction(void);
-
-    void Draw(void);
-    void drawQuad();
-    inline bool IsEnabled(void){ return this->enabled; }
-    inline void SetEnable(bool enabled){ this->enabled = enabled;}
-    bool IsActive(std::map<uint8_t, bool> *requierd_flags);
     animatedSprites *sprite{nullptr};
-    
-private:
-    
-    int fps;
-    bool enabled{false} ;
-   
 
+    SCZone();
+    ~SCZone();
+
+    void onAction(void);
+    void draw(void);
+    void drawQuad();
+    inline bool isEnabled(void){ return this->enabled; }
+    inline void setEnable(bool enabled){ this->enabled = enabled;}
+    bool isActive(std::map<uint8_t, bool> *requierd_flags);
 };
-
-#endif /* defined(__libRealSpace__Zone__) */

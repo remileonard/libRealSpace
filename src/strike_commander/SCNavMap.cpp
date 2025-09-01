@@ -173,18 +173,18 @@ void SCNavMap::runFrame(void) {
     this->checkKeyboard();
     bool upscaled = VGA.upscale;
     VGA.upscale = false;
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
     ResetLabelBoxes();
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
     
     //Draw static
     used_areas.clear();
     float center = BLOCK_WIDTH * 9.0f;
     float map_width = BLOCK_WIDTH * 18.0f;
     if (this->navMap->maps.count(*this->name)>0) {
-        VGA.GetFrameBuffer()->DrawShape(this->navMap->maps[*this->name]);
-        VGA.GetFrameBuffer()->DrawShape(this->navMap->background);
+        VGA.getFrameBuffer()->drawShape(this->navMap->maps[*this->name]);
+        VGA.getFrameBuffer()->drawShape(this->navMap->background);
         Point2D pos = this->navMap->maps[*this->name]->position;
         int w = 238;
         int h = 155;
@@ -203,7 +203,7 @@ void SCNavMap::runFrame(void) {
         Point2D mission_name_pos{248, 30};
         Point2D leader_pos{248, 50};
 
-        VGA.GetFrameBuffer()->PrintText_SM(
+        VGA.getFrameBuffer()->printText_SM(
             this->navMap->font,
             &mission_name_pos,
             const_cast<char*>("mission"),
@@ -214,7 +214,7 @@ void SCNavMap::runFrame(void) {
         mission_name_pos.x = 260;
         mission_name_pos.y += this->navMap->font->GetShapeForChar('A')->GetHeight();
 
-        VGA.GetFrameBuffer()->PrintText_SM(
+        VGA.getFrameBuffer()->printText_SM(
             this->navMap->font,
             &mission_name_pos,
             (char*) mission_name.c_str(),
@@ -222,7 +222,7 @@ void SCNavMap::runFrame(void) {
             0,
             (int32_t)mission_name.size(),1,this->navMap->font->GetShapeForChar('A')->GetWidth(), false, false);
         leader_pos.y = mission_name_pos.y + this->navMap->font->GetShapeForChar('A')->GetHeight();
-        VGA.GetFrameBuffer()->PrintText_SM(
+        VGA.getFrameBuffer()->printText_SM(
             this->navMap->font,
             &leader_pos,
             const_cast<char*>("leader"),
@@ -231,7 +231,7 @@ void SCNavMap::runFrame(void) {
             6,1,this->navMap->font->GetShapeForChar('A')->GetWidth(), false, false);
         leader_pos.y += this->navMap->font->GetShapeForChar('A')->GetHeight();
         leader_pos.x = 260;
-        VGA.GetFrameBuffer()->PrintText_SM(
+        VGA.getFrameBuffer()->printText_SM(
             this->navMap->font,
             &leader_pos,
             (char*) leader.c_str(),
@@ -247,7 +247,7 @@ void SCNavMap::runFrame(void) {
             std::transform(leader.begin(), leader.end(), leader.begin(), ::tolower);
             leader_pos.y += this->navMap->font->GetShapeForChar('A')->GetHeight();
             leader_pos.x = 252;
-            VGA.GetFrameBuffer()->PrintText_SM(
+            VGA.getFrameBuffer()->printText_SM(
                 this->navMap->font,
                 &leader_pos,
                 const_cast<char*>("wingman"),
@@ -256,7 +256,7 @@ void SCNavMap::runFrame(void) {
                 7,1,this->navMap->font->GetShapeForChar('A')->GetWidth(), false, false);
             leader_pos.y += this->navMap->font->GetShapeForChar('A')->GetHeight();
             leader_pos.x = 260;
-            VGA.GetFrameBuffer()->PrintText_SM(
+            VGA.getFrameBuffer()->printText_SM(
                 this->navMap->font,
                 &leader_pos,
                 (char*) leader.c_str(),
@@ -277,7 +277,7 @@ void SCNavMap::runFrame(void) {
                     int msg_newy = 80;
                     Point2D *msg_p1 = new Point2D({msg_newx, msg_newy});
                     
-                    VGA.GetFrameBuffer()->PrintText_SM(
+                    VGA.getFrameBuffer()->printText_SM(
                         this->navMap->font,
                         msg_p1,
                         const_cast<char*>("objective"),
@@ -293,7 +293,7 @@ void SCNavMap::runFrame(void) {
                     msg_p1->x = msg_newx+5;
                     if (wp->objective != nullptr) {
                         std::transform(wp->objective->begin(), wp->objective->end(), wp->objective->begin(), ::tolower);
-                        VGA.GetFrameBuffer()->PrintText_SM(
+                        VGA.getFrameBuffer()->printText_SM(
                             this->navMap->font,
                             msg_p1,
                             (char*) wp->objective->c_str(),
@@ -310,7 +310,7 @@ void SCNavMap::runFrame(void) {
                     msg_newy = 135;
                     msg_p1 = new Point2D({msg_newx, msg_newy});
                     
-                    VGA.GetFrameBuffer()->PrintText_SM(
+                    VGA.getFrameBuffer()->printText_SM(
                         this->navMap->font,
                         msg_p1,
                         const_cast<char*>("notes"),
@@ -325,7 +325,7 @@ void SCNavMap::runFrame(void) {
                     msg_p1->x = msg_newx+3;
                     if (wp->message != nullptr) {
                         std::transform(wp->message->begin(), wp->message->end(), wp->message->begin(), ::tolower);
-                        VGA.GetFrameBuffer()->PrintText_SM(
+                        VGA.getFrameBuffer()->printText_SM(
                             this->navMap->font,
                             msg_p1,
                             (char*) wp->message->c_str(),
@@ -342,8 +342,8 @@ void SCNavMap::runFrame(void) {
                     newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
                     
                     if (newx>0 && newx<320 && newy>0 && newy<200) {
-                        VGA.GetFrameBuffer()->plot_pixel(newx, newy, 128);
-                        VGA.GetFrameBuffer()->circle_slow(newx, newy, 3, 1);
+                        VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
+                        VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
                     }
                     this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
                 } else {
@@ -353,8 +353,8 @@ void SCNavMap::runFrame(void) {
                         if (used_areas.find(wp->spot->area_id) == used_areas.end()) {
                             
                             if (newx>0 && newx<320 && newy>0 && newy<200) {
-                                VGA.GetFrameBuffer()->plot_pixel(newx, newy, 128);
-                                VGA.GetFrameBuffer()->circle_slow(newx, newy, 3, 1);
+                                VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
+                                VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
                             }
                             this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
                         }                    
@@ -381,7 +381,7 @@ void SCNavMap::runFrame(void) {
                     int labelH = glyphH;
 
                     Point2D obj_pos = placeLabel(newx-labelW, newy+glyphH, labelW, labelH);
-                    VGA.GetFrameBuffer()->PrintText_SM(
+                    VGA.getFrameBuffer()->printText_SM(
                         this->navMap->font,
                         &obj_pos,
                         (char*) name.c_str(),
@@ -389,15 +389,15 @@ void SCNavMap::runFrame(void) {
                         0,
                         (int32_t)name.size(),1,glyphW,false,false
                     );
-                    VGA.GetFrameBuffer()->plot_pixel(newx, newy, 10);
-                    VGA.GetFrameBuffer()->circle_slow(newx, newy, 2, 1);
+                    VGA.getFrameBuffer()->plot_pixel(newx, newy, 10);
+                    VGA.getFrameBuffer()->circle_slow(newx, newy, 2, 1);
                 }
             }
         }
     }
     
-    Mouse.Draw();
-    VGA.VSync();
+    Mouse.draw();
+    VGA.vSync();
     VGA.upscale = upscaled;
 }
 
@@ -416,15 +416,15 @@ void SCNavMap::showArea(AREA *area, float center, float map_width, int w, int h,
         int txtl = (int) strlen(area->AreaName);
         Point2D *p1 = new Point2D({newx-(txtw/2)<0?newx:newx-(txtw/2), newy});
         if (isCircle) {
-            VGA.GetFrameBuffer()->circle_slow(newx, newy, neww, c);
+            VGA.getFrameBuffer()->circle_slow(newx, newy, neww, c);
         } else if (area->AreaType != 'C') {
-            VGA.GetFrameBuffer()->plot_pixel(newx, newy, 1);
-            VGA.GetFrameBuffer()->line(newx-neww, newy-newh, newx+neww, newy-newh, c);
-            VGA.GetFrameBuffer()->line(newx-neww, newy+newh, newx+neww, newy+newh, c);
-            VGA.GetFrameBuffer()->line(newx-neww, newy-newh, newx-neww, newy+newh, c);
-            VGA.GetFrameBuffer()->line(newx+neww, newy-newh, newx+neww, newy+newh, c);
+            VGA.getFrameBuffer()->plot_pixel(newx, newy, 1);
+            VGA.getFrameBuffer()->line(newx-neww, newy-newh, newx+neww, newy-newh, c);
+            VGA.getFrameBuffer()->line(newx-neww, newy+newh, newx+neww, newy+newh, c);
+            VGA.getFrameBuffer()->line(newx-neww, newy-newh, newx-neww, newy+newh, c);
+            VGA.getFrameBuffer()->line(newx+neww, newy-newh, newx+neww, newy+newh, c);
         } else if (area->AreaType == 'C') {
-            VGA.GetFrameBuffer()->circle_slow(newx, newy, newh+1, c);
+            VGA.getFrameBuffer()->circle_slow(newx, newy, newh+1, c);
         }
         int glyphW = this->navMap->font->GetShapeForChar('A')->GetWidth();
         int glyphH = this->navMap->font->GetShapeForChar('A')->GetHeight();
@@ -438,7 +438,7 @@ void SCNavMap::showArea(AREA *area, float center, float map_width, int w, int h,
             area_pos = placeLabel(p1->x, p1->y, labelW, labelH);
             used_areas[area->id-1]=area_pos;
         }
-        VGA.GetFrameBuffer()->PrintText(
+        VGA.getFrameBuffer()->printText(
             this->navMap->font,
             &area_pos,
             area->AreaName,

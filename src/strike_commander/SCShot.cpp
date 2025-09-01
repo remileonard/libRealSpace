@@ -108,8 +108,8 @@ RSImageSet *SCShot::getShape(uint8_t shpid) {
  */
 void SCShot::runFrame(void) {
     checkKeyboard();
-    VGA.Activate();
-    VGA.GetFrameBuffer()->FillWithColor(0);
+    VGA.activate();
+    VGA.getFrameBuffer()->fillWithColor(0);
     ByteStream paletteReader;
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - this->fps > 12;
@@ -123,16 +123,16 @@ void SCShot::runFrame(void) {
         if (cpt < this->palettes.size()) {
             paletteReader.Set((this->palettes[cpt]));
             this->palette.ReadPatch(&paletteReader);
-            VGA.SetPalette(&this->palette);
+            VGA.setPalette(&this->palette);
         }
 
         if (layer->img->palettes.size() >= 1) {
             layer->img->palettes[0]->copyFrom(&this->palette);
-            VGA.SetPalette(layer->img->palettes[0]->GetColorPalette());
+            VGA.setPalette(layer->img->palettes[0]->GetColorPalette());
         } else {
-            VGA.SetPalette(&this->palette);
+            VGA.setPalette(&this->palette);
         }
-        VGA.GetFrameBuffer()->DrawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
+        VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
         if (layer->img->sequence.size() > 1) {
             layer->frameCounter = layer->frameCounter + fpsupdate;
             if (layer->frameCounter >= layer->img->sequence.size()) {
@@ -142,13 +142,13 @@ void SCShot::runFrame(void) {
         cpt++;
     }
     for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT; i++)
-        VGA.GetFrameBuffer()->FillLineColor(i, 0x00);
+        VGA.getFrameBuffer()->fillLineColor(i, 0x00);
 
     for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++)
-        VGA.GetFrameBuffer()->FillLineColor(199 - i, 0x00);
-    Mouse.Draw();
+        VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    Mouse.draw();
 
-    VGA.VSync();
+    VGA.vSync();
     if (ended) {
         Game->stopTopActivity();
     }
@@ -175,22 +175,22 @@ void EndMissionScene::runFrame() {
     if (fpsupdate) {
         this->fps = (SDL_GetTicks() / 10);
     }
-    Mixer.SwitchBank(0);
-    Mixer.PlayMusic(27, 1);
+    Mixer.switchBank(0);
+    Mixer.playMusic(27, 1);
     ByteStream paletteReader;
     paletteReader.Set((this->rawPalette));
     this->palette.ReadPatch(&paletteReader);
-    VGA.Activate();
-    VGA.GetFrameBuffer()->FillWithColor(0);
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    VGA.getFrameBuffer()->fillWithColor(0);
+    VGA.setPalette(&this->palette);
     shotBackground *layer = this->layers[this->part];
-    VGA.GetFrameBuffer()->DrawShape(layer->img->GetShape(layer->img->sequence[0]));
-    VGA.GetFrameBuffer()->DrawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
+    VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
+    VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
     if (layer->img->sequence.size() > 1) {
         layer->frameCounter = (uint8_t)(layer->frameCounter + fpsupdate) % layer->img->sequence.size();
     }
-    Mouse.Draw();
-    VGA.VSync();
+    Mouse.draw();
+    VGA.vSync();
 }
 
 void MapShot::init() {
@@ -198,9 +198,9 @@ void MapShot::init() {
     x_max = 960;
     y_max = 600;
     this->frameBuffer = new FrameBuffer(x_max, y_max);
-    this->frameBuffer->FillWithColor(0);
+    this->frameBuffer->fillWithColor(0);
     this->frameBufferA = new FrameBuffer(x_max, y_max);
-    this->frameBufferA->FillWithColor(255);
+    this->frameBufferA->fillWithColor(255);
     this->layers.clear();
     this->rawPalette = this->optPals.GetEntry(23)->data;
     std::map<uint8_t, std::tuple<uint16_t, uint16_t>> map = {
@@ -244,9 +244,9 @@ void MapShot::runFrame(void) {
     ByteStream paletteReader;
     paletteReader.Set((this->rawPalette));
     this->palette.ReadPatch(&paletteReader);
-    VGA.Activate();
-    VGA.GetFrameBuffer()->FillWithColor(255);
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    VGA.getFrameBuffer()->fillWithColor(255);
+    VGA.setPalette(&this->palette);
     static int nb_etapes = 100;
     this->fp_counter++;
 
@@ -278,15 +278,15 @@ void MapShot::runFrame(void) {
     this->y = (int) current_y - 100;
     
     frameBufferA->framebuffer[(int)current_y * x_max + (int)current_x] = 246;
-    VGA.GetFrameBuffer()->blitLargeBuffer(frameBuffer->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
+    VGA.getFrameBuffer()->blitLargeBuffer(frameBuffer->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
     float rx = (this->x / (x_max / 320.0f));
     float ry = (this->y / (y_max / 200.0f)) + 100;
     
-    VGA.GetFrameBuffer()->blitLargeBuffer(frameBufferA->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
-    Mouse.Draw();
+    VGA.getFrameBuffer()->blitLargeBuffer(frameBufferA->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
+    Mouse.draw();
     for (auto p: *this->points) {
-        VGA.GetFrameBuffer()->plot_pixel((int)p->x, (int)p->y, 0);
-        VGA.GetFrameBuffer()->PrintText_SM(
+        VGA.getFrameBuffer()->plot_pixel((int)p->x, (int)p->y, 0);
+        VGA.getFrameBuffer()->printText_SM(
             this->font,
             new Point2D{p->x-this->x, p->y-this->y},
             (char*)p->label.c_str(),
@@ -298,7 +298,7 @@ void MapShot::runFrame(void) {
             false, false
         );
     }
-    VGA.VSync();
+    VGA.vSync();
     if (ended) {
         Game->stopTopActivity();
     }

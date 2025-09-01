@@ -6,8 +6,8 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 
-#ifndef __libRealSpace__SCMouse__
-#define __libRealSpace__SCMouse__
+#pragma once
+
 #include "../realspace/RLEShape.h"
 #include "../realspace/TreArchive.h"
 #include "RSVGA.h"
@@ -27,37 +27,32 @@ typedef struct MouseButton{
 } MouseButton;
 
 class SCMouse{
-    
-    
 public:
+    enum Mode {CURSOR, VISOR };
+private:
+    RLEShape* appearances[4];
+    Mode mode;
+    Point2D position;
+    bool visible;
+public:
+    static SCMouse& getInstance() {
+        static SCMouse instance; 
+        return instance;
+    };
     SCMouse();
     ~SCMouse();
     
     void init(void);
     
-    inline bool IsVisible(void){ return this->visible ; }
-    void SetVisible(bool visible){ this->visible = visible; }
+    inline bool iIsVisible(void){ return this->visible ; }
+    void setVisible(bool visible){ this->visible = visible; }
     
-    inline void SetPosition(Point2D position){ this->position = position;}
-    inline Point2D GetPosition(void) { return this->position ; }
+    inline void setPosition(Point2D position){ this->position = position;}
+    inline Point2D getPosition(void) { return this->position ; }
     
-    void Draw(void);
-    
-    enum Mode {CURSOR, VISOR };
-    void SetMode(Mode mode){this->mode = mode;}
-    
-    void FlushEvents(void);
+    void draw(void);
+    void setMode(Mode mode){this->mode = mode;}
+    void flushEvents(void);
     MouseButton buttons[3];
-private:
 
-    
-    RLEShape* appearances[4];
-    Mode mode;
-
-    //The cursor position in VGA 320x200 coordinates.
-    Point2D position;
-    
-    bool visible;
 };
-
-#endif /* defined(__libRealSpace__SCMouse__) */

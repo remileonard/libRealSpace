@@ -18,19 +18,24 @@ class RSMixer {
     int channel{0};
     uint8_t *voc_data{nullptr};
 public:
+    RSMusic *music;
+
+    static RSMixer &getInstance() {
+        static RSMixer instance;
+        return instance;
+    }
     RSMixer();
     ~RSMixer();
     void init(AssetManager *amana);
-    void PlayMusic(uint32_t index, int loop=1);
-    void SwitchBank(uint8_t bank);
-    void StopMusic();
-    uint32_t GetMusicID() { return this->current_music; };
-    void StopSound();
-    void StopSound(int chanl);
-    void PlaySoundVoc(uint8_t *data, size_t vocSize);
-    void PlaySoundVoc(uint8_t *data, size_t vocSize, int channel, int loop=0);
+    void playMusic(uint32_t index, int loop=1);
+    void switchBank(uint8_t bank);
+    void stopMusic();
+    uint32_t getMusicID() { return this->current_music; };
+    void stopSound();
+    void stopSound(int chanl);
+    void playSoundVoc(uint8_t *data, size_t vocSize);
+    void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop=0);
     void setVolume(int volume, int channel = -1);
-    bool IsSoundPlaying();
-    bool IsSoundPlaying(int chanl);
-    RSMusic *music;
+    bool isSoundPlaying();
+    bool isSoundPlaying(int chanl);
 };

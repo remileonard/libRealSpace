@@ -956,14 +956,14 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             weap = new GunSimulatedObject();
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
-                Mixer.PlaySoundVoc(sound->data, sound->size);
+                Mixer.playSoundVoc(sound->data, sound->size);
             }
             this->wp_cooldown = 10; // Cooldown between two shots
         break;
         default:
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::AIM9_SHOOT];
-                Mixer.PlaySoundVoc(sound->data, sound->size);
+                Mixer.playSoundVoc(sound->data, sound->size);
             }
             weap = new SCSimulatedObject();
             this->wp_cooldown = 10; // Cooldown between two shots

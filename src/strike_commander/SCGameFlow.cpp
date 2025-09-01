@@ -48,12 +48,12 @@ void SCGameFlow::clicked(std::vector<EFCT *> *script, uint8_t id) {
     this->currentOptCode = 0;
     VGA.fadeOut(30, 6);
     if (this->scen->sceneOpts->foreground->sprites[id]->tune != nullptr) {
-        Mixer.SwitchBank(1);
-        Mixer.StopMusic();
+        Mixer.switchBank(1);
+        Mixer.stopMusic();
         if (GameState.tune_modifier != 0 && id == 18) {
-            Mixer.PlayMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID + GameState.tune_modifier, 1);
+            Mixer.playMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID + GameState.tune_modifier, 1);
         } else {
-            Mixer.PlayMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID, 1);
+            Mixer.playMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID, 1);
         }
     }
     this->runEffect();
@@ -130,33 +130,33 @@ SCZone *SCGameFlow::CheckZones(void) {
     for (auto zone : *this->zones) {
         if (zone->active) {
             if (zone->quad != nullptr) {
-                if (isPointInQuad(Mouse.GetPosition(), zone->quad)) {
-                    Mouse.SetMode(SCMouse::VISOR);
+                if (isPointInQuad(Mouse.getPosition(), zone->quad)) {
+                    Mouse.setMode(SCMouse::VISOR);
 
                     // If the mouse button has just been released: trigger action.
                     if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
                         Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
-                        zone->OnAction();
+                        zone->onAction();
                     }
                     Point2D p = {160 - static_cast<int32_t>(zone->label->length() / 2) * 8, 180};
-                    VGA.GetFrameBuffer()->PrintText(fnt, &p, (char *)zone->label->c_str(), color, 0,
+                    VGA.getFrameBuffer()->printText(fnt, &p, (char *)zone->label->c_str(), color, 0,
                                                     static_cast<uint32_t>(zone->label->length()), 3, 5);
                     return zone;
                 }
             }
-            if (Mouse.GetPosition().x > zone->position.x &&
-                Mouse.GetPosition().x < zone->position.x + zone->dimension.x &&
-                Mouse.GetPosition().y > zone->position.y &&
-                Mouse.GetPosition().y < zone->position.y + zone->dimension.y) {
+            if (Mouse.getPosition().x > zone->position.x &&
+                Mouse.getPosition().x < zone->position.x + zone->dimension.x &&
+                Mouse.getPosition().y > zone->position.y &&
+                Mouse.getPosition().y < zone->position.y + zone->dimension.y) {
                 // HIT !
-                Mouse.SetMode(SCMouse::VISOR);
+                Mouse.setMode(SCMouse::VISOR);
 
                 if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
                     Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
-                    zone->OnAction();
+                    zone->onAction();
                 }
                 Point2D p = {160 - ((int32_t)(zone->label->length() / 2) * 8), 180};
-                VGA.GetFrameBuffer()->PrintText(fnt, &p, (char *)zone->label->c_str(), color, 0,
+                VGA.getFrameBuffer()->printText(fnt, &p, (char *)zone->label->c_str(), color, 0,
                                                 static_cast<uint32_t>(zone->label->length()), 3, 5);
 
                 return zone;
@@ -164,7 +164,7 @@ SCZone *SCGameFlow::CheckZones(void) {
         }
     }
 
-    Mouse.SetMode(SCMouse::CURSOR);
+    Mouse.setMode(SCMouse::CURSOR);
     return nullptr;
 }
 /**
@@ -719,23 +719,23 @@ void SCGameFlow::runFrame(void) {
     if (this->frequest != nullptr && this->frequest->opened) {
         this->frequest->checkevents();
     }
-    VGA.Activate();
-    VGA.GetFrameBuffer()->FillWithColor(0);
+    VGA.activate();
+    VGA.getFrameBuffer()->fillWithColor(0);
     
     if (this->scen != nullptr) {
         this->scen->Render();
         if (this->test_shape != nullptr) {
-            VGA.GetFrameBuffer()->DrawShape(this->test_shape);
+            VGA.getFrameBuffer()->drawShape(this->test_shape);
         }
     }
     if (this->frequest == nullptr || !this->frequest->opened) {
         this->CheckZones();
     }
     if (this->frequest != nullptr && this->frequest->opened) {
-        this->frequest->draw(VGA.GetFrameBuffer());
+        this->frequest->draw(VGA.getFrameBuffer());
     }
-    Mouse.Draw();
-    VGA.VSync();
+    Mouse.draw();
+    VGA.vSync();
 }
 void SCGameFlow::playShot(uint8_t shotId) {
     SCShot *sht = new SCShot();

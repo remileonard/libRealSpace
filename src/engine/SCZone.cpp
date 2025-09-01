@@ -23,7 +23,7 @@ SCZone::~SCZone(){
     
 }
 
-void SCZone::OnAction(void){
+void SCZone::onAction(void){
     if (this->sprite != nullptr && this->sprite->cliked) {
         this->sprite->active = true;
     } else if (this->onclick != nullptr) {
@@ -35,7 +35,7 @@ void SCZone::OnAction(void){
     }
 }
 
-bool  SCZone::IsActive(std::map<uint8_t, bool> *requierd_flags) {
+bool  SCZone::isActive(std::map<uint8_t, bool> *requierd_flags) {
     if (this->sprite == nullptr || this->sprite->requ == nullptr) {
         this->active = true;
         return this->active;
@@ -62,16 +62,16 @@ bool  SCZone::IsActive(std::map<uint8_t, bool> *requierd_flags) {
     }
     return this->active;
 }
-void SCZone::Draw(void) {
+void SCZone::draw(void) {
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - this->fps > 12;
     if (fpsupdate) {
         this->fps = (SDL_GetTicks() / 10);
     }
     if (this->sprite != nullptr) {
-        VGA.GetFrameBuffer()->DrawShape(this->sprite->img->GetShape(this->sprite->img->sequence[0]));
+        VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->img->sequence[0]));
         if (this->sprite->img->GetNumImages() > 1 && this->sprite->frames != nullptr) {
-            VGA.GetFrameBuffer()->DrawShape(this->sprite->img->GetShape(this->sprite->frames->at(this->sprite->frameCounter)));
+            VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->frames->at(this->sprite->frameCounter)));
             this->sprite->frameCounter =
                 (this->sprite->frameCounter + fpsupdate) % static_cast<uint8_t>(this->sprite->frames->size());
 
@@ -81,11 +81,11 @@ void SCZone::Draw(void) {
             if (this->sprite->frameCounter >= this->sprite->img->sequence.size()) {
                 this->sprite->frameCounter = 1;
             }
-            VGA.GetFrameBuffer()->DrawShape(this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]));
+            VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]));
             this->sprite->frameCounter += fpsupdate;
         } else if (this->sprite->img->sequence.size() > 1 && this->sprite->frames == nullptr &&
                     this->sprite->cliked == true && this->sprite->frameCounter < this->sprite->img->sequence.size()) {
-            VGA.GetFrameBuffer()->DrawShape(this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]));
+            VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]));
             if (this->sprite->active == true) {
                 this->sprite->frameCounter += fpsupdate;
                 if (this->sprite->frameCounter >= this->sprite->img->sequence.size()-1) {
@@ -99,21 +99,21 @@ void SCZone::Draw(void) {
 }
 void SCZone::drawQuad() {
     if (this->quad != nullptr) {
-        VGA.GetFrameBuffer()->line(
+        VGA.getFrameBuffer()->line(
             this->quad->at(0)->x,
             this->quad->at(0)->y,
             this->quad->at(1)->x,
             this->quad->at(1)->y,
             8
         );
-        VGA.GetFrameBuffer()->line(
+        VGA.getFrameBuffer()->line(
             this->quad->at(1)->x,
             this->quad->at(1)->y,
             this->quad->at(2)->x,
             this->quad->at(2)->y,
             8
         );
-        VGA.GetFrameBuffer()->line(
+        VGA.getFrameBuffer()->line(
             this->quad->at(2)->x,
             this->quad->at(2)->y,
             this->quad->at(3)->x,
@@ -121,7 +121,7 @@ void SCZone::drawQuad() {
             8
         );
 
-        VGA.GetFrameBuffer()->line(
+        VGA.getFrameBuffer()->line(
             this->quad->at(3)->x,
             this->quad->at(3)->y,
             this->quad->at(0)->x,
@@ -129,7 +129,7 @@ void SCZone::drawQuad() {
             25
         );
     } else {
-        VGA.GetFrameBuffer()->rect_slow(
+        VGA.getFrameBuffer()->rect_slow(
             this->position.x,
             this->position.y,
             this->position.x + this->dimension.x,

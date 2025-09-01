@@ -342,17 +342,17 @@ void SCStrike::checkKeyboard(void) {
         if (this->player_plane->GetThrottle() == 0) {
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_START_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, 0);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
             }
         }
         this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
         if (this->current_mission->sound.sounds.size() > 0) {
             if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             } else if (this->player_plane->GetThrottle() >= 60) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
     }
@@ -362,10 +362,10 @@ void SCStrike::checkKeyboard(void) {
         if (this->player_plane->GetThrottle() == 0) {
             if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             } else if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, 0);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
             }
         }
     }
@@ -385,10 +385,10 @@ void SCStrike::checkKeyboard(void) {
         if (this->current_mission->sound.sounds.size() > 0) {
             if (this->player_plane->GetWheel()) {
                 MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_UP];
-                Mixer.PlaySoundVoc(gears->data, gears->size, 4, 0);
+                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
             } else {
                 MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_DOWN];
-                Mixer.PlaySoundVoc(gears->data, gears->size, 4, 0);
+                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
             }
         }
     }
@@ -548,35 +548,35 @@ void SCStrike::checkKeyboard(void) {
             this->player_plane->SetThrottle(10);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
         if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_20))) {
             this->player_plane->SetThrottle(20);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
         if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_30))) {
             this->player_plane->SetThrottle(30);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
         if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_40))) {
             this->player_plane->SetThrottle(40);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
         if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_50))) {
             this->player_plane->SetThrottle(50);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
     }
@@ -584,35 +584,35 @@ void SCStrike::checkKeyboard(void) {
         this->player_plane->SetThrottle(60);
         if (this->current_mission->sound.sounds.size() > 0) {
             MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_70))) {
         this->player_plane->SetThrottle(70);
         if (this->current_mission->sound.sounds.size() > 0) {
             MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_80))) {
         this->player_plane->SetThrottle(80);
         if (this->current_mission->sound.sounds.size() > 0) {
             MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_90))) {
         this->player_plane->SetThrottle(90);
         if (this->current_mission->sound.sounds.size() > 0) {
             MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_100))) {
         this->player_plane->SetThrottle(100);
         if (this->current_mission->sound.sounds.size() > 0) {
             MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.PlaySoundVoc(engine->data, engine->size, 5, -1);
+            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE))) {
@@ -643,8 +643,8 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
         this->current_mission->mission_ended = true;
-        Mixer.StopSound();
-        Mixer.StopSound(5);
+        Mixer.stopSound();
+        Mixer.stopSound(5);
     }
     this->cockpit->mouse_control = this->mouse_control;
 }
@@ -787,15 +787,15 @@ void SCStrike::setMission(char const *missionName) {
     this->cockpit->player_plane = this->player_plane;
     this->cockpit->current_mission = this->current_mission;
     this->cockpit->nav_point_id = &this->nav_point_id;
-    Mixer.StopMusic();
-    Mixer.SwitchBank(2);
-    Mixer.PlayMusic(this->current_mission->mission->mission_data.tune+1);
+    Mixer.stopMusic();
+    Mixer.switchBank(2);
+    Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
 }
 void SCStrike::setCameraFront() {
     Vector3D pos = {this->new_position.x, this->new_position.y, this->new_position.z};
     camera->SetPosition(&pos);
-    camera->ResetRotate();
-    camera->Rotate(
+    camera->resetRotate();
+    camera->rotate(
         -tenthOfDegreeToRad(this->player_plane->elevationf),
         -tenthOfDegreeToRad(this->player_plane->azimuthf),
         -tenthOfDegreeToRad(this->player_plane->twist)
@@ -824,16 +824,16 @@ void SCStrike::setCameraFollow(SCPlane *plane) {
     up.y = cosE * cosT;
     up.z = sinA * sinT + cosA * sinE * cosT;
     if (follow_dynamic) {
-        camera->LookAt(&camLookAt, &up);
+        camera->lookAt(&camLookAt, &up);
     } else {
-        camera->LookAt(&camLookAt);
+        camera->lookAt(&camLookAt);
     }
 }
 void SCStrike::setCameraRLR() {
     camera->SetPosition(&this->new_position);
-    camera->ResetRotate();
-    camera->Rotate(0.0f, this->pilote_lookat.x * ((float)M_PI / 180.0f), 0.0f);
-    camera->Rotate(
+    camera->resetRotate();
+    camera->rotate(0.0f, this->pilote_lookat.x * ((float)M_PI / 180.0f), 0.0f);
+    camera->rotate(
         -tenthOfDegreeToRad(this->player_plane->elevationf),
         -tenthOfDegreeToRad(this->player_plane->azimuthf),
         -tenthOfDegreeToRad(this->player_plane->twist)
@@ -846,7 +846,7 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
         obj_pos.z + this->camera_pos.z
     };
     camera->SetPosition(&pos);
-    camera->LookAt(&obj_pos);
+    camera->lookAt(&obj_pos);
 }
 /**
  * @brief Executes a single frame of the game simulation.
@@ -936,7 +936,7 @@ void SCStrike::runFrame(void) {
             Vector3D pos = {this->new_position.x +5, this->new_position.y + 5, 
                 this->new_position.z - (autopilot_timeout)};
             camera->SetPosition(&pos);
-            camera->LookAt(&this->new_position);
+            camera->lookAt(&this->new_position);
         } else {
             this->player_plane->ptw.Identity();
             this->player_plane->ptw.translateM(this->player_plane->x, this->player_plane->y, this->player_plane->z);
@@ -999,7 +999,7 @@ void SCStrike::runFrame(void) {
         camPos.y = missil_pos.y + distanceBehind * sin(r_elev);
         camPos.z = missil_pos.z - distanceBehind * cos(r_elev) * cos(r_azim);
         camera->SetPosition(&camPos);
-        camera->LookAt(&missil_pos);
+        camera->lookAt(&missil_pos);
     }
     break;
     case View::EYE_ON_TARGET: {
@@ -1025,18 +1025,18 @@ void SCStrike::runFrame(void) {
         
         Vector3D targetPos = {target->object->position.x, target->object->position.y,target->object->position.z };
         camera->SetPosition(&camPos);
-        camera->LookAt(&targetPos, &up);
+        camera->lookAt(&targetPos, &up);
     } break;
     case View::REAL:
     default: {
         Vector3D pos = {this->new_position.x, this->new_position.y + this->eye_y, this->new_position.z};
         camera->SetPosition(&pos);
-        camera->ResetRotate();
+        camera->resetRotate();
 
-        camera->Rotate(-this->pilote_lookat.y * ((float)M_PI / 180.0f), 0.0f, 0.0f);
-        camera->Rotate(0.0f, this->pilote_lookat.x * ((float)M_PI / 180.0f), 0.0f);
+        camera->rotate(-this->pilote_lookat.y * ((float)M_PI / 180.0f), 0.0f, 0.0f);
+        camera->rotate(0.0f, this->pilote_lookat.x * ((float)M_PI / 180.0f), 0.0f);
 
-        camera->Rotate(
+        camera->rotate(
             -tenthOfDegreeToRad(this->player_plane->elevationf),
             -tenthOfDegreeToRad(this->player_plane->azimuthf),
             -tenthOfDegreeToRad(this->player_plane->twist)
@@ -1172,9 +1172,9 @@ void SCStrike::runFrame(void) {
     case View::REAL:
 
         Vector3D cockpit_pos;
-        cockpit_pos.x = this->camera->GetPosition().x;
-        cockpit_pos.y = this->camera->GetPosition().y;
-        cockpit_pos.z = this->camera->GetPosition().z;
+        cockpit_pos.x = this->camera->getPosition().x;
+        cockpit_pos.y = this->camera->getPosition().y;
+        cockpit_pos.z = this->camera->getPosition().z;
         this->cockpit->RenderHUD();
 
         Vector3D cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f, this->player_plane->elevationf/10.0f, -this->player_plane->twist/10.0f};
@@ -1186,8 +1186,8 @@ void SCStrike::runFrame(void) {
         hud_image->data = this->cockpit->hud_framebuffer->framebuffer;
         hud_image->width = this->cockpit->hud_framebuffer->width;
         hud_image->height = this->cockpit->hud_framebuffer->height;
-        hud_texture->Set(hud_image);
-        hud_texture->UpdateContent(hud_image);
+        hud_texture->set(hud_image);
+        hud_texture->updateContent(hud_image);
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
         Renderer.drawTexturedQuad(
             cockpit_pos,
@@ -1208,8 +1208,8 @@ void SCStrike::runFrame(void) {
         mfd_right_image->data = this->cockpit->mfd_right_framebuffer->framebuffer;
         mfd_right_image->width = this->cockpit->mfd_right_framebuffer->width;
         mfd_right_image->height = this->cockpit->mfd_right_framebuffer->height;
-        mfd_right_texture->Set(mfd_right_image);
-        mfd_right_texture->UpdateContent(mfd_right_image);
+        mfd_right_texture->set(mfd_right_image);
+        mfd_right_texture->updateContent(mfd_right_image);
         Renderer.drawTexturedQuad(
             cockpit_pos,
             cockpit_rot,
@@ -1229,8 +1229,8 @@ void SCStrike::runFrame(void) {
         mfd_left_image->data = this->cockpit->mfd_left_framebuffer->framebuffer;
         mfd_left_image->width = this->cockpit->mfd_left_framebuffer->width;
         mfd_left_image->height = this->cockpit->mfd_left_framebuffer->height;
-        mfd_left_texture->Set(mfd_left_image);
-        mfd_left_texture->UpdateContent(mfd_left_image);
+        mfd_left_texture->set(mfd_left_image);
+        mfd_left_texture->updateContent(mfd_left_image);
         Renderer.drawTexturedQuad(
             cockpit_pos,
             cockpit_rot,
@@ -1242,7 +1242,7 @@ void SCStrike::runFrame(void) {
             },
             mfd_left_texture
         );
-        cockpit->raws_framebuffer->FillWithColor(0);
+        cockpit->raws_framebuffer->fillWithColor(0);
         cockpit->RenderRAWS({0,0}, cockpit->raws_framebuffer);
         Texture *raws_texture = new Texture();
         raws_texture->animated = true;
@@ -1251,8 +1251,8 @@ void SCStrike::runFrame(void) {
         raws_image->data = this->cockpit->raws_framebuffer->framebuffer;
         raws_image->width = this->cockpit->raws_framebuffer->width;
         raws_image->height = this->cockpit->raws_framebuffer->height;
-        raws_texture->Set(raws_image);
-        raws_texture->UpdateContent(raws_image);
+        raws_texture->set(raws_image);
+        raws_texture->updateContent(raws_image);
         Renderer.drawTexturedQuad(
             cockpit_pos,
             cockpit_rot,
@@ -1264,7 +1264,7 @@ void SCStrike::runFrame(void) {
             },
             raws_texture
         );
-        cockpit->target_framebuffer->FillWithColor(255);
+        cockpit->target_framebuffer->fillWithColor(255);
         cockpit->RenderTargetWithCam({0,0}, cockpit->target_framebuffer);
         Texture *target_texture = new Texture();
         target_texture->animated = true;
@@ -1273,17 +1273,17 @@ void SCStrike::runFrame(void) {
         target_image->data = this->cockpit->target_framebuffer->framebuffer;
         target_image->width = this->cockpit->target_framebuffer->width;
         target_image->height = this->cockpit->target_framebuffer->height;
-        target_texture->Set(target_image);
-        target_texture->UpdateContent(target_image);
+        target_texture->set(target_image);
+        target_texture->updateContent(target_image);
         // Calculate a position in front of the camera
         // Create a fullscreen quad in front of the camera
         // Adjust for the camera Y-axis offset
-        Vector3D quadPos = camera->GetPosition() + camera->GetForward() * 8.0f;
+        Vector3D quadPos = camera->getPosition() + camera->getForward() * 8.0f;
         
         // Set up vectors for billboard creation
-        Vector3D forward = camera->GetForward();
-        Vector3D right = camera->GetRight();
-        Vector3D up = camera->GetUp();
+        Vector3D forward = camera->getForward();
+        Vector3D right = camera->getRight();
+        Vector3D up = camera->getUp();
 
         
         
@@ -1316,7 +1316,7 @@ void SCStrike::runFrame(void) {
             },
             target_texture
         );
-        cockpit->alti_framebuffer->FillWithColor(0);
+        cockpit->alti_framebuffer->fillWithColor(0);
         cockpit->RenderAlti({0,0}, cockpit->alti_framebuffer);
         Texture *alti_texture = new Texture();
         alti_texture->animated = true;
@@ -1325,8 +1325,8 @@ void SCStrike::runFrame(void) {
         alti_image->data = this->cockpit->alti_framebuffer->framebuffer;
         alti_image->width = this->cockpit->alti_framebuffer->width;
         alti_image->height = this->cockpit->alti_framebuffer->height;
-        alti_texture->Set(alti_image);
-        alti_texture->UpdateContent(alti_image);
+        alti_texture->set(alti_image);
+        alti_texture->updateContent(alti_image);
         Renderer.drawTexturedQuad(
             cockpit_pos,
             cockpit_rot,
@@ -1338,7 +1338,7 @@ void SCStrike::runFrame(void) {
             },
             alti_texture
         );
-        cockpit->speed_framebuffer->FillWithColor(0);
+        cockpit->speed_framebuffer->fillWithColor(0);
         cockpit->RenderSpeedOmetter({0,0}, cockpit->speed_framebuffer);
         Texture *speed_texture = new Texture();
         speed_texture->animated = true;
@@ -1347,8 +1347,8 @@ void SCStrike::runFrame(void) {
         speed_image->data = this->cockpit->speed_framebuffer->framebuffer;
         speed_image->width = this->cockpit->speed_framebuffer->width;
         speed_image->height = this->cockpit->speed_framebuffer->height;
-        speed_texture->Set(speed_image);
-        speed_texture->UpdateContent(speed_image);
+        speed_texture->set(speed_image);
+        speed_texture->updateContent(speed_image);
         Renderer.drawTexturedQuad(
             cockpit_pos,
             cockpit_rot,

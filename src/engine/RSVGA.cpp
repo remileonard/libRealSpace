@@ -201,7 +201,7 @@ void RSVGA::init(int width, int height, AssetManager *amana) {
     free(data);
 }
 
-void RSVGA::Activate(void) {
+void RSVGA::activate(void) {
 
     glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
     glLoadIdentity();            // Reset The Projection Matrix
@@ -212,9 +212,9 @@ void RSVGA::Activate(void) {
     glColor4f(1, 0, 1, 0);
 }
 
-void RSVGA::SetPalette(VGAPalette *newPalette) { this->palette = *newPalette; }
+void RSVGA::setPalette(VGAPalette *newPalette) { this->palette = *newPalette; }
 
-VGAPalette *RSVGA::GetPalette(void) { return &palette; }
+VGAPalette *RSVGA::getPalette(void) { return &palette; }
 
 
 void RSVGA::fadeOut(int steps, int delayMs) {
@@ -312,7 +312,7 @@ void RSVGA::displayBuffer(uint32_t *buffer, int width, int height) {
     glDisable(GL_BLEND);
 }
 
-void RSVGA::VSync(void) {
+void RSVGA::vSync(void) {
 
     Texel *dst = data;
     for (size_t i = 0; i < 320 * 200; i++) {

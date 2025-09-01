@@ -37,9 +37,9 @@ void SCMouse::init(void){
     }
 }
 
-void SCMouse::Draw(void){
+void SCMouse::draw(void){
     
-    if (! IsVisible())
+    if (! iIsVisible())
         return;
     
     // We need to draw the cursor a little bit higher left than the mouse
@@ -53,17 +53,17 @@ void SCMouse::Draw(void){
     //If the mouse is over a clickable button, the current appearance has already been selected.
     if (mode == CURSOR){
         appearances[1]->SetPosition(&cursorPos);
-        VGA.GetFrameBuffer()->DrawShape(appearances[1]);
+        VGA.getFrameBuffer()->drawShape(appearances[1]);
     }
     
     if (mode == VISOR){
         appearances[0]->SetPosition(&cursorPos);
-        VGA.GetFrameBuffer()->DrawShape(appearances[0]);
+        VGA.getFrameBuffer()->drawShape(appearances[0]);
         
     }
 }
 
-void SCMouse::FlushEvents(void){
+void SCMouse::flushEvents(void){
     for (size_t i = 0 ; i < 3 ; i++) {
         buttons[i].event = MouseButton::NONE;
     }

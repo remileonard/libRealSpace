@@ -29,7 +29,7 @@ Texture::~Texture(){
         free(data);
 }
 
-void Texture::Set(RSImage* image){
+void Texture::set(RSImage* image){
     
     strncpy(this->name,image->name,8);
     this->width = image->width;
@@ -39,7 +39,7 @@ void Texture::Set(RSImage* image){
     locFlag = RAM;
 }
 
-uint32_t Texture::GetTextureID(void){
+uint32_t Texture::getTextureID(void){
     
     
     return id;
@@ -82,7 +82,7 @@ static void AlphaBleedRGBA8(uint8_t* data, int w, int h, int iterations = 8) {
     std::memcpy(data, src.data(), (size_t)w*h*4);
 }
 
-void Texture::UpdateContent(RSImage* image){
+void Texture::updateContent(RSImage* image){
     
     uint8_t* src = image->data;
     uint8_t* dst = this->data;

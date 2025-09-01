@@ -59,15 +59,15 @@ SCMainMenu::~SCMainMenu() {}
 void SCMainMenu::focus(void) {
     this->focused = true;
     if (!this->music_playing) {
-        Mixer.SwitchBank(0);
-        Mixer.PlayMusic(23);
+        Mixer.switchBank(0);
+        Mixer.playMusic(23);
         this->music_playing = true;
     }
 }
 void SCMainMenu::unFocus(void) {
     this->focused = false;
     if (this->music_playing) {
-        Mixer.StopMusic();
+        Mixer.stopMusic();
         this->music_playing = false;
     }
 }
@@ -107,27 +107,27 @@ void SCMainMenu::LoadButtons(void) {
     button = new SCButton();
     Point2D continuePosition = {boardPosition.x + 11, boardPosition.y + 10};
 
-    button->InitBehavior(std::bind(&SCMainMenu::OnContinue, this), continuePosition, buttonDimension);
+    button->initBehavior(std::bind(&SCMainMenu::OnContinue, this), continuePosition, buttonDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(subPak.GetEntry(0)->data, subPak.GetEntry(0)->size,
                                                           &continuePosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(subPak.GetEntry(5)->data, subPak.GetEntry(5)->size,
                                                             &continuePosition);
-    button->SetEnable(false);
+    button->setEnable(false);
     buttons.push_back(button);
 
     button = new SCButton();
     Point2D loadGamePosition = {boardPosition.x + 11, continuePosition.y + buttonDimension.y + 2};
-    button->InitBehavior(std::bind(&SCMainMenu::OnLoadGame, this), loadGamePosition, buttonDimension);
+    button->initBehavior(std::bind(&SCMainMenu::OnLoadGame, this), loadGamePosition, buttonDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(subPak.GetEntry(1)->data, subPak.GetEntry(1)->size,
                                                           &loadGamePosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(subPak.GetEntry(6)->data, subPak.GetEntry(6)->size,
                                                             &loadGamePosition);
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
     Point2D startNewGamePosition = {boardPosition.x + 11, loadGamePosition.y + buttonDimension.y + 2};
-    button->InitBehavior(std::bind(&SCMainMenu::OnStartNewGame, this), startNewGamePosition, buttonDimension);
+    button->initBehavior(std::bind(&SCMainMenu::OnStartNewGame, this), startNewGamePosition, buttonDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(subPak.GetEntry(2)->data, subPak.GetEntry(2)->size,
                                                           &startNewGamePosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(subPak.GetEntry(7)->data, subPak.GetEntry(7)->size,
@@ -136,7 +136,7 @@ void SCMainMenu::LoadButtons(void) {
 
     button = new SCButton();
     Point2D trainingPosition = {boardPosition.x + 11, startNewGamePosition.y + buttonDimension.y + 2};
-    button->InitBehavior(std::bind(&SCMainMenu::OnTrainingMission, this), trainingPosition, buttonDimension);
+    button->initBehavior(std::bind(&SCMainMenu::OnTrainingMission, this), trainingPosition, buttonDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(subPak.GetEntry(3)->data, subPak.GetEntry(3)->size,
                                                           &trainingPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(subPak.GetEntry(8)->data, subPak.GetEntry(8)->size,
@@ -145,7 +145,7 @@ void SCMainMenu::LoadButtons(void) {
 
     button = new SCButton();
     Point2D viewObjectPosition = {boardPosition.x + 11, trainingPosition.y + buttonDimension.y + 2};
-    button->InitBehavior(std::bind(&SCMainMenu::OnViewObject, this), viewObjectPosition, buttonDimension);
+    button->initBehavior(std::bind(&SCMainMenu::OnViewObject, this), viewObjectPosition, buttonDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(subPak.GetEntry(4)->data, subPak.GetEntry(4)->size,
                                                           &viewObjectPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(subPak.GetEntry(9)->data, subPak.GetEntry(9)->size,
@@ -169,7 +169,7 @@ void SCMainMenu::LoadPalette(void) {
 
     ByteStream paletteReader;
 
-    VGAPalette *rendererPalette = VGA.GetPalette();
+    VGAPalette *rendererPalette = VGA.getPalette();
     this->palette = *rendererPalette;
     // Load the default palette
 
@@ -216,27 +216,27 @@ void SCMainMenu::runFrame(void) {
         SCAnimationPlayer *intro = new SCAnimationPlayer();
         intro->init();
         timer = 4200;
-        Mixer.StopMusic();
+        Mixer.stopMusic();
         Game->addActivity(intro);
         return;
     }
     
     
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
 
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
 
-    VGA.GetFrameBuffer()->DrawShape(&sky);
-    VGA.GetFrameBuffer()->DrawShape(&mountain);
-    VGA.GetFrameBuffer()->DrawShape(&cloud);
+    VGA.getFrameBuffer()->drawShape(&sky);
+    VGA.getFrameBuffer()->drawShape(&mountain);
+    VGA.getFrameBuffer()->drawShape(&cloud);
 
-    VGA.GetFrameBuffer()->DrawShape(&board);
+    VGA.getFrameBuffer()->drawShape(&board);
 
     drawButtons();
     if (this->frequest!= nullptr && this->frequest->opened) {
-        this->frequest->draw(VGA.GetFrameBuffer());
+        this->frequest->draw(VGA.getFrameBuffer());
     }
-    Mouse.Draw();
-    VGA.VSync();
+    Mouse.draw();
+    VGA.vSync();
 }

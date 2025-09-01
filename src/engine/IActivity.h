@@ -6,8 +6,7 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 
-#ifndef __libRealSpace__IActivity__
-#define __libRealSpace__IActivity__
+#pragma once
 #include <vector>
 #include "../commons/Maths.h"
 #include "SCButton.h"
@@ -54,6 +53,3 @@ public:
     virtual void renderUI(void) {}
     void checkKeyboard(void);
 };
-
-
-#endif /* defined(__libRealSpace__IActivity__) */

@@ -49,6 +49,10 @@ struct AABB {
 class SCRenderer {
 
 public:
+    static SCRenderer& getInstance() {
+        static SCRenderer instance; 
+        return instance;
+    };
     GLuint texture;
     SCRenderer();
     ~SCRenderer();

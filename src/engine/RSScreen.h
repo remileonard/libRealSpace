@@ -25,7 +25,10 @@ extern "C" {
 class RSScreen{
     
 public:
-    
+    static RSScreen& getInstance() {
+        static RSScreen instance; 
+        return instance;
+    };
     RSScreen();
     ~RSScreen();
     
@@ -34,6 +37,7 @@ public:
     virtual void setTitle(const char* title);
     virtual void refresh(void);
     virtual void fxTurnOnTv();
+    
     int32_t width;
     int32_t height;
     int32_t scale;

@@ -40,7 +40,7 @@ void DebugConvPlayer::renderUI() {
             if (ImGui::Button("Next Frame")) {
                 this->paused = true;
                 this->current_frame->SetExpired(true);
-                Mixer.StopSound();
+                Mixer.stopSound();
             }
             ImGui::Text("Conversation ID: %d", this->conversationID);
             ImGui::Text("Number of frames: %d", (int)this->conversation_frames.size());
@@ -62,8 +62,8 @@ void DebugConvPlayer::renderUI() {
                         ImGui::Text("Face Expression: %d", frame->face_expression);
                         ImGui::Text("Face Palette ID: %d", frame->facePaletteID);
                         FrameBuffer *fb = new FrameBuffer(320, 200);
-                        fb->FillWithColor(223);
-                        fb->DrawShape(frame->face->appearances->GetShape(1));
+                        fb->fillWithColor(223);
+                        fb->drawShape(frame->face->appearances->GetShape(1));
                         Texel* tex = fb->getTexture(&this->palette);
 
                         // Création texture OpenGL
@@ -88,8 +88,8 @@ void DebugConvPlayer::renderUI() {
                             for (auto part : frame->participants) {
                                 ImGui::Text("Participant: %s", part->name);
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
-                                fb->FillWithColor(223);
-                                fb->DrawShape(part->appearances->GetShape(0));
+                                fb->fillWithColor(223);
+                                fb->drawShape(part->appearances->GetShape(0));
                                 Texel* tex = fb->getTexture(&this->palette);
                                 // Création texture OpenGL
                                 GLuint glTex = 0;
@@ -114,8 +114,8 @@ void DebugConvPlayer::renderUI() {
                         if (ImGui::TreeNodeEx("Background Layers", ImGuiTreeNodeFlags_DefaultOpen)) {
                             for (auto layer : *frame->bgLayers) {
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
-                                fb->FillWithColor(223);
-                                fb->DrawShape(layer);
+                                fb->fillWithColor(223);
+                                fb->drawShape(layer);
                                 Texel* tex = fb->getTexture(&this->palette);
 
                                 // Création texture OpenGL

@@ -32,48 +32,48 @@ SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint
     uiImageSet->GetShape(1)->position=loadTitlePosition;
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::loadFile, this), loadGamePosition, buttonDimension);
+    button->initBehavior(std::bind(&SCFileRequester::loadFile, this), loadGamePosition, buttonDimension);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+4);
     button->appearance[SCButton::APR_UP].position=loadGamePosition;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+5);
     button->appearance[SCButton::APR_DOWN].position=loadGamePosition;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::cancel, this), cancelPosition, buttonDimension);
+    button->initBehavior(std::bind(&SCFileRequester::cancel, this), cancelPosition, buttonDimension);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+6);
     button->appearance[SCButton::APR_UP].position=cancelPosition;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+7);
     button->appearance[SCButton::APR_DOWN].position=cancelPosition;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::quitToDos, this), quitToDosPosition, buttonDimension);
+    button->initBehavior(std::bind(&SCFileRequester::quitToDos, this), quitToDosPosition, buttonDimension);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+8);
     button->appearance[SCButton::APR_UP].position=quitToDosPosition;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+9);
     button->appearance[SCButton::APR_DOWN].position=quitToDosPosition;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::fileUp, this), fileUp, arrowDimentions);
+    button->initBehavior(std::bind(&SCFileRequester::fileUp, this), fileUp, arrowDimentions);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+10);
     button->appearance[SCButton::APR_UP].position=fileUp;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+11);
     button->appearance[SCButton::APR_DOWN].position=fileUp;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::fileDown, this), fileDown, arrowDimentions);
+    button->initBehavior(std::bind(&SCFileRequester::fileDown, this), fileDown, arrowDimentions);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+12);
     button->appearance[SCButton::APR_UP].position=fileDown;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+13);
     button->appearance[SCButton::APR_DOWN].position=fileDown;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     this->font = FontManager.GetFont("..\\..\\DATA\\FONTS\\SM-FONT.SHP");
@@ -134,48 +134,48 @@ SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint
     uiImageSet->GetShape(1)->position=loadTitlePosition;
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::loadFile, this), loadGamePosition, buttonDimension);
+    button->initBehavior(std::bind(&SCFileRequester::loadFile, this), loadGamePosition, buttonDimension);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+2);
     button->appearance[SCButton::APR_UP].position=loadGamePosition;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+3);
     button->appearance[SCButton::APR_DOWN].position=loadGamePosition;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::cancel, this), cancelPosition, buttonDimension);
+    button->initBehavior(std::bind(&SCFileRequester::cancel, this), cancelPosition, buttonDimension);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+6);
     button->appearance[SCButton::APR_UP].position=cancelPosition;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+7);
     button->appearance[SCButton::APR_DOWN].position=cancelPosition;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::quitToDos, this), quitToDosPosition, buttonDimension);
+    button->initBehavior(std::bind(&SCFileRequester::quitToDos, this), quitToDosPosition, buttonDimension);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+8);
     button->appearance[SCButton::APR_UP].position=quitToDosPosition;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+9);
     button->appearance[SCButton::APR_DOWN].position=quitToDosPosition;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::fileUp, this), fileUp, arrowDimentions);
+    button->initBehavior(std::bind(&SCFileRequester::fileUp, this), fileUp, arrowDimentions);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+10);
     button->appearance[SCButton::APR_UP].position=fileUp;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+11);
     button->appearance[SCButton::APR_DOWN].position=fileUp;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     button = new SCButton();
-    button->InitBehavior(std::bind(&SCFileRequester::fileDown, this), fileDown, arrowDimentions);
+    button->initBehavior(std::bind(&SCFileRequester::fileDown, this), fileDown, arrowDimentions);
     button->appearance[SCButton::APR_UP]=*uiImageSet->GetShape(shape_id_offset+12);
     button->appearance[SCButton::APR_UP].position=fileDown;
     button->appearance[SCButton::APR_DOWN]=*uiImageSet->GetShape(shape_id_offset+13);
     button->appearance[SCButton::APR_DOWN].position=fileDown;
-    button->SetEnable(true);
+    button->setEnable(true);
     buttons.push_back(button);
 
     this->font = FontManager.GetFont("..\\..\\DATA\\FONTS\\SM-FONT.SHP");
@@ -237,9 +237,9 @@ void SCFileRequester::draw(FrameBuffer *fb) {
     checkButtons();
     checkZones();
     FrameBuffer *fb2 = new FrameBuffer(320, 200);
-    fb2->FillWithColor(0);
+    fb2->fillWithColor(0);
     RLEShape *shape = this->uiImageSet->GetShape(shape_id_offset+0);
-    fb2->DrawShape(shape);
+    fb2->drawShape(shape);
     
     fb->blitLargeBuffer(fb2->framebuffer, 320, 200, shape->GetLeft(), shape->GetTop(), (320-shape->GetWidth())/2, (200-shape->GetHeight())/2, 182, 131);
     if (!this->save_mode) {
@@ -249,8 +249,8 @@ void SCFileRequester::draw(FrameBuffer *fb) {
             0
         };
         shape2->SetPosition(&shape2Pos);
-        fb2->FillWithColor(255);
-        fb2->DrawShape(shape2);
+        fb2->fillWithColor(255);
+        fb2->drawShape(shape2);
         fb->blitLargeBuffer(
             fb2->framebuffer,
             320,
@@ -264,7 +264,7 @@ void SCFileRequester::draw(FrameBuffer *fb) {
         );
     }
     for (auto btn: this->buttons) {
-        fb->DrawShape(&btn->appearance[btn->GetAppearance()]);
+        fb->drawShape(&btn->appearance[btn->getAppearance()]);
     }
     Point2D textPos = {
         (320-shape->GetWidth())/2+34, 
@@ -274,7 +274,7 @@ void SCFileRequester::draw(FrameBuffer *fb) {
         m_textInputZone->drawQuad();
     }
     std::string displayText = m_textEditor->getDisplayText();
-    fb->PrintText(this->font, {textPos.x,textPos.y-5}, displayText, this->color_offset);
+    fb->printText(this->font, {textPos.x,textPos.y-5}, displayText, this->color_offset);
     int min_y = textPos.y;
     int max_y = textPos.y+6*8;
     for (auto file: this->files) {
@@ -282,7 +282,7 @@ void SCFileRequester::draw(FrameBuffer *fb) {
         if (textPos.y+texte_x < min_y+6 || textPos.y+texte_x > max_y) {
             continue;
         }
-        fb->PrintText(this->font, {textPos.x, textPos.y+texte_x}, file, this->color_offset);
+        fb->printText(this->font, {textPos.x, textPos.y+texte_x}, file, this->color_offset);
     }
     textPos.y = min_y;
     int selected = 0;
@@ -300,7 +300,7 @@ void SCFileRequester::draw(FrameBuffer *fb) {
                         0
                     );
                 }
-                fb->PrintText(this->font, {textPos.x, z->position.y+texte_x+7}, this->files[z->id], this->color_offset+selected);
+                fb->printText(this->font, {textPos.x, z->position.y+texte_x+7}, this->files[z->id], this->color_offset+selected);
             }
             break;
         }
@@ -326,33 +326,33 @@ SCButton *SCFileRequester::checkButtons(void) {
 
         SCButton *button = buttons[i];
 
-        if (!button->IsEnabled())
+        if (!button->isEnabled())
             continue;
 
-        if (Mouse.GetPosition().x < button->position.x ||
-            Mouse.GetPosition().x > button->position.x + button->dimension.x ||
-            Mouse.GetPosition().y < button->position.y ||
-            Mouse.GetPosition().y > button->position.y + button->dimension.y) {
-            button->SetAppearance(SCButton::APR_UP);
+        if (Mouse.getPosition().x < button->position.x ||
+            Mouse.getPosition().x > button->position.x + button->dimension.x ||
+            Mouse.getPosition().y < button->position.y ||
+            Mouse.getPosition().y > button->position.y + button->dimension.y) {
+            button->setAppearance(SCButton::APR_UP);
             continue;
         }
         // HIT !
-        Mouse.SetMode(SCMouse::VISOR);
+        Mouse.setMode(SCMouse::VISOR);
 
         if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
-            button->SetAppearance(SCButton::APR_DOWN);
+            button->setAppearance(SCButton::APR_DOWN);
         }
             
 
         // If the mouse button has just been released: trigger action.
         if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
-            button->OnAction();
-            button->SetAppearance(SCButton::APR_UP);
+            button->onAction();
+            button->setAppearance(SCButton::APR_UP);
         }
         return button;
     }
 
-    Mouse.SetMode(SCMouse::CURSOR);
+    Mouse.setMode(SCMouse::CURSOR);
     return NULL;
 }
 void SCFileRequester::loadFiles() {
@@ -396,10 +396,10 @@ SCZone * SCFileRequester::checkZones() {
     if (m_isEditingText && Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
         // Vérifier si le clic est en dehors de la zone de texte
         bool clickedOutside = 
-            Mouse.GetPosition().x < m_textInputZone->position.x || 
-            Mouse.GetPosition().x > m_textInputZone->position.x + m_textInputZone->dimension.x ||
-            Mouse.GetPosition().y < m_textInputZone->position.y || 
-            Mouse.GetPosition().y > m_textInputZone->position.y + m_textInputZone->dimension.y;
+            Mouse.getPosition().x < m_textInputZone->position.x || 
+            Mouse.getPosition().x > m_textInputZone->position.x + m_textInputZone->dimension.x ||
+            Mouse.getPosition().y < m_textInputZone->position.y || 
+            Mouse.getPosition().y > m_textInputZone->position.y + m_textInputZone->dimension.y;
         
         if (clickedOutside) {
             deactivateTextEditor();
@@ -412,17 +412,17 @@ SCZone * SCFileRequester::checkZones() {
     };
     int min_y = textPos.y;
     int max_y = textPos.y+6*8;
-    if (Mouse.GetPosition().y < min_y || Mouse.GetPosition().y > max_y) {
+    if (Mouse.getPosition().y < min_y || Mouse.getPosition().y > max_y) {
         //return nullptr;
     }
     for (auto zone : this->zones) {
         if (zone->active) {
-            if (Mouse.GetPosition().x > zone->position.x &&
-                Mouse.GetPosition().x < zone->position.x + zone->dimension.x &&
-                Mouse.GetPosition().y > zone->position.y+texte_x &&
-                Mouse.GetPosition().y < zone->position.y + zone->dimension.y +texte_x) {
+            if (Mouse.getPosition().x > zone->position.x &&
+                Mouse.getPosition().x < zone->position.x + zone->dimension.x &&
+                Mouse.getPosition().y > zone->position.y+texte_x &&
+                Mouse.getPosition().y < zone->position.y + zone->dimension.y +texte_x) {
                 // HIT !
-                Mouse.SetMode(SCMouse::VISOR);
+                Mouse.setMode(SCMouse::VISOR);
 
                 // If the mouse button has just been released: trigger action.
                 if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED)
@@ -433,7 +433,7 @@ SCZone * SCFileRequester::checkZones() {
         }
     }
 
-    Mouse.SetMode(SCMouse::CURSOR);
+    Mouse.setMode(SCMouse::CURSOR);
     return nullptr;
 }
 void SCFileRequester::deactivateTextEditor() {

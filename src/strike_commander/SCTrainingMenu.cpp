@@ -19,15 +19,15 @@ void SCTrainingMenu::OnDogFight() {}
 void SCTrainingMenu::focus(void) {
     this->focused = true;
     if (!this->music_playing) {
-        Mixer.SwitchBank(0);
-        Mixer.PlayMusic(28);
+        Mixer.switchBank(0);
+        Mixer.playMusic(28);
         this->music_playing = true;
     }
 }
 void SCTrainingMenu::unFocus(void) {
     this->focused = false;
     if (this->music_playing) {
-        Mixer.StopMusic();
+        Mixer.stopMusic();
         this->music_playing = false;
     }
 }
@@ -78,7 +78,7 @@ void SCTrainingMenu::init() {
     button = new SCButton();
     Point2D sandDDimension = {130, 15};
     Point2D sanDPosition = {positionBoard.x + 16, positionBoard.y + 9};
-    button->InitBehavior(std::bind(&SCTrainingMenu::OnSearchAndDestroy, this), sanDPosition, sandDDimension);
+    button->initBehavior(std::bind(&SCTrainingMenu::OnSearchAndDestroy, this), sanDPosition, sandDDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(trButtonsPack.GetEntry(1)->data,
                                                           trButtonsPack.GetEntry(1)->size, &sanDPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(trButtonsPack.GetEntry(2)->data,
@@ -88,18 +88,18 @@ void SCTrainingMenu::init() {
     button = new SCButton();
     Point2D dogDDimension = {130, 15};
     Point2D dogDPosition = {positionBoard.x + 155, positionBoard.y + 9};
-    button->InitBehavior(std::bind(&SCTrainingMenu::OnDogFight, this), dogDPosition, dogDDimension);
+    button->initBehavior(std::bind(&SCTrainingMenu::OnDogFight, this), dogDPosition, dogDDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(trButtonsPack.GetEntry(3)->data,
                                                           trButtonsPack.GetEntry(3)->size, &dogDPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(trButtonsPack.GetEntry(4)->data,
                                                             trButtonsPack.GetEntry(4)->size, &dogDPosition);
-    button->SetEnable(false);
+    button->setEnable(false);
     buttons.push_back(button);
 
     button = new SCButton();
     Point2D exitDDimension = {60, 15};
     Point2D exitDPosition = {positionBoard.x + 155, positionBoard.y + 23};
-    button->InitBehavior(std::bind(&SCTrainingMenu::OnExitTraining, this), exitDPosition, exitDDimension);
+    button->initBehavior(std::bind(&SCTrainingMenu::OnExitTraining, this), exitDPosition, exitDDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(trButtonsPack.GetEntry(5)->data,
                                                           trButtonsPack.GetEntry(5)->size, &exitDPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(trButtonsPack.GetEntry(6)->data,
@@ -110,18 +110,18 @@ void SCTrainingMenu::init() {
 void SCTrainingMenu::runFrame(void) {
     checkButtons();
 
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
 
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
 
-    VGA.GetFrameBuffer()->DrawShape(&background);
-    VGA.GetFrameBuffer()->DrawShape(&title);
-    VGA.GetFrameBuffer()->DrawShape(&board);
+    VGA.getFrameBuffer()->drawShape(&background);
+    VGA.getFrameBuffer()->drawShape(&title);
+    VGA.getFrameBuffer()->drawShape(&board);
 
     drawButtons();
 
-    Mouse.Draw();
+    Mouse.draw();
 
-    VGA.VSync();
+    VGA.vSync();
 }

@@ -124,7 +124,7 @@ SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<E
         }
     }
     for (auto zn : this->zones) {
-        zn->IsActive(&GameState.requierd_flags);
+        zn->isActive(&GameState.requierd_flags);
     }
     return (&this->zones);
 }
@@ -138,16 +138,16 @@ void SCScene::Render() {
 
     if (this->sceneOpts != nullptr && this->sceneOpts->tune != nullptr && this->music) {
         if (GameState.tune_modifier != 0 && (this->sceneOpts->infos.ID == 20 || this->sceneOpts->infos.ID == 29)) {
-            if (Mixer.GetMusicID() != this->sceneOpts->tune->ID + GameState.tune_modifier) {
-                Mixer.SwitchBank(1);
-                Mixer.StopMusic();
-                Mixer.PlayMusic(this->sceneOpts->tune->ID + GameState.tune_modifier);
+            if (Mixer.getMusicID() != this->sceneOpts->tune->ID + GameState.tune_modifier) {
+                Mixer.switchBank(1);
+                Mixer.stopMusic();
+                Mixer.playMusic(this->sceneOpts->tune->ID + GameState.tune_modifier);
             }
         } else {
-            if (Mixer.GetMusicID() != this->sceneOpts->tune->ID) {
-                Mixer.SwitchBank(1);
-                Mixer.StopMusic();
-                Mixer.PlayMusic(this->sceneOpts->tune->ID);
+            if (Mixer.getMusicID() != this->sceneOpts->tune->ID) {
+                Mixer.switchBank(1);
+                Mixer.stopMusic();
+                Mixer.playMusic(this->sceneOpts->tune->ID);
             }
         }
     }
@@ -158,7 +158,7 @@ void SCScene::Render() {
     }
 
     for (auto layer : this->layers) {
-        VGA.GetFrameBuffer()->DrawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
+        VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
         if (layer->img->sequence.size() > 1) {
             layer->frameCounter = (uint8_t)(layer->frameCounter + fpsupdate) % layer->img->sequence.size();
         }
@@ -168,11 +168,11 @@ void SCScene::Render() {
         paletteReader.Set((this->forPalette));
         this->palette.ReadPatch(&paletteReader);
     }
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
     if (this->zones.size() > 0) {
         for (auto zn : this->zones) {
             if (zn->active) {
-                zn->Draw();
+                zn->draw();
             }
         }
     }
@@ -723,17 +723,17 @@ void WeaponLoadoutScene::Render() {
         this->fps = (SDL_GetTicks() / 10);
     }
     if (this->sceneOpts->tune != nullptr) {
-        if (Mixer.GetMusicID() != this->sceneOpts->tune->ID) {
-            Mixer.SwitchBank(1);
-            Mixer.PlayMusic(this->sceneOpts->tune->ID);
+        if (Mixer.getMusicID() != this->sceneOpts->tune->ID) {
+            Mixer.switchBank(1);
+            Mixer.playMusic(this->sceneOpts->tune->ID);
         }
     }
     ByteStream paletteReader;
     paletteReader.Set((this->rawPalette));
     this->palette.ReadPatch(&paletteReader);
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
     for (auto layer : this->layers) {
-        VGA.GetFrameBuffer()->DrawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
+        VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
         if (layer->img->sequence.size() > 1) {
             layer->frameCounter = (uint8_t)(layer->frameCounter + fpsupdate) % layer->img->sequence.size();
         }
@@ -741,14 +741,14 @@ void WeaponLoadoutScene::Render() {
 
     paletteReader.Set((this->forPalette));
     this->palette.ReadPatch(&paletteReader);
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
     for (auto ezn : this->extra_zones) {
-        ezn->Draw();
+        ezn->draw();
     }
     if (this->zones.size() > 0) {
         for (auto zn : this->zones) {
             if (zn->active) {
-                zn->Draw();
+                zn->draw();
             }
         }
     }
@@ -873,7 +873,7 @@ void LedgerScene::CreateZones() {
 }
 void LedgerScene::Render() {
     SCScene::Render();
-    FrameBuffer *fb                                = VGA.GetFrameBuffer();
+    FrameBuffer *fb                                = VGA.getFrameBuffer();
     std::map<weapon_ids, std::string> weapon_label = {
         {   ID_AIM9J,   "AIM-9J"},
         {   ID_AIM9M,   "AIM-9M"},
@@ -888,29 +888,29 @@ void LedgerScene::Render() {
     };
     int color = 0;
     if (page == 0) {
-        fb->PrintText(this->font, {67, 64}, std::string("PREVIOUS CASH"), color);
-        fb->PrintText(this->font, {177, 64}, std::to_string(GameState.cash), color);
+        fb->printText(this->font, {67, 64}, std::string("PREVIOUS CASH"), color);
+        fb->printText(this->font, {177, 64}, std::to_string(GameState.cash), color);
 
-        fb->PrintText(this->font, {67, 69}, std::string("F-16 REPLACEMENT"), color);
-        fb->PrintText(this->font, {177, 69}, std::to_string(GameState.f16_replacements), color);
+        fb->printText(this->font, {67, 69}, std::string("F-16 REPLACEMENT"), color);
+        fb->printText(this->font, {177, 69}, std::to_string(GameState.f16_replacements), color);
 
-        fb->PrintText(this->font, {67, 75}, std::string("WEAPONS"), color);
-        fb->PrintText(this->font, {177, 75}, std::to_string(GameState.weapons_costs), color);
+        fb->printText(this->font, {67, 75}, std::string("WEAPONS"), color);
+        fb->printText(this->font, {177, 75}, std::to_string(GameState.weapons_costs), color);
 
-        fb->PrintText(this->font, {67, 86}, std::string("CURRENT CASH"), color);
-        fb->PrintText(this->font, {177, 86}, std::to_string(GameState.proj_cash), color);
+        fb->printText(this->font, {67, 86}, std::string("CURRENT CASH"), color);
+        fb->printText(this->font, {177, 86}, std::to_string(GameState.proj_cash), color);
 
-        fb->PrintText(this->font, {67, 97}, std::string("PROJ OVERHEAD"), color);
-        fb->PrintText(this->font, {177, 97}, std::to_string(GameState.over_head), color);
+        fb->printText(this->font, {67, 97}, std::string("PROJ OVERHEAD"), color);
+        fb->printText(this->font, {177, 97}, std::to_string(GameState.over_head), color);
 
-        fb->PrintText(this->font, {67, 103}, std::string("PROJ CASH"), color);
-        fb->PrintText(this->font, {177, 103}, std::to_string(GameState.proj_cash - GameState.over_head - GameState.weapons_costs - GameState.f16_replacements), color);
+        fb->printText(this->font, {67, 103}, std::string("PROJ CASH"), color);
+        fb->printText(this->font, {177, 103}, std::to_string(GameState.proj_cash - GameState.over_head - GameState.weapons_costs - GameState.f16_replacements), color);
     } else if (page == 1) {
         int y = 64;
         for (auto weap : GameState.weapon_inventory) {
             if (weap.first > 0) {
-                fb->PrintText(this->font, {67, y}, weapon_label[weapon_ids(weap.first)], color);
-                fb->PrintText(this->font, {203, y}, std::to_string(weap.second), color);
+                fb->printText(this->font, {67, y}, weapon_label[weapon_ids(weap.first)], color);
+                fb->printText(this->font, {203, y}, std::to_string(weap.second), color);
                 y += 5 + (y % 2);
             }
         }
@@ -1173,9 +1173,9 @@ std::vector<SCZone *> * CatalogueScene::UpdateZones() {
 }
 void CatalogueScene::Render() {
     SCScene::Render();
-    FrameBuffer *fb = VGA.GetFrameBuffer();
+    FrameBuffer *fb = VGA.getFrameBuffer();
     std::string current_cash = string_format("%08d", GameState.proj_cash);
-    fb->PrintTextFixedWidth(this->calcfont, Point2D({257, 33}), current_cash, 1);
+    fb->printTextFixedWidth(this->calcfont, Point2D({257, 33}), current_cash, 1);
     int bascket_total = 0;
     for (auto item: this->shopping_cart) {
         if (item.second.quantity > 0) {
@@ -1190,8 +1190,8 @@ void CatalogueScene::Render() {
             o_font->InitFromPakEntry(this->optShps->GetEntry(item.second.font_shape_id));
             
             if (item.second.quantity < 10) {
-                fb2->FillWithColor(255);
-                fb2->DrawShape(o_font->GetShape(item.second.quantity+1));
+                fb2->fillWithColor(255);
+                fb2->drawShape(o_font->GetShape(item.second.quantity+1));
                 fb->blitLargeBuffer(
                     fb2->framebuffer,
                     320,
@@ -1204,11 +1204,11 @@ void CatalogueScene::Render() {
                     o_font->GetShape(item.second.quantity+1)->GetHeight()
                 );
             } else {
-                fb2->FillWithColor(255);
+                fb2->fillWithColor(255);
                 int digit = item.second.quantity/10;
                 int digit2 = item.second.quantity%10;
 
-                fb2->DrawShape(o_font->GetShape(digit2+1));
+                fb2->drawShape(o_font->GetShape(digit2+1));
                 fb->blitLargeBuffer(
                     fb2->framebuffer,
                     320,
@@ -1220,8 +1220,8 @@ void CatalogueScene::Render() {
                     o_font->GetShape(10)->GetWidth(),
                     o_font->GetShape(10)->GetHeight()
                 );
-                fb2->FillWithColor(255);
-                fb2->DrawShape(o_font->GetShape(digit+1));
+                fb2->fillWithColor(255);
+                fb2->drawShape(o_font->GetShape(digit+1));
                 fb->blitLargeBuffer(
                     fb2->framebuffer,
                     320,
@@ -1240,9 +1240,9 @@ void CatalogueScene::Render() {
     }
     if (bascket_total > 0) {
         std::string basket_total = string_format("%08d", bascket_total);
-        fb->PrintTextFixedWidth(this->calcfont, Point2D({257, 40}), basket_total, 1);
+        fb->printTextFixedWidth(this->calcfont, Point2D({257, 40}), basket_total, 1);
         std::string cash_left = string_format("%08d", GameState.proj_cash-bascket_total);
-        fb->PrintTextFixedWidth(this->calcfont, Point2D({257, 47}), cash_left, 1);
+        fb->printTextFixedWidth(this->calcfont, Point2D({257, 47}), cash_left, 1);
     }
     
 }
@@ -1292,18 +1292,18 @@ std::vector<SCZone *> *KillBoardScene::init(
 
 void KillBoardScene::Render() {
     this->palette = *this->layers[0]->img->palettes[0]->GetColorPalette();
-    VGA.SetPalette(&this->palette);
-    FrameBuffer *fb = VGA.GetFrameBuffer();
-    fb->Clear();
-    fb->DrawShape(this->layers[0]->img->shapes[1]);
+    VGA.setPalette(&this->palette);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->clear();
+    fb->drawShape(this->layers[0]->img->shapes[1]);
     Point2D position = Point2D({80, 60});
     for (auto pil: GameState.kill_board) {
         position.x = 80;
-        fb->PrintText(this->font, position, pilot_names[pil.first], 0);
+        fb->printText(this->font, position, pilot_names[pil.first], 0);
         position.x += 130;
-        fb->PrintText(this->font, position, std::to_string(pil.second[1]), 0);
+        fb->printText(this->font, position, std::to_string(pil.second[1]), 0);
         position.x += 30;
-        fb->PrintText(this->font, position, std::to_string(pil.second[0]), 0);
+        fb->printText(this->font, position, std::to_string(pil.second[0]), 0);
         position.y += 15;
     }
 }

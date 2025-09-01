@@ -67,42 +67,42 @@ SCButton *IActivity::checkButtons(void) {
 
         SCButton *button = buttons[i];
 
-        if (!button->IsEnabled())
+        if (!button->isEnabled())
             continue;
 
-        if (Mouse.GetPosition().x < button->position.x ||
-            Mouse.GetPosition().x > button->position.x + button->dimension.x ||
-            Mouse.GetPosition().y < button->position.y ||
-            Mouse.GetPosition().y > button->position.y + button->dimension.y) {
-            button->SetAppearance(SCButton::APR_UP);
+        if (Mouse.getPosition().x < button->position.x ||
+            Mouse.getPosition().x > button->position.x + button->dimension.x ||
+            Mouse.getPosition().y < button->position.y ||
+            Mouse.getPosition().y > button->position.y + button->dimension.y) {
+            button->setAppearance(SCButton::APR_UP);
             continue;
         }
         this->timer = 4200;
         // HIT !
-        Mouse.SetMode(SCMouse::VISOR);
+        Mouse.setMode(SCMouse::VISOR);
 
         if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
-            button->SetAppearance(SCButton::APR_DOWN);
+            button->setAppearance(SCButton::APR_DOWN);
         }
         // If the mouse button has just been released: trigger action.
         if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
             Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
-            button->SetAppearance(SCButton::APR_UP);
-            button->OnAction();
+            button->setAppearance(SCButton::APR_UP);
+            button->onAction();
         }
             
 
         return button;
     }
 
-    Mouse.SetMode(SCMouse::CURSOR);
+    Mouse.setMode(SCMouse::CURSOR);
     return NULL;
 }
 
 void IActivity::drawButtons(void) {
 
     for (auto button : buttons) {
-        RLEShape ap = button->appearance[button->GetAppearance()];
-        VGA.GetFrameBuffer()->DrawShape(&ap);
+        RLEShape ap = button->appearance[button->getAppearance()];
+        VGA.getFrameBuffer()->drawShape(&ap);
     }
 }

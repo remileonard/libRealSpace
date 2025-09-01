@@ -181,10 +181,10 @@ void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glTranslatef(0.0f, verticalOffset, 0.0f);
-    glMultMatrixf(camera.GetProjectionMatrix()->ToGL());
+    glMultMatrixf(camera.getProjectionMatrix()->ToGL());
 
     glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(camera.GetViewMatrix()->ToGL());
+    glLoadMatrixf(camera.getViewMatrix()->ToGL());
 }
 // Remplace computeBlockAABB pour utiliser un cache par RSArea
 const AABB& SCRenderer::computeBlockAABB(RSArea* area, int LOD, int blockId) {
@@ -347,7 +347,7 @@ void SCRenderer::init(int width, int height, AssetManager *amana) {
     // glClearDepth(1.0f);								// Depth Buffer Setup
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
-    camera.SetPersective(45.0f, this->width / (float)this->height, 3.8f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
+    camera.setPersective(45.0f, this->width / (float)this->height, 3.8f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
 
     light.SetWithCoo(300, 300, 300);
 
@@ -722,12 +722,12 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
 
     Lod *lod = &object->lods[lodLevel];
     std::vector<Vector3D> vertexNormals;
-    ComputeVertexNormalsForLOD(object, lodLevel, camera.GetPosition(), vertexNormals);
+    ComputeVertexNormalsForLOD(object, lodLevel, camera.getPosition(), vertexNormals);
 
     // Prépare les matrices pour faire l’éclairage en espace œil
     float MV[16];
     glGetFloatv(GL_MODELVIEW_MATRIX, MV);
-    const float* V = camera.GetViewMatrix()->ToGL();
+    const float* V = camera.getViewMatrix()->ToGL();
     Vector3D lightWorld{light.x, light.y, light.z};
     Vector3D lightEye = TransformPointCM(V, lightWorld);
 
@@ -1116,7 +1116,7 @@ void SCRenderer::displayModel(RSEntity *object, size_t lodLevel) {
         prepare(object);
 
     glMatrixMode(GL_PROJECTION);
-    Matrix *projectionMatrix = camera.GetProjectionMatrix();
+    Matrix *projectionMatrix = camera.getProjectionMatrix();
     glLoadMatrixf(projectionMatrix->ToGL());
 
     running = true;
@@ -1135,7 +1135,7 @@ void SCRenderer::displayModel(RSEntity *object, size_t lodLevel) {
 
         // camera.SetPosition(position);
 
-        modelViewMatrix = camera.GetViewMatrix();
+        modelViewMatrix = camera.getViewMatrix();
         glLoadMatrixf(modelViewMatrix->ToGL());
 
         drawModel(object, lodLevel);
@@ -1480,7 +1480,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     extractFrustumPlanes(frustum);
 
     // Calcule des blocks visibles (une seule fois)
-    Vector3D pos = camera.GetPosition();
+    Vector3D pos = camera.getPosition();
     int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
     int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
     int blocX = (int)(pos.x + centerX) / BLOCK_WIDTH;
@@ -1570,7 +1570,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
             printf("This should never happen: Put a break point here.\n");
             continue;
         }
-        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->GetTextureID());
+        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->getTextureID());
         glBegin(GL_TRIANGLES);
         for (int i = 0; i < (int)x.second.size(); i++) {
             VertexCache v = x.second.at(i);
@@ -1636,7 +1636,7 @@ void SCRenderer::renderObjects(RSArea *area, size_t blockID) {
 void SCRenderer::renderWorldToTexture(RSArea *area) {
     
 
-    Vector3D pos = camera.GetPosition();
+    Vector3D pos = camera.getPosition();
     int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
     int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
     int blocX = (int)(pos.x + centerX) / BLOCK_WIDTH;
@@ -1666,7 +1666,7 @@ void SCRenderer::renderWorldToTexture(RSArea *area) {
             printf("This should never happen: Put a break point here.\n");
             return;
         }
-        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->GetTextureID());
+        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->getTextureID());
 
         glBegin(GL_TRIANGLES);
         for (int i = 0; i < x.second.size(); i++) {
@@ -1695,13 +1695,13 @@ void SCRenderer::getRenderToTexture() {
 }
 void SCRenderer::initRenderCameraView(){ 
     const float verticalOffset = 0.45f;
-    Matrix *projectionMatrix = camera.GetProjectionMatrix();
+    Matrix *projectionMatrix = camera.getProjectionMatrix();
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glTranslatef(0.0f, verticalOffset, 0.0f);
     glMultMatrixf(projectionMatrix->ToGL());
     glMatrixMode(GL_MODELVIEW);
-    Matrix *modelViewMatrix = camera.GetViewMatrix();
+    Matrix *modelViewMatrix = camera.getViewMatrix();
     glLoadMatrixf(modelViewMatrix->ToGL());
 }
 void SCRenderer::renderMissionObjects(RSMission *mission) {
@@ -1868,7 +1868,7 @@ void SCRenderer::renderWorldByID(RSArea *area, int LOD, int verticesPerBlock, in
             printf("This should never happen: Put a break point here.\n");
             return;
         }
-        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->GetTextureID());
+        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->getTextureID());
 
         glBegin(GL_TRIANGLES);
         for (int i = 0; i < x.second.size(); i++) {
@@ -1919,7 +1919,7 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size) {
     }
     
     // Get camera position
-    Point3D cameraPos = camera.GetPosition();
+    Point3D cameraPos = camera.getPosition();
     
     // Calculate billboard vectors
     Vector3D look, right, up;

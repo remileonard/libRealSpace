@@ -8,7 +8,7 @@
 
 #include "Camera.h"
 
-void Camera::SetPersective(float fovy, float aspect, float zNear, float zFar) {
+void Camera::setPersective(float fovy, float aspect, float zNear, float zFar) {
     this->fovy = fovy;
     this->aspect = aspect;
     this->zNear = zNear;
@@ -34,7 +34,7 @@ void Camera::SetPersective(float fovy, float aspect, float zNear, float zFar) {
     mproj.v[3][3] = 0;
 }
 
-void Camera::LookAt(Point3D *lookAt) {
+void Camera::lookAt(Point3D *lookAt) {
 
     // Update orientation
     Vector3D vN(this->position);
@@ -71,7 +71,7 @@ void Camera::LookAt(Point3D *lookAt) {
     CalcViewMatrix();
 }
 
-void Camera::LookAt(Point3D *lookAt, Vector3D *up) {
+void Camera::lookAt(Point3D *lookAt, Vector3D *up) {
 
     // Update orientation
     Vector3D vN(this->position);
@@ -112,12 +112,12 @@ void Camera::SetPosition(Point3D *position) {
     CalcViewMatrix();
 }
 
-void Camera::SetOrientation(Quaternion *orientation) {
+void Camera::setOrientation(Quaternion *orientation) {
     this->orientation = *orientation;
     CalcViewMatrix();
 }
 
-void Camera::Rotate(float pitch, float yaw, float roll) {
+void Camera::rotate(float pitch, float yaw, float roll) {
 
     Matrix rollRot;
     rollRot.Identity();
@@ -129,7 +129,7 @@ void Camera::Rotate(float pitch, float yaw, float roll) {
     orientation.FromMatrix(&m);
     CalcViewMatrix();
 }
-void Camera::ResetRotate() {
+void Camera::resetRotate() {
 
     Matrix rollRot;
     rollRot.Identity();
@@ -151,15 +151,15 @@ void Camera::CalcViewMatrix(void) {
     this->mview.Multiply(&translation);
 }
 
-Point3D Camera::GetPosition(void) { return this->position; }
+Point3D Camera::getPosition(void) { return this->position; }
 
-Quaternion Camera::GetOrientation(void) { return this->orientation; }
+Quaternion Camera::getOrientation(void) { return this->orientation; }
 
-Matrix *Camera::GetProjectionMatrix(void) { return &this->mproj; }
+Matrix *Camera::getProjectionMatrix(void) { return &this->mproj; }
 
-Matrix *Camera::GetViewMatrix(void) { return &this->mview; }
+Matrix *Camera::getViewMatrix(void) { return &this->mview; }
 
-Vector3D Camera::GetForward(void) { 
+Vector3D Camera::getForward(void) { 
     Matrix m = orientation.ToMatrix();
     Vector3D forward;
     forward.x = -m.v[0][2];
@@ -168,7 +168,7 @@ Vector3D Camera::GetForward(void) {
     return forward;
 }
 
-Vector3D Camera::GetUp(void) { 
+Vector3D Camera::getUp(void) { 
     Matrix m = orientation.ToMatrix();
     Vector3D up;
     up.x = m.v[0][1];
@@ -177,7 +177,7 @@ Vector3D Camera::GetUp(void) {
     return up;
  }
 
-Vector3D Camera::GetRight(void) { 
+Vector3D Camera::getRight(void) { 
     Matrix m = orientation.ToMatrix();
     Vector3D right;
     right.x = m.v[0][0];
@@ -186,7 +186,7 @@ Vector3D Camera::GetRight(void) {
     return right;
 }
 
-void Camera::MoveForward(void) {
+void Camera::moveForward(void) {
     Matrix m = orientation.ToMatrix();
     this->position.x -= m.v[0][2] * 100;
     this->position.y -= m.v[1][2] * 100;
@@ -194,7 +194,7 @@ void Camera::MoveForward(void) {
     CalcViewMatrix();
 }
 
-void Camera::MoveBackward(void) {
+void Camera::moveBackward(void) {
     Matrix m = orientation.ToMatrix();
     this->position.x += m.v[0][2] * 100;
     this->position.y += m.v[1][2] * 100;
@@ -202,7 +202,7 @@ void Camera::MoveBackward(void) {
     CalcViewMatrix();
 }
 
-void Camera::MoveStrafLeft(void) {
+void Camera::moveStrafLeft(void) {
     Matrix m = orientation.ToMatrix();
     this->position.x -= m.v[0][0] * 100;
     this->position.y -= m.v[1][0] * 100;
@@ -210,7 +210,7 @@ void Camera::MoveStrafLeft(void) {
     CalcViewMatrix();
 }
 
-void Camera::MoveStrafRight(void) {
+void Camera::moveStrafRight(void) {
     Matrix m = orientation.ToMatrix();
     this->position.x += m.v[0][0] * 100;
     this->position.y += m.v[1][0] * 100;

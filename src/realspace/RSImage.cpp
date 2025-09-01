@@ -33,7 +33,7 @@ void RSImage::Create(const char name[8],uint32_t width,uint32_t height, uint32_t
     this->data = (uint8_t*)malloc(this->width*this->height);
     this->palette = Renderer.getPalette();
     this->nbframes = 1;
-    this->texture.Set(this);
+    this->texture.set(this);
     dirty = true;
 }
 
@@ -54,7 +54,7 @@ void RSImage::SyncTexture(void){
     
     //Check if we are synchornized with GPU
     if (this->dirty){
-        texture.UpdateContent(this);
+        texture.updateContent(this);
         Renderer.uploadTextureContentToGPU(&texture);
         dirty = false;
     }
@@ -91,7 +91,7 @@ void RSImage::GetNextFrame() {
         subframe.SetPalette(this->palette);
         //this->texture.Set(&subframe);
         this->texture.animated = true;
-        this->texture.UpdateContent(&subframe);
+        this->texture.updateContent(&subframe);
         this->current_frame= (this->current_frame + 1) % this->nbframes;
         //texture.UpdateContent(this);
         Renderer.uploadTextureContentToGPU(&texture);

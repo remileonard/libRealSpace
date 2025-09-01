@@ -65,15 +65,15 @@ void SCObjectViewer::NextObject(void) { currentObject = (currentObject + 1) % ob
 void SCObjectViewer::focus(void) {
     this->focused = true;
     if (!this->music_playing) {
-        Mixer.SwitchBank(0);
-        Mixer.PlayMusic(25);
+        Mixer.switchBank(0);
+        Mixer.playMusic(25);
         this->music_playing = true;
     }
 }
 void SCObjectViewer::unFocus(void) {
     this->focused = false;
     if (this->music_playing) {
-        Mixer.StopMusic();
+        Mixer.stopMusic();
         this->music_playing = false;
     }
 }
@@ -97,7 +97,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     button = new SCButton();
     Point2D exitDimension = {30, 15};
     Point2D exitPosition = {boardPosition.x + 268, boardPosition.y + 15};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnExit, this), exitPosition, exitDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnExit, this), exitPosition, exitDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(14)->data, objButtons.GetEntry(14)->size,
                                                           &exitPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(15)->data,
@@ -110,7 +110,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     button = new SCButton();
 
     Point2D rotRightButtonPosition = {boardPosition.x + 232, boardPosition.y + 12};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnRotateRight, this), rotRightButtonPosition, arrowDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnRotateRight, this), rotRightButtonPosition, arrowDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(12)->data, objButtons.GetEntry(12)->size,
                                                           &rotRightButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(13)->data,
@@ -120,7 +120,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     // ROT LEFT OBJ BUTTON
     button = new SCButton();
     Point2D rotLeftButtonPosition = {boardPosition.x + 174, boardPosition.y + 12};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnRotateLeft, this), rotLeftButtonPosition, arrowDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnRotateLeft, this), rotLeftButtonPosition, arrowDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(10)->data, objButtons.GetEntry(10)->size,
                                                           &rotLeftButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(11)->data,
@@ -130,7 +130,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     // ROT DOWN OBJ BUTTON
     button = new SCButton();
     Point2D rotDownButtonPosition = {boardPosition.x + 198, boardPosition.y + 24};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnRotateDown, this), rotDownButtonPosition, arrowDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnRotateDown, this), rotDownButtonPosition, arrowDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(8)->data, objButtons.GetEntry(8)->size,
                                                           &rotDownButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(9)->data, objButtons.GetEntry(9)->size,
@@ -140,7 +140,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     // ROT UP OBJ BUTTON
     button = new SCButton();
     Point2D rotUpButtonPosition = {boardPosition.x + 198, boardPosition.y + 6};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnRotateUp, this), rotUpButtonPosition, arrowDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnRotateUp, this), rotUpButtonPosition, arrowDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(6)->data, objButtons.GetEntry(6)->size,
                                                           &rotUpButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(7)->data, objButtons.GetEntry(7)->size,
@@ -150,7 +150,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     // ZOOM OUT OBJ BUTTON
     button = new SCButton();
     Point2D zoomOutButtonPosition = {boardPosition.x + 122, boardPosition.y + 25};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnZoomOut, this), zoomOutButtonPosition, arrowDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnZoomOut, this), zoomOutButtonPosition, arrowDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(4)->data, objButtons.GetEntry(4)->size,
                                                           &zoomOutButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(5)->data, objButtons.GetEntry(5)->size,
@@ -160,7 +160,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     // ZOOM IN OBJ BUTTON
     button = new SCButton();
     Point2D zoomInButtonPosition = {boardPosition.x + 121, boardPosition.y + 7};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnZoomIn, this), zoomInButtonPosition, arrowDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnZoomIn, this), zoomInButtonPosition, arrowDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(2)->data, objButtons.GetEntry(2)->size,
                                                           &zoomInButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(3)->data, objButtons.GetEntry(3)->size,
@@ -171,7 +171,7 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     Point2D nextDimension = {75, 15};
     button = new SCButton();
     Point2D nextButtonPosition = {boardPosition.x + 10, boardPosition.y + 15};
-    button->InitBehavior(std::bind(&SCObjectViewer::OnNext, this), nextButtonPosition, nextDimension);
+    button->initBehavior(std::bind(&SCObjectViewer::OnNext, this), nextButtonPosition, nextDimension);
     button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(0)->data, objButtons.GetEntry(0)->size,
                                                           &nextButtonPosition);
     button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(1)->data, objButtons.GetEntry(1)->size,
@@ -211,16 +211,16 @@ void SCObjectViewer::runFrame(void) {
 
     checkButtons();
 
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
+    VGA.setPalette(&this->palette);
 
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
 
     // Draw static
-    VGA.GetFrameBuffer()->DrawShape(&bluePrint);
+    VGA.getFrameBuffer()->drawShape(&bluePrint);
 
-    VGA.VSync();
+    VGA.vSync();
 
     /**/
     // Ok now time to draw the model
@@ -238,7 +238,7 @@ void SCObjectViewer::runFrame(void) {
 
     Renderer.getCamera()->SetPosition(&newPosition);
     Point3D lookAt = {0, 0, 0};
-    Renderer.getCamera()->LookAt(&lookAt);
+    Renderer.getCamera()->lookAt(&lookAt);
 
     light.x = 4 * cosf(-1 * totalTime / 20000.0f);
     light.y = 4;
@@ -246,11 +246,11 @@ void SCObjectViewer::runFrame(void) {
     Renderer.setLight(&light);
 
     glMatrixMode(GL_PROJECTION);
-    Matrix *projection = Renderer.getCamera()->GetProjectionMatrix();
+    Matrix *projection = Renderer.getCamera()->getProjectionMatrix();
     glLoadMatrixf(projection->ToGL());
 
     glMatrixMode(GL_MODELVIEW);
-    Matrix *view = Renderer.getCamera()->GetViewMatrix();
+    Matrix *view = Renderer.getCamera()->getViewMatrix();
     glLoadMatrixf(view->ToGL());
     glPushMatrix();
     glRotatef(this->rotateLeftRightAngle, 1, 0, 0);
@@ -279,17 +279,17 @@ void SCObjectViewer::runFrame(void) {
     glPopMatrix();
     glDisable(GL_DEPTH_TEST);
 
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
+    VGA.setPalette(&this->palette);
 
-    VGA.GetFrameBuffer()->DrawShape(&title);
+    VGA.getFrameBuffer()->drawShape(&title);
 
     drawButtons();
 
     // Draw Mouse
-    Mouse.Draw();
+    Mouse.draw();
 
-    VGA.VSync();
+    VGA.vSync();
     /**/
 }

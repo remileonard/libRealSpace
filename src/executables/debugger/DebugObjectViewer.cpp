@@ -13,16 +13,16 @@ DebugObjectViewer::~DebugObjectViewer() {
 void DebugObjectViewer::runFrame()  {
         checkButtons();
 
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
+    VGA.setPalette(&this->palette);
 
-    VGA.SetPalette(&this->palette);
+    VGA.setPalette(&this->palette);
 
     // Draw static
-    VGA.GetFrameBuffer()->DrawShape(&bluePrint);
+    VGA.getFrameBuffer()->drawShape(&bluePrint);
 
-    VGA.VSync();
+    VGA.vSync();
 
     /**/
     // Ok now time to draw the model
@@ -46,7 +46,7 @@ void DebugObjectViewer::runFrame()  {
 
     Renderer.getCamera()->SetPosition(&newPosition);
     Point3D lookAt = {0, 0, 0};
-    Renderer.getCamera()->LookAt(&lookAt);
+    Renderer.getCamera()->lookAt(&lookAt);
     if (moovingLight) {
         light.x = 4 * cosf(-1 * totalTime / 20000.0f);
         light.y = 4;
@@ -55,11 +55,11 @@ void DebugObjectViewer::runFrame()  {
     Renderer.setLight(&light);
 
     glMatrixMode(GL_PROJECTION);
-    Matrix *projection = Renderer.getCamera()->GetProjectionMatrix();
+    Matrix *projection = Renderer.getCamera()->getProjectionMatrix();
     glLoadMatrixf(projection->ToGL());
 
     glMatrixMode(GL_MODELVIEW);
-    Matrix *view = Renderer.getCamera()->GetViewMatrix();
+    Matrix *view = Renderer.getCamera()->getViewMatrix();
     glLoadMatrixf(view->ToGL());
     glPushMatrix();
     glRotatef(this->rotateLeftRightAngle, 1, 0, 0);
@@ -105,18 +105,18 @@ void DebugObjectViewer::runFrame()  {
     glPopMatrix();
     glDisable(GL_DEPTH_TEST);
 
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
-    VGA.SetPalette(&this->palette);
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
+    VGA.setPalette(&this->palette);
 
-    VGA.GetFrameBuffer()->DrawShape(&title);
+    VGA.getFrameBuffer()->drawShape(&title);
 
     drawButtons();
 
     // Draw Mouse
-    Mouse.Draw();
+    Mouse.draw();
 
-    VGA.VSync();
+    VGA.vSync();
 }
 void DebugObjectViewer::renderMenu() {
     static bool load_object = false;
@@ -164,7 +164,7 @@ void DebugObjectViewer::renderMenu() {
             ImGui::EndCombo();
         }
         if (currentTexture != nullptr) {
-            ImGui::Image((void*)(intptr_t)currentTexture->GetTexture()->GetTextureID(), ImVec2(256, 256), {0, 1}, {1, 0});
+            ImGui::Image((void*)(intptr_t)currentTexture->GetTexture()->getTextureID(), ImVec2(256, 256), {0, 1}, {1, 0});
         }           
         ImGui::End();
     }

@@ -14,9 +14,9 @@ FrameBuffer::~FrameBuffer() {
     this->width = 0;
     this->height = 0;
 }
-void FrameBuffer::Clear() { memset(this->framebuffer, 255, this->width * this->height); }
-void FrameBuffer::FillWithColor(uint8_t color) { memset(this->framebuffer, color, this->width * this->height); }
-bool FrameBuffer::DrawShape(RLEShape *shape) {
+void FrameBuffer::clear() { memset(this->framebuffer, 255, this->width * this->height); }
+void FrameBuffer::fillWithColor(uint8_t color) { memset(this->framebuffer, color, this->width * this->height); }
+bool FrameBuffer::drawShape(RLEShape *shape) {
     if (shape != nullptr) {
         size_t byteRead = 0;
         shape->buffer_size.x = this->width;
@@ -25,7 +25,7 @@ bool FrameBuffer::DrawShape(RLEShape *shape) {
     }
     return (false);
 }
-bool FrameBuffer::DrawShapeWithBox(RLEShape *shape, int bx1, int bx2, int by1, int by2) {
+bool FrameBuffer::drawShapeWithBox(RLEShape *shape, int bx1, int bx2, int by1, int by2) {
     if (shape != nullptr) {
         size_t byteRead = 0;
         shape->buffer_size.x = this->width;
@@ -34,7 +34,7 @@ bool FrameBuffer::DrawShapeWithBox(RLEShape *shape, int bx1, int bx2, int by1, i
     }
     return (false);
 }
-void FrameBuffer::FillLineColor(size_t lineIndex, uint8_t color) {
+void FrameBuffer::fillLineColor(size_t lineIndex, uint8_t color) {
     memset(this->framebuffer + lineIndex * this->width, color, this->width);
 }
 void FrameBuffer::plot_pixel(int x, int y, uint8_t color) {
@@ -171,31 +171,31 @@ void FrameBuffer::circle_slow(int x, int y, int radius, uint8_t color) {
         dy = (int)((float) radius * sin(acos(n)));
     }
 }
-void FrameBuffer::PrintText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
+void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
                             size_t interLetterSpace, size_t spaceSize) {
-    this->PrintText_SM(font, coo, text, color, start, size, interLetterSpace, spaceSize, true, false);
+    this->printText_SM(font, coo, text, color, start, size, interLetterSpace, spaceSize, true, false);
 }
-void FrameBuffer::PrintTextFixedWidth(RSFont *font, Point2D coo, std::string text, uint8_t color) {
+void FrameBuffer::printTextFixedWidth(RSFont *font, Point2D coo, std::string text, uint8_t color) {
     int32_t width;
     RLEShape *shape = font->GetShapeForChar('A');
     if (shape == nullptr) {
         shape = font->GetShapeForChar('0');
     }
     width = shape->GetWidth();
-    this->PrintText_SM(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width, true, true);
+    this->printText_SM(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width, true, true);
 }
 
-void FrameBuffer::PrintText(RSFont *font, Point2D coo, std::string text, uint8_t color) {
+void FrameBuffer::printText(RSFont *font, Point2D coo, std::string text, uint8_t color) {
     int32_t width;
     RLEShape *shape = font->GetShapeForChar('A');
     if (shape == nullptr) {
         shape = font->GetShapeForChar('0');
     }
     width = shape->GetWidth();
-    this->PrintText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width);
+    this->printText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width);
 }
 
-void FrameBuffer::PrintText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
+void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
                                size_t interLetterSpace, size_t spaceSize, bool isSmall, bool fixedWidth) {
 
     if (text == NULL)
@@ -243,7 +243,7 @@ void FrameBuffer::PrintText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
         if (coo->x + static_cast<int32_t>(spaceSize) > this->width)
             continue;
         shape->SetPosition(coo);
-        DrawShape(shape);
+        drawShape(shape);
         coo->y = lineHeight;
 
         if (chartoDraw == ' ') {

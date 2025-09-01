@@ -35,10 +35,7 @@ typedef struct VGAPalette{
     void SetColor(uint8_t value,Texel* texel){
         
         Texel* paletteColor ;
-        
         paletteColor = &colors[value] ;
-        
-        
         *paletteColor = *texel;
     }
     
@@ -107,10 +104,8 @@ class RSImage;
 class Texture{
     
 public:
-    Texture();
-    ~Texture();
-    
-    void Set(RSImage* image );
+    enum Location{ DISK=0x1,RAM=0x2,VRAM=0x4};
+
     size_t width;
     size_t height;
     char name[9];
@@ -118,17 +113,14 @@ public:
     bool initialized{false};
     bool animated{false};
     bool needAphaFix{false};
-    enum Location{ DISK=0x1,RAM=0x2,VRAM=0x4};
     uint8_t locFlag;
-    
-    //GPU stuff
     uint32_t id;
-    uint32_t GetTextureID(void);
-    
 
+    Texture();
+    ~Texture();
     
-    void UpdateContent(RSImage* image);
-
-private:
+    void set(RSImage* image );
+    void updateContent(RSImage* image);
+    uint32_t getTextureID(void);
     
 };

@@ -4,6 +4,8 @@
 #include "InputActionSystem.h"
 
 class Keyboard {
+private:
+    InputActionSystem* m_inputSystem;
 public:
     Keyboard();
     ~Keyboard();
@@ -77,7 +79,5 @@ public:
     
     // Créer un éditeur de texte
     std::shared_ptr<TextEditor> createTextEditor();
-    
-private:
-    InputActionSystem* m_inputSystem;
+
 };

@@ -6,44 +6,32 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 
-#ifndef __libRealSpace__Button__
-#define __libRealSpace__Button__
+#pragma once
 #include <functional>
 #include "../realspace/RLEShape.h"
 
 class SCButton{
-    
 public:
+    enum Appearance { APR_UP, APR_DOWN};
+private:
+    bool enabled ;
+    Appearance apre;
+    std::function<void()> onClick;
+
+public:
+
+    Point2D position;
+    Point2D dimension;
+    RLEShape appearance[2];
+    
     SCButton();
     ~SCButton();
     
-     
-    Point2D position;
-    Point2D dimension;
-    
-    
-    void InitBehavior(std::function<void()> fct, Point2D position, Point2D dimension);
-    
-    
-    void OnAction(void);
-    
-    enum Appearance { APR_UP, APR_DOWN};
-    RLEShape appearance[2];
-    
-    inline bool IsEnabled(void){ return this->enabled; }
-    inline void SetEnable(bool enabled){ this->enabled = enabled;}
-    
-    inline void SetAppearance(Appearance app){ this->apre = app;}
-    inline Appearance GetAppearance(void){ return this->apre; }
-private:
-    
-    
-    bool enabled ;
-    
-    Appearance apre;
-    
-    std::function<void()> onClick;
+    void initBehavior(std::function<void()> fct, Point2D position, Point2D dimension);
+    void onAction(void);
+    inline bool isEnabled(void){ return this->enabled; }
+    inline void setEnable(bool enabled){ this->enabled = enabled;}
+    inline void setAppearance(Appearance app){ this->apre = app;}
+    inline Appearance getAppearance(void){ return this->apre; }
     
 };
-
-#endif /* defined(__libRealSpace__Button__) */

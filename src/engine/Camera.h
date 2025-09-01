@@ -15,43 +15,6 @@
 
 
 class Camera{
-
-public:
-    
-    //Update parameters and recalculate perspective
-    void SetPersective(float fovy, float aspect, float zNear, float zFar);
-    
-    //Update orientation and Matrix view
-    void LookAt(Point3D* lookAt);
-    void LookAt(Point3D *lookAt, Vector3D *up);
-    //Update position and Matrix view
-    void SetPosition(Point3D* position);
-    
-    //Update orientation and Matrix view
-    void Rotate(float pitch, float yaw, float roll);
-    void ResetRotate();
-    void SetOrientation(Quaternion* orientation);
-    /*
-    void gluPerspective(Matrix* projectionMatrix);
-    void gluLookAt(Matrix* fModelView);
-    */
-    
-    //Various Getters
-    Point3D GetPosition(void);
-    Quaternion GetOrientation(void);
-    Matrix* GetProjectionMatrix(void);
-    Matrix* GetViewMatrix(void);
-    Vector3D GetForward(void);
-    Vector3D GetUp(void);
-    Vector3D GetRight(void);
-    
-    
-    //Moves
-    void MoveForward(void);
-    void MoveBackward(void);
-    void MoveStrafLeft(void);
-    void MoveStrafRight(void);
-    
 private:
     
     void CalcViewMatrix(void);
@@ -67,5 +30,38 @@ private:
     
     Matrix mproj;
     Matrix mview;
+
+public:
+    
+    //Update parameters and recalculate perspective
+    void setPersective(float fovy, float aspect, float zNear, float zFar);
+    
+    //Update orientation and Matrix view
+    void lookAt(Point3D* lookAt);
+    void lookAt(Point3D *lookAt, Vector3D *up);
+    //Update position and Matrix view
+    void SetPosition(Point3D* position);
+    
+    //Update orientation and Matrix view
+    void rotate(float pitch, float yaw, float roll);
+    void resetRotate();
+    void setOrientation(Quaternion* orientation);
+    
+    //Various Getters
+    Point3D getPosition(void);
+    Quaternion getOrientation(void);
+    Matrix* getProjectionMatrix(void);
+    Matrix* getViewMatrix(void);
+    Vector3D getForward(void);
+    Vector3D getUp(void);
+    Vector3D getRight(void);
+    
+    
+    //Moves
+    void moveForward(void);
+    void moveBackward(void);
+    void moveStrafLeft(void);
+    void moveStrafRight(void);
+
 };
 

@@ -767,7 +767,7 @@ void SCAnimationPlayer::init(){
     }
 
 
-    this->palette = *VGA.GetPalette();
+    this->palette = *VGA.getPalette();
     this->shot_counter = 0;
     this->fps_counter = 0;
     this->fps = 1;
@@ -777,11 +777,11 @@ void SCAnimationPlayer::runFrame(void){
 
     
     checkKeyboard();
-    VGA.Activate();
-    VGA.GetFrameBuffer()->Clear();
-    VGA.SetPalette(&this->palette);
-    FrameBuffer *fb = VGA.GetFrameBuffer();
-    fb->FillWithColor(0);
+    VGA.activate();
+    VGA.getFrameBuffer()->clear();
+    VGA.setPalette(&this->palette);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->fillWithColor(0);
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - fps_timer > 6;
     if (fpsupdate) {
@@ -791,20 +791,20 @@ void SCAnimationPlayer::runFrame(void){
 
     MIDGAME_SHOT *shot = this->midgames_shots[1][shot_counter];
     if (this->current_music != shot->music && shot->music != 255) {
-        Mixer.SwitchBank(0);
-        Mixer.PlayMusic(shot->music);
+        Mixer.switchBank(0);
+        Mixer.playMusic(shot->music);
         this->current_music = shot->music;
     }
     if (shot->sound != nullptr && (fps == shot->sound_time_code || shot->sound_time_code == 0)) {
-        Mixer.PlaySoundVoc(shot->sound->data, shot->sound->size);
+        Mixer.playSoundVoc(shot->sound->data, shot->sound->size);
         shot->sound = nullptr;
     }
     for (auto bg : shot->background) {
         if (bg->image->GetNumImages()>0) {
             RLEShape *shp = bg->image->GetShape(bg->shapeid);
             FrameBuffer *texture = new FrameBuffer(320, 200);
-            texture->FillWithColor(255);
-            texture->DrawShape(shp);
+            texture->fillWithColor(255);
+            texture->drawShape(shp);
             fb->blitWithMask(texture->framebuffer, bg->position_start.x, bg->position_start.y, 320, 200,255);
             if (fpsupdate && (bg->velocity.x != 0 || bg->velocity.y != 0)) {
                 if (bg->position_start.x != bg->position_end.x) {
@@ -820,22 +820,22 @@ void SCAnimationPlayer::runFrame(void){
                 ByteStream paletteReader;
                 paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
                 this->palette.ReadPatch(&paletteReader);
-                VGA.SetPalette(&this->palette);
+                VGA.setPalette(&this->palette);
             }
             if (bg->pal != nullptr) {
                 this->palette.ReadPatch(bg->pal->GetColorPalette());
-                VGA.SetPalette(&this->palette);
+                VGA.setPalette(&this->palette);
             }
         }
     }
     for (auto sprt: shot->sprites) {
         FrameBuffer *texture = new FrameBuffer(320, 200);
-        texture->FillWithColor(255);
+        texture->fillWithColor(255);
         if (sprt->keep_first_frame) {
-            texture->DrawShape(sprt->image->GetShape(1));
+            texture->drawShape(sprt->image->GetShape(1));
         }
         if (fps<sprt->image->GetNumImages()) {
-            texture->DrawShape(sprt->image->GetShape(fps));
+            texture->drawShape(sprt->image->GetShape(fps));
         }
         int color = texture->framebuffer[0];
         fb->blitWithMask(texture->framebuffer, sprt->position_start.x, sprt->position_start.y, 320, 200,color);
@@ -843,11 +843,11 @@ void SCAnimationPlayer::runFrame(void){
             ByteStream paletteReader;
             paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data);
             this->palette.ReadPatch(&paletteReader);
-            VGA.SetPalette(&this->palette);
+            VGA.setPalette(&this->palette);
         }
         if (sprt->pal != nullptr) {
             this->palette.ReadPatch(sprt->pal->GetColorPalette());
-            VGA.SetPalette(&this->palette);
+            VGA.setPalette(&this->palette);
         }
     }
     
@@ -863,11 +863,11 @@ void SCAnimationPlayer::runFrame(void){
         }
     }
     for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT; i++)
-            VGA.GetFrameBuffer()->FillLineColor(i, 0x00);
+            VGA.getFrameBuffer()->fillLineColor(i, 0x00);
 
     for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++)
-        VGA.GetFrameBuffer()->FillLineColor(199 - i, 0x00);
-    VGA.VSync();
+        VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    VGA.vSync();
 }
 void SCAnimationPlayer::renderMenu() {
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);

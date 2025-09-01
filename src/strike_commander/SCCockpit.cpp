@@ -109,7 +109,7 @@ void SCCockpit::init() {
  * the screen.
  */
 
-void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *fb = VGA.getFrameBuffer()) {
 
     std::vector<Point2D> alti_band_roll;
     float alti_in_feet = this->altitude * 3.28084f; // Convert meters to feet
@@ -130,14 +130,14 @@ void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *f
         p2.x       = alti_top_left.x + 9;
         p2.y       = (alti_top_left.y + alti_size.y / 2) - p.y + (int)(alti_in_feet / 100);
         if (p2.y > alti_top_left.y && p2.y < bottom_right.y) {
-            fb->PrintText(this->font, &p2, (char *)std::to_string(cpt / 10.0f).c_str(), 0, 0, 3, 2, 2);
+            fb->printText(this->font, &p2, (char *)std::to_string(cpt / 10.0f).c_str(), 0, 0, 3, 2, 2);
         }
         cpt -= 10;
         Point2D alti = {alti_top_left.x + 1, p2.y};
         int sheight  = this->hud->small_hud->ALTI->SHAP->GetHeight();
         // alti.y = alti_top_left.y;
         this->hud->small_hud->ALTI->SHAP->SetPosition(&alti);
-        fb->DrawShapeWithBox(
+        fb->drawShapeWithBox(
             this->hud->small_hud->ALTI->SHAP, alti_top_left.x, bottom_right.x, alti_top_left.y - 10, bottom_right.y - 10
         );
     }
@@ -147,9 +147,9 @@ void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *f
     );
     alti_arrow.y -= this->hud->small_hud->ALTI->SHP2->GetHeight() / 2;
     this->hud->small_hud->ALTI->SHP2->SetPosition(&alti_arrow);
-    fb->DrawShape(this->hud->small_hud->ALTI->SHP2);
+    fb->drawShape(this->hud->small_hud->ALTI->SHP2);
     Point2D alti_text = {alti_top_left.x, alti_top_left.y + 5 + this->hud->small_hud->ALTI->SHAP->GetHeight()};
-    fb->PrintText(this->font, &alti_text, (char *)std::to_string(alti_in_feet).c_str(), 0, 0, 5, 2, 2);
+    fb->printText(this->font, &alti_text, (char *)std::to_string(alti_in_feet).c_str(), 0, 0, 5, 2, 2);
 
 }
 /**
@@ -162,7 +162,7 @@ void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *f
  * the bottom of the screen (360), with the 0 mark at the top of the screen and
  * the 360 mark at the bottom of the screen.
  */
-void SCCockpit::RenderHeading(Point2D heading_pos = {136, 90}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderHeading(Point2D heading_pos = {136, 90}, FrameBuffer *fb = VGA.getFrameBuffer()) {
     this->hud->small_hud->HEAD->SHAP->SetPosition(&heading_pos);
 
     std::vector<Point2D> heading_points;
@@ -197,14 +197,14 @@ void SCCockpit::RenderHeading(Point2D heading_pos = {136, 90}, FrameBuffer *fb =
                 toprint = 0;
             }
             txt = std::to_string(toprint);
-            fb->PrintText(this->font, &txt_pos, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(this->font, &txt_pos, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
         if (headcpt % 3 == 0) {
             Point2D headspeed;
             headspeed.x = hp.x - 6;
             headspeed.y = heading_pos.y;
             this->hud->small_hud->HEAD->SHAP->SetPosition(&headspeed);
-            fb->DrawShapeWithBox(
+            fb->drawShapeWithBox(
                 this->hud->small_hud->HEAD->SHAP, heading_pos.x, bottom_right.x, heading_pos.y, bottom_right.y
             );
         }
@@ -238,11 +238,11 @@ void SCCockpit::RenderHeading(Point2D heading_pos = {136, 90}, FrameBuffer *fb =
     fb->line(
         (heading_pos.x + heading_size.x / 2), weapoint.y, (heading_pos.x + heading_size.x / 2), weapoint.y + 3, 223
     );
-    fb->DrawShapeWithBox(
+    fb->drawShapeWithBox(
         this->hud->small_hud->HEAD->SHP2, heading_pos.x, bottom_right.x, heading_pos.y - 5, bottom_right.y
     );
 }
-void SCCockpit::RenderSpeed(Point2D speed_top_left = {115, 30}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderSpeed(Point2D speed_top_left = {115, 30}, FrameBuffer *fb = VGA.getFrameBuffer()) {
     std::vector<Point2D> speed_band_roll;
     Point2D speed_band_size = {20, 35};
     Point2D bottom_right    = {speed_top_left.x + speed_band_size.x, speed_top_left.y + speed_band_size.y};
@@ -262,14 +262,14 @@ void SCCockpit::RenderSpeed(Point2D speed_top_left = {115, 30}, FrameBuffer *fb 
         p.y       = (speed_top_left.y + this->hud->small_hud->ASPD->SHAP->GetHeight() / 2) - p.y + (int)this->speed;
         if (p.y > speed_top_left.y + 1 && p.y < speed_top_left.y + this->hud->small_hud->ASPD->SHAP->GetHeight()) {
             txt = std::to_string(cpt_speed);
-            fb->PrintText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
         if (cpt_speed % 5 == 0) {
             if (p.y > 10 && p.y < 29 + this->hud->small_hud->ASPD->SHAP->GetHeight()) {
                 Point2D speed = {bottom_right.x - 5, speed_top_left.y};
                 speed.y       = p.y;
                 this->hud->small_hud->ASPD->SHAP->SetPosition(&speed);
-                fb->DrawShapeWithBox(
+                fb->drawShapeWithBox(
                     this->hud->small_hud->ASPD->SHAP, speed_top_left.x, bottom_right.x, speed_top_left.y - 10,
                     bottom_right.y - 10
                 );
@@ -295,7 +295,7 @@ void SCCockpit::RenderSpeed(Point2D speed_top_left = {115, 30}, FrameBuffer *fb 
  *
  * This function is called by the SCCockpit::Render method.
  */
-void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuffer *fb = VGA.getFrameBuffer()) {
 
     const int dec = 0;
 
@@ -347,13 +347,13 @@ void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuff
         if (l.start.x > bx1 && l.start.x < bx2 && l.start.y > by1 && l.start.y < by2) {
             Point2D p = l.start;
             p.y -= 2;
-            fb->PrintText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
         if (l2.end.x > bx1 && l2.end.x < bx2 && l2.end.y > by1 && l2.end.y < by2) {
             Point2D p = l2.end;
             p.x       = p.x - 8;
             p.y -= 2;
-            fb->PrintText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
         int color = 223;
         if (ladder == 0) {
@@ -377,23 +377,23 @@ void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuff
     }
 }
 
-void SCCockpit::RenderMFDS(Point2D mfds, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderMFDS(Point2D mfds, FrameBuffer *fb = VGA.getFrameBuffer()) {
     this->cockpit->MONI.SHAP.SetPosition(&mfds);
     for (int i = 0; i < this->cockpit->MONI.SHAP.GetHeight(); i++) {
         fb->line(mfds.x, mfds.y + i, mfds.x + this->cockpit->MONI.SHAP.GetWidth(), mfds.y + i, 2);
     }
-    fb->DrawShape(&this->cockpit->MONI.SHAP);
+    fb->drawShape(&this->cockpit->MONI.SHAP);
 }
-void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb = VGA.getFrameBuffer()) {
     Point2D hud_size = {68, 85};
     Point2D bottom_right = {top_left.x + hud_size.x, top_left.y + hud_size.y};
 
     if (this->target != nullptr) {
-        Vector3D campos       = this->cam->GetPosition();
+        Vector3D campos       = this->cam->getPosition();
         Vector3DHomogeneous v = {this->target->position.x, this->target->position.y, this->target->position.z, 1.0f};
 
-        Matrix *mproj = this->cam->GetProjectionMatrix();
-        Matrix *mview = this->cam->GetViewMatrix();
+        Matrix *mproj = this->cam->getProjectionMatrix();
+        Matrix *mview = this->cam->getViewMatrix();
 
         Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
         Vector3DHomogeneous result    = mproj->multiplyMatrixVector(mcombined);
@@ -480,7 +480,7 @@ void SCCockpit::RenderTargetingReticle() {
     initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
 
     weap->obj       = this->player_plane->weaps_load[0]->objct;
-    Vector3D campos = this->cam->GetPosition();
+    Vector3D campos = this->cam->getPosition();
     weap->x         = this->player_plane->x;
     weap->y         = this->player_plane->y;
     weap->z         = this->player_plane->z;
@@ -511,8 +511,8 @@ void SCCockpit::RenderTargetingReticle() {
 
     Vector3DHomogeneous v = {target.x, target.y, target.z, 1.0f};
 
-    Matrix *mproj = this->cam->GetProjectionMatrix();
-    Matrix *mview = this->cam->GetViewMatrix();
+    Matrix *mproj = this->cam->getProjectionMatrix();
+    Matrix *mview = this->cam->getViewMatrix();
 
     Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
     Vector3DHomogeneous result    = mproj->multiplyMatrixVector(mcombined);
@@ -526,8 +526,8 @@ void SCCockpit::RenderTargetingReticle() {
 
         if (Xhud > 0 && Xhud < 320 && Yhud > 0 && Yhud < 200) {
             Point2D p = {Xhud, Yhud};
-            VGA.GetFrameBuffer()->plot_pixel((int)p.x, (int)p.y, 223);
-            VGA.GetFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
+            VGA.getFrameBuffer()->plot_pixel((int)p.x, (int)p.y, 223);
+            VGA.getFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
         }
     }
 }
@@ -560,7 +560,7 @@ void SCCockpit::RenderBombSight() {
     initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
 
     weap->obj       = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
-    Vector3D campos = this->cam->GetPosition();
+    Vector3D campos = this->cam->getPosition();
     weap->x         = campos.x;
     weap->y         = campos.y;
     weap->z         = campos.z;
@@ -584,8 +584,8 @@ void SCCockpit::RenderBombSight() {
     weap->vz               = velo.z;
     Vector3DHomogeneous v = {target.x, target.y, target.z, 1.0f};
 
-    Matrix *mproj = this->cam->GetProjectionMatrix();
-    Matrix *mview = this->cam->GetViewMatrix();
+    Matrix *mproj = this->cam->getProjectionMatrix();
+    Matrix *mview = this->cam->getViewMatrix();
 
     Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
     Vector3DHomogeneous result    = mproj->multiplyMatrixVector(mcombined);
@@ -597,16 +597,16 @@ void SCCockpit::RenderBombSight() {
         int Xhud = (int)((x + 1.0f) * 160.0f);
         int Yhud = (int)((1.0f - y - 0.45f) * 100.0f) - 1;
 
-        VGA.GetFrameBuffer()->plot_pixel(center.x, center.y, 223);
-        VGA.GetFrameBuffer()->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
+        VGA.getFrameBuffer()->plot_pixel(center.x, center.y, 223);
+        VGA.getFrameBuffer()->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
         if (Xhud > 0 && Xhud < 320 && Yhud > 0 && Yhud < 200) {
             Point2D p = {Xhud, Yhud};
-            VGA.GetFrameBuffer()->plot_pixel((int)p.x, (int)p.y, 223);
-            VGA.GetFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
+            VGA.getFrameBuffer()->plot_pixel((int)p.x, (int)p.y, 223);
+            VGA.getFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
         }
     }
 }
-void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.getFrameBuffer()) {
     std::string txt;
     this->RenderMFDS(pmfd_right, fb);
     Point2D pmfd_right_center = {
@@ -617,7 +617,7 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.GetFr
         pmfd_right_center.y - 10 - this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetHeight() / 2
     };
     this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->SetPosition(&pmfd_right_weapon);
-    fb->DrawShape(this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0));
+    fb->drawShape(this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0));
     std::map<int, int> weapons_shape = {
         {1,  1},
         {2,  1},
@@ -659,12 +659,12 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.GetFr
                     pmfd_right_center.x - 15 - s_width / 2 - i * 9, pmfd_right_center.y - 18 - s_height / 2 + i * 9
                 };
                 shape->SetPosition(&pmfd_right_weapon_hp);
-                fb->DrawShape(shape);
+                fb->drawShape(shape);
                 txt                               = std::to_string(nb_weap);
                 Point2D pmfd_right_weapon_hp_text = {
                     pmfd_right_weapon_hp.x + s_width / 2 + 1, pmfd_right_weapon_hp.y + s_height + 6
                 };
-                fb->PrintText(
+                fb->printText(
                     this->big_font, &pmfd_right_weapon_hp_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2
                 );
             }
@@ -679,12 +679,12 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.GetFr
                     pmfd_right_center.x + 13 - s_width / 2 + i * 9, pmfd_right_center.y - 18 - s_height / 2 + i * 9
                 };
                 shape->SetPosition(&pmfd_right_weapon_hp_left);
-                fb->DrawShape(shape);
+                fb->drawShape(shape);
                 txt                                    = std::to_string(nb_weap);
                 Point2D pmfd_right_weapon_hp_text_left = {
                     pmfd_right_weapon_hp_left.x + s_width / 2 - 1, pmfd_right_weapon_hp_left.y + s_height + 6
                 };
-                fb->PrintText(
+                fb->printText(
                     this->big_font, &pmfd_right_weapon_hp_text_left, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(),
                     2, 2
                 );
@@ -704,16 +704,16 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.GetFr
         pmfd_right_weapon.y + 6
     };
     txt = std::to_string(sel_nb_weap);
-    fb->PrintText(this->big_font, &pmfd_right_weapon_gun, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_gun, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
 
     Point2D pmfd_right_weapon_radar{pmfd_right_weapon.x, pmfd_right_weapon.y + 5};
-    fb->PrintText(this->big_font, &pmfd_right_weapon_radar, const_cast<char *>("NORM"), 0, 0, 4, 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_radar, const_cast<char *>("NORM"), 0, 0, 4, 2, 2);
 
     Point2D pmfd_right_weapon_selected{
         pmfd_right_weapon.x + 12 + this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
         pmfd_right_weapon.y + 5
     };
-    fb->PrintText(
+    fb->printText(
         this->big_font, &pmfd_right_weapon_selected, (char *)weapon_names[sel_weapon_id].c_str(), 0, 0,
         (uint32_t)weapon_names[sel_weapon_id].length(), 2, 2
     );
@@ -722,16 +722,16 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = VGA.GetFr
         pmfd_right_weapon.x - 7 + this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
         pmfd_right_weapon.y + 4 * 9
     };
-    fb->PrintText(this->big_font, &pmfd_right_weapon_chaff, const_cast<char *>("C:30"), 0, 0, 4, 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_chaff, const_cast<char *>("C:30"), 0, 0, 4, 2, 2);
 
     Point2D pmfd_right_weapon_flare{
         pmfd_right_weapon.x - 7 + this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
         pmfd_right_weapon.y + 5 * 9
     };
-    fb->PrintText(this->big_font, &pmfd_right_weapon_flare, const_cast<char *>("F:30"), 0, 0, 4, 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_flare, const_cast<char *>("F:30"), 0, 0, 4, 2, 2);
 }
 
-void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb = VGA.getFrameBuffer()) {
     switch (mode) {
     case RadarMode::AARD:  
         this->RenderMFDSRadarImplementation(pmfd_left, range, "AIR", true, fb);
@@ -748,7 +748,7 @@ void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameB
     }
 }
 
-void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb = VGA.getFrameBuffer()) {
     // Calcul des positions et dimensions
     Point2D pmfd_center = {
         pmfd_left.x + this->cockpit->MONI.SHAP.GetWidth() / 2,
@@ -780,7 +780,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
     
     // Dessine le fond du radar
     radar_arts.GetShape(bg_shape_index)->SetPosition(&radar_bg_pos);
-    fb->DrawShape(radar_arts.GetShape(bg_shape_index));
+    fb->drawShape(radar_arts.GetShape(bg_shape_index));
 
     // Affiche les infos textuelles
     Point2D pmfd_text = {radar_bg_pos.x + 10, radar_bg_pos.y + 2};
@@ -792,15 +792,15 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         case 4: rzoom_str = "80"; break;
         default: rzoom_str = "10"; break;
     }
-    fb->PrintText(this->big_font, &pmfd_text, 
+    fb->printText(this->big_font, &pmfd_text, 
                  (char *)rzoom_str.c_str(), 0, 0, 2, 2, 2);
     
     std::string mode_text = " " + std::string(mode_name) + " ";
-    fb->PrintText(this->big_font, &pmfd_text, const_cast<char *>(mode_text.c_str()), 0, 0, (int) mode_text.length(), 2, 2);
+    fb->printText(this->big_font, &pmfd_text, const_cast<char *>(mode_text.c_str()), 0, 0, (int) mode_text.length(), 2, 2);
     
     // Affiche le "360" uniquement en mode air
     if (air_mode) {
-        fb->PrintText(this->big_font, &pmfd_text, const_cast<char *>("360"), 0, 0, 3, 2, 2);
+        fb->printText(this->big_font, &pmfd_text, const_cast<char *>("360"), 0, 0, 3, 2, 2);
     }
     
     // Position du joueur comme centre du radar
@@ -865,7 +865,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         
         // Dessine l'icône
         radar_arts.GetShape(iconIndex)->SetPosition(&screenPos);
-        fb->DrawShapeWithBox(
+        fb->drawShapeWithBox(
             radar_arts.GetShape(iconIndex), 
             pmfd_left.x, bottom_right.x, pmfd_left.y, bottom_right.y
         );
@@ -875,7 +875,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
             Point2D targetPos = {screenPos.x - 2, screenPos.y - 1};
             // Utilise toujours l'icône de cible du mode air
             this->cockpit->MONI.MFDS.AARD.ARTS.GetShape(2)->SetPosition(&targetPos);
-            fb->DrawShapeWithBox(
+            fb->drawShapeWithBox(
                 this->cockpit->MONI.MFDS.AARD.ARTS.GetShape(2), 
                 pmfd_left.x, bottom_right.x, pmfd_left.y, bottom_right.y
             );
@@ -895,7 +895,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
     }
 }
 
-void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = VGA.getFrameBuffer()) {
     Point2D raws_size = {
         this->cockpit->MONI.INST.RAWS.NORM.GetWidth(), 
         this->cockpit->MONI.INST.RAWS.NORM.GetHeight()
@@ -904,7 +904,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = VGA.G
         pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y
     };
     this->cockpit->MONI.INST.RAWS.NORM.SetPosition(&pmfd_left);
-    fb->DrawShape(&this->cockpit->MONI.INST.RAWS.NORM);
+    fb->drawShape(&this->cockpit->MONI.INST.RAWS.NORM);
     int heading = (int)this->heading;
     heading = (heading + 360) % 360;  // Normalisation entre 0-359
     float headingRad = heading / 180.0f * (float)M_PI;
@@ -931,7 +931,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = VGA.G
                     pmfd_left.y + (raws_size.y/2) + rotatedPos.y 
                 };
                 this->cockpit->MONI.INST.RAWS.SYMB.GetShape(29)->SetPosition(&raw_pos);
-                fb->DrawShape(
+                fb->drawShape(
                     this->cockpit->MONI.INST.RAWS.SYMB.GetShape(29)
                 );
                 //fb->plot_pixel((int)p.x, (int)p.y, 223);
@@ -940,15 +940,15 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = VGA.G
     }
 }
 
-void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = VGA.getFrameBuffer()) {
     this->RenderMFDS(pmfd_left);
     Vector2D center    = {this->player->position.x, this->player->position.y};
     Point2D pmfd_text  = {pmfd_left.x + 20, pmfd_left.y + 20};
     Point2D pfmd_title = {pmfd_text.x + 12, pmfd_text.y};
-    fb->PrintText(this->big_font, &pfmd_title, const_cast<char *>("Comm mode:"), 120, 0, 10, 2, 2);
+    fb->printText(this->big_font, &pfmd_title, const_cast<char *>("Comm mode:"), 120, 0, 10, 2, 2);
     pfmd_title.y += 10;
     pfmd_title.x = pmfd_left.x + 20;
-    fb->PrintText(this->big_font, &pfmd_title, const_cast<char *>("Select frequency"), 0, 0, 16, 2, 2);
+    fb->printText(this->big_font, &pfmd_title, const_cast<char *>("Select frequency"), 0, 0, 16, 2, 2);
     pmfd_text.y += 20;
     if (mode == 0) {
         int cpt = 1;
@@ -960,7 +960,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = VG
             if (ai->actor_name != "PLAYER" && ai->is_active) {
                 std::string name_str = std::to_string(cpt) + ". " + ai->actor_name;
                 Point2D pfmd_entry   = {pmfd_text.x, pmfd_text.y};
-                fb->PrintText(
+                fb->printText(
                     this->big_font, &pfmd_entry, (char *)name_str.c_str(), 120, 0, (uint32_t)name_str.length(), 2, 2
                 );
                 pmfd_text.y += 10;
@@ -970,7 +970,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = VG
         if (cpt == 1) {
             pfmd_title.y += 25;
             pfmd_title.x = pmfd_left.x + 32;
-            fb->PrintText(this->big_font, &pfmd_title, const_cast<char *>("NO RECIVER"), 120, 0, 10, 2, 2);
+            fb->printText(this->big_font, &pfmd_title, const_cast<char *>("NO RECIVER"), 120, 0, 10, 2, 2);
         }
     } else if (mode > 0) {
         int cpt = 1;
@@ -982,7 +982,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = VG
                     std::string request  = this->current_mission->player->profile->radi.asks.at(toask);
                     Point2D pfmd_entry   = {pmfd_text.x, pmfd_text.y};
                     std::string asks_str = std::to_string(cpt_message) + ". " + request;
-                    fb->PrintText(
+                    fb->printText(
                         this->big_font, &pfmd_entry, (char *)asks_str.c_str(), 124, 0, (uint32_t)asks_str.length(), 2, 2
                     );
                     pmfd_text.y += 6;
@@ -1008,12 +1008,12 @@ void SCCockpit::Render(int face) {
     FrameBuffer *fb {nullptr};
     bool upscale = false;
     if (face >= 0) {
-        VGA.Activate();
-        VGA.SetPalette(&this->palette);
+        VGA.activate();
+        VGA.setPalette(&this->palette);
         upscale = VGA.upscale;
         VGA.upscale = false;
-        fb=VGA.GetFrameBuffer();
-        fb->Clear();
+        fb=VGA.getFrameBuffer();
+        fb->clear();
         
         
         if (face == 0) {
@@ -1052,7 +1052,7 @@ void SCCockpit::Render(int face) {
 
             fb->plot_pixel(161, 50, 223);
         }
-        fb->DrawShape(this->cockpit->ARTP.GetShape(face));
+        fb->drawShape(this->cockpit->ARTP.GetShape(face));
         if (face == 0) {
             this->RenderRAWS({84, 112}, fb);
             this->RenderAlti({161,166}, fb);
@@ -1108,7 +1108,7 @@ void SCCockpit::Render(int face) {
         if (this->current_mission->radio_messages.size() > 0) {
             if (this->radio_mission_timer == 0) {
                 if (this->current_mission->radio_messages[0]->sound != nullptr) {
-                    Mixer.PlaySoundVoc(this->current_mission->radio_messages[0]->sound->data, 
+                    Mixer.playSoundVoc(this->current_mission->radio_messages[0]->sound->data, 
                                        this->current_mission->radio_messages[0]->sound->size);
                 }
                 this->radio_mission_timer = 400;
@@ -1120,11 +1120,11 @@ void SCCockpit::Render(int face) {
             };
             background_message->SetPosition(&b_message_pos);
             Point2D radio_text = {4, b_message_pos.y + 9};
-            fb->DrawShape(background_message);
+            fb->drawShape(background_message);
             RSFont *fnt = this->cockpit->PLAQ.fonts[1].font;
             std::string radio_message = this->current_mission->radio_messages[0]->message;
             std::transform(radio_message.begin(), radio_message.end(), radio_message.begin(), ::toupper);
-            fb->PrintText(
+            fb->printText(
                 fnt, &radio_text, (char *)radio_message.c_str(), 0, 0,
                 (uint32_t)radio_message.size(), 2, 2
             );
@@ -1137,9 +1137,9 @@ void SCCockpit::Render(int face) {
             }
         }
         if (this->mouse_control) {
-            Mouse.Draw();
+            Mouse.draw();
         }
-        VGA.VSync();
+        VGA.vSync();
         VGA.upscale = upscale;
     }
 }
@@ -1171,7 +1171,7 @@ void SCCockpit::Update() {
 
 void SCCockpit::RenderHUD() {
     FrameBuffer *hud = this->hud_framebuffer;
-    hud->FillWithColor(255);
+    hud->fillWithColor(255);
     this->RenderHudHorizonLinesSmall({46, 44}, hud);
     this->RenderAltitude({72, 24}, hud);
     this->RenderSpeed({0, 24}, hud);
@@ -1182,21 +1182,21 @@ void SCCockpit::RenderHUD() {
     Point2D g_load_text = {7, 14};
     snprintf(speed_buffer, sizeof(speed_buffer), "%.2f", this->g_load);
     txt = speed_buffer;
-    hud->PrintText(this->font, &g_load_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    hud->printText(this->font, &g_load_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
     Point2D g_limit_text = {7, g_load_text.y+5};
     snprintf(speed_buffer, sizeof(speed_buffer), "%.2f", this->g_limit);
     txt = speed_buffer;
-    hud->PrintText(this->font, &g_limit_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    hud->printText(this->font, &g_limit_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
 
 
 
     Point2D speed_text = {7, 24+40};
     snprintf(speed_buffer, sizeof(speed_buffer), "%.3f", this->mach);
     txt = speed_buffer;
-    hud->PrintText(this->font, &speed_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    hud->printText(this->font, &speed_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
     Point2D throttle_text = {7, speed_text.y + 5};
     txt                   = std::to_string(this->throttle);
-    hud->PrintText(this->font, &throttle_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    hud->printText(this->font, &throttle_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
     
 
 
@@ -1236,43 +1236,43 @@ void SCCockpit::RenderHUD() {
     } else {
         txt = "NO WEAP";
     }
-    hud->PrintText(this->font, &weapons_text, const_cast<char *>(txt.c_str()), 0, 0, (uint32_t)txt.length(), 2, 2);
+    hud->printText(this->font, &weapons_text, const_cast<char *>(txt.c_str()), 0, 0, (uint32_t)txt.length(), 2, 2);
     Point2D center = {hud->width / 2, hud->height / 2};
     center.x -= this->hud->small_hud->LADD->VECT->SHAP->GetWidth() / 2;
     center.y -= this->hud->small_hud->LADD->VECT->SHAP->GetHeight() / 2;
     center.x += (int) (this->player_plane->ax*1000.0f);
     center.y -= (int) (this->player_plane->ay*100.0f);
     this->hud->small_hud->LADD->VECT->SHAP->SetPosition(&center);
-    hud->DrawShapeWithBox(this->hud->small_hud->LADD->VECT->SHAP,0, hud_framebuffer->width,0, hud_framebuffer->height);
+    hud->drawShapeWithBox(this->hud->small_hud->LADD->VECT->SHAP,0, hud_framebuffer->width,0, hud_framebuffer->height);
     if (weapons_count > 0) {
         txt = std::to_string(weapons_count);
     } else {
         txt = "0";
     }
-    hud->PrintText(this->font, &weapons_count_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    hud->printText(this->font, &weapons_count_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
     if (in_range) {
-        hud->PrintText(this->font, &inrange_text, const_cast<char *>("IN RANGE"), 0, 0, 8, 2, 2);
+        hud->printText(this->font, &inrange_text, const_cast<char *>("IN RANGE"), 0, 0, 8, 2, 2);
     }
     Point2D gear = {75, 9};
     Point2D flaps = {75, gear.y + 5};
     Point2D break_text = {75, flaps.y + 5};
     if (this->gear) {
-        hud->PrintText(this->font, &gear, const_cast<char *>("GEARS"), 0, 0, 5, 2, 2);
+        hud->printText(this->font, &gear, const_cast<char *>("GEARS"), 0, 0, 5, 2, 2);
     }
 
     if (this->flaps) {
-        hud->PrintText(this->font, &flaps, const_cast<char *>("FLAPS"), 0, 0, 5, 2, 2);
+        hud->printText(this->font, &flaps, const_cast<char *>("FLAPS"), 0, 0, 5, 2, 2);
     }
     
     if (this->airbrake) {
-        hud->PrintText(this->font, &break_text, const_cast<char *>("BREAKS"), 0, 0, 6, 2, 2);
+        hud->printText(this->font, &break_text, const_cast<char *>("BREAKS"), 0, 0, 6, 2, 2);
     }
     Point2D pcenter = {hud->width / 2, hud->height / 2};
     hud->plot_pixel(pcenter.x, pcenter.y, 223);
     //hud->rect_slow(0,0, hud->width - 1, hud->height - 1, 1);
 
 }
-void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = VGA.getFrameBuffer()) {
     RLEShape *shape = this->cockpit->MONI.INST.ALTI.ARTS.GetShape(0);
     Point2D raws_size = {
         shape->GetWidth(),
@@ -1282,7 +1282,7 @@ void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = VGA.
         pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y
     };
     shape->SetPosition(&pmfd_left);
-    fb->DrawShape(shape);
+    fb->drawShape(shape);
     // Calculate altitude in feet
     float altiInFeet = this->altitude * 3.28084f;
         
@@ -1317,7 +1317,7 @@ void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = VGA.
     fb->line(center.x, center.y, thousandsEnd.x, thousandsEnd.y, 223);  // Thousands needle
     fb->line(center.x, center.y, hundredsEnd.x, hundredsEnd.y, 90);     // Hundreds needle (different color)
 }
-void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125,166}, FrameBuffer *fb = VGA.GetFrameBuffer()) {
+void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125,166}, FrameBuffer *fb = VGA.getFrameBuffer()) {
     RLEShape *shape = this->cockpit->MONI.INST.AIRS.ARTS.GetShape(0);
     Point2D raws_size = {
         shape->GetWidth(),
@@ -1327,7 +1327,7 @@ void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125,166}, FrameBuffer *f
         pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y
     };
     shape->SetPosition(&pmfd_left);
-    fb->DrawShape(shape);
+    fb->drawShape(shape);
     // Calculate speed in knots
     float speedInKnots = this->speed;
     // Calculate angle for the needle

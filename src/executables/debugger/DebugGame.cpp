@@ -74,8 +74,8 @@ void DebugGame::pumpEvents(void) {
     Point2D newPosition;
     newPosition.x = static_cast<int>(px * 320.0f / Screen->width);
     newPosition.y = static_cast<int>(py * 200.0f / Screen->height);
-    Mouse.SetPosition(newPosition);
-    Mouse.SetVisible(true);
+    Mouse.setPosition(newPosition);
+    Mouse.setVisible(true);
     // Mettre à jour les événements des trois boutons via transitions
     struct BtnMap {
         InputAction action;
@@ -127,7 +127,7 @@ void DebugGame::run() {
         
         Screen->refresh();
 
-        Mouse.FlushEvents(); // On peut le garder si sa logique interne reste valable.
+        Mouse.flushEvents(); // On peut le garder si sa logique interne reste valable.
     }
 }
 

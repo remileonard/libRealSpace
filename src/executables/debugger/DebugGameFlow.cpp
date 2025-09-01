@@ -67,8 +67,8 @@ void DebugGameFlow::renderMenu() {
             for (int i = 0; i < Mixer.music->musics[1].size(); i++) {
                 if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
                     this->scen->stopMusic();
-                    Mixer.SwitchBank(1);
-                    Mixer.PlayMusic(i);
+                    Mixer.switchBank(1);
+                    Mixer.playMusic(i);
                 }
             }
             ImGui::EndCombo();
@@ -76,8 +76,8 @@ void DebugGameFlow::renderMenu() {
         if (ImGui::BeginCombo("Music list Bank 0", 0, 0)) {
             for (int i = 0; i < Mixer.music->musics[0].size(); i++) {
                 if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
-                    Mixer.SwitchBank(0);
-                    Mixer.PlayMusic(i);
+                    Mixer.switchBank(0);
+                    Mixer.playMusic(i);
                 }
             }
             ImGui::EndCombo();
@@ -322,7 +322,7 @@ void DebugGameFlow::renderMissionInfos() {
                         ImGui::TreePop();
                         continue;
                     }
-                    if (zone->IsActive(&GameState.requierd_flags)) {
+                    if (zone->isActive(&GameState.requierd_flags)) {
                         ImGui::Text("Active");
                     }
                     if (ImGui::TreeNodeEx((void *)(intptr_t)sprite->shapid, tflag ,"Sprite, Frame %d, %d %d",
@@ -372,16 +372,16 @@ void DebugGameFlow::renderMissionInfos() {
                         ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                         if (shp->GetWidth() > 0 && shp->GetHeight() > 0) {
                             FrameBuffer *fb = new FrameBuffer(320, 200);
-                            fb->Clear();
-                            fb->DrawShape(shp);
+                            fb->clear();
+                            fb->drawShape(shp);
                             fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
                             for (int j = 1; j < this->getShape(sprt.second->sprite.SHP_ID)->GetNumImages(); j++) {
                                 RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(j);
                                 if (shp != nullptr) {
-                                    fb->DrawShape(shp);
+                                    fb->drawShape(shp);
                                 }
                             }
-                            Texel* tex = fb->getTexture(VGA.GetPalette());
+                            Texel* tex = fb->getTexture(VGA.getPalette());
                             GLuint glTex = 0;
                             glGenTextures(1, &glTex);
                             glBindTexture(GL_TEXTURE_2D, glTex);
@@ -411,10 +411,10 @@ void DebugGameFlow::renderMissionInfos() {
                 if (shp != nullptr) {
                     ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                     FrameBuffer *fb = new FrameBuffer(320, 200);
-                    fb->Clear();
+                    fb->clear();
                     fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
-                    fb->DrawShape(shp);
-                    Texel* tex = fb->getTexture(VGA.GetPalette());
+                    fb->drawShape(shp);
+                    Texel* tex = fb->getTexture(VGA.getPalette());
                     GLuint glTex = 0;
                     glGenTextures(1, &glTex);
                     glBindTexture(GL_TEXTURE_2D, glTex);
@@ -443,10 +443,10 @@ void DebugGameFlow::renderMissionInfos() {
                 if (shp != nullptr) {
                     ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                     FrameBuffer *fb = new FrameBuffer(320, 200);
-                    fb->Clear();
+                    fb->clear();
                     fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
-                    fb->DrawShape(shp);
-                    Texel* tex = fb->getTexture(VGA.GetPalette());
+                    fb->drawShape(shp);
+                    Texel* tex = fb->getTexture(VGA.getPalette());
                     GLuint glTex = 0;
                     glGenTextures(1, &glTex);
                     glBindTexture(GL_TEXTURE_2D, glTex);
