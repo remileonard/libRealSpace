@@ -352,7 +352,39 @@ void DebugGameFlow::renderMissionInfos() {
                         if (sprite->requ != nullptr && sprite->requ->size() > 0) {
                             if (ImGui::TreeNodeEx("Required Flags", tflag)) {
                                 for (auto requ : *sprite->requ) {
+                                    bool isActive = false;
+                                    switch (requ->op) {
+                                        case 0:
+                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
+                                                isActive = !GameState.requierd_flags[requ->value];
+                                            }
+                                            break;
+                                        case 1:
+                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
+                                                isActive = GameState.requierd_flags[requ->value];
+                                            }
+                                            break;
+                                        case 2:
+                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
+                                                isActive = !GameState.requierd_flags[requ->value];
+                                            }
+                                            break;
+                                        case 3:
+                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
+                                                isActive = GameState.requierd_flags[requ->value];
+                                            }
+                                            break;
+                                        default:
+                                            isActive = false;
+                                            break;
+                                    }
+                                    if (isActive) { // your condition here
+                                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1));
+                                    } else {
+                                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+                                    }
                                     ImGui::Text("OPC: %03d\tVAL: %03d", requ->op, requ->value);
+                                    ImGui::PopStyleColor();
                                 }
                                 ImGui::TreePop();
                             }
