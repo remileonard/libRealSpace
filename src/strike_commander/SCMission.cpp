@@ -218,6 +218,9 @@ void SCMission::loadMission() {
         actor->actor_id = part->id;
         actor->object = part;
         actor->profile = nullptr;
+        if (area_actor.entity == nullptr) {
+            continue;
+        }
         if (area_actor.entity->entity_type == EntityType::ground || area_actor.entity->entity_type == EntityType::swpn) {
             actor->is_active = true;
         }
