@@ -40,26 +40,34 @@ bool  SCZone::isActive(std::map<uint8_t, bool> *requierd_flags) {
         this->active = true;
         return this->active;
     }
+    bool isActive = true;
     for (auto requ_flag: *this->sprite->requ) {
         switch (requ_flag->op) {
             case 0:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    this->active = !requierd_flags->at(requ_flag->value);
-                } else if (active) {
-                    this->active = true;
+                    isActive = isActive && !requierd_flags->at(requ_flag->value);
                 }
                 break;
             case 1:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    this->active = requierd_flags->at(requ_flag->value);
-                } else if (active) {
-                    this->active = false;
+                    isActive = isActive && requierd_flags->at(requ_flag->value);
+                }
+                break;
+            case 2:
+                if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
+                    isActive = isActive || !requierd_flags->at(requ_flag->value);
+                }
+                break;
+            case 3:
+                if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
+                    isActive = isActive || requierd_flags->at(requ_flag->value);
                 }
                 break;
             default:
                 break;
         }
     }
+    this->active = isActive;
     return this->active;
 }
 void SCZone::draw(void) {

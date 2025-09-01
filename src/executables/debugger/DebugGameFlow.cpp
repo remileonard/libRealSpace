@@ -297,7 +297,11 @@ void DebugGameFlow::renderMissionInfos() {
     s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); // s_CurrentFrameGLTex devient vide
 
     ImGuiTreeNodeFlags tflag = ImGuiTreeNodeFlags_DefaultOpen;
-    ImGui::Text("Current Miss %d, Current Scen %d", this->current_miss, this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID);
+    int sceneid = -1;
+    if (this->gameFlowParser.game.game[this->current_miss]->scen.size() > 0) {
+        sceneid = this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID;
+    }
+    ImGui::Text("Current Miss %d, Current Scen %d", this->current_miss, sceneid);
     ImGui::Text("Nb Miss %d", this->gameFlowParser.game.game.size());
     ImGui::Text("Nb Layers %d", this->layers.size());
     ImGui::Text("Nb Scenes %d", this->gameFlowParser.game.game[this->current_miss]->scen.size());

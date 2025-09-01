@@ -18,7 +18,7 @@ public:
     std::map<uint8_t, bool> aircraftHooks;
     std::map<uint8_t, std::map<uint8_t, int16_t>> kill_board;
     std::map<uint8_t, uint8_t> pilot_roaster;
-    std::map<uint8_t, uint16_t> weapon_inventory;
+    std::map<uint8_t, int16_t> weapon_inventory;
     bool mission_accepted{false};
     uint8_t current_mission{0};
     uint8_t current_scene{0};
