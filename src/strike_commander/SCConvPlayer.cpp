@@ -9,7 +9,9 @@
 #include "precomp.h"
 #include "SCConvPlayer.h"
 
-SCConvPlayer::SCConvPlayer() : conversationID(0), initialized(false) {}
+SCConvPlayer::SCConvPlayer() : conversationID(0), initialized(false) {
+    this->Game = &GameEngine::instance();
+}
 
 SCConvPlayer::~SCConvPlayer() {}
 
@@ -577,9 +579,6 @@ void SCConvPlayer::SetID(int32_t id) {
 }
 
 void SCConvPlayer::init() {
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
     VGAPalette *rendererPalette = VGA.getPalette();
     this->palette               = *rendererPalette;
     TreEntry *convEntry = Assets.GetEntryByName(Assets.convpak_filename);

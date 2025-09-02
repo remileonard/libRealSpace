@@ -651,9 +651,6 @@ SCAnimationPlayer::~SCAnimationPlayer(){
 }
 
 void SCAnimationPlayer::init(){
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
     TreEntry *midgames_entry = Assets.GetEntryByName(
         "..\\..\\DATA\\MIDGAMES\\MIDGAMES.PAK"
     );

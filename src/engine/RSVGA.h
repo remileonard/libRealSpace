@@ -34,7 +34,7 @@ private:
     Texel data[320 * 200];
     inline static std::unique_ptr<RSVGA> s_instance{};
     void displayBuffer(uint32_t* buffer, int width, int height);
-    RSScreen *Screen{nullptr};
+    RSScreen *Screen = &RSScreen::instance();
 public:
     bool upscale{false};
     

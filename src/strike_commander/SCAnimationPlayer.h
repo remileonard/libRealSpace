@@ -74,7 +74,7 @@ class SCAnimationPlayer: public IActivity {
 private:
     AssetManager &Assets = AssetManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
-    GameEngine *Game{nullptr};
+    GameEngine *Game = &GameEngine::instance();
     RSVGA &VGA = RSVGA::getInstance();
     PakArchive midgames;
     PakArchive optShps;

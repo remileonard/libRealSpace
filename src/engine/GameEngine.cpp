@@ -30,9 +30,7 @@ GameEngine::~GameEngine() {
 void GameEngine::init() {
 
     // Load Main Palette and Initialize the GL
-    if (Screen == nullptr) {
-        Screen = &RSScreen::instance();
-    }
+
     VGA.init(WIDTH,HEIGHT);
     Renderer.init(WIDTH,HEIGHT);
     // Load the Mouse Cursor

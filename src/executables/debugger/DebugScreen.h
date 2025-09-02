@@ -28,8 +28,6 @@ extern "C" {
 class DebugScreen: public RSScreen{
 private:
     GLuint screen_texture;
-    GameEngine *Game{nullptr};
-    RSVGA &VGA = RSVGA::getInstance();
 public:
     
     DebugScreen();
@@ -38,5 +36,4 @@ public:
     void init(int width, int height, bool fullscreen);
     void setTitle(const char* title);
     void refresh(void);
-  
 };

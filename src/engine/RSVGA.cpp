@@ -177,9 +177,6 @@ RSVGA::~RSVGA() {
     }
 }
 void RSVGA::init(int width, int height) {
-    if (Screen == nullptr) {
-        Screen = &RSScreen::instance();
-    }
     this->width = width;
     this->height = height;
     AssetManager &assets = AssetManager::instance();

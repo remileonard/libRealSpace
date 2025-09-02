@@ -30,9 +30,6 @@ void DebugScreen::setTitle(const char* title){
 }
 
 void DebugScreen::init(int w, int h, bool fullscreen){
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
     width = w;
     height = h;
 
@@ -103,7 +100,8 @@ void DebugScreen::init(int w, int h, bool fullscreen){
 }
 
 void DebugScreen::refresh(void){
-    DebugGame &debugGameInstance = static_cast<DebugGame&>(GameEngine::instance());
+    DebugGame *debugGameInstance = static_cast<DebugGame*>(&GameEngine::instance());
+    RSVGA *VGA = &RSVGA::instance();
     glBindTexture(GL_TEXTURE_2D, this->screen_texture);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, this->width, this->height, 0);
     glViewport(0,0,this->width,this->height);			// Reset The Current Viewport
@@ -121,54 +119,71 @@ void DebugScreen::refresh(void){
     bool p_open = true;
     if (ImGui::Begin("##Fullscreen window", &p_open, flags)) {
         if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Strike Commander Floppy")) {
-                    debugGameInstance.loadSC();
+            if (debugGameInstance != nullptr) {
+                if (ImGui::BeginMenu("File")) {
+                    if (ImGui::MenuItem("Strike Commander Floppy")) {
+                        debugGameInstance->loadSC();
+                    }
+                    if (ImGui::MenuItem("Strike Commander CD")) {
+                        debugGameInstance->loadSCCD();
+                    }
+                    if (ImGui::MenuItem("Tactical Operations")) {
+                        debugGameInstance->loadTO();   
+                    }
+                    if (ImGui::MenuItem("Pacific Strike")) {
+                        debugGameInstance->loadPacific();   
+                    }
+                    if (ImGui::MenuItem("Test mission SC")) {
+                        debugGameInstance->testMissionSC();
+                    }
+                    if (ImGui::MenuItem("Test Objects")) {
+                        debugGameInstance->testObjects();
+                    }
+                    if (VGA != nullptr) {
+                        if (ImGui::MenuItem("Toggle upscale")) {
+                            VGA->upscale = !VGA->upscale;
+                        }
+                    }
+                    
+                    if (ImGui::MenuItem("Exit")) {
+                        exit(0);
+                    }
+                    ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem("Strike Commander CD")) {
-                    debugGameInstance.loadSCCD();
+                IActivity* act = debugGameInstance->getCurrentActivity();
+                if (act != nullptr) {
+                    act->renderMenu();    
                 }
-                if (ImGui::MenuItem("Tactical Operations")) {
-                    debugGameInstance.loadTO();   
-                }
-                if (ImGui::MenuItem("Pacific Strike")) {
-                    debugGameInstance.loadPacific();   
-                }
-                if (ImGui::MenuItem("Test mission SC")) {
-                    debugGameInstance.testMissionSC();
-                }
-                if (ImGui::MenuItem("Test Objects")) {
-                    debugGameInstance.testObjects();
-                }
-                if (ImGui::MenuItem("Toggle upscale")) {
-                    VGA.upscale = !VGA.upscale;
-                }
-                if (ImGui::MenuItem("Exit")) {
-                    exit(0);
-                }
-                ImGui::EndMenu();
             }
-            IActivity* act = Game->getCurrentActivity();
-            if (act != nullptr) {
-                act->renderMenu();    
-            }
+            
             ImGui::EndMenuBar();
         }
         ImVec2 winsize = ImGui::GetContentRegionAvail();
         float width = winsize.x * 0.75f; // 75% of the available width for the game screen
-        ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX);
+        if (debugGameInstance == nullptr) {
+            width = winsize.x; // If no game instance, use full width
+        }
+        ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
+        // Check if mouse is hovering over the Game window
+        if (ImGui::IsWindowHovered()) {
+            SDL_ShowCursor(SDL_DISABLE); // Hide the mouse cursor
+        } else {
+            SDL_ShowCursor(SDL_ENABLE); // Show the mouse cursor
+        }
         ImVec2 avail_size = ImGui::GetContentRegionAvail();
         ImGui::Image((void*)(intptr_t)this->screen_texture, avail_size, {0, 1}, {1, 0});
         ImGui::EndChild();
-        ImGui::SameLine();
-        // Calculate the remaining width for the Console child
-        float remainingWidth = ImGui::GetContentRegionAvail().x;
-        ImGui::BeginChild("Console", ImVec2(remainingWidth, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
-        IActivity* act = Game->getCurrentActivity();
-        if (act != nullptr) {
-            act->renderUI();    
+        if (debugGameInstance != nullptr) {
+            ImGui::SameLine();
+            // Calculate the remaining width for the Console child
+            float remainingWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::BeginChild("Console", ImVec2(remainingWidth, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
+            IActivity* act = debugGameInstance->getCurrentActivity();
+            if (act != nullptr) {
+                act->renderUI();    
+            }
+            ImGui::EndChild();
         }
-        ImGui::EndChild();
         ImGui::End();
     }
     ImGui::Render();

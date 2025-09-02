@@ -7,9 +7,7 @@ void SCFileRequester::cancel() {
 }
 
 SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint8_t shape_id_offset)  {
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
+    this->Game = &GameEngine::instance();
     this->callback = callback;
     this->shape_id_offset = shape_id_offset;
     RSImageSet *uiImageSet = new RSImageSet();
@@ -111,9 +109,7 @@ SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint
 }
 
 SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint8_t shape_id_offset, bool save)  {
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
+    Game = &GameEngine::instance();
     this->callback = callback;
     this->save_mode = save;
     this->shape_id_offset = shape_id_offset;

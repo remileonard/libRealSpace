@@ -11,6 +11,7 @@
 #include "../commons/Maths.h"
 #include "SCButton.h"
 #include "RSVGA.h"
+
 #include "RSScreen.h"
 #include "SCMouse.h"
 
@@ -32,9 +33,8 @@ protected:
     SCButton* checkButtons(void);
     std::vector<SCButton*> buttons;
     void drawButtons(void);
-    RSScreen *Screen{nullptr};
+    RSScreen *Screen = &RSScreen::instance();
     GameEngine *Game{nullptr};
-    RSVGA &vga = RSVGA::getInstance();
     AssetManager &Assets = AssetManager::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();

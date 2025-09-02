@@ -26,9 +26,6 @@ DebugGame::DebugGame() {
 DebugGame::~DebugGame() {}
 
 void DebugGame::init() {
-    if (Screen == nullptr) {
-        Screen = &RSScreen::instance();
-    }
     // Load Main Palette and Initialize the GL
 
     VGA.init(1200,800);

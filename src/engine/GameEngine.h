@@ -61,7 +61,6 @@ public:
     virtual IActivity* getCurrentActivity(void);
     Keyboard* getKeyboard() const { return m_keyboard; }
     virtual void pumpEvents(void);
-    RSScreen *Screen{nullptr};
 protected:
     Loader *loader{nullptr};
     Keyboard *m_keyboard{nullptr};
@@ -73,6 +72,7 @@ protected:
     ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
     SCState &GameState = SCState::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
+    RSScreen *Screen = &RSScreen::getInstance();
 
 private:
     inline static std::unique_ptr<GameEngine> s_instance{};

@@ -41,28 +41,21 @@ bool isPointInQuad(const Point2D &p, const std::vector<Point2D *> *quad) {
     return (intersections % 2) != 0;
 }
 IActivity::IActivity() {
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
+    Game = &GameEngine::instance();
 }
 
 IActivity::~IActivity() {}
 
 void IActivity::stop(void) {
-    vga.fadeOut(30, 6);
+    VGA.fadeOut(30, 6);
     this->running = false; 
 }
 
 void IActivity::setTitle(const char *title) { 
-    if (this->Screen == nullptr) {
-        this->Screen = &RSScreen::instance();
-    }
     Screen->setTitle(title);
 }
 
 void IActivity::checkKeyboard(void) {
-    if (Game == nullptr)
-        Game = &GameEngine::getInstance();
     Keyboard* kb = Game->getKeyboard();
     if (!kb)
         return;
@@ -112,6 +105,6 @@ void IActivity::drawButtons(void) {
 
     for (auto button : buttons) {
         RLEShape ap = button->appearance[button->getAppearance()];
-        vga.getFrameBuffer()->drawShape(&ap);
+        VGA.getFrameBuffer()->drawShape(&ap);
     }
 }

@@ -22,9 +22,9 @@ SCDogFightMenu::~SCDogFightMenu(){
 }
 
 void SCDogFightMenu::init( ){
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
+    
+    this->Game = &GameEngine::instance();
+    
     TreEntry* objViewIFF = nullptr;
     TreEntry* objViewPAK = nullptr;
     

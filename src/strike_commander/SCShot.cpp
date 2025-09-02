@@ -9,7 +9,12 @@
 
 #include "precomp.h"
 
-SCShot::SCShot() { this->fps = SDL_GetTicks() / 100; }
+SCShot::SCShot() { 
+    this->fps = SDL_GetTicks() / 100;
+    if (Game == nullptr) {
+        Game = &GameEngine::getInstance();
+    }
+}
 
 SCShot::~SCShot() {}
 
@@ -42,9 +47,7 @@ void SCShot::checkKeyboard(void) {
  * @throws None
  */
 void SCShot::init() {
-    if (Game == nullptr) {
-        Game = &GameEngine::getInstance();
-    }
+    
     TreEntry *optionIFF =
         Assets.GetEntryByName(Assets.option_filename);
     this->optionParser.InitFromRam(optionIFF->data, optionIFF->size);

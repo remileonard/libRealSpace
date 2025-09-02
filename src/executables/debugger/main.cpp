@@ -13,13 +13,10 @@
 
 
 int main(int argc, char* argv[]) {
-    GameEngine::setInstance(std::make_unique<DebugGame>());
-    RSScreen::setInstance(std::make_unique<DebugScreen>());
     
-    GameEngine &game = GameEngine::instance();
+    RSScreen::setInstance(std::make_unique<DebugScreen>());
     RSScreen &screen = RSScreen::instance();
-    game.Screen = &screen;
-    //game.Screen = screen;
+    RSVGA &vga = RSVGA::getInstance();    
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
     screen.init(1200,800,0);
@@ -97,6 +94,8 @@ int main(int argc, char* argv[]) {
         SDL_PumpEvents();
     }
     loader.close();
+    GameEngine::setInstance(std::make_unique<DebugGame>());
+    GameEngine &game = GameEngine::getInstance();
     game.init();
     game.run();
 

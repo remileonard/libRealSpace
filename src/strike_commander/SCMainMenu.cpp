@@ -52,6 +52,9 @@ void SCMainMenu::OnViewObject() {
 SCMainMenu::SCMainMenu() { 
     this->boardPosition = {44, 25}; 
     this->music_playing = false;
+    if (Game == nullptr) {
+        Game = &GameEngine::instance();
+    }
 }
 
 SCMainMenu::~SCMainMenu() {}
@@ -72,13 +75,6 @@ void SCMainMenu::unFocus(void) {
     }
 }
 void SCMainMenu::init(void) {
-
-    if (Game == nullptr) {
-        Game = &GameEngine::instance();
-    }
-    if (this->Screen == nullptr) {
-        this->Screen = &RSScreen::instance();
-    }
     TreEntry *entry = Assets.GetEntryByName(MAINMENU_PAK_PATH);
     mainMenupak.InitFromRAM("MAINMENU.PAK", entry->data, entry->size);
     
