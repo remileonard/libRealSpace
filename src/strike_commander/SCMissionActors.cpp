@@ -383,6 +383,11 @@ int SCMissionActors::getDistanceToSpot(uint8_t arg) {
     return (int) diff.Length()/1000;
 }
 void SCMissionActors::shootWeapon(SCMissionActors *target) {
+    static int shoot_cooldown = 0;
+    if (shoot_cooldown > 0) {
+        shoot_cooldown--;
+        return;
+    }
     if (this->object->entity->entity_type != EntityType::swpn) {
         return;
     }
@@ -433,7 +438,7 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
             weapon->x = this->object->position.x;
             weapon->y = p_y;
             weapon->z = this->object->position.z;
-
+            shoot_cooldown = 160;
             
             weapon->vx = direction.x * weapon_entity->dynn_miss->velovity_m_per_sec / 100.0f;
             weapon->vy = direction.y * weapon_entity->dynn_miss->velovity_m_per_sec / 100.0f;
@@ -441,6 +446,7 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
             break;
         case 0: // Guns
             weapon = new GunSimulatedObject();
+            shoot_cooldown = 20;
             weapon->obj = weapon_entity;
             weapon->x = this->object->position.x;
             weapon->y = p_y;

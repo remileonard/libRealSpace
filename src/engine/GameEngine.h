@@ -32,9 +32,9 @@
 class GameEngine{
 private:
     inline static std::unique_ptr<GameEngine> s_instance{};
-    std::stack<IActivity*> activities;
-
+    
 protected:
+    std::stack<IActivity*> activities;
     Loader *loader{nullptr};
     Keyboard *m_keyboard{nullptr};
     RSVGA &VGA = RSVGA::getInstance();

@@ -16,14 +16,13 @@
 #include "../../strike_commander/SCState.h"
 
 class DebugGame : public GameEngine {
-private:
-    std::stack<IActivity*> activities;
+
 public:
     DebugGame();
     ~DebugGame();
 
     void init(void) override;
-    
+    void run(void) override;
     void loadSC();
     void loadSCCD();
     void loadTO();

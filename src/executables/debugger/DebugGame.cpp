@@ -328,3 +328,26 @@ void DebugGame::loadPacific() {
     main->init();
     this->addActivity(main);
 }
+
+void DebugGame::run() {
+    Loader &loader = Loader::getInstance();
+    IActivity *currentActivity;
+    while (activities.size() > 0) {
+        pumpEvents();
+        currentActivity = activities.top();
+        if (!loader.isLoadingComplete()) {
+            loader.runFrame();
+        } else {
+            if (currentActivity->isRunning()) {
+                currentActivity->focus();
+                currentActivity->runFrame();
+            } else {
+                activities.pop();
+                delete currentActivity;
+            }
+        }
+        
+        Screen->refresh();
+        Mouse.flushEvents(); // On peut le garder si sa logique interne reste valable.
+    }
+}
