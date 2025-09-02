@@ -18,23 +18,12 @@
 class DebugGame : public GameEngine {
 private:
     std::stack<IActivity*> activities;
-    
 public:
-    
     DebugGame();
     ~DebugGame();
 
-    void init(void);
-    void run(void);
-    void terminate(const char* reason, ...);
+    void init(void) override;
     
-    void log(const char* text, ...);
-    void logError(const char* text, ...);
-    
-    void addActivity(IActivity* activity);
-    void stopTopActivity(void);
-    IActivity* getCurrentActivity(void);
-    void pumpEvents(void);
     void loadSC();
     void loadSCCD();
     void loadTO();

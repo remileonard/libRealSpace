@@ -50,7 +50,6 @@ void Loader::close() {
     if (loadingThread.joinable()) {
         loadingThread.join();
     }
-
     TTF_Quit();
 }
 void Loader::setProgress(float progress) {
@@ -101,19 +100,18 @@ void Loader::runFrame() {
             textRect.x = 100;
             textRect.y = 150;
             SDL_BlitSurface(textSurface, NULL, loadingSurface, &textRect);
-            for ( auto & log : logMessages ) {
-                
-                if (log.empty()) continue;
-                if (log.size() > 100) {
-                    continue;
-                }
-                SDL_Surface* logSurface = TTF_RenderText_Solid(font, log.c_str(), textColor);
-                if (logSurface) {
-                    textRect.y += textSurface->h + 5;
-                    SDL_BlitSurface(logSurface, NULL, loadingSurface, &textRect);
-                    SDL_FreeSurface(logSurface);
+            {
+                std::lock_guard<std::mutex> lock(progressMutex);
+                for ( auto & log : logMessages ) {
+                    SDL_Surface* logSurface = TTF_RenderText_Solid(font, log.c_str(), textColor);
+                    if (logSurface) {
+                        textRect.y += textSurface->h + 5;
+                        SDL_BlitSurface(logSurface, NULL, loadingSurface, &textRect);
+                        SDL_FreeSurface(logSurface);
+                    }
                 }
             }
+            
             int barWidth = 1720;
             int barHeight = 20;
             SDL_Rect progressBarBg = {

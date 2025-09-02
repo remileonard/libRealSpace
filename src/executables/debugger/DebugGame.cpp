@@ -57,75 +57,6 @@ void DebugGame::init() {
     loadSC();
 }
 
-void DebugGame::pumpEvents(void) {
-        // Met à jour tout (Keyboard encapsule InputActionSystem/EventManager)
-    m_keyboard->update();
-
-    // Position absolue (pixels fenêtre)
-    int px, py;
-    m_keyboard->getMouseAbsolutePosition(px, py);
-
-    // Conversion vers l’espace 320x200 legacy
-    Point2D newPosition;
-    newPosition.x = static_cast<int>(px * 320.0f / Screen->width);
-    newPosition.y = static_cast<int>(py * 200.0f / Screen->height);
-    Mouse.setPosition(newPosition);
-    Mouse.setVisible(true);
-    // Mettre à jour les événements des trois boutons via transitions
-    struct BtnMap {
-        InputAction action;
-        int legacyIndex; // 0=Left,1=Middle,2=Right (adapter si ordre différent)
-    } maps[] = {
-        { InputAction::MOUSE_LEFT,   0 },
-        { InputAction::MOUSE_MIDDLE, 1 },
-        { InputAction::MOUSE_RIGHT,  2 },
-    };
-    
-
-    for (auto& m : maps) {
-        auto& legacyBtn = Mouse.buttons[m.legacyIndex];
-        if (m_keyboard->isActionJustPressed(m.action)) {
-            legacyBtn.event = MouseButton::PRESSED;
-        } else if (m_keyboard->isActionJustReleased(m.action)) {
-            legacyBtn.event = MouseButton::RELEASED;
-        } else {
-            legacyBtn.event = MouseButton::NONE;
-        }
-    }
-
-    if (EventManager::getInstance().shouldQuit()) {
-        terminate("System request.");
-        return;
-    }
-}
-
-void DebugGame::run() {
-    IActivity *currentActivity;
-    
-    while (activities.size() > 0) {
-
-        pumpEvents();
-        Loader &loader = Loader::getInstance();
-        if (!loader.isLoadingComplete()) {
-            //Screen.openScreen();
-            loader.runFrame();
-        } else {
-            currentActivity = activities.top();
-            if (currentActivity->isRunning()) {
-                currentActivity->focus();
-                currentActivity->runFrame();
-            } else {
-                activities.pop();
-                delete currentActivity;
-            }
-        }
-        
-        Screen->refresh();
-
-        Mouse.flushEvents(); // On peut le garder si sa logique interne reste valable.
-    }
-}
-
 void DebugGame::loadSC() {
     
 
@@ -393,58 +324,7 @@ void DebugGame::loadPacific() {
     
     FontManager.init();
 
-    // Load assets needed for Conversations (char and background)
-    // ConvAssets.init();
-
-    //Add MainMenu activity on the game stack.
     SCObjectViewer* main = new SCObjectViewer();
     main->init();
     this->addActivity(main);
-}
-
-void DebugGame::terminate(const char *reason, ...) {
-    log("Terminating: ");
-    va_list args;
-    va_start(args, reason);
-    vfprintf(stdout, reason, args);
-    va_end(args);
-    log("\n");
-    exit(0);
-}
-
-void DebugGame::log(const char *text, ...) {
-    va_list args;
-    va_start(args, text);
-    vfprintf(stdout, text, args);
-    va_end(args);
-}
-
-void DebugGame::logError(const char *text, ...) {
-    va_list args;
-    va_start(args, text);
-    vfprintf(stderr, text, args);
-    va_end(args);
-}
-
-void DebugGame::addActivity(IActivity *activity) {
-    if (activities.size()>0) {
-        IActivity *currentActivity;
-        currentActivity = activities.top();
-        currentActivity->unFocus();
-    }
-    activity->start();
-    this->activities.push(activity);
-}
-
-void DebugGame::stopTopActivity(void) {
-    IActivity *currentActivity;
-    currentActivity = activities.top();
-    currentActivity->stop();
-}
-
-IActivity *DebugGame::getCurrentActivity(void) { 
-    if (activities.empty()) {
-        return nullptr; // No activity is running
-    }
-    return activities.top();
 }
