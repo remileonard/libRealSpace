@@ -27,8 +27,8 @@ extern "C" {
 class RSScreen {
 private:
     inline static std::unique_ptr<RSScreen> s_instance{};
-public:
     RSScreen() = default;
+public:
     virtual ~RSScreen() = default;
     
     static RSScreen& getInstance() {
