@@ -15,6 +15,15 @@ void Loader::init() {
         std::cerr << "Failed to initialize SDL_ttf: " << TTF_GetError() << std::endl;
         exit(1);
     }
+    if (loadingThread.joinable()) {
+        loadingThread.join();
+    }
+    {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        loadingComplete = false;
+        loadingProgress = 0.0f;
+        logMessages.clear();
+    }
 }
 void Loader::log(const std::string& message) {
     std::lock_guard<std::mutex> lock(progressMutex);

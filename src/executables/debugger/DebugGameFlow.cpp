@@ -106,6 +106,7 @@ void DebugGameFlow::renderMenu() {
             }
             ImGui::EndCombo();
         }
+        delete [] miss;
         if (ImGui::Button("Load Mission")) {
             this->current_miss = miss_selected;
             this->current_scen = 0;
@@ -286,15 +287,15 @@ void DebugGameFlow::renderGameState() {
 void DebugGameFlow::renderMissionInfos() {
     static std::vector<GLuint> s_PrevFrameGLTex;
     static std::vector<GLuint> s_CurrentFrameGLTex;
-    // Détruire les textures de la frame précédente (elles ont été rendues)
+    
     if (!s_PrevFrameGLTex.empty()) {
         for (GLuint id : s_PrevFrameGLTex) {
             glDeleteTextures(1, &id);
         }
         s_PrevFrameGLTex.clear();
+        s_PrevFrameGLTex.shrink_to_fit();
     }
-    // Préparer la liste pour cette frame
-    s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); // s_CurrentFrameGLTex devient vide
+    s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); 
 
     ImGuiTreeNodeFlags tflag = ImGuiTreeNodeFlags_DefaultOpen;
     int sceneid = -1;
@@ -445,6 +446,7 @@ void DebugGameFlow::renderMissionInfos() {
                 ImGui::Text("Image %d", bg->ID);
                 RLEShape *shp = this->getShape(bg->ID)->GetShape(0);
                 if (shp != nullptr) {
+                    
                     ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                     FrameBuffer *fb = new FrameBuffer(320, 200);
                     fb->clear();
@@ -465,7 +467,7 @@ void DebugGameFlow::renderMissionInfos() {
                     delete fb;
                     delete tex;
                     s_CurrentFrameGLTex.push_back(glTex);
-
+                    
                 } else {
                     ImGui::Text("No shape for this image");
                 }
@@ -477,6 +479,7 @@ void DebugGameFlow::renderMissionInfos() {
                 ImGui::Text("Extra %d", extra->SHAPE_ID);
                 RLEShape *shp = this->getShape(extra->SHAPE_ID)->GetShape(0);
                 if (shp != nullptr) {
+                    
                     ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                     FrameBuffer *fb = new FrameBuffer(320, 200);
                     fb->clear();
@@ -497,7 +500,7 @@ void DebugGameFlow::renderMissionInfos() {
                     delete fb;
                     delete tex;
                     s_CurrentFrameGLTex.push_back(glTex);
-
+                    
                 } else {
                     ImGui::Text("No shape for this image");
                 }

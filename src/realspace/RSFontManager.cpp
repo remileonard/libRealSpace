@@ -56,7 +56,7 @@ void RSFontManager::init(){
 
     for (auto font_item : fonts_index) {
         TreEntry* convFontEntry = amana.GetEntryByName(font_item);
-        if (convFontEntry == NULL) continue;
+        if (convFontEntry == nullptr) continue;
         PakArchive fontArch;
         fontArch.InitFromRAM(font_item.c_str(),convFontEntry->data,convFontEntry->size);
         RSFont *font = new RSFont();

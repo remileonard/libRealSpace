@@ -68,27 +68,39 @@ void AssetManager::SetBase(const char* newBase){
 
 void AssetManager::init(void){
     
-    //Load all TRE in RAM and store them.
-    for (size_t i =0 ; i < NUM_TRES; i++) {
-        TreArchive* tre = new TreArchive();
-        tre->InitFromFile(nameIds[i].filename);
-        
-        if (tre->IsValid()) {
-            this->tres.push_back(tre);
-            for (auto treEntry : tre->entries) {
-                treEntries[treEntry->name] = treEntry;
-            }
-        } else {
-            printf("Unable to load asset '%s' (Did you set the SC base folder ?).",nameIds[i].filename);
-            exit(-1);
-        }
-    }
 }
 void AssetManager::init(std::vector<std::string> nameIds){
+    std::lock_guard<std::mutex> lock(progressMutex);
+
+    // 1. Extraire tous les pointeurs avant de vider les conteneurs
+    
+    std::vector<TreArchive*> tresToDelete;
+    std::vector<TreEntry*> entriesToDelete;
+    
+    
+    
+    for (auto& tre : this->tres) {
+        tresToDelete.push_back(tre);
+    }
+    
+    for (auto& pair : this->treEntries) {
+        entriesToDelete.push_back(pair.second);
+    }
+    
+   
     this->tres.clear();
-    this->tres.shrink_to_fit();
     this->treEntries.clear();
     this->fileContents.clear();
+    
+    
+    
+    for (auto treArchive : tresToDelete) {
+        delete treArchive;
+    }
+    
+    for (auto entry : entriesToDelete) {
+        delete entry;
+    }
 
     //Load all TRE in RAM and store them.
     for (auto nameId : nameIds) {
@@ -133,19 +145,57 @@ AssetManager::AssetManager(){
     
 }
 
-AssetManager::~AssetManager(){
-    for (auto file_cache: this->cacheFileData) {
-        delete file_cache.second;
-        file_cache.second = nullptr;
-    }
-    this->cacheFileData.clear();
-    this->treEntries.clear();
-    //this->tres.clear();
+AssetManager::~AssetManager() {
+    std::lock_guard<std::mutex> lock(progressMutex);
 
+    // 1. Extraire tous les pointeurs avant de vider les conteneurs
+    std::vector<FileData*> filesToDelete;
+    std::vector<TreArchive*> tresToDelete;
+    std::vector<TreEntry*> entriesToDelete;
+    
+    for (auto& pair : this->cacheFileData) {
+        filesToDelete.push_back(pair.second);
+    }
+    
+    for (auto& tre : this->tres) {
+        tresToDelete.push_back(tre);
+    }
+    
+    for (auto& pair : this->treEntries) {
+        entriesToDelete.push_back(pair.second);
+    }
+    
+    // 2. Vider les conteneurs (sans libérer la mémoire)
+    this->cacheFileData.clear();
+    this->tres.clear();
+    this->treEntries.clear();
+    this->fileContents.clear();
+    
+    // 3. Libérer la mémoire seulement après avoir vidé les conteneurs
+    for (auto fileData : filesToDelete) {
+        delete fileData;
+    }
+    
+    for (auto treArchive : tresToDelete) {
+        delete treArchive;
+    }
+    
+    for (auto entry : entriesToDelete) {
+        delete entry;
+    }
 }
 
 bool AssetManager::ReadISOImage(const std::string& isoPath) {
+    std::vector<FileData*> filesToDelete;
+    for (auto& pair : this->cacheFileData) {
+        filesToDelete.push_back(pair.second);
+    }
+    
+    for (auto fileData : filesToDelete) {
+        delete fileData;
+    }
     this->cacheFileData.clear();
+    
     loader.log("Reading ISO Image");
     std::ifstream isoFile(isoPath, std::ios::binary);
     if (!isoFile.is_open()) {

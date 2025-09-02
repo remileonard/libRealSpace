@@ -74,6 +74,7 @@ public:
     virtual void log(const char* text, ...);
     virtual void logError(const char* text, ...);
     virtual void addActivity(IActivity* activity);
+    bool hasActivity() { return !activities.empty(); };
     virtual void stopTopActivity(void);
     virtual IActivity* getCurrentActivity(void);
     Keyboard* getKeyboard() const { return m_keyboard; }

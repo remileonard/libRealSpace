@@ -652,6 +652,9 @@ void SCGameFlow::createScen() {
  * @throws None.
  */
 RSImageSet *SCGameFlow::getShape(uint8_t shpid) {
+    if (this->shape_cache.find(shpid) != this->shape_cache.end()) {
+        return this->shape_cache[shpid];
+    }
     PakEntry *shapeEntry = this->optShps.GetEntry(shpid);
     PakArchive subPAK;
 
@@ -662,6 +665,7 @@ RSImageSet *SCGameFlow::getShape(uint8_t shpid) {
     } else {
         img->InitFromSubPakEntry(&subPAK);
     }
+    this->shape_cache[shpid] = img;
     return (img);
 }
 

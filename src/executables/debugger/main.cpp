@@ -15,6 +15,7 @@
 int main(int argc, char* argv[]) {
     
     RSScreen::setInstance(std::make_unique<DebugScreen>());
+    GameEngine::setInstance(std::make_unique<DebugGame>());
     RSScreen &screen = RSScreen::instance();  
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
@@ -28,9 +29,8 @@ int main(int argc, char* argv[]) {
         screen.refresh();
         SDL_PumpEvents();
     }
-    loader.startLoading([](Loader* loader) {
+    loader.startLoading([&assets](Loader* loader) {
         loader->setProgress(0.0f);
-        AssetManager& assets = AssetManager::getInstance();
         RSMixer& Mixer = RSMixer::getInstance();
         RSFontManager& FontManager = RSFontManager::getInstance();
         // Load all TREs and PAKs
@@ -83,6 +83,16 @@ int main(int argc, char* argv[]) {
         assets.acc_filename = assets.texture_root_path+"ACCPACK.PAK";
         assets.convpak_filename = assets.gameflow_root_path+"CONV.PAK";
         // Load assets needed for Conversations (char and background)
+        GameEngine *game = &GameEngine::instance();
+        ConvAssetManager& convAssets = ConvAssetManager::getInstance();
+        convAssets.init();
+        loader->setProgress(60.0f);
+        RSSound::getInstance().init();
+        loader->setProgress(80.0f);
+        SCMainMenu *main = new SCMainMenu();
+        game->init();
+        main->init();
+        game->addActivity(main);
         loader->setProgress(100.0f);
     });
 
@@ -90,13 +100,13 @@ int main(int argc, char* argv[]) {
     while (!loader.isLoadingComplete()) {
         loader.runFrame();
         screen.refresh();
+        SDL_Delay(10);
         SDL_PumpEvents();
     }
     loader.close();
-    GameEngine::setInstance(std::make_unique<DebugGame>());
-    GameEngine &game = GameEngine::getInstance();
-    game.init();
-    game.run();
+    
+    GameEngine *game = &GameEngine::instance();
+    game->run();
 
     return EXIT_SUCCESS;
 }

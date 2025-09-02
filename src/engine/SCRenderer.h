@@ -91,7 +91,7 @@ public:
 
     static bool hasInstance() { return (bool)s_instance; }
 
-    GLuint texture;
+    GLuint texture{0};
     SCRenderer();
     ~SCRenderer();
 

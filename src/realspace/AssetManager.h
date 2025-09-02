@@ -74,6 +74,7 @@ private:
     FileData *ReadFileEntry(const FileEntry &entry, const std::string &isoPath);
     Loader &loader = Loader::getInstance();
     inline static std::unique_ptr<AssetManager> s_instance{};
+    std::mutex progressMutex;
 
 public:
 
@@ -102,6 +103,8 @@ public:
     std::vector<TreArchive*> tres;
 
     static AssetManager& getInstance() {
+        static std::mutex instanceMutex;
+        std::lock_guard<std::mutex> lock(instanceMutex);
         if (!AssetManager::hasInstance()) {
             AssetManager::setInstance(std::make_unique<AssetManager>());
         }

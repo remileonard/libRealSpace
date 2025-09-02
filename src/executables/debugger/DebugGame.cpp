@@ -54,20 +54,16 @@ void DebugGame::init() {
     m_keyboard->registerAction(InputAction::KEY_ESCAPE);
     m_keyboard->bindKeyToAction(InputAction::KEY_ESCAPE, SDL_SCANCODE_ESCAPE);
     EventManager::getInstance().enableImGuiForwarding(true);
-    loadSC();
 }
 
 void DebugGame::loadSC() {
-    
-
-    Assets.SetBase("./assets");
-    // Load all TREs and PAKs
     Loader& loader = Loader::getInstance();
+    Assets.SetBase("./assets");
+    
+    // Load all TREs and PAKs
     loader.init();
     loader.startLoading([](Loader* loader) {
         AssetManager &Assets = AssetManager::getInstance();
-        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
-        RSFontManager &FontManager = RSFontManager::getInstance();
         std::vector<std::string> cdTreFiles = {
             "GAMEFLOW.TRE",
             "MISC.TRE",
@@ -98,25 +94,25 @@ void DebugGame::loadSC() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
         
+        RSFontManager &FontManager = RSFontManager::getInstance();
         FontManager.init();
-
+        ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
         RSSound::getInstance().init();
+        DebugGameFlow* main = new DebugGameFlow();
+        SCState &GameState = SCState::getInstance();
+        GameState.Reset();
+        GameState.player_callsign = "Debug";
+        GameState.player_name = "Debug Player";
+        GameState.player_firstname = "Debug";
+        for (int i=0; i<256; i++) {
+            GameState.requierd_flags[i] = false;
+        }
+        main->init();
+        GameEngine *Game = &GameEngine::instance();
+        Game->addActivity(main);
     });
-    
-    //Add MainMenu activity on the game stack.
-    DebugGameFlow* main = new DebugGameFlow();
-    //SCMainMenu* main = new SCMainMenu();
-    GameState.Reset();
-    GameState.player_callsign = "Debug";
-    GameState.player_name = "Debug Player";
-    GameState.player_firstname = "Debug";
-    for (int i=0; i<256; i++) {
-        GameState.requierd_flags[i] = false;
-    }
-    main->init();
-    this->addActivity(main);
 }
 
 
@@ -166,20 +162,22 @@ void DebugGame::loadSCCD() {
         ConvAssets.init();
         loader->setProgress(85.0f);
         RSSound::getInstance().init();
+        DebugGameFlow* main = new DebugGameFlow();
+        SCState &GameState = SCState::getInstance();
+        GameState.Reset();
+        GameState.player_callsign = "Debug";
+        GameState.player_name = "Debug Player";
+        GameState.player_firstname = "Debug";
+        for (int i=0; i<256; i++) {
+            GameState.requierd_flags[i] = false;
+        }
+        main->init();
+        GameEngine *Game = &GameEngine::instance();
+        Game->addActivity(main);
         loader->setProgress(100.0f);
     });
-    //Add MainMenu activity on the game stack.
-    DebugGameFlow* main = new DebugGameFlow();
     
-    GameState.Reset();
-    GameState.player_callsign = "Debug";
-    GameState.player_name = "Debug Player";
-    GameState.player_firstname = "Debug";
-    for (int i=0; i<256; i++) {
-        GameState.requierd_flags[i] = false;
-    }
-    main->init();
-    this->addActivity(main);
+    
 }
 
 
@@ -193,7 +191,9 @@ void DebugGame::testMissionSC() {
         AssetManager &Assets = AssetManager::getInstance();
         ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
         RSFontManager &FontManager = RSFontManager::getInstance();
+        
         Assets.ReadISOImage("./SC.DAT");
+        loader->setProgress(20.0f);
         std::vector<std::string> treFiles = {
             "BIGTRE.TRE",
             "LILTRE.TRE",
@@ -201,7 +201,7 @@ void DebugGame::testMissionSC() {
             "PACIFIC.DAT"
         };
         Assets.init(treFiles);
-        
+        loader->setProgress(30.0f);
         Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
         Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
         Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
@@ -224,12 +224,14 @@ void DebugGame::testMissionSC() {
         
         FontManager.init();
         RSSound::getInstance().init();
+        //Add MainMenu activity on the game stack.
+        loader->setProgress(100.0f);
+        DebugStrike * main = new DebugStrike();
+        main->init();
+        main->setMission("MISN-1A.IFF");
+        GameEngine *Game = &GameEngine::instance();
+        Game->addActivity(main);
     });
-    //Add MainMenu activity on the game stack.
-    DebugStrike * main = new DebugStrike();
-    main->init();
-    main->setMission("MISN-1A.IFF");
-    this->addActivity(main);
 }
 
 void DebugGame::loadTO() {
@@ -273,19 +275,23 @@ void DebugGame::loadTO() {
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
         RSSound::getInstance().init();
+        DebugGameFlow* main = new DebugGameFlow();
+        SCState &GameState = SCState::getInstance();
+        GameState.Reset();
+        GameState.player_callsign = "Debug";
+        GameState.player_name = "Debug Player";
+        GameState.player_firstname = "Debug";
+        for (int i=0; i<256; i++) {
+            GameState.requierd_flags[i] = false;
+        }
+        
+        main->init();
+        GameEngine *Game = &GameEngine::instance();
+        Game->addActivity(main);
     });
-    //Add MainMenu activity on the game stack.
-    DebugGameFlow* main = new DebugGameFlow();
+   
     
-    GameState.Reset();
-    GameState.player_callsign = "Debug";
-    GameState.player_name = "Debug Player";
-    GameState.player_firstname = "Debug";
-    for (int i=0; i<256; i++) {
-        GameState.requierd_flags[i] = false;
-    }
-    main->init();
-    this->addActivity(main);
+    
 }
 
 
@@ -304,13 +310,32 @@ void DebugGame::testObjects() {
         };
         Assets.ReadISOImage("./SC.DAT");
         Assets.init(cdTreFiles);
-        
+        Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+        Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+        Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+        Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+        Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+        Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+
+        Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLO2.IFF";
+        Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+        Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+        Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
+        Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+        Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+        Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+        Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+        Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
         FontManager.init();
+        DebugObjectViewer* main = new DebugObjectViewer();
+        main->init();
+        GameEngine *Game = &GameEngine::instance();
+        Game->addActivity(main);
     });
-    //Add MainMenu activity on the game stack.
-    DebugObjectViewer* main = new DebugObjectViewer();
-    main->init();
-    this->addActivity(main);
+    
 }
 
 void DebugGame::loadPacific() {
@@ -330,14 +355,15 @@ void DebugGame::loadPacific() {
 }
 
 void DebugGame::run() {
-    Loader &loader = Loader::getInstance();
+    Loader &loader = Loader::instance();
     IActivity *currentActivity;
     while (activities.size() > 0) {
         pumpEvents();
-        currentActivity = activities.top();
         if (!loader.isLoadingComplete()) {
             loader.runFrame();
+            SDL_Delay(10);
         } else {
+            currentActivity = activities.top();
             if (currentActivity->isRunning()) {
                 currentActivity->focus();
                 currentActivity->runFrame();
@@ -346,7 +372,6 @@ void DebugGame::run() {
                 delete currentActivity;
             }
         }
-        
         Screen->refresh();
         Mouse.flushEvents(); // On peut le garder si sa logique interne reste valable.
     }

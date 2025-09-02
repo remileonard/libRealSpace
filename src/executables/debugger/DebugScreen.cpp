@@ -150,9 +150,11 @@ void DebugScreen::refresh(void){
                     }
                     ImGui::EndMenu();
                 }
-                IActivity* act = debugGameInstance->getCurrentActivity();
-                if (act != nullptr) {
-                    act->renderMenu();    
+                if (debugGameInstance->hasActivity()) {
+                    IActivity* act = debugGameInstance->getCurrentActivity();
+                    if (act != nullptr) {
+                        act->renderMenu();    
+                    }
                 }
             }
             
@@ -160,20 +162,15 @@ void DebugScreen::refresh(void){
         }
         ImVec2 winsize = ImGui::GetContentRegionAvail();
         float width = winsize.x * 0.75f; // 75% of the available width for the game screen
-        if (debugGameInstance == nullptr) {
+        if (debugGameInstance == nullptr  || !debugGameInstance->hasActivity()) {
             width = winsize.x; // If no game instance, use full width
         }
         ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
         // Check if mouse is hovering over the Game window
-        if (ImGui::IsWindowHovered()) {
-            SDL_ShowCursor(SDL_DISABLE); // Hide the mouse cursor
-        } else {
-            SDL_ShowCursor(SDL_ENABLE); // Show the mouse cursor
-        }
         ImVec2 avail_size = ImGui::GetContentRegionAvail();
         ImGui::Image((void*)(intptr_t)this->screen_texture, avail_size, {0, 1}, {1, 0});
         ImGui::EndChild();
-        if (debugGameInstance != nullptr) {
+        if (debugGameInstance != nullptr && debugGameInstance->hasActivity()) {
             ImGui::SameLine();
             // Calculate the remaining width for the Console child
             float remainingWidth = ImGui::GetContentRegionAvail().x;

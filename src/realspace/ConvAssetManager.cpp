@@ -12,9 +12,30 @@ ConvAssetManager::ConvAssetManager() {
     this->conv_file_name = "CONVDATA.IFF";
 }
 
-ConvAssetManager::~ConvAssetManager() { printf("We are not freeing the RAM from all the RLEs !!!\n"); }
+ConvAssetManager::~ConvAssetManager() { 
+    for (auto const& pair : this->faces) {
+        delete pair.second->appearances;
+        delete pair.second;
+    }
+    for (auto const& pair : this->figures) {
+        delete pair.second->appearances;
+        delete pair.second;
+    }
+    for (auto const& pair : this->backgrounds) {
+        for (auto layer : pair.second->layers) {
+            delete layer;
+        }
+        
+        delete pair.second;
+    }
+}
 
-void ConvAssetManager::init(void) { BuildDB(); }
+void ConvAssetManager::init(void) { 
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+    BuildDB();
+}
 
 /**
  * Given a name, return the associated CharFace object.
