@@ -441,9 +441,9 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
             weapon->z = this->object->position.z;
             shoot_cooldown = 160;
             
-            weapon->vx = direction.x * weapon_entity->dynn_miss->velovity_m_per_sec / 100.0f;
-            weapon->vy = direction.y * weapon_entity->dynn_miss->velovity_m_per_sec / 100.0f;
-            weapon->vz = direction.z * weapon_entity->dynn_miss->velovity_m_per_sec / 100.0f;
+            weapon->vx = direction.x * weapon_entity->dynn_miss->velovity_m_per_sec / 80.0f;
+            weapon->vy = direction.y * weapon_entity->dynn_miss->velovity_m_per_sec / 80.0f;
+            weapon->vz = direction.z * weapon_entity->dynn_miss->velovity_m_per_sec / 80.0f;
             break;
         case 0: // Guns
             if (this->weapons_shooted.size()> 15) {
