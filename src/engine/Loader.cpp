@@ -104,7 +104,9 @@ void Loader::runFrame() {
             for ( auto & log : logMessages ) {
                 
                 if (log.empty()) continue;
-                
+                if (log.size() > 100) {
+                    continue;
+                }
                 SDL_Surface* logSurface = TTF_RenderText_Solid(font, log.c_str(), textColor);
                 if (logSurface) {
                     textRect.y += textSurface->h + 5;

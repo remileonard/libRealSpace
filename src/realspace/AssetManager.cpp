@@ -163,6 +163,7 @@ bool AssetManager::ReadISOImage(const std::string& isoPath) {
         return false;
     }
     isoFile.close();
+
     for (auto entry : this->fileContents) {
         if (!entry.second.isDirectory) {
             FileData *fileData = ReadFileEntry(entry.second, isoPath);
@@ -318,7 +319,6 @@ bool AssetManager::ExtractFileListFromRootDirectory(std::ifstream &isoFile, cons
         // La position est donnée en blocs logiques (2048 octets chacun)
         entry.position = fileLocation;
         entry.size = fileSize;
-        
         fileContents[fileName] = entry;
         offset += recordLen;
     }

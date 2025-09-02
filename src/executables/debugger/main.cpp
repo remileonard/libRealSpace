@@ -15,8 +15,7 @@
 int main(int argc, char* argv[]) {
     
     RSScreen::setInstance(std::make_unique<DebugScreen>());
-    RSScreen &screen = RSScreen::instance();
-    RSVGA &vga = RSVGA::getInstance();    
+    RSScreen &screen = RSScreen::instance();  
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
     screen.init(1200,800,0);
