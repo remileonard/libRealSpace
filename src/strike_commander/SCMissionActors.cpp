@@ -397,9 +397,7 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
     if (this->object->entity->swpn_data->weapon_entity == nullptr) {
         return;
     }
-    if (this->weapons_shooted.size()> 20) {
-        return; // Too many weapons already shot
-    }
+    
     if (this->object->entity->swpn_data->max_simultaneous_shots > 0 && this->weapons_shooted.size() >= this->object->entity->swpn_data->max_simultaneous_shots) {
         return;
     }
@@ -429,6 +427,9 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
 
     switch (weapon_entity->wdat->weapon_category) {
         case 2: // Missiles
+            if (this->weapons_shooted.size()> 1) {
+                return; // Too many weapons already shot
+            }
             if (weapon_entity->wdat->effective_range == 0) {
                 weapon_entity->wdat->effective_range = weapon_entity->wdat->target_range;
             }
@@ -445,8 +446,11 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
             weapon->vz = direction.z * weapon_entity->dynn_miss->velovity_m_per_sec / 100.0f;
             break;
         case 0: // Guns
+            if (this->weapons_shooted.size()> 15) {
+                return; // Too many weapons already shot
+            }
             weapon = new GunSimulatedObject();
-            shoot_cooldown = 20;
+            shoot_cooldown = 30;
             weapon->obj = weapon_entity;
             weapon->x = this->object->position.x;
             weapon->y = p_y;
