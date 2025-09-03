@@ -547,6 +547,7 @@ void SCCockpit::RenderTargetingReticle() {
             VGA.getFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
         }
     }
+    delete weap;
 }
 void SCCockpit::RenderBombSight() {
     const Point2D center{160, 50};
@@ -622,6 +623,7 @@ void SCCockpit::RenderBombSight() {
             VGA.getFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
         }
     }
+    delete weap;
 }
 void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) {
     if (!fb) {

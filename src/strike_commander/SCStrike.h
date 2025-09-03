@@ -209,6 +209,7 @@ protected:
     float mouseAxisAccumX = 0.0f;
     float mouseAxisAccumY = 0.0f;
     SCState &GameState = SCState::getInstance();
+    void renderVirtualCockpit();
 public:
     /**
      * @brief Constructor

@@ -16,6 +16,241 @@
 #define RENDER_DISTANCE 40000.0f
 #define AUTOPILOTE_TIMEOUT 1000
 #define AUTOPILOTE_SPEED 4
+void SCStrike::renderVirtualCockpit() {
+    static std::vector<Texture *> s_PrevFrameGLTex;
+    static std::vector<Texture *> s_CurrentFrameGLTex;
+
+    if (!s_PrevFrameGLTex.empty()) {
+        for (Texture* tex : s_PrevFrameGLTex) {
+            delete tex;
+        }
+        s_PrevFrameGLTex.clear();
+        s_PrevFrameGLTex.shrink_to_fit();
+    }
+    s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); 
+    Vector3D cockpit_pos;
+    cockpit_pos.x = this->camera->getPosition().x;
+    cockpit_pos.y = this->camera->getPosition().y;
+    cockpit_pos.z = this->camera->getPosition().z;
+    this->cockpit->RenderHUD();
+
+    Vector3D cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f, this->player_plane->elevationf/10.0f, -this->player_plane->twist/10.0f};
+    Vector3D cockpit_ajustement = { 0.0f,-3.0f,0.0f};
+    Texture *hud_texture = new Texture();
+    hud_texture->animated = true;
+    RSImage *hud_image = new RSImage();
+    hud_image->palette = &this->cockpit->palette;
+    hud_image->data = this->cockpit->hud_framebuffer->framebuffer;
+    hud_image->width = this->cockpit->hud_framebuffer->width;
+    hud_image->height = this->cockpit->hud_framebuffer->height;
+    hud_texture->set(hud_image);
+    hud_texture->updateContent(hud_image);
+    Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
+    Renderer.drawTexturedQuad(
+        cockpit_pos,
+        cockpit_rot,
+        {
+            {5.8f, 2.0f, -1.22f}, 
+            {5.8f, 2.0f, 1.35f},
+            {6.0f, -0.8f, 1.35f},
+            {6.0f, -0.8f, -1.22f}
+        },
+        hud_texture
+    );
+    hud_image->data = nullptr;
+    delete hud_image;
+    s_CurrentFrameGLTex.push_back(hud_texture);
+
+    Texture *mfd_right_texture = new Texture();
+    mfd_right_texture->animated = true;
+    RSImage *mfd_right_image = new RSImage();
+    mfd_right_image->palette = &this->cockpit->palette;
+    cockpit->RenderMFDSWeapon({0,0}, cockpit->mfd_right_framebuffer);
+    mfd_right_image->data = this->cockpit->mfd_right_framebuffer->framebuffer;
+    mfd_right_image->width = this->cockpit->mfd_right_framebuffer->width;
+    mfd_right_image->height = this->cockpit->mfd_right_framebuffer->height;
+    mfd_right_texture->set(mfd_right_image);
+    mfd_right_texture->updateContent(mfd_right_image);
+    Renderer.drawTexturedQuad(
+        cockpit_pos,
+        cockpit_rot,
+        {
+            {6.2f, -2.5f, -3.0f}, 
+            {6.2f, -2.5f, -1.15f},
+            {6.1f, -4.4f, -1.15f},
+            {6.1f, -4.4f, -3.0f}
+        },
+        mfd_right_texture
+    );
+    mfd_right_image->data = nullptr;
+    delete mfd_right_image;
+    s_CurrentFrameGLTex.push_back(mfd_right_texture);
+    
+    cockpit->RenderMFDSRadar({0,0}, cockpit->radar_zoom*20000.0f, this->cockpit->radar_mode, cockpit->mfd_left_framebuffer);
+    Texture *mfd_left_texture = new Texture();
+    mfd_left_texture->animated = true;
+    RSImage *mfd_left_image = new RSImage();
+    mfd_left_image->palette = &this->cockpit->palette;
+    mfd_left_image->data = this->cockpit->mfd_left_framebuffer->framebuffer;
+    mfd_left_image->width = this->cockpit->mfd_left_framebuffer->width;
+    mfd_left_image->height = this->cockpit->mfd_left_framebuffer->height;
+    mfd_left_texture->set(mfd_left_image);
+    mfd_left_texture->updateContent(mfd_left_image);
+    Renderer.drawTexturedQuad(
+        cockpit_pos,
+        cockpit_rot,
+        {
+            {6.2f, -2.5f, 1.15f}, 
+            {6.2f, -2.5f, 3.0f},
+            {6.1f, -4.4f, 3.0f},
+            {6.1f, -4.4f, 1.15f}
+        },
+        mfd_left_texture
+    );
+    mfd_left_image->data = nullptr;
+    delete mfd_left_image;
+    s_CurrentFrameGLTex.push_back(mfd_left_texture);
+
+    cockpit->raws_framebuffer->fillWithColor(0);
+    cockpit->RenderRAWS({0,0}, cockpit->raws_framebuffer);
+    Texture *raws_texture = new Texture();
+    raws_texture->animated = true;
+    RSImage *raws_image = new RSImage();
+    raws_image->palette = &this->cockpit->palette;
+    raws_image->data = this->cockpit->raws_framebuffer->framebuffer;
+    raws_image->width = this->cockpit->raws_framebuffer->width;
+    raws_image->height = this->cockpit->raws_framebuffer->height;
+    raws_texture->set(raws_image);
+    raws_texture->updateContent(raws_image);
+    Renderer.drawTexturedQuad(
+        cockpit_pos,
+        cockpit_rot,
+        {
+            {6.2f, -1.38f, -2.10f}, 
+            {6.2f, -1.38f, -1.15f},
+            {6.1f, -2.45f, -1.15f},
+            {6.1f, -2.45f, -2.10f}
+        },
+        raws_texture
+    );
+    raws_image->data = nullptr;
+    delete raws_image;
+    s_CurrentFrameGLTex.push_back(raws_texture);
+
+    cockpit->target_framebuffer->fillWithColor(255);
+    cockpit->RenderTargetWithCam({0,0}, cockpit->target_framebuffer);
+    Texture *target_texture = new Texture();
+    target_texture->animated = true;
+    RSImage *target_image = new RSImage();
+    target_image->palette = &this->cockpit->palette;
+    target_image->data = this->cockpit->target_framebuffer->framebuffer;
+    target_image->width = this->cockpit->target_framebuffer->width;
+    target_image->height = this->cockpit->target_framebuffer->height;
+    target_texture->set(target_image);
+    target_texture->updateContent(target_image);
+    // Calculate a position in front of the camera
+    // Create a fullscreen quad in front of the camera
+    // Adjust for the camera Y-axis offset
+    Vector3D quadPos = camera->getPosition() + camera->getForward() * 8.0f;
+    
+    // Set up vectors for billboard creation
+    Vector3D forward = camera->getForward();
+    Vector3D right = camera->getRight();
+    Vector3D up = camera->getUp();
+
+    
+    
+    // Scale factors for quad size
+    float width =4.92f;
+    float height = 3.22f;
+    // Compensate for the 0.45f Y-axis projection offset
+    // We need to shift the entire quad upwards by adding an offset in the up direction
+    float projectionYOffset = -1.5f;
+    Vector3D offsetCompensation = up * projectionYOffset;
+    
+    // Apply the offset to the quad center position
+    Vector3D adjustedQuadPos = quadPos + offsetCompensation;
+    
+    // Define the quad's corners in world space with the adjusted center position
+    Vector3D topLeft = adjustedQuadPos + (up * height) - (right * width);
+    Vector3D topRight = adjustedQuadPos + (up * height) + (right * width);
+    Vector3D bottomRight = adjustedQuadPos - (up * height) + (right * width);
+    Vector3D bottomLeft = adjustedQuadPos - (up * height) - (right * width);
+    
+    // Draw the quad with the target texture
+    Renderer.drawTexturedQuad(
+        {0, 0, 0}, // No position offset needed as we're using world coordinates
+        {0, 0, 0}, // No rotation needed as we're manually setting vertices
+        {
+            topLeft,
+            topRight,
+            bottomRight,
+            bottomLeft
+        },
+        target_texture
+    );
+
+    target_image->data = nullptr;
+    delete target_image;
+    s_CurrentFrameGLTex.push_back(target_texture);
+
+
+    cockpit->alti_framebuffer->fillWithColor(0);
+    cockpit->RenderAlti({0,0}, cockpit->alti_framebuffer);
+    Texture *alti_texture = new Texture();
+    alti_texture->animated = true;
+    RSImage *alti_image = new RSImage();
+    alti_image->palette = &this->cockpit->palette;
+    alti_image->data = this->cockpit->alti_framebuffer->framebuffer;
+    alti_image->width = this->cockpit->alti_framebuffer->width;
+    alti_image->height = this->cockpit->alti_framebuffer->height;
+    alti_texture->set(alti_image);
+    alti_texture->updateContent(alti_image);
+    Renderer.drawTexturedQuad(
+        cockpit_pos,
+        cockpit_rot,
+        {
+            {6.1f, -3.15f, 0.020f}, 
+            {6.1f, -3.15f, 0.90f},
+            {5.7f, -3.92f, 0.90f},
+            {5.7f, -3.92f, 0.020f}
+        },
+        alti_texture
+    );
+
+    alti_image->data = nullptr;    
+    delete alti_image;
+    s_CurrentFrameGLTex.push_back(alti_texture);
+
+
+    cockpit->speed_framebuffer->fillWithColor(0);
+    cockpit->RenderSpeedOmetter({0,0}, cockpit->speed_framebuffer);
+    Texture *speed_texture = new Texture();
+    speed_texture->animated = true;
+    RSImage *speed_image = new RSImage();
+    speed_image->palette = &this->cockpit->palette;
+    speed_image->data = this->cockpit->speed_framebuffer->framebuffer;
+    speed_image->width = this->cockpit->speed_framebuffer->width;
+    speed_image->height = this->cockpit->speed_framebuffer->height;
+    speed_texture->set(speed_image);
+    speed_texture->updateContent(speed_image);
+    Renderer.drawTexturedQuad(
+        cockpit_pos,
+        cockpit_rot,
+        {
+            {6.1f, -3.15f, -0.90f}, 
+            {6.1f, -3.15f, -0.020f},
+            {5.7f, -3.92f, -0.020f},
+            {5.7f, -3.92f, -0.90f}
+        },
+        speed_texture
+    );
+
+    speed_image->data = nullptr;        
+    delete speed_image;
+    s_CurrentFrameGLTex.push_back(speed_texture);
+
+}
 /**
  * @brief Constructor
  *
@@ -1176,196 +1411,7 @@ void SCStrike::runFrame(void) {
         break;
     case View::EYE_ON_TARGET:
     case View::REAL:
-
-        Vector3D cockpit_pos;
-        cockpit_pos.x = this->camera->getPosition().x;
-        cockpit_pos.y = this->camera->getPosition().y;
-        cockpit_pos.z = this->camera->getPosition().z;
-        this->cockpit->RenderHUD();
-
-        Vector3D cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f, this->player_plane->elevationf/10.0f, -this->player_plane->twist/10.0f};
-        Vector3D cockpit_ajustement = { 0.0f,-3.0f,0.0f};
-        Texture *hud_texture = new Texture();
-        hud_texture->animated = true;
-        RSImage *hud_image = new RSImage();
-        hud_image->palette = &this->cockpit->palette;
-        hud_image->data = this->cockpit->hud_framebuffer->framebuffer;
-        hud_image->width = this->cockpit->hud_framebuffer->width;
-        hud_image->height = this->cockpit->hud_framebuffer->height;
-        hud_texture->set(hud_image);
-        hud_texture->updateContent(hud_image);
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
-        Renderer.drawTexturedQuad(
-            cockpit_pos,
-            cockpit_rot,
-            {
-                {5.8f, 2.0f, -1.22f}, 
-                {5.8f, 2.0f, 1.35f},
-                {6.0f, -0.8f, 1.35f},
-                {6.0f, -0.8f, -1.22f}
-            },
-            hud_texture
-        );
-        Texture *mfd_right_texture = new Texture();
-        mfd_right_texture->animated = true;
-        RSImage *mfd_right_image = new RSImage();
-        mfd_right_image->palette = &this->cockpit->palette;
-        cockpit->RenderMFDSWeapon({0,0}, cockpit->mfd_right_framebuffer);
-        mfd_right_image->data = this->cockpit->mfd_right_framebuffer->framebuffer;
-        mfd_right_image->width = this->cockpit->mfd_right_framebuffer->width;
-        mfd_right_image->height = this->cockpit->mfd_right_framebuffer->height;
-        mfd_right_texture->set(mfd_right_image);
-        mfd_right_texture->updateContent(mfd_right_image);
-        Renderer.drawTexturedQuad(
-            cockpit_pos,
-            cockpit_rot,
-            {
-                {6.2f, -2.5f, -3.0f}, 
-                {6.2f, -2.5f, -1.15f},
-                {6.1f, -4.4f, -1.15f},
-                {6.1f, -4.4f, -3.0f}
-            },
-            mfd_right_texture
-        );
-        cockpit->RenderMFDSRadar({0,0}, cockpit->radar_zoom*20000.0f, this->cockpit->radar_mode, cockpit->mfd_left_framebuffer);
-        Texture *mfd_left_texture = new Texture();
-        mfd_left_texture->animated = true;
-        RSImage *mfd_left_image = new RSImage();
-        mfd_left_image->palette = &this->cockpit->palette;
-        mfd_left_image->data = this->cockpit->mfd_left_framebuffer->framebuffer;
-        mfd_left_image->width = this->cockpit->mfd_left_framebuffer->width;
-        mfd_left_image->height = this->cockpit->mfd_left_framebuffer->height;
-        mfd_left_texture->set(mfd_left_image);
-        mfd_left_texture->updateContent(mfd_left_image);
-        Renderer.drawTexturedQuad(
-            cockpit_pos,
-            cockpit_rot,
-            {
-                {6.2f, -2.5f, 1.15f}, 
-                {6.2f, -2.5f, 3.0f},
-                {6.1f, -4.4f, 3.0f},
-                {6.1f, -4.4f, 1.15f}
-            },
-            mfd_left_texture
-        );
-        cockpit->raws_framebuffer->fillWithColor(0);
-        cockpit->RenderRAWS({0,0}, cockpit->raws_framebuffer);
-        Texture *raws_texture = new Texture();
-        raws_texture->animated = true;
-        RSImage *raws_image = new RSImage();
-        raws_image->palette = &this->cockpit->palette;
-        raws_image->data = this->cockpit->raws_framebuffer->framebuffer;
-        raws_image->width = this->cockpit->raws_framebuffer->width;
-        raws_image->height = this->cockpit->raws_framebuffer->height;
-        raws_texture->set(raws_image);
-        raws_texture->updateContent(raws_image);
-        Renderer.drawTexturedQuad(
-            cockpit_pos,
-            cockpit_rot,
-            {
-                {6.2f, -1.38f, -2.10f}, 
-                {6.2f, -1.38f, -1.15f},
-                {6.1f, -2.45f, -1.15f},
-                {6.1f, -2.45f, -2.10f}
-            },
-            raws_texture
-        );
-        cockpit->target_framebuffer->fillWithColor(255);
-        cockpit->RenderTargetWithCam({0,0}, cockpit->target_framebuffer);
-        Texture *target_texture = new Texture();
-        target_texture->animated = true;
-        RSImage *target_image = new RSImage();
-        target_image->palette = &this->cockpit->palette;
-        target_image->data = this->cockpit->target_framebuffer->framebuffer;
-        target_image->width = this->cockpit->target_framebuffer->width;
-        target_image->height = this->cockpit->target_framebuffer->height;
-        target_texture->set(target_image);
-        target_texture->updateContent(target_image);
-        // Calculate a position in front of the camera
-        // Create a fullscreen quad in front of the camera
-        // Adjust for the camera Y-axis offset
-        Vector3D quadPos = camera->getPosition() + camera->getForward() * 8.0f;
-        
-        // Set up vectors for billboard creation
-        Vector3D forward = camera->getForward();
-        Vector3D right = camera->getRight();
-        Vector3D up = camera->getUp();
-
-        
-        
-        // Scale factors for quad size
-        float width =4.92f;
-        float height = 3.22f;
-        // Compensate for the 0.45f Y-axis projection offset
-        // We need to shift the entire quad upwards by adding an offset in the up direction
-        float projectionYOffset = -1.5f;
-        Vector3D offsetCompensation = up * projectionYOffset;
-        
-        // Apply the offset to the quad center position
-        Vector3D adjustedQuadPos = quadPos + offsetCompensation;
-        
-        // Define the quad's corners in world space with the adjusted center position
-        Vector3D topLeft = adjustedQuadPos + (up * height) - (right * width);
-        Vector3D topRight = adjustedQuadPos + (up * height) + (right * width);
-        Vector3D bottomRight = adjustedQuadPos - (up * height) + (right * width);
-        Vector3D bottomLeft = adjustedQuadPos - (up * height) - (right * width);
-        
-        // Draw the quad with the target texture
-        Renderer.drawTexturedQuad(
-            {0, 0, 0}, // No position offset needed as we're using world coordinates
-            {0, 0, 0}, // No rotation needed as we're manually setting vertices
-            {
-                topLeft,
-                topRight,
-                bottomRight,
-                bottomLeft
-            },
-            target_texture
-        );
-        cockpit->alti_framebuffer->fillWithColor(0);
-        cockpit->RenderAlti({0,0}, cockpit->alti_framebuffer);
-        Texture *alti_texture = new Texture();
-        alti_texture->animated = true;
-        RSImage *alti_image = new RSImage();
-        alti_image->palette = &this->cockpit->palette;
-        alti_image->data = this->cockpit->alti_framebuffer->framebuffer;
-        alti_image->width = this->cockpit->alti_framebuffer->width;
-        alti_image->height = this->cockpit->alti_framebuffer->height;
-        alti_texture->set(alti_image);
-        alti_texture->updateContent(alti_image);
-        Renderer.drawTexturedQuad(
-            cockpit_pos,
-            cockpit_rot,
-            {
-                {6.1f, -3.15f, 0.020f}, 
-                {6.1f, -3.15f, 0.90f},
-                {5.7f, -3.92f, 0.90f},
-                {5.7f, -3.92f, 0.020f}
-            },
-            alti_texture
-        );
-        cockpit->speed_framebuffer->fillWithColor(0);
-        cockpit->RenderSpeedOmetter({0,0}, cockpit->speed_framebuffer);
-        Texture *speed_texture = new Texture();
-        speed_texture->animated = true;
-        RSImage *speed_image = new RSImage();
-        speed_image->palette = &this->cockpit->palette;
-        speed_image->data = this->cockpit->speed_framebuffer->framebuffer;
-        speed_image->width = this->cockpit->speed_framebuffer->width;
-        speed_image->height = this->cockpit->speed_framebuffer->height;
-        speed_texture->set(speed_image);
-        speed_texture->updateContent(speed_image);
-        Renderer.drawTexturedQuad(
-            cockpit_pos,
-            cockpit_rot,
-            {
-                {6.1f, -3.15f, -0.90f}, 
-                {6.1f, -3.15f, -0.020f},
-                {5.7f, -3.92f, -0.020f},
-                {5.7f, -3.92f, -0.90f}
-            },
-            speed_texture
-        );
+        this->renderVirtualCockpit();
         break;
     }
 }

@@ -17,6 +17,7 @@ public:
     std::vector<PROG> on_is_activated;
     std::vector<PROG> on_is_destroyed;
     std::vector<PROG> on_update;
+    std::vector<PROG> override_progs;
     std::vector<SCSimulatedObject *> weapons_shooted;
     MISN_PART *object{nullptr};
     SCPlane *plane{nullptr};
