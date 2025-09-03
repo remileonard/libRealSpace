@@ -301,6 +301,7 @@ void SCMission::update() {
                     }
                     SCProg *p = new SCProg(this->player, prog, this);
                     p->execute();
+                    delete p;
                 }
             }
             if (scene->area_id == area_id-1 && scene->on_leaving != -1) {
@@ -312,6 +313,7 @@ void SCMission::update() {
                     }
                     SCProg *p = new SCProg(this->player, prog, this);
                     p->execute();
+                    delete p;
                 }
             }
         }
@@ -328,6 +330,7 @@ void SCMission::update() {
                         }
                         SCProg *p = new SCProg(this->player, prog, this);
                         p->execute();
+                        delete p;
                     }
                 }
                 continue;
@@ -372,6 +375,7 @@ void SCMission::update() {
                                 if (actor->on_is_activated.size() > 0) {
                                     SCProg *p = new SCProg(actor, actor->on_is_activated, this);
                                     p->execute();
+                                    delete p;
                                 }
                                 break;
                             }
@@ -390,6 +394,9 @@ void SCMission::update() {
                     SCProg *p = new SCProg(this->player, prog, this);
                     p->execute();
                     scene->has_been_activated = 1;
+                    delete p;
+                    prog.clear();
+                    prog.shrink_to_fit();
                 }
             }
             scene->is_active = 0;
@@ -403,6 +410,7 @@ void SCMission::update() {
             if (ai_actor->on_is_destroyed.size() > 0) {
                 SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, this);
                 p->execute();
+                delete p;
             }
             if (ai_actor->object->member_name_destroyed != "") {
                 ai_actor->object->entity = LoadEntity(ai_actor->object->member_name_destroyed);
@@ -440,6 +448,7 @@ void SCMission::update() {
         if (ai_actor->profile->radi.info.callsign == "Strike Base") {
             SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this);
             p->execute();
+            delete p;
             continue;
         }
         if (ai_actor->is_active == false) {
@@ -448,6 +457,7 @@ void SCMission::update() {
         if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false) {
             SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this);
             p->execute();
+            delete p;
         }
         if (ai_actor->pilot == nullptr) {
             continue;

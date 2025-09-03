@@ -16,5 +16,11 @@ public:
         this->prog = prog;
         this->mission = mission;
     };
+    ~SCProg() {
+        this->prog.clear();
+        this->prog.shrink_to_fit();
+        this->actor = nullptr;
+        this->mission = nullptr;
+    };
     void execute();
 };
