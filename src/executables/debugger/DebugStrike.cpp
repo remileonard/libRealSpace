@@ -649,6 +649,9 @@ void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor) {
     static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
     SCState &GameState = SCState::getInstance();
     if (ImGui::BeginTable("Flags", 2, flags)) {
+        ImGui::TableSetupColumn("Opcode", ImGuiTableColumnFlags_WidthStretch, 0.8f);
+        ImGui::TableSetupColumn("Valeur", ImGuiTableColumnFlags_WidthStretch, 0.2f);
+        ImGui::TableHeadersRow();
         auto it = GameState.requierd_flags.begin();
         int cpt = 0;
         for (auto op : prog) {
@@ -670,11 +673,12 @@ void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor) {
             }
 
             ImGui::TableSetColumnIndex(0);
+            float tableWidth = ImGui::GetContentRegionAvail().x;
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-            ImGui::Text("opcode:[%03d] %s ", op.opcode, prog_op_names[prog_op(op.opcode)].c_str());
+            ImGui::Text("[%03d] %s ", op.opcode, prog_op_names[prog_op(op.opcode)].c_str());
             ImGui::TableSetColumnIndex(1);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-            ImGui::Text("arg:[%d]", op.arg);
+            ImGui::Text("[%d]", op.arg);
             cpt++;
         }
         ImGui::EndTable();
