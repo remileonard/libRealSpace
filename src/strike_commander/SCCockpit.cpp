@@ -386,6 +386,9 @@ void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuff
         }
         ladder = ladder - 5;
     }
+    hline->clear();
+    hline->shrink_to_fit();
+    delete hline;
 }
 
 void SCCockpit::RenderMFDS(Point2D mfds, FrameBuffer *fb = nullptr) {
