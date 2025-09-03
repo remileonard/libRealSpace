@@ -302,6 +302,8 @@ void SCMission::update() {
                     SCProg *p = new SCProg(this->player, prog, this);
                     p->execute();
                     delete p;
+                    prog.clear();
+                    prog.shrink_to_fit();
                 }
             }
             if (scene->area_id == area_id-1 && scene->on_leaving != -1) {
@@ -314,6 +316,8 @@ void SCMission::update() {
                     SCProg *p = new SCProg(this->player, prog, this);
                     p->execute();
                     delete p;
+                    prog.clear();
+                    prog.shrink_to_fit();
                 }
             }
         }
@@ -331,6 +335,8 @@ void SCMission::update() {
                         SCProg *p = new SCProg(this->player, prog, this);
                         p->execute();
                         delete p;
+                        prog.clear();
+                        prog.shrink_to_fit();
                     }
                 }
                 continue;
