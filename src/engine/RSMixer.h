@@ -17,9 +17,12 @@ class RSMixer {
     uint32_t current_music{UINT32_MAX};
     int channel{0};
     uint8_t *voc_data{nullptr};
+
 public:
     RSMusic *music;
-
+    bool shuttingDown = false;
+    std::unordered_map<int, Mix_Chunk*> channelChunks;
+    Mix_Music* currentMusicPtr = nullptr;
     static RSMixer &getInstance() {
         static RSMixer instance;
         return instance;
