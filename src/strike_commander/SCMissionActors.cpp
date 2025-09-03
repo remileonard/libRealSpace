@@ -446,7 +446,7 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
             weapon->vz = direction.z * weapon_entity->dynn_miss->velovity_m_per_sec / 80.0f;
             break;
         case 0: // Guns
-            if (this->weapons_shooted.size()> 15) {
+            if (this->weapons_shooted.size()> 30) {
                 return; // Too many weapons already shot
             }
             weapon = new GunSimulatedObject();

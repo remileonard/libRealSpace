@@ -356,8 +356,11 @@ void GunSimulatedObject::Simulate(int tps) {
     }
     for (auto entity: this->mission->actors) {
         if (this->CheckCollision(entity)) {
+            if (entity->actor_name != "PLAYER") {
+                entity->object->alive = false;
+            }
             this->alive = false;
-            entity->object->alive = false;
+            
             if (entity->object->entity->explos != nullptr) {
                 SCExplosion *explosion = new SCExplosion(entity->object->entity->explos->objct, position);
                 this->mission->explosions.push_back(explosion);
@@ -423,6 +426,12 @@ void GunSimulatedObject::Render() {
     if (this->obj->vertices.size() == 0) {
         Vector3D pos = {this->x, this->y, this->z};
         Vector3D end = {this->vx, this->vy, this->vz};
+        if (this->smoke_positions.size() >= 1) {
+            end = this->smoke_positions[0];
+            end = end - pos;
+        }
+        end.Normalize();
+        end = end * 20.0f;
         Vector3D color = {1.0f, 1.0f, 0.0f};
         Renderer.drawLine(pos, end, color);
     } else {
@@ -431,8 +440,8 @@ void GunSimulatedObject::Render() {
         Renderer.drawModel(this->obj, pos, orient);
     }
     
-    size_t cpt=this->smoke_positions.size();
+    /*size_t cpt=this->smoke_positions.size();
     for (auto pos: this->smoke_positions) {
         Renderer.drawParticle(pos, 0.6f * ((float) cpt / (1.0f*(float)this->smoke_positions.size())));
-    }
+    }*/
 }
