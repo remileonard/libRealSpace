@@ -471,7 +471,7 @@ float RSArea::getY(float x, float z) {
 void RSArea::parseTERA(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["VERS"] = std::bind(&RSArea::parseTERA_VERS, this, std::placeholders::_1, std::placeholders::_2);
     handlers["INFO"] = std::bind(&RSArea::parseTERA_INFO, this, std::placeholders::_1, std::placeholders::_2);
     
@@ -485,7 +485,7 @@ void RSArea::parseTERA_INFO(uint8_t *data, size_t size) {}
 void RSArea::parseTERA_BLOX(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["ELEV"] = std::bind(&RSArea::parseTERA_BLOX_ELEV, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ATRI"] = std::bind(&RSArea::parseTERA_BLOX_ATRI, this, std::placeholders::_1, std::placeholders::_2);
     handlers["OBJS"] = std::bind(&RSArea::parseTERA_BLOX_OBJS, this, std::placeholders::_1, std::placeholders::_2);
@@ -529,7 +529,7 @@ void RSArea::parseTERA_BLOX_OBJS(uint8_t *data, size_t size) {}
 void RSArea::parseTERA_TXML(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSArea::parseTERA_TXML_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MAPS"] = std::bind(&RSArea::parseTERA_TXMS_MAPS, this, std::placeholders::_1, std::placeholders::_2);
     

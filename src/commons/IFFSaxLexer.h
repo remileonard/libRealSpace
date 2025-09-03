@@ -13,7 +13,7 @@
 #include <vector>
 #include <functional>
 #include <string>
-#include <map>
+#include <unordered_map>
 
 #include "ByteStream.h"
 
@@ -25,13 +25,13 @@ public:
 	IFFSaxLexer();
 	~IFFSaxLexer();
 
-	bool InitFromFile(const char* filepath, std::map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
-	bool InitFromRAM(uint8_t* data, size_t size, std::map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
+	bool InitFromFile(const char* filepath, std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
+	bool InitFromRAM(uint8_t* data, size_t size, std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
 
 
 private:
 
-	void Parse(std::map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
+	void Parse(std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
 
 	ByteStream *stream;
 	uint8_t* data;

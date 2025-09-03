@@ -16,14 +16,14 @@ void RSObjViewer::initFromFileData(FileData *f) {
 
 void RSObjViewer::initFromRam(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["VIEW"] = std::bind(&RSObjViewer::parseVIEW, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 
 void RSObjViewer::parseVIEW(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["OBJS"] = std::bind(&RSObjViewer::parseVIEW_OBJS, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }

@@ -109,7 +109,7 @@ protected:
     virtual void playShot(uint8_t shotId);
     virtual void playConv(uint8_t convId);
     RSImageSet *getShape(uint8_t shpid);
-    std::map<uint8_t, RSImageSet*> shape_cache;
+    std::unordered_map<uint8_t, RSImageSet*> shape_cache;
 };
 
 #endif

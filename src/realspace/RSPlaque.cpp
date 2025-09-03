@@ -3,7 +3,7 @@
 void RSPlaque::parsePLAQ(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["FONT"] = std::bind(&RSPlaque::parsePLAQ_FONT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSPlaque::parsePLAQ_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     handlers["INFO"] = std::bind(&RSPlaque::parsePLAQ_INFO, this, std::placeholders::_1, std::placeholders::_2);
@@ -13,7 +13,7 @@ void RSPlaque::parsePLAQ(uint8_t *data, size_t size) {
 void RSPlaque::parsePLAQ_FONT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->tmp_font = new PLaqueFont();
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["WIDE"] = std::bind(&RSPlaque::parsePLAQ_FONT_WIDE, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TINY"] = std::bind(&RSPlaque::parsePLAQ_FONT_TINY, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSPlaque::parsePLAQ_FONT_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -67,7 +67,7 @@ void RSPlaque::InitFromRAM(uint8_t *data, size_t size) {
     
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["PLAQ"] = std::bind(&RSPlaque::parsePLAQ, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }

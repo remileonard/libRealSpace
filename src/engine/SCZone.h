@@ -85,5 +85,5 @@ public:
     void drawQuad();
     inline bool isEnabled(void){ return this->enabled; }
     inline void setEnable(bool enabled){ this->enabled = enabled;}
-    bool isActive(std::map<uint8_t, bool> *requierd_flags);
+    bool isActive(std::unordered_map<uint8_t, bool> *requierd_flags);
 };

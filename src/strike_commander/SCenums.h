@@ -24,7 +24,7 @@ enum weapon_ids {
     ID_AIM120 = 9,
     ID_20MM = 12,
 };
-static std::map<weapon_ids, weapon_type_shp_id> weapon_inv_to_loadout = {
+static std::unordered_map<weapon_ids, weapon_type_shp_id> weapon_inv_to_loadout = {
     {ID_AIM9J, AIM9J},
     {ID_AIM9M, AIM9M},
     {ID_AGM65D, AGM65D},
@@ -80,7 +80,7 @@ enum prog_op {
     OP_SELECT_FLAG_208 = 208,
 };
 
-static std::map<prog_op, std::string> prog_op_names = {
+static std::unordered_map<prog_op, std::string> prog_op_names = {
     {OP_EXIT_PROG, "OP_EXIT_PROG"},
     {OP_EXEC_SUB_PROG, "OP_EXEC_SUB_PROG"},
     {OP_SET_LABEL, "OP_SET_LABEL"},
@@ -139,7 +139,7 @@ enum RadarMode {
     ASST,
     AFRD
 };
-static std::map<uint8_t, std::string> pilot_names = {
+static std::unordered_map<uint8_t, std::string> pilot_names = {
     {1, "PRIMETIME"},
     {2, "PHOENIX"},
     {3, "BASELINE"},
@@ -234,7 +234,7 @@ enum GameFlowOpCode {
     EFECT_OPT_U15 = 37,
     EFECT_OPT_U16 = 38
 };
-static std::map<GameFlowOpCode, std::string> game_flow_op_name = {
+static std::unordered_map<GameFlowOpCode, std::string> game_flow_op_name = {
     {EFECT_OPT_CONV, "PLAY CONV"},
     {EFECT_OPT_SCEN, "PLAY SCEN"},
     {EFECT_OPT_FLYM2, "FLY MISSION (op2)"},

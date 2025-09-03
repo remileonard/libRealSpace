@@ -2,11 +2,11 @@
 #include <cstdint>
 #include <vector>
 #include <cstring>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include "md5.h"
 
-static std::map<std::string, std::pair<uint8_t*, size_t>> lz_buffers;
+static std::unordered_map<std::string, std::pair<uint8_t*, size_t>> lz_buffers;
 
 LZBuffer::LZBuffer() {}
 

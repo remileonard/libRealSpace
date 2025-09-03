@@ -1018,7 +1018,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
 }
 
 void SCPlane::InitLoadout() {
-    std::map<int, std::vector<int>> weap_map = {
+    std::unordered_map<int, std::vector<int>> weap_map = {
         {ID_20MM, {0}},
         {ID_AIM9J, {4, 1, 2}},
         {ID_AIM9M, {4, 1, 2}},
@@ -1030,7 +1030,7 @@ void SCPlane::InitLoadout() {
         {ID_GBU15, {2,3}},
         {ID_AIM120, {1,2}},
     };
-    std::map<int, std::map<int, int>> max_load_out = {
+    std::unordered_map<int, std::unordered_map<int, int>> max_load_out = {
         {ID_20MM, {{0, 1000}}},
         {ID_AIM9J, {{4, 1}, {1, 1}, {2, 1}}},
         {ID_AIM9M, {{4, 1}, {1, 1}, {2, 1}}},

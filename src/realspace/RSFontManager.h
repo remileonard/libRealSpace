@@ -7,7 +7,7 @@
 //
 
 #pragma once
-#include <map>
+#include <unordered_map>
 #include <string.h>
 
 #include "RSFont.h"
@@ -16,7 +16,7 @@
 
 class RSFontManager{
 private:
-    std::map<std::string, RSFont*> fonts;
+    std::unordered_map<std::string, RSFont*> fonts;
     inline static std::unique_ptr<RSFontManager> s_instance{};
 public:
     static RSFontManager& getInstance() {

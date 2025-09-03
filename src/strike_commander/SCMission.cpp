@@ -1,6 +1,6 @@
 #include "precomp.h"
 
-SCMission::SCMission(std::string mission_name, std::map<std::string, RSEntity *> *objCache) {
+SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->mission_name = mission_name;
     this->obj_cache = objCache;
     this->last_time = SDL_GetTicks();

@@ -12,7 +12,7 @@ IFFSaxLexer::IFFSaxLexer() {
 
 IFFSaxLexer::~IFFSaxLexer() {}
 bool IFFSaxLexer::InitFromFile(const char *filepath,
-                               std::map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
+                               std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
     char fullPath[512];
     fullPath[0] = '\0';
 
@@ -40,7 +40,7 @@ bool IFFSaxLexer::InitFromFile(const char *filepath,
 }
 
 bool IFFSaxLexer::InitFromRAM(uint8_t *data, size_t size,
-                              std::map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
+                              std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
     this->data = data;
     this->size = size;
     this->stream = new ByteStream();
@@ -49,7 +49,7 @@ bool IFFSaxLexer::InitFromRAM(uint8_t *data, size_t size,
     return false;
 }
 
-void IFFSaxLexer::Parse(std::map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
+void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
     size_t read = 0;
     while (read < this->size) {
         std::vector<uint8_t> bname = this->stream->ReadBytes(4);

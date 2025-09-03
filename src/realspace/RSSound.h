@@ -2,7 +2,7 @@
 #include "precomp.h"
 #include <cstdint>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 struct MemSound {
     uint8_t *data;
@@ -10,7 +10,7 @@ struct MemSound {
     uint8_t id{0};
 };
 struct InGameVoice {
-    std::map<uint8_t, MemSound *> messages;
+    std::unordered_map<uint8_t, MemSound *> messages;
     uint8_t id{0};
 };
 
@@ -20,7 +20,7 @@ private:
     inline static std::unique_ptr<RSSound> s_instance{};
     
 public:
-    std::map<uint8_t, InGameVoice *> inGameVoices;
+    std::unordered_map<uint8_t, InGameVoice *> inGameVoices;
     std::vector<MemSound *> sounds;
     void init();
     static RSSound& getInstance() {

@@ -75,7 +75,7 @@ SCConvPlayer::~SCConvPlayer() {}
 // 39 pilot helmet (if drawing this, don't draw hairs
 // 40 pilot helmet visor (if drawing this draw 39 too
 
-std::map<uint8_t, std::vector<uint8_t>> faces_shape = {
+std::unordered_map<uint8_t, std::vector<uint8_t>> faces_shape = {
     { 13,     std::vector<uint8_t>{1, 14, 2, 35}},
     { 14, std::vector<uint8_t>{1, 21, 28, 2, 35}},
     { 16,     std::vector<uint8_t>{1, 17, 2, 35}},
@@ -355,7 +355,7 @@ void SCConvPlayer::clicked(void *none, uint8_t id) {
 }
 void SCConvPlayer::selectWingMan(void *none, uint8_t id) {
     printf("clicked on %d\n", id);
-    std::map<uint8_t, std::string> wingman_map = {
+    std::unordered_map<uint8_t, std::string> wingman_map = {
         {0,"LYLE"},
         {1,"MIGUEL"},
         {2,"GWEN"},

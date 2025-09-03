@@ -24,7 +24,7 @@ private:
 
 public:
     uint8_t bank{0};
-    std::map<uint8_t, std::vector<MemMusic *>> musics;
+    std::unordered_map<uint8_t, std::vector<MemMusic *>> musics;
     void init();
     void SwitchBank(uint8_t bank);
     MemMusic *GetMusic(uint32_t index);

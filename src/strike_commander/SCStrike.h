@@ -125,7 +125,7 @@ protected:
     /**
      * @brief A cache of objects
      */
-    std::map<std::string, RSEntity *> object_cache;
+    std::unordered_map<std::string, RSEntity *> object_cache;
     /**
      * @brief The AI planes
      */

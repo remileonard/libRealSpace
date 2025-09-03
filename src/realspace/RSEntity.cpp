@@ -26,7 +26,7 @@ RSEntity::~RSEntity() {
 void RSEntity::InitFromRAM(uint8_t *data, size_t size) {
 
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["REAL"] = std::bind(&RSEntity::parseREAL, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
     CalcBoundingBox();
@@ -225,7 +225,7 @@ void RSEntity::AddTriangle(Triangle *triangle) { this->triangles.push_back(*tria
 void RSEntity::parseREAL(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["OBJT"] = std::bind(&RSEntity::parseREAL_OBJT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["APPR"] = std::bind(&RSEntity::parseREAL_APPR, this, std::placeholders::_1, std::placeholders::_2);
     
@@ -235,7 +235,7 @@ void RSEntity::parseREAL(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSEntity::parseREAL_OBJT_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["AFTB"] = std::bind(&RSEntity::parseREAL_OBJT_AFTB, this, std::placeholders::_1, std::placeholders::_2);
     handlers["JETP"] = std::bind(&RSEntity::parseREAL_OBJT_JETP, this, std::placeholders::_1, std::placeholders::_2);
@@ -256,7 +256,7 @@ void RSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_AFTB(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::aftb;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXTE"] = std::bind(&RSEntity::parseREAL_OBJT_EXTE, this, std::placeholders::_1, std::placeholders::_2);
     handlers["APPR"] = std::bind(&RSEntity::parseREAL_OBJT_AFTB_APPR, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -265,7 +265,7 @@ void RSEntity::parseREAL_OBJT_AFTB(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_AFTB_APPR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["AFTB"] = std::bind(&RSEntity::parseREAL_APPR_POLY, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -273,7 +273,7 @@ void RSEntity::parseREAL_OBJT_AFTB_APPR(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_MISS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::missiles;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_TRGT, this, std::placeholders::_1, std::placeholders::_2);
@@ -289,7 +289,7 @@ void RSEntity::parseREAL_OBJT_MISS(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_BOMB(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::bomb;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_TRGT, this, std::placeholders::_1, std::placeholders::_2);
@@ -305,7 +305,7 @@ void RSEntity::parseREAL_OBJT_BOMB(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_TRCR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::tracer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_TRGT, this, std::placeholders::_1, std::placeholders::_2);
@@ -347,7 +347,7 @@ void RSEntity::parseREAL_OBJT_MISS_DATA(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_DYNM(uint8_t *data, size_t size){
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MISS"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM_MISS, this, std::placeholders::_1, std::placeholders::_2);
 
@@ -365,7 +365,7 @@ void RSEntity::parseREAL_OBJT_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::jet;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] =
@@ -407,7 +407,7 @@ void RSEntity::parseREAL_OBJT_JETP(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_ORNT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::ornt;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] =
@@ -426,7 +426,7 @@ void RSEntity::parseREAL_OBJT_ORNT(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_GRND(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::ground;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] =
@@ -448,7 +448,7 @@ void RSEntity::parseREAL_OBJT_GRND(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_SWPN(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::swpn;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["EXPL"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] =
@@ -563,7 +563,7 @@ void RSEntity::parseREAL_OBJT_JETP_DAMG(uint8_t *data, size_t size) {
     if (size > 2) {
         IFFSaxLexer lexer;
 
-        std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+        std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
         handlers["SYSM"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM, this, std::placeholders::_1, std::placeholders::_2);
 
         lexer.InitFromRAM(data, size, handlers);
@@ -590,7 +590,7 @@ void RSEntity::parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["DYNM"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ORDY"] =
@@ -676,7 +676,7 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DCOY"] =
@@ -726,7 +726,7 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_HPTS(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["SYSM"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM, this, std::placeholders::_1, std::placeholders::_2);
 }
@@ -747,7 +747,7 @@ void RSEntity::parseREAL_OBJT_EXTE(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["POLY"] = std::bind(&RSEntity::parseREAL_APPR_POLY, this, std::placeholders::_1, std::placeholders::_2);
     handlers["AFTB"] = std::bind(&RSEntity::parseREAL_APPR_POLY, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ANIM"] = std::bind(&RSEntity::parseREAL_APPR_ANIM, this, std::placeholders::_1, std::placeholders::_2);
@@ -756,7 +756,7 @@ void RSEntity::parseREAL_APPR(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_POLY(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] =
         std::bind(&RSEntity::parseREAL_APPR_POLY_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["VERT"] =
@@ -797,7 +797,7 @@ void RSEntity::parseREAL_APPR_POLY_VERT(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_POLY_DETA(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["LVL0"] =
         std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
     handlers["LVL1"] =
@@ -825,7 +825,7 @@ void RSEntity::parseREAL_APPR_POLY_DETA_LVLX(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_POLY_ATTR(uint8_t *data, size_t size) {
     size_t num_attr = size / 9;
     ByteStream stream(data);
-    std::map<char, uint16_t> compteurs = {{'L', 0}, {'T', 0}, {'Q', 0}};
+    std::unordered_map<char, uint16_t> compteurs = {{'L', 0}, {'T', 0}, {'Q', 0}};
     for (size_t i = 0; i < num_attr; i++) {
         Attr *attr = new Attr();
         uint16_t id = stream.ReadUShort();
@@ -843,7 +843,7 @@ void RSEntity::parseREAL_APPR_POLY_ATTR(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_POLY_TRIS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["VTRI"] =
         std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_VTRI, this, std::placeholders::_1, std::placeholders::_2);
     handlers["FACE"] =
@@ -905,7 +905,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_FACE(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] =
         std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TXMP"] =
@@ -1057,7 +1057,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_MAPS(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_POLY_QUAD(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     
     handlers["FACE"] =
         std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD_FACE, this, std::placeholders::_1, std::placeholders::_2);
@@ -1127,7 +1127,7 @@ void RSEntity::parseREAL_APPR_POLY_QUAD_MAPS(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_ANIM(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     
     handlers["INFO"] =
         std::bind(&RSEntity::parseREAL_APPR_ANIM_INFO, this, std::placeholders::_1, std::placeholders::_2);

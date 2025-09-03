@@ -1481,7 +1481,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     int blocY = (int)(pos.z + centerY) / BLOCK_WIDTH;
 
     // Prépare les offsets autour de la caméra
-    std::map<uint8_t, Point2D> blockid_offset;
+    std::unordered_map<uint8_t, Point2D> blockid_offset;
     int index = 0;
     int distance = 3;      // rayon de recherche en LOD fin
     const int safeRing = 0; // anneau forcé visible

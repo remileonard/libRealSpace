@@ -12,14 +12,14 @@ class SCState {
 private:
     inline static std::unique_ptr<SCState> s_instance{};    
 public:
-    std::map<uint8_t, bool> requierd_flags;
-    std::map<uint8_t, bool> mission_flyed_success;
+    std::unordered_map<uint8_t, bool> requierd_flags;
+    std::unordered_map<uint8_t, bool> mission_flyed_success;
     std::vector<int64_t> missions_flags;
-    std::map<uint8_t, std::uint8_t> weapon_load_out;
-    std::map<uint8_t, bool> aircraftHooks;
-    std::map<uint8_t, std::map<uint8_t, int16_t>> kill_board;
-    std::map<uint8_t, uint8_t> pilot_roaster;
-    std::map<uint8_t, int16_t> weapon_inventory;
+    std::unordered_map<uint8_t, std::uint8_t> weapon_load_out;
+    std::unordered_map<uint8_t, bool> aircraftHooks;
+    std::unordered_map<uint8_t, std::unordered_map<uint8_t, int16_t>> kill_board;
+    std::unordered_map<uint8_t, uint8_t> pilot_roaster;
+    std::unordered_map<uint8_t, int16_t> weapon_inventory;
     bool mission_accepted{false};
     uint8_t current_mission{0};
     uint8_t current_scene{0};

@@ -464,7 +464,7 @@ void WeaponLoadoutScene::removeWeapon(std::vector<EFCT *> *script, uint8_t id) {
     this->extra_zones.shrink_to_fit();
     // L'opérateur [] crée l'entrée si elle n'existe pas et retourne 0 par défaut.
     int nbweap                                        = GameState.weapon_load_out[id];
-    std::map<weapon_type_shp_id, uint8_t> max_weapons = {
+    std::unordered_map<weapon_type_shp_id, uint8_t> max_weapons = {
         {   AIM9J,  6},
         {   AIM9M,  6},
         {  AIM120,  6},
@@ -874,7 +874,7 @@ void LedgerScene::CreateZones() {
 void LedgerScene::Render() {
     SCScene::Render();
     FrameBuffer *fb                                = VGA.getFrameBuffer();
-    std::map<weapon_ids, std::string> weapon_label = {
+    std::unordered_map<weapon_ids, std::string> weapon_label = {
         {   ID_AIM9J,   "AIM-9J"},
         {   ID_AIM9M,   "AIM-9M"},
         {  ID_AGM65D,  "AGM-65D"},

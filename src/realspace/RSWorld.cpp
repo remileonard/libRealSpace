@@ -9,7 +9,7 @@ RSWorld::~RSWorld() {
 void RSWorld::InitFromRAM(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["WRLD"] = std::bind(&RSWorld::parseWRLD, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -17,7 +17,7 @@ void RSWorld::InitFromRAM(uint8_t *data, size_t size) {
 void RSWorld::parseWRLD(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSWorld::parseWRLD_INFO, this, std::placeholders::_1, std::placeholders::_2);
 
     handlers["HORZ"] = std::bind(&RSWorld::parseWRLD_HORZ, this, std::placeholders::_1, std::placeholders::_2);

@@ -10,7 +10,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "../engine/Loader.h"
 
 #include "TreArchive.h"
@@ -66,9 +66,9 @@ class AssetManager{
 private:
     bool isIsoImage{false};
     std::string *basePath;
-    std::map<std::string, FileData*> cacheFileData;
-    std::map<std::string, TreEntry *> treEntries;
-    std::map<std::string, FileEntry> fileContents;
+    std::unordered_map<std::string, FileData*> cacheFileData;
+    std::unordered_map<std::string, TreEntry *> treEntries;
+    std::unordered_map<std::string, FileEntry> fileContents;
     bool ExtractPrimaryVolumeDescriptor(std::ifstream &isoFile, PrimaryVolumeDescriptor &pvd);
     bool ExtractFileListFromRootDirectory(std::ifstream &isoFile, const PrimaryVolumeDescriptor &pvd);
     FileData *ReadFileEntry(const FileEntry &entry, const std::string &isoPath);

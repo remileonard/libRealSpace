@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "Base.h"
 #include "../commons/ByteStream.h"
 #include "PakArchive.h"
@@ -64,7 +64,7 @@ public:
     inline uint8_t* GetData(void){ return data; }
     inline bool IsValid(void){ return this->valid;}
     std::vector<TreEntry*> entries;
-    std::map<const char*,TreEntry*,Char_String_Comparator> mappedEntries;
+    std::unordered_map<const char*,TreEntry*> mappedEntries;
 private:
     
     bool valid;

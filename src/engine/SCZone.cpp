@@ -35,7 +35,7 @@ void SCZone::onAction(void){
     }
 }
 
-bool  SCZone::isActive(std::map<uint8_t, bool> *requierd_flags) {
+bool  SCZone::isActive(std::unordered_map<uint8_t, bool> *requierd_flags) {
     if (this->sprite == nullptr || this->sprite->requ == nullptr) {
         this->active = true;
         return this->active;

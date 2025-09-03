@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <map>
+#include <unordered_map>
 
 struct EXTR_SHAP {
     uint8_t EXTR_ID;
@@ -77,7 +77,7 @@ struct BACK {
 };
 struct FORE {
     PALT *palette{nullptr};
-    std::map<uint8_t, SPRT*> sprites;
+    std::unordered_map<uint8_t, SPRT*> sprites;
 };
 struct SCEN {
     OPTS_INFO infos;
@@ -163,7 +163,7 @@ public:
     ~RSOption();
     void InitFromRam(uint8_t* data, size_t size);
 
-    std::map<std::uint8_t, SCEN*> opts;
-    std::map<std::uint8_t, SHOT*> estb;
+    std::unordered_map<std::uint8_t, SCEN*> opts;
+    std::unordered_map<std::uint8_t, SHOT*> estb;
 
 };

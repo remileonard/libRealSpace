@@ -105,7 +105,7 @@ struct MISN {
 };
 class RSMission {
 public:
-    std::map<std::string, RSEntity *> *objCache;
+    std::unordered_map<std::string, RSEntity *> *objCache;
     TreArchive *tre;
     
     MISN mission_data;

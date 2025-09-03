@@ -52,10 +52,10 @@ private:
     void BuildDB(void);
 
 
-    std::map<char *, CharFace *, Char_String_Comparator> faces;
-    std::map<char *, FacePalette *, Char_String_Comparator> facePalettes;
-    std::map<char *, ConvBackGround *, Char_String_Comparator> backgrounds;
-    std::map<char *, CharFigure *, Char_String_Comparator> figures;
+    std::unordered_map<char *, CharFace *> faces;
+    std::unordered_map<char *, FacePalette *> facePalettes;
+    std::unordered_map<char *, ConvBackGround *> backgrounds;
+    std::unordered_map<char *, CharFigure *> figures;
 
     PakArchive convShps;
     PakArchive convPals;

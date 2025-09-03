@@ -216,7 +216,7 @@ public:
     std::vector<uvxyEntry> uvs;
     std::vector<qmapuvxyEntry *> qmapuvs;
     std::vector<Lod> lods;
-    std::map<uint16_t, Attr *> attrs;
+    std::unordered_map<uint16_t, Attr *> attrs;
     std::vector<Triangle> triangles;
     std::vector<Quads *> quads;
     std::vector<WEAPS *> weaps;
@@ -239,7 +239,7 @@ public:
     float wing_area{0};
     JDYN *jdyn{nullptr};
     uint16_t life{0};
-    std::map<std::string, std::map<std::string, uint16_t>> sysm;
+    std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>> sysm;
     // For rendering
     Point3D position;
     Quaternion orientation;

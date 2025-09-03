@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <cstring>
 
@@ -20,7 +20,7 @@ class RSNavMap {
     void parseNMAP_SHAP(uint8_t* data, size_t size);
 
 public:
-    std::map<std::string, RLEShape*> maps;
+    std::unordered_map<std::string, RLEShape*> maps;
     RLEShape *background;
     RSFont *font;
     RSNavMap();

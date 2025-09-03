@@ -46,7 +46,7 @@ void RSPalette::initFromFileData(FileData* fileData) {
 }
 void RSPalette::initFromFileRam(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["PALT"] = std::bind(&RSPalette::parsePALT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["PAL "] = std::bind(&RSPalette::parsePAL, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -54,7 +54,7 @@ void RSPalette::initFromFileRam(uint8_t *data, size_t size) {
 void RSPalette::parsePAL(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["CMAP"] = std::bind(&RSPalette::parsePAL_CMAP, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
@@ -75,7 +75,7 @@ void RSPalette::parsePAL_CMAP(uint8_t *data, size_t size){
 void RSPalette::parsePALT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSPalette::parsePALT_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["PALT"] = std::bind(&RSPalette::parsePALT_PALT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["BLWH"] = std::bind(&RSPalette::parsePALT_BLWH, this, std::placeholders::_1, std::placeholders::_2);
@@ -173,7 +173,7 @@ void RSPalette::parsePALT_RANG(uint8_t *data, size_t size){
 void RSPalette::parsePALT_BILD(uint8_t *data, size_t size){
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSPalette::parsePALT_BILD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TABL"] = std::bind(&RSPalette::parsePALT_BILD_TABL, this, std::placeholders::_1, std::placeholders::_2);
     

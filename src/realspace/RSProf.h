@@ -17,8 +17,8 @@ struct RADI_INFO {
 struct RADI {
     uint16_t spch;
     RADI_INFO info;
-    std::map<std::uint8_t, std::string> msgs;
-    std::map<std::string, std::string> asks;
+    std::unordered_map<std::uint8_t, std::string> msgs;
+    std::unordered_map<std::string, std::string> asks;
     std::vector<std::string> asks_vector;
     std::vector<char> opts;
 };

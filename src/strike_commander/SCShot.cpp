@@ -208,7 +208,7 @@ void MapShot::init() {
     this->frameBufferA->fillWithColor(255);
     this->layers.clear();
     this->rawPalette = this->optPals.GetEntry(23)->data;
-    std::map<uint8_t, std::tuple<uint16_t, uint16_t>> map = {
+    std::unordered_map<uint8_t, std::tuple<uint16_t, uint16_t>> map = {
         {128, {177, 37}},
         {129, {177, 237}},
         {130, {497, 37}},

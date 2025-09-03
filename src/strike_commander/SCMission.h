@@ -23,7 +23,7 @@ class SCProg;
 class SCMission {
 private:
     std::string mission_name;
-    std::map<std::string, RSEntity *> *obj_cache{nullptr};
+    std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
     RSEntity * LoadEntity(std::string name);
     RSProf * LoadProfile(std::string name);
     uint32_t last_time;
@@ -40,7 +40,7 @@ public:
     std::vector<SCMissionActors *> friendlies;
     std::vector<SCMissionWaypoint *> waypoints;
     std::vector<SCExplosion *> explosions;
-    std::map<uint8_t, int16_t> gameflow_registers;
+    std::unordered_map<uint8_t, int16_t> gameflow_registers;
     bool success{false};
     bool failure{false};
     bool mission_ended{false};
@@ -52,7 +52,7 @@ public:
     RSSound &sound = RSSound::getInstance();;
     std::vector<RadioMessages*> radio_messages;
     
-    SCMission(std::string mission_name, std::map<std::string, RSEntity *> *objCache);
+    SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache);
     ~SCMission();
     void loadMission();
     void cleanup();

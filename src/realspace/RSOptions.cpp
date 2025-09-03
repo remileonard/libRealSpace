@@ -1,7 +1,7 @@
 #include "../commons/IFFSaxLexer.h"
 #include "RSOption.h"
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <string>
 
 RSOption::RSOption() {
@@ -28,7 +28,7 @@ RSOption::~RSOption() {
 void RSOption::InitFromRam(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["OPTS"] = std::bind(&RSOption::parseOPTS, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ESTB"] = std::bind(&RSOption::parseETSB, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MARK"] = std::bind(&RSOption::parseMARK, this, std::placeholders::_1, std::placeholders::_2);
@@ -37,7 +37,7 @@ void RSOption::InitFromRam(uint8_t *data, size_t size) {
 
 void RSOption::parseOPTS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     handlers["SCEN"] = std::bind(&RSOption::parseOPTS_SCEN, this, std::placeholders::_1, std::placeholders::_2);
 
@@ -46,7 +46,7 @@ void RSOption::parseOPTS(uint8_t *data, size_t size) {
 
 void RSOption::parseOPTS_SCEN(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     this->tmpscen = new SCEN();
 
@@ -80,7 +80,7 @@ void RSOption::parseOPTS_SCEN_TUNE(uint8_t *data, size_t size) {
 
 void RSOption::parseOPTS_SCEN_BACK(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     this->tmpback = new BACK();
     handlers["PALT"] =
@@ -107,7 +107,7 @@ void RSOption::parseOPTS_SCEN_BACK_SHAPE(uint8_t *data, size_t size) {
 
 void RSOption::parseOPTS_SCEN_FORE(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmpfore = new FORE();
 
     handlers["PALT"] =
@@ -127,7 +127,7 @@ void RSOption::parseOPTS_SCEN_FORE_PALT(uint8_t *data, size_t size) {
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     handlers["SHAP"] =
         std::bind(&RSOption::parseOPTS_SCEN_FORE_SPRT_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -230,7 +230,7 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_LABL(uint8_t *data, size_t size) {
 
 void RSOption::parseETSB(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     handlers["SHOT"] = std::bind(&RSOption::parseETSB_SHOT, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -238,7 +238,7 @@ void RSOption::parseETSB(uint8_t *data, size_t size) {
 
 void RSOption::parseETSB_SHOT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSOption::parseETSB_SHOT_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHPS"] = std::bind(&RSOption::parseETSB_SHOT_SHPS, this, std::placeholders::_1, std::placeholders::_2);
     handlers["PALS"] = std::bind(&RSOption::parseETSB_SHOT_PALS, this, std::placeholders::_1, std::placeholders::_2);
@@ -254,7 +254,7 @@ void RSOption::parseETSB_SHOT_INFO(uint8_t *data, size_t size) {
 
 void RSOption::parseETSB_SHOT_SHPS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["SHAP"] =
         std::bind(&RSOption::parseETSB_SHOT_SHPS_SHAPE, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MOBL"] =
@@ -288,7 +288,7 @@ void RSOption::parseETSB_SHOT_SHPS_MOBL(uint8_t *data, size_t size) {
 
 void RSOption::parseETSB_SHOT_PALS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["PALT"] =
         std::bind(&RSOption::parseETSB_SHOT_PALS_PALT, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -303,7 +303,7 @@ void RSOption::parseETSB_SHOT_PALS_PALT(uint8_t *data, size_t size) {
 
 void RSOption::parseMARK(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     // handlers["SHOT"] = std::bind(&RSOption::parseSHOT, this, std::placeholders::_1, std::placeholders::_2);
 
@@ -311,7 +311,7 @@ void RSOption::parseMARK(uint8_t *data, size_t size) {
 }
 void RSOption::parseOPTS_SCEN_EXTR(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     handlers["SHAP"] = std::bind(&RSOption::parseOPTS_SCEN_EXTR_SHAP, this, std::placeholders::_1, std::placeholders::_2);
 

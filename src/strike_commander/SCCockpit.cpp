@@ -643,7 +643,7 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
     };
     this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->SetPosition(&pmfd_right_weapon);
     fb->drawShape(this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0));
-    std::map<int, int> weapons_shape = {
+    std::unordered_map<int, int> weapons_shape = {
         {1,  1},
         {2,  1},
         {3,  5},
@@ -654,7 +654,7 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
         {8, 15},
         {9,  3}
     };
-    std::map<int, std::string> weapon_names = {
+    std::unordered_map<int, std::string> weapon_names = {
         {12,     "GUN"},
         { 1,  "AIM-9J"},
         { 2,  "AIM-9M"},
@@ -1240,7 +1240,7 @@ void SCCockpit::RenderHUD() {
     Point2D inrange_text = {7, throttle_text.y + 5};
     Point2D weapons_text = {7+16, throttle_text.y + 10};
     Point2D weapons_count_text = {7, weapons_text.y};
-    std::map<int, std::string> weapon_names = {
+    std::unordered_map<int, std::string> weapon_names = {
         {ID_20MM, "GUNS"},
         {ID_AIM9J, "AIM-9J"},
         {ID_AIM9M, "AIM-9M"},

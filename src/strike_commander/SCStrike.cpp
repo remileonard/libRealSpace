@@ -588,12 +588,14 @@ void SCStrike::checkKeyboard(void) {
         }
         this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
         if (this->current_mission->sound.sounds.size() > 0) {
-            if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-            } else if (this->player_plane->GetThrottle() >= 60) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+            if (!Mixer.isSoundPlaying(5)) {
+                if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
+                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                } else if (this->player_plane->GetThrottle() >= 60) {
+                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                }
             }
         }
     }
@@ -601,13 +603,16 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_DOWN))) {
         this->player_plane->SetThrottle(this->player_plane->GetThrottle() - 1);
         if (this->player_plane->GetThrottle() == 0) {
-            if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-            } else if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
+            if (!Mixer.isSoundPlaying(5)) {
+                if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
+                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                } else if (this->current_mission->sound.sounds.size() > 0) {
+                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
+                }    
             }
+            
         }
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
@@ -996,7 +1001,7 @@ void SCStrike::setMission(char const *missionName) {
     }
     if (GameState.weapon_load_out.size()>1) {
         this->player_plane->object->entity->weaps.clear();
-        std::map<weapon_type_shp_id, std::string> weapon_names = {
+        std::unordered_map<weapon_type_shp_id, std::string> weapon_names = {
             {AIM9J, "SWINDERJ"},
             {AIM9M, "SWINDERM"},
             {AIM120, "AMRAAM"},
@@ -1012,7 +1017,7 @@ void SCStrike::setMission(char const *missionName) {
         weap->nb_weap = 1000;
         weap->objct = loadWeapon(weap->name);
         this->player_plane->object->entity->weaps.push_back(weap);
-        std::map<weapon_type_shp_id, bool> loaded;
+        std::unordered_map<weapon_type_shp_id, bool> loaded;
         for (int i=1; i<5; i++) {
             if (loaded.find(weapon_type_shp_id(GameState.weapon_load_out[i])) != loaded.end()) {
                 continue;

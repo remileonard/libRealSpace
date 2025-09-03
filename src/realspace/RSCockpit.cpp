@@ -20,7 +20,7 @@ RSCockpit::~RSCockpit(){
 void RSCockpit::InitFromRam(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
 
-	std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+	std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
 	handlers["CKPT"] = std::bind(&RSCockpit::parseCKPT, this, std::placeholders::_1, std::placeholders::_2);
 	
 	lexer.InitFromRAM(data, size, handlers);
@@ -41,7 +41,7 @@ void RSCockpit::InitFromRam(uint8_t* data, size_t size) {
 void RSCockpit::parseCKPT(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
 
-	std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+	std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
 	handlers["INFO"] = std::bind(&RSCockpit::parseINFO, this, std::placeholders::_1, std::placeholders::_2);
 	handlers["ARTP"] = std::bind(&RSCockpit::parseARTP, this, std::placeholders::_1, std::placeholders::_2);
 	handlers["VTMP"] = std::bind(&RSCockpit::parseVTMP, this, std::placeholders::_1, std::placeholders::_2);
@@ -109,7 +109,7 @@ void RSCockpit::parseGHUD(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseREAL(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
 
     handlers["INFO"] = std::bind(&RSCockpit::parseREAL_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["OBJS"] = std::bind(&RSCockpit::parseREAL_OBJS, this, std::placeholders::_1, std::placeholders::_2);
@@ -138,7 +138,7 @@ void RSCockpit::parseREAL_OBJS(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseCHUD(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["FILE"] = std::bind(&RSCockpit::parseCHUD_FILE, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -148,7 +148,7 @@ void RSCockpit::parseCHUD_FILE(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
 
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SPOT"] = std::bind(&RSCockpit::parseMONI_SPOT, this, std::placeholders::_1, std::placeholders::_2);
@@ -197,7 +197,7 @@ void RSCockpit::parseMONI_DAMG(uint8_t* data, size_t size) {
  */
 void RSCockpit::parseMONI_MFDS(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
 
     handlers["COMM"] = std::bind(&RSCockpit::parseMONI_MFDS_COMM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["AARD"] = std::bind(&RSCockpit::parseMONI_MFDS_AARD, this, std::placeholders::_1, std::placeholders::_2);
@@ -210,7 +210,7 @@ void RSCockpit::parseMONI_MFDS(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_MFDS_COMM(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_MFDS_COMM_INFO, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -219,7 +219,7 @@ void RSCockpit::parseMONI_MFDS_COMM_INFO(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_MFDS_AARD(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_MFDS_AARD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_MFDS_AARD_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -237,7 +237,7 @@ void RSCockpit::parseMONI_MFDS_AARD_SHAP(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_MFDS_AGRD(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_MFDS_AGRD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_MFDS_AGRD_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -255,7 +255,7 @@ void RSCockpit::parseMONI_MFDS_AGRD_SHAP(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_MFDS_GCAM(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_MFDS_GCAM_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_MFDS_GCAM_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -273,7 +273,7 @@ void RSCockpit::parseMONI_MFDS_GCAM_SHAP(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_MFDS_WEAP(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_MFDS_WEAP_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_MFDS_WEAP_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -292,7 +292,7 @@ void RSCockpit::parseMONI_MFDS_WEAP_SHAP(uint8_t* data, size_t size) {
 
 void RSCockpit::parseMONI_MFDS_DAMG(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_MFDS_DAMG_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_MFDS_DAMG_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -318,7 +318,7 @@ void RSCockpit::parseMONI_MFDS_DAMG_SHAP(uint8_t* data, size_t size) {
  */
 void RSCockpit::parseMONI_INST(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
 
     handlers["RAWS"] = std::bind(&RSCockpit::parseMONI_INST_RAWS, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ALTI"] = std::bind(&RSCockpit::parseMONI_INST_ALTI, this, std::placeholders::_1, std::placeholders::_2);
@@ -329,7 +329,7 @@ void RSCockpit::parseMONI_INST(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_RAWS(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_INST_RAWS_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_INST_RAWS_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -340,7 +340,7 @@ void RSCockpit::parseMONI_INST_RAWS_INFO(uint8_t* data, size_t size) {
 void RSCockpit::parseMONI_INST_RAWS_SHAP(uint8_t* data, size_t size) {
 
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["SYMB"] = std::bind(&RSCockpit::parseMONI_INST_RAWS_SHAP_SYMB, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ZOOM"] = std::bind(&RSCockpit::parseMONI_INST_RAWS_SHAP_ZOOM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["NORM"] = std::bind(&RSCockpit::parseMONI_INST_RAWS_SHAP_NORM, this, std::placeholders::_1, std::placeholders::_2);
@@ -397,7 +397,7 @@ void RSCockpit::parseMONI_INST_RAWS_SHAP_NORM(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_ALTI(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_INST_ALTI_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_INST_ALTI_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -415,7 +415,7 @@ void RSCockpit::parseMONI_INST_ALTI_SHAP(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_AIRS(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_INST_AIRS_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_INST_AIRS_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -434,7 +434,7 @@ void RSCockpit::parseMONI_INST_AIRS_SHAP(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_MWRN(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSCockpit::parseMONI_INST_MWRN_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSCockpit::parseMONI_INST_MWRN_SHAP, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);

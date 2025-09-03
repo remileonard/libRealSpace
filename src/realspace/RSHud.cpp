@@ -2,20 +2,20 @@
 
 void RSHud::parseREAL(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["CHUD"] = std::bind(&RSHud::parseREAL_CHUD, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["LARG"] = std::bind(&RSHud::parseREAL_CHUD_LARG, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SMAL"] = std::bind(&RSHud::parseREAL_CHUD_SMAL, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud = new CHUD();
     this->tmp_hud->type = 0;
     handlers["HINF"] = std::bind(&RSHud::parseREAL_CHUD_LARG_HINF, this, std::placeholders::_1, std::placeholders::_2);
@@ -40,7 +40,7 @@ void RSHud::parseREAL_CHUD_LARG(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_SMAL(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
 
     this->tmp_hud = new CHUD();
     this->tmp_hud->type = 1;
@@ -67,7 +67,7 @@ void RSHud::parseREAL_CHUD_SMAL(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_HINF(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->HINF = new SHINF();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_HINF_INFO, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
@@ -79,7 +79,7 @@ void RSHud::parseREAL_CHUD_LARG_HINF_INFO(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_ASPD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->ASPD = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_ASPD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_ASPD_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -108,7 +108,7 @@ void RSHud::parseREAL_CHUD_LARG_ASPD_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_ALTI(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->ALTI = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_ALTI_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_ALTI_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -154,7 +154,7 @@ void RSHud::parseREAL_CHUD_LARG_ALTI_SHP2(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_LADD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->LADD = new SLADD();
     handlers["VECT"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LADD_VECT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["LADD"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LADD_LADD, this, std::placeholders::_1, std::placeholders::_2);
@@ -162,7 +162,7 @@ void RSHud::parseREAL_CHUD_LARG_LADD(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_LADD_VECT(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->LADD->VECT = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LADD_VECT_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LADD_VECT_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -191,7 +191,7 @@ void RSHud::parseREAL_CHUD_LARG_LADD_VECT_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_LADD_LADD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LADD_LADD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -202,7 +202,7 @@ void RSHud::parseREAL_CHUD_LARG_LADD_LADD_INFO(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_HEAD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->HEAD = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_HEAD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_HEAD_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -248,7 +248,7 @@ void RSHud::parseREAL_CHUD_LARG_HEAD_SHP2(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_COLL(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->COLL = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_COLL_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_COLL_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -277,7 +277,7 @@ void RSHud::parseREAL_CHUD_LARG_COLL_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_STAL(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->STAL = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_STAL_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_STAL_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -307,7 +307,7 @@ void RSHud::parseREAL_CHUD_LARG_STAL_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_FUEL(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->FUEL = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_FUEL_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_FUEL_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -336,7 +336,7 @@ void RSHud::parseREAL_CHUD_LARG_FUEL_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_LCOS(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->LCOS = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LCOS_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_LCOS_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -366,7 +366,7 @@ void RSHud::parseREAL_CHUD_LARG_LCOS_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_TARG(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->TARG = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_TARG_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_TARG_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -395,7 +395,7 @@ void RSHud::parseREAL_CHUD_LARG_TARG_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_MISD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->MISD = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_MISD_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_MISD_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -424,7 +424,7 @@ void RSHud::parseREAL_CHUD_LARG_MISD_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_CIRC(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CIRC_INFO, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -435,7 +435,7 @@ void RSHud::parseREAL_CHUD_LARG_CIRC_INFO(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_CROS(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->CROS = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CROS_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CROS_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -464,7 +464,7 @@ void RSHud::parseREAL_CHUD_LARG_CROS_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_CCIP(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->CCIP = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CCIP_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CCIP_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -493,7 +493,7 @@ void RSHud::parseREAL_CHUD_LARG_CCIP_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_CCRP(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->CCRP = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CCRP_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_CCRP_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -522,7 +522,7 @@ void RSHud::parseREAL_CHUD_LARG_CCRP_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_STRF(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->STRF = new CHUD_SHAPE();
     handlers["INFO"] = std::bind(&RSHud::parseREAL_CHUD_LARG_STRF_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSHud::parseREAL_CHUD_LARG_STRF_SHAP, this, std::placeholders::_1, std::placeholders::_2);
@@ -551,7 +551,7 @@ void RSHud::parseREAL_CHUD_LARG_STRF_SHAP(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmp_hud->TTAG = new STTAG();
     handlers["CLSR"] = std::bind(&RSHud::parseREAL_CHUD_LARG_TTAG_CLSR, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TARG"] = std::bind(&RSHud::parseREAL_CHUD_LARG_TTAG_TARG, this, std::placeholders::_1, std::placeholders::_2);
@@ -673,7 +673,7 @@ RSHud::~RSHud() {
 }
 void RSHud::InitFromRam(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    std::map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["REAL"] = std::bind(&RSHud::parseREAL, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }

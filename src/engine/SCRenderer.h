@@ -37,7 +37,7 @@ typedef struct VertexCache {
 
 
 typedef std::vector<VertexCache> VertexVector;
-typedef std::map<int, VertexVector> TextureVertexMap;
+typedef std::unordered_map<int, VertexVector> TextureVertexMap;
 // Petit utilitaire pour le culling
 struct Plane {
     float a, b, c, d; // ax + by + cz + d = 0

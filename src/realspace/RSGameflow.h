@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <map>
+#include <unordered_map>
 
 struct INFO {
 	uint8_t ID;
@@ -90,12 +90,12 @@ struct CHNG {
 
 
 struct GAMEFLOW {
-	std::map<std::uint8_t, MISS*> game;
-	std::map<std::uint8_t, MAP*> wrld;
+	std::unordered_map<std::uint8_t, MISS*> game;
+	std::unordered_map<std::uint8_t, MAP*> wrld;
 	std::vector<LOAD*> load;
 	MLST* mlst;
 	std::vector<WING*> wngs;
-	std::map<std::uint8_t, CHNG*> stat;
+	std::unordered_map<std::uint8_t, CHNG*> stat;
 };
 
 /**

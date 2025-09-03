@@ -79,10 +79,10 @@ private:
     PakArchive midgames;
     PakArchive optShps;
     PakArchive optPals;
-    std::map<uint8_t, MIDGAME_DATA> midgames_data;
+    std::unordered_map<uint8_t, MIDGAME_DATA> midgames_data;
     std::vector<PakArchive*> mid;
     std::vector<PakArchive*> midvoc;
-    std::map<uint8_t, std::vector<MIDGAME_SHOT *>> midgames_shots;
+    std::unordered_map<uint8_t, std::vector<MIDGAME_SHOT *>> midgames_shots;
     int shot_counter{0};
     int fps_counter{0};
     int fps{1};

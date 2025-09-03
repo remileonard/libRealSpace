@@ -52,17 +52,17 @@ class WeaponLoadoutScene : public SCScene {
     void removeWeapon(std::vector<EFCT *> *script, uint8_t id);
     void updateWeaponDisplay();
 
-    std::vector<std::map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>> weapon_pylones = {
-        std::map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
+    std::vector<std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>> weapon_pylones = {
+        std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
                                                                         {AIM9J, std::vector<std::vector<uint8_t>>{{4}, {117, 118}}},
                                                                         {AIM9M, std::vector<std::vector<uint8_t>>{{6}, {117, 118}}},
                                                                         },
-        std::map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
+        std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
                                                                         {AIM9J, std::vector<std::vector<uint8_t>>{{5}, {119, 120}}},
                                                                         {AIM9M, std::vector<std::vector<uint8_t>>{{7}, {119, 120}}},
                                                                         {AIM120, std::vector<std::vector<uint8_t>>{{1}, {119, 120}}},
                                                                         },
-        std::map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
+        std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
                                                                         {AIM9J, std::vector<std::vector<uint8_t>>{{40}, {121, 122}}},
                                                                         {AIM9M, std::vector<std::vector<uint8_t>>{{41}, {121, 122}}},
                                                                         {AIM120, std::vector<std::vector<uint8_t>>{{2, 3}, {121, 122}}},
@@ -73,7 +73,7 @@ class WeaponLoadoutScene : public SCScene {
                                                                         {GBU15, std::vector<std::vector<uint8_t>>{{32}, {121, 122}}},
                                                                         {LAU3, std::vector<std::vector<uint8_t>>{{34, 35, 36}, {121, 122}}},
                                                                         },
-        std::map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
+        std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
                                                                         {DURANDAL, std::vector<std::vector<uint8_t>>{{17, 18, 19}, {123, 124}}},
                                                                         {MK20, std::vector<std::vector<uint8_t>>{{23, 24, 25}, {123, 124}}},
                                                                         {AGM65D, std::vector<std::vector<uint8_t>>{{11, 12, 13}, {123, 124}}},
@@ -115,8 +115,8 @@ struct CatalogueShoppingCartItem {
 }; 
 
 class CatalogueScene : public SCScene {
-    std::map<uint8_t, std::vector<std::pair<uint8_t, std::function<void(std::vector<EFCT *> *script, uint8_t id)>>>> pages;
-    std::map<uint8_t, CatalogueShoppingCartItem> shopping_cart;
+    std::unordered_map<uint8_t, std::vector<std::pair<uint8_t, std::function<void(std::vector<EFCT *> *script, uint8_t id)>>>> pages;
+    std::unordered_map<uint8_t, CatalogueShoppingCartItem> shopping_cart;
     int current_page{0};
     RSFont *calcfont;
     RSImageSet *order_font;

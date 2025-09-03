@@ -23,7 +23,7 @@ struct imperial_plane_data {
     float MIN_LIFT_SPEED{0.0f};
 };
 
-std::map<std::string, imperial_plane_data> imperial_planes = {
+std::unordered_map<std::string, imperial_plane_data> imperial_planes = {
     {"747", {4.0f, -2.0f, 50.0f, 80.0f, 25.0f, 50.0f, 5500.0f, 500000.0f, 100000.0f, 200000.0f, 220.0f, .83f, 200.0f}},
     {"F-18", {9.0f - 6.0f, 50.0f, 60.0f, 30.0f, 100.0f, 510.0f, 24000.0f, 12000.0f, 32000.0f, 38.0f, .90f, 200.0f}},
     {"F-16DES", {10.0f, -7.0f, 40.0f, 40.0f, 30.0f, 100.0f, 390.0f, 18000.0f, 8000.0f, 23000.0f, 32.0f, .93f, 120.0f}},

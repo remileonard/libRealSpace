@@ -26,7 +26,7 @@ extern "C" {
     #include <string.h>
     #include <vector>
     #include <stack>
-    #include <map>
+    #include <unordered_map>
     #include <math.h>
     #include <stdint.h>
     #include <float.h>
