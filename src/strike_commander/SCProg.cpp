@@ -326,22 +326,28 @@ void SCProg::execute() {
             case OP_CMP_GREATER_EQUAL_THAN:
                 if (exec) {
                     this->actor->executed_opcodes.push_back(i);
-                    if (work_register == prog.arg) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
-                        true_flag = true;
-                    } else if (work_register > prog.arg) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_GREATER;
-                        true_flag = false;
-                    } else if (work_register < prog.arg) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_LESS;
-                        true_flag = false;
-                    } else if (work_register >= prog.arg) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_GREATER_EQUAL;
-                        true_flag = true;
-                    } else if (work_register <= prog.arg) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_LESS_EQUAL;
-                        true_flag = true;
+        
+                    
+                    bool is_equal = (work_register == prog.arg);
+                    bool is_less = (work_register < prog.arg);
+                    bool is_greater = (work_register > prog.arg);
+
+                    if (is_equal) {
+                        compare_flag |= PROG_CMP_EQUAL;
                     }
+                    if (is_less) {
+                        compare_flag |= PROG_CMP_LESS;
+                    }
+                    if (is_greater) {
+                        compare_flag |= PROG_CMP_GREATER;
+                    }
+                    if (is_less || is_equal) {
+                        compare_flag |= PROG_CMP_LESS_EQUAL;
+                    }
+                    if (is_greater || is_equal) {
+                        compare_flag |= PROG_CMP_GREATER_EQUAL;
+                    }
+                    true_flag = is_equal;
                 }
             break;
             case OP_BRANCH_IF_EQUAL_OR_TRUE:
