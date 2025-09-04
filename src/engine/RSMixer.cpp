@@ -1,6 +1,7 @@
 #include "RSMixer.h"
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 
 static RSMixer* g_rsmixer_instance = nullptr;
 
@@ -8,16 +9,26 @@ namespace {
     std::mutex g_mixMutex;
 }
 
+
 static void ChannelFinishedCallback(int ch) {
+    // Capture locale de l'instance pour éviter les accès à une instance détruite
     RSMixer* inst = g_rsmixer_instance;
-    if (!inst || inst->shuttingDown) return; // évite lock pendant destruction
-    std::lock_guard<std::mutex> lock(g_mixMutex);
-    auto it = inst->channelChunks.find(ch);
-    if (it != inst->channelChunks.end()) {
-        if (it->second) {
-            Mix_FreeChunk(it->second);
+    if (!inst || inst->shuttingDown) return;
+    
+    // Limiter la durée du verrouillage
+    Mix_Chunk* chunkToFree = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_mixMutex);
+        auto it = inst->channelChunks.find(ch);
+        if (it != inst->channelChunks.end()) {
+            chunkToFree = it->second;
+            inst->channelChunks.erase(it);
         }
-        inst->channelChunks.erase(it);
+    }
+    
+    // Libérer la ressource hors du mutex
+    if (chunkToFree) {
+        Mix_FreeChunk(chunkToFree);
     }
 }
 
@@ -28,7 +39,10 @@ RSMixer::RSMixer() {
 
 void RSMixer::init() {
     this->initted = Mix_Init(MIX_INIT_MID);
-    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024);
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0) {
+        printf("Erreur d'initialisation audio: %s\n", Mix_GetError());
+        return;
+    }
     this->music = new RSMusic();
     this->music->init();
     this->isplaying = false;
@@ -36,43 +50,46 @@ void RSMixer::init() {
 }
 
 RSMixer::~RSMixer() {
-    // Signaler arrêt
+    // Signaler arrêt avec un atomic bool serait préférable
     shuttingDown = true;
-
+    
+    // Bloquer les opérations pendant la destruction
+    std::lock_guard<std::mutex> lock(g_mixMutex);
+    
     // Désenregistrer immédiatement le callback
     Mix_ChannelFinished(nullptr);
-
+    
     // Stopper tous les canaux pour éviter callbacks tardifs
     Mix_HaltChannel(-1);
     Mix_HaltMusic();
-
-    // Plus personne ne doit utiliser l’instance
-    if (g_rsmixer_instance == this) {
-        g_rsmixer_instance = nullptr;
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(g_mixMutex);
-        for (auto &kv : channelChunks) {
-            if (kv.second) {
-                Mix_FreeChunk(kv.second);
-            }
+    
+    // Nettoyer les ressources audio
+    for (auto &kv : channelChunks) {
+        if (kv.second) {
+            Mix_FreeChunk(kv.second);
         }
-        channelChunks.clear();
     }
-
+    channelChunks.clear();
+    
     if (currentMusicPtr) {
         Mix_FreeMusic(currentMusicPtr);
         currentMusicPtr = nullptr;
     }
+    
     if (this->music) {
         delete this->music;
         this->music = nullptr;
     }
-
+    
+    // Plus personne ne doit utiliser l'instance
+    if (g_rsmixer_instance == this) {
+        g_rsmixer_instance = nullptr;
+    }
+    
     Mix_CloseAudio();
     Mix_Quit();
 }
+
 
 void RSMixer::playMusic(uint32_t index, int loop) {
     if (this->current_music == index) return;
@@ -99,45 +116,49 @@ void RSMixer::playMusic(uint32_t index, int loop) {
 }
 
 void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
-    if (shuttingDown) return;
-    voc_data = data;
+    if (shuttingDown || !data) return;
+    
+    // Ne pas stocker le pointeur data, faire une copie si nécessaire
     SDL_RWops* rw = SDL_RWFromConstMem(data, static_cast<int>(vocSize));
-    Mix_Chunk* chunk = Mix_LoadWAV_RW(rw, 1);
-    if (!chunk) {
-        printf("Error loading VOC sound: %s\n", Mix_GetError());
+    if (!rw) {
+        printf("Erreur création RWops: %s\n", SDL_GetError());
         return;
     }
+    
+    Mix_Chunk* chunk = Mix_LoadWAV_RW(rw, 1); // 1 = SDL_RWops sera automatiquement libéré
+    if (!chunk) {
+        printf("Erreur chargement VOC: %s\n", Mix_GetError());
+        return;
+    }
+    
     int ch = Mix_PlayChannel(-1, chunk, 0);
     if (ch == -1) {
-        printf("Error playing VOC sound: %s\n", Mix_GetError());
+        printf("Erreur lecture son: %s\n", Mix_GetError());
         Mix_FreeChunk(chunk);
         return;
     }
+    
+    // Ajouter le chunk à la map avec protection mutex
     {
         std::lock_guard<std::mutex> lock(g_mixMutex);
         channelChunks[ch] = chunk;
     }
+    
     channel = ch;
 }
 
 void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop) {
     if (shuttingDown) return;
-    voc_data = data;
-    {
-        std::lock_guard<std::mutex> lock(g_mixMutex);
-        auto it = channelChunks.find(channel);
-        if (it != channelChunks.end()) {
-            if (it->second) {
-                Mix_HaltChannel(channel);
-                Mix_FreeChunk(it->second);
-            }
-            channelChunks.erase(it);
-        }
-    }
+    // Ne pas stocker le pointeur data, faire une copie si nécessaire
     SDL_RWops* rw = SDL_RWFromConstMem(data, static_cast<int>(vocSize));
-    Mix_Chunk* chunk = Mix_LoadWAV_RW(rw, 1);
+    if (!rw) {
+        printf("Erreur création RWops: %s\n", SDL_GetError());
+        return;
+    }
+    
+    Mix_Chunk* chunk = Mix_LoadWAV_RW(rw, 1); // 1 = SDL_RWops sera automatiquement libéré
     if (!chunk) {
-        printf("Error loading VOC sound: %s\n", Mix_GetError());
+        printf("Erreur chargement VOC: %s\n", Mix_GetError());
         return;
     }
     int result = Mix_PlayChannel(channel, chunk, loop);
@@ -146,6 +167,7 @@ void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop)
         Mix_FreeChunk(chunk);
         return;
     }
+    // Ajouter le chunk à la map avec protection mutex
     {
         std::lock_guard<std::mutex> lock(g_mixMutex);
         channelChunks[channel] = chunk;
@@ -160,15 +182,14 @@ void RSMixer::stopMusic() {
 
 void RSMixer::stopSound() {
     if (shuttingDown) return;
-    if (channel != -1) {
-        Mix_HaltChannel(channel);
-        std::lock_guard<std::mutex> lock(g_mixMutex);
-        auto it = channelChunks.find(channel);
-        if (it != channelChunks.end()) {
-            if (it->second) Mix_FreeChunk(it->second);
-            channelChunks.erase(it);
+    Mix_HaltChannel(-1);
+    std::lock_guard<std::mutex> lock(g_mixMutex);
+    for (auto &kv : channelChunks) {
+        if (kv.second) {
+            Mix_FreeChunk(kv.second);
         }
     }
+    channelChunks.clear();
 }
 
 void RSMixer::stopSound(int chanl) {
