@@ -97,7 +97,7 @@ void SCProg::execute() {
     size_t call_to = 0;
     int flag_number = 0;
     int work_register = 0;
-    int compare_flag = -2;
+    int compare_flag = prog_compare_return_values::PROG_CMP_UNSET;
     bool exec = true;
     bool objective_flag = false;
     bool true_flag = false;
@@ -134,15 +134,6 @@ void SCProg::execute() {
                 if (exec) {
                     this->actor->executed_opcodes.push_back(i);
                     work_register = prog.arg;
-                }
-            break;
-            case OP_GOTO_LABEL_IF_TRUE:
-                if (exec) {
-                    if (true_flag) {
-                        jump_to = prog.arg;
-                        exec = false;
-                        this->actor->executed_opcodes.push_back(i);
-                    }
                 }
             break;
             case OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS:
@@ -336,14 +327,38 @@ void SCProg::execute() {
                 if (exec) {
                     this->actor->executed_opcodes.push_back(i);
                     if (work_register == prog.arg) {
-                        compare_flag = 0;
+                        compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
                         true_flag = true;
                     } else if (work_register > prog.arg) {
-                        compare_flag = 1;
-                        true_flag = true;
-                    } else if (work_register < prog.arg) {
-                        compare_flag = -1;
+                        compare_flag = prog_compare_return_values::PROG_CMP_GREATER;
                         true_flag = false;
+                    } else if (work_register < prog.arg) {
+                        compare_flag = prog_compare_return_values::PROG_CMP_LESS;
+                        true_flag = false;
+                    } else if (work_register >= prog.arg) {
+                        compare_flag = prog_compare_return_values::PROG_CMP_GREATER_EQUAL;
+                        true_flag = true;
+                    } else if (work_register <= prog.arg) {
+                        compare_flag = prog_compare_return_values::PROG_CMP_LESS_EQUAL;
+                        true_flag = true;
+                    }
+                }
+            break;
+            case OP_BRANCH_IF_EQUAL_OR_TRUE:
+                if (exec) {
+                    if (true_flag || compare_flag == prog_compare_return_values::PROG_CMP_EQUAL) {
+                        jump_to = prog.arg;
+                        exec = false;
+                        this->actor->executed_opcodes.push_back(i);
+                    }
+                }
+            break;
+            case OP_BRANCH_IF_NOT_EQUAL_OR_FALSE:
+                if (exec) {
+                    if (compare_flag != 0 || !true_flag) {
+                        jump_to = prog.arg;
+                        exec = false;
+                        this->actor->executed_opcodes.push_back(i);
                     }
                 }
             break;
@@ -364,15 +379,6 @@ void SCProg::execute() {
                         this->actor->executed_opcodes.push_back(i);
                         jump_to = prog.arg;
                         exec = false;
-                    }
-                }
-            break;
-            case OP_GOTO_LABEL_IF_FALSE:
-                if (exec) {
-                    if (!true_flag) {
-                        jump_to = prog.arg;
-                        exec = false;
-                        this->actor->executed_opcodes.push_back(i);
                     }
                 }
             break;
@@ -418,10 +424,15 @@ void SCProg::execute() {
                     this->mission->mission->mission_data.flags[prog.arg] = 0;
                 }
             break;
-            case OP_GET_FLAG_ID:
+            case OP_TEST_FLAG:
                 if (exec) {
                     this->actor->executed_opcodes.push_back(i);
-                    true_flag = this->mission->mission->mission_data.flags[prog.arg] > 0;
+                    true_flag = this->mission->mission->mission_data.flags[prog.arg] != 0;
+                    if (true_flag) {
+                        compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+                    } else {
+                        compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                    }
                 }
             break;
             case OP_MUL_VALUE_WITH_WORK:
