@@ -370,8 +370,7 @@ void SCProg::execute() {
             break;
             case OP_IF_LESS_THAN_GOTO:
                 if (exec) {
-                    
-                    if (compare_flag == -1) {
+                    if (compare_flag == prog_compare_return_values::PROG_CMP_LESS) {
                         this->actor->executed_opcodes.push_back(i);
                         jump_to = prog.arg;
                         exec = false;
@@ -380,8 +379,7 @@ void SCProg::execute() {
             break;
             case OP_IF_GREATER_THAN_GOTO:
                 if (exec) {
-                    
-                    if (compare_flag == 1) {
+                    if (compare_flag == prog_compare_return_values::PROG_CMP_GREATER) {
                         this->actor->executed_opcodes.push_back(i);
                         jump_to = prog.arg;
                         exec = false;
