@@ -1603,6 +1603,11 @@ void DebugStrike::renderUI() {
                 // Using the existing printProgTable function to display the program
                 if (progs[selectedProgIndex]) {
                     printProgTable(*progs[selectedProgIndex], nullptr);
+                    if (ImGui::Button("Run Program")) {
+                        SCProg *program = new SCProg(this->current_mission->player, *progs[selectedProgIndex], this->current_mission);
+                        program->execute();
+                        delete program;
+                    }
                 } else {
                     ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Program is nullptr");
                 }

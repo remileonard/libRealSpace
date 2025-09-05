@@ -119,40 +119,46 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg) {
-            if (actor->plane == nullptr) {
-                return true;
-            }
-            if (!actor->plane->object->alive) {
-                return true;
-            }
-            wp.x = actor->plane->x;
-            wp.y = actor->plane->y;
-            wp.z = actor->plane->z;
-            wp = wp + actor->attack_pos_offset;
-            if (target_position.Length() == 0.0f) {
-                target_position = wp;
-                target_position_update = 2000;
-            }
-            Vector3D target_position_diff = target_position - wp;
-            if (target_position_diff.Length() > 0.0f && target_position_update == 0) {
-                target_position = wp;
-                target_position_update = 2000;
-            } else if (target_position_diff.Length() > 0.0f) {
-                target_position_update -= 1;
-            }
-            this->pilot->SetTargetWaypoint(wp);
-            Vector3D diff = wp - position;
-            float dist = diff.Length();
-            if (!actor->plane->on_ground) {
-                this->pilot->target_climb = (int) wp.y;
-                if (dist > 1000.0f) {
-                    this->pilot->target_speed = -60;
-                } else if (dist > 300.0f) {
-                    this->pilot->target_speed = (int) actor->plane->vz;
-                    if (this->plane->weaps_object.size() < 40) {
-                        this->plane->Shoot(0, actor, this->mission);    
+            if (actor->plane != nullptr) {
+                if (!actor->plane->object->alive) {
+                    return true;
+                }
+                wp.x = actor->plane->x;
+                wp.y = actor->plane->y;
+                wp.z = actor->plane->z;
+                wp = wp + actor->attack_pos_offset;
+                if (target_position.Length() == 0.0f) {
+                    target_position = wp;
+                    target_position_update = 2000;
+                }
+                Vector3D target_position_diff = target_position - wp;
+                if (target_position_diff.Length() > 0.0f && target_position_update == 0) {
+                    target_position = wp;
+                    target_position_update = 2000;
+                } else if (target_position_diff.Length() > 0.0f) {
+                    target_position_update -= 1;
+                }
+                this->pilot->SetTargetWaypoint(wp);
+                Vector3D diff = wp - position;
+                float dist = diff.Length();
+                if (!actor->plane->on_ground) {
+                    this->pilot->target_climb = (int) wp.y;
+                    if (dist > 1000.0f) {
+                        this->pilot->target_speed = -60;
+                    } else if (dist > 300.0f) {
+                        this->pilot->target_speed = (int) actor->plane->vz;
+                        if (this->plane->weaps_object.size() < 40) {
+                            this->plane->Shoot(0, actor, this->mission);    
+                        }
                     }
                 }
+            } else {
+                wp.x = actor->object->position.x;
+                wp.y = this->plane->y;
+                wp.z = actor->object->position.y;
+                this->pilot->SetTargetWaypoint(wp);
+                this->pilot->target_speed = -10;
+                return true;
             }
             return false;
         }

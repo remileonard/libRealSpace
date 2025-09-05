@@ -39,10 +39,10 @@ enum prog_compare_return_values {
     PROG_CMP_EQUAL = 1,          // 000001
     PROG_CMP_LESS = 2,           // 000010
     PROG_CMP_GREATER = 4,        // 000100
-    PROG_CMP_LESS_EQUAL = 8,     // 001000
-    PROG_CMP_GREATER_EQUAL = 16, // 010000
+    PROG_CMP_LESS_EQUAL = 3,     // 000011
+    PROG_CMP_GREATER_EQUAL = 5,  // 000101
     PROG_CMP_NOT_EQUAL = 6,      // 000110
-    PROG_CMP_UNSET = 63          // 111111
+    PROG_CMP_UNSET = 0           // 000000
 };
 
 enum prog_op {
