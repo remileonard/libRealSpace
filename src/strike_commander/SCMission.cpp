@@ -247,11 +247,11 @@ void SCMission::loadMission() {
         }
     }
     if (this->player->on_is_activated.size() > 0) {
-        SCProg *p = new SCProg(this->player, this->player->on_is_activated, this);
+        SCProg *p = new SCProg(this->player, this->player->on_is_activated, this, this->player->object->on_is_activated);
         p->execute();
     }
     if (this->player->on_mission_start.size() > 0 && this->player->prog_executed == false) {
-        SCProg *p = new SCProg(this->player, this->player->on_mission_start, this);
+        SCProg *p = new SCProg(this->player, this->player->on_mission_start, this, this->player->object->on_missions_init);
         p->execute();
         this->player->prog_executed = true;
     }
@@ -299,7 +299,7 @@ void SCMission::update() {
                     for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
                         prog.push_back(prg);
                     }
-                    SCProg *p = new SCProg(this->player, prog, this);
+                    SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
                     p->execute();
                     delete p;
                     prog.clear();
@@ -313,7 +313,7 @@ void SCMission::update() {
                     for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
                         prog.push_back(prg);
                     }
-                    SCProg *p = new SCProg(this->player, prog, this);
+                    SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
                     p->execute();
                     delete p;
                     prog.clear();
@@ -332,7 +332,7 @@ void SCMission::update() {
                         for (auto prg: *this->mission->mission_data.prog[scene->on_mission_update]) {
                             prog.push_back(prg);
                         }
-                        SCProg *p = new SCProg(this->player, prog, this);
+                        SCProg *p = new SCProg(this->player, prog, this, scene->on_mission_update);
                         p->execute();
                         delete p;
                         prog.clear();
@@ -379,7 +379,7 @@ void SCMission::update() {
                                 }
                                 
                                 if (actor->on_is_activated.size() > 0) {
-                                    SCProg *p = new SCProg(actor, actor->on_is_activated, this);
+                                    SCProg *p = new SCProg(actor, actor->on_is_activated, this, actor->object->on_is_activated);
                                     p->execute();
                                     delete p;
                                 }
@@ -397,7 +397,7 @@ void SCMission::update() {
                     for (auto prg: *this->mission->mission_data.prog[scene->on_is_activated]) {
                         prog.push_back(prg);
                     }
-                    SCProg *p = new SCProg(this->player, prog, this);
+                    SCProg *p = new SCProg(this->player, prog, this, scene->on_is_activated);
                     p->execute();
                     scene->has_been_activated = 1;
                     delete p;
@@ -414,7 +414,7 @@ void SCMission::update() {
         if (ai_actor->object->alive == false && ai_actor->is_destroyed == false) {
             ai_actor->is_destroyed = true;
             if (ai_actor->on_is_destroyed.size() > 0) {
-                SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, this);
+                SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, this, ai_actor->object->on_is_destroyed);
                 p->execute();
                 delete p;
             }
@@ -452,7 +452,7 @@ void SCMission::update() {
             continue;
         }
         if (ai_actor->profile->radi.info.callsign == "Strike Base") {
-            SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this);
+            SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this, ai_actor->object->on_mission_update);
             p->execute();
             delete p;
             continue;
@@ -461,7 +461,7 @@ void SCMission::update() {
             continue;
         }
         if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false) {
-            SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this);
+            SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this, ai_actor->object->on_mission_update);
             p->execute();
             delete p;
         }

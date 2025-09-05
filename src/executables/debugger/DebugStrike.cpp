@@ -645,7 +645,7 @@ void DebugStrike::radar() {
         }
     }
 }
-void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor) {
+void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor, int prog_id = -1) {
     static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
     SCState &GameState = SCState::getInstance();
     if (ImGui::BeginTable("Flags", 2, flags)) {
@@ -657,7 +657,14 @@ void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor) {
         for (auto op : prog) {
             ImGui::TableNextRow();
             bool executed = false;
-            if (actor != nullptr) {
+            if (prog_id >=0 && actor != nullptr) {
+                for (auto opt_traced : actor->mission->progs_traces[prog_id]) {
+                    if (opt_traced == cpt) {
+                        executed = true;
+                        break;
+                    }
+                }
+            } else if (actor != nullptr) {
                 for (auto opt_traced : actor->executed_opcodes) {
                     if (opt_traced == cpt) {
                         executed = true;
@@ -1602,9 +1609,9 @@ void DebugStrike::renderUI() {
                 
                 // Using the existing printProgTable function to display the program
                 if (progs[selectedProgIndex]) {
-                    printProgTable(*progs[selectedProgIndex], nullptr);
+                    printProgTable(*progs[selectedProgIndex], this->current_mission->player, selectedProgIndex);
                     if (ImGui::Button("Run Program")) {
-                        SCProg *program = new SCProg(this->current_mission->player, *progs[selectedProgIndex], this->current_mission);
+                        SCProg *program = new SCProg(this->current_mission->player, *progs[selectedProgIndex], this->current_mission, selectedProgIndex);
                         program->execute();
                         delete program;
                     }

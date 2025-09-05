@@ -410,7 +410,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             }
             
             if (actor->on_is_activated.size() > 0) {
-                SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission);
+                SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);
                 p->execute();
             }
             return true;
