@@ -42,6 +42,7 @@ public:
     virtual bool flyToArea(uint8_t arg);
     virtual bool destroyTarget(uint8_t arg);
     virtual bool defendTarget(uint8_t arg);
+    virtual bool defendArea(uint8_t arg);
     virtual bool deactivate(uint8_t arg);
     virtual bool setMessage(uint8_t arg);
     virtual bool followAlly(uint8_t arg);

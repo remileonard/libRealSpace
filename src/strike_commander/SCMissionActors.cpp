@@ -155,7 +155,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             } else {
                 wp.x = actor->object->position.x;
                 wp.y = this->plane->y;
-                wp.z = actor->object->position.y;
+                wp.z = actor->object->position.z;
                 this->pilot->SetTargetWaypoint(wp);
                 this->pilot->target_speed = -10;
                 return true;
@@ -207,6 +207,49 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
                 return ret;
             }
         }
+    }
+    return true;
+}
+bool SCMissionActors::defendArea(uint8_t arg) { 
+    this->current_objective = OP_SET_OBJ_DEFEND_AREA;
+    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+    uint8_t area_id = this->mission->getAreaID(position);
+
+    if (area_id != arg) {
+        this->current_target = 0;
+        return this->flyToArea(arg);
+    }
+    if (this->current_target == 0) {
+        if (std::find(this->mission->enemies.begin(), this->mission->enemies.end(), this) == this->mission->enemies.end()) {
+            for (auto actor: this->mission->friendlies) {
+                if (actor->plane != nullptr) {
+                    uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
+                    if (actor_area_id == area_id) {
+                        this->current_target = actor->actor_id;
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (auto actor: this->mission->enemies) {
+                if (actor->plane != nullptr) {
+                    uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
+                    if (actor_area_id == area_id) {
+                        this->current_target = actor->actor_id;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    if (this->current_target != 0) {
+        bool ret = this->destroyTarget(this->current_target);
+        if (ret) {
+            this->current_target = 0;
+        }
+        return ret;
+    } else {
+        return this->flyToArea(arg);
     }
     return true;
 }
