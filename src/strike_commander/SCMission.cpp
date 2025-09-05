@@ -419,10 +419,15 @@ void SCMission::update() {
                 delete p;
             }
             if (ai_actor->object->member_name_destroyed != "") {
-                ai_actor->object->entity = LoadEntity(ai_actor->object->member_name_destroyed);
+                RSEntity *entity = LoadEntity(ai_actor->object->member_name_destroyed);
+                if (entity != nullptr && ai_actor->object->entity->jdyn == nullptr) {
+                    ai_actor->object->entity = entity;
+                }
             }
             if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
-                ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
+                if (ai_actor->object->entity->jdyn == nullptr) {
+                    ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
+                }
             }
         }
         if (ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {

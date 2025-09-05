@@ -61,7 +61,7 @@ struct SCWeaponLoadoutHardPoint {
 class SCPlane {
 
 protected:
-    short alive;
+    
     int thrust;
     float ELEVF_CSTE{0.0f};
     float ROLLFF_CSTE{0.0f};
@@ -151,6 +151,7 @@ protected:
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
 public:
+    short alive;
     unsigned int status;
     int wp_cooldown{0};
     float mach{0.0f};

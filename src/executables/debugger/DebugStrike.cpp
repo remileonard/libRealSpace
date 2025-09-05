@@ -792,7 +792,7 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
         if (actor->on_is_activated.size() > 0) {
             if (ImGui::TreeNode("On is activated")) {
                 if (ImGui::TreeNode((void *)(intptr_t)&actor->on_is_activated, "Prog %d", cpt)) {
-                    printProgTable(actor->on_is_activated, nullptr);
+                    printProgTable(actor->on_is_activated, actor, actor->object->on_is_activated);
                     ImGui::TreePop();
                     cpt++;
                 }
@@ -802,7 +802,7 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
         if (actor->on_update.size() > 0) {
             if (ImGui::TreeNode("On update")) {
                 if (ImGui::TreeNode((void *)(intptr_t)&actor->on_update, "Prog %d", cpt)) {
-                    printProgTable(actor->on_update, actor);
+                    printProgTable(actor->on_update, actor, actor->object->on_mission_update);
                     ImGui::TreePop();
                     cpt++;
                 }
@@ -813,7 +813,7 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
         if (actor->on_is_destroyed.size() > 0) {
             if (ImGui::TreeNode("On is destroyed")) {
                 if (ImGui::TreeNode((void *)(intptr_t)&actor->on_is_destroyed, "Prog %d", cpt)) {
-                    printProgTable(actor->on_is_destroyed, nullptr);
+                    printProgTable(actor->on_is_destroyed, actor, actor->object->on_is_destroyed);
                     ImGui::TreePop();
                     cpt++;
                 }
@@ -823,7 +823,7 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
         if (actor->on_mission_start.size() > 0) {
             if (ImGui::TreeNode("On mission start")) {
                 if (ImGui::TreeNode((void *)(intptr_t)&actor->on_is_destroyed, "Prog %d", cpt)) {
-                    printProgTable(actor->on_is_destroyed, nullptr);
+                    printProgTable(actor->on_is_destroyed, actor, actor->object->on_missions_init);
                     ImGui::TreePop();
                     cpt++;
                 }
@@ -1439,6 +1439,9 @@ void DebugStrike::renderUI() {
 
                     ImGui::Text("AI Target %d", this->target->current_target);
                 }
+                if (ImGui::Button("Destroy")) {
+                    this->target->object->alive = false;
+                }
             }
             ImGui::EndChild();
             ImGui::EndChild();
@@ -1520,7 +1523,7 @@ void DebugStrike::renderUI() {
                             if (ImGui::TreeNode("On is activated Prog")) {
                                 ImGui::Text("On is activated: %d", this->debug_scene->on_is_activated);
                                 std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[this->debug_scene->on_is_activated]);
-                                printProgTable(p, nullptr);
+                                printProgTable(p, this->current_mission->player, this->debug_scene->on_is_activated);
                                 ImGui::TreePop();
                             }
                         }
@@ -1528,7 +1531,7 @@ void DebugStrike::renderUI() {
                             if (ImGui::TreeNode("On updated Prog")) {
                                 ImGui::Text("On updated: %d", this->debug_scene->on_mission_update);
                                 std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[this->debug_scene->on_mission_update]);
-                                printProgTable(p, nullptr);
+                                printProgTable(p, this->current_mission->player, this->debug_scene->on_mission_update);
                                 ImGui::TreePop();
                             }
                         }
@@ -1536,7 +1539,7 @@ void DebugStrike::renderUI() {
                             if (ImGui::TreeNode("On leaving Prog")) {
                                 ImGui::Text("On leaving: %d", this->debug_scene->on_leaving);
                                 std::vector<PROG> &p = *(this->current_mission->mission->mission_data.prog[this->debug_scene->on_leaving]);
-                                printProgTable(p, nullptr);
+                                printProgTable(p, this->current_mission->player, this->debug_scene->on_leaving);
                                 ImGui::TreePop();
                             }
                         }

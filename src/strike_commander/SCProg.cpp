@@ -338,7 +338,7 @@ void SCProg::execute() {
                     }
                 break;
                 case OP_IS_TARGET_ACTIVE:
-                    if (this->mission->actors[prog.arg]->is_active == true) {
+                    if (this->mission->actors[prog.arg]->object->alive == true) {
                         compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
                     } else {
                         compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
