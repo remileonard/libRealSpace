@@ -128,32 +128,6 @@ void SCProg::execute() {
                     work_register = prog.arg;
                 break;
                 case OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS:
-                    
-                    switch (this->actor->current_command) {
-                        case OP_SET_OBJ_TAKE_OFF:
-                            this->actor->current_command_executed = this->actor->takeOff(this->actor->current_command_arg);
-                            break;
-                        case OP_SET_OBJ_LAND:
-                            this->actor->current_command_executed = this->actor->land(this->actor->current_command_arg);
-                            break;
-                        case OP_SET_OBJ_FLY_TO_WP:
-                            this->actor->current_command_executed = this->actor->flyToWaypoint(this->actor->current_command_arg);
-                            break;
-                        case OP_SET_OBJ_FLY_TO_AREA:
-                            this->actor->current_command_executed = this->actor->flyToArea(this->actor->current_command_arg);
-                            break;
-                        case OP_SET_OBJ_DESTROY_TARGET:
-                            this->actor->current_command_executed = this->actor->destroyTarget(this->actor->current_command_arg);
-                            break;
-                        case OP_SET_OBJ_DEFEND_TARGET:
-                            this->actor->current_command_executed = this->actor->defendTarget(this->actor->current_command_arg);
-                            break;
-                        case OP_SET_OBJ_FOLLOW_ALLY:
-                            this->actor->current_command_executed = this->actor->followAlly(this->actor->current_command_arg);
-                            break;
-                        default:
-                            break;
-                    }
                     if (!this->actor->current_command_executed) {
                         jump_to = prog.arg;
                         exec = false;

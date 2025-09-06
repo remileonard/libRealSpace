@@ -32,7 +32,8 @@ public:
     bool prog_executed{false};
     int current_target{0};
     bool current_command_executed{false};
-    prog_op current_command;
+    prog_op current_command{prog_op::OP_NOOP};
+    prog_op override_command{prog_op::OP_NOOP};
     uint8_t current_command_arg;
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     virtual bool execute();
@@ -47,6 +48,7 @@ public:
     virtual bool setMessage(uint8_t arg);
     virtual bool followAlly(uint8_t arg);
     virtual bool ifTargetInSameArea(uint8_t arg);
+    virtual bool respondToRadioMessage(int message_id, SCMission *mission);
     virtual bool activateTarget(uint8_t arg);
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);

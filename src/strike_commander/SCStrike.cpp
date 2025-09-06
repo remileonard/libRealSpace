@@ -702,6 +702,9 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->comm_target = 1;
             } else {
                 // send message 1 to ai comm_target
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(1, this->current_mission);
+                }
                 this->cockpit->comm_target = 0;
                 this->mfd_timeout = 400;
             }

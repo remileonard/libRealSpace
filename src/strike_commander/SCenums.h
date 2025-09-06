@@ -46,6 +46,7 @@ enum prog_compare_return_values {
 };
 
 enum prog_op {
+    OP_NOOP = 0,
     OP_EXIT_PROG = 1,
     OP_EXEC_SUB_PROG = 2,
     OP_SET_LABEL = 8,

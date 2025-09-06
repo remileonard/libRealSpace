@@ -1027,6 +1027,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
                         this->big_font, &pfmd_entry, (char *)asks_str.c_str(), 124, 0, (uint32_t)asks_str.length(), 2, 2
                     );
                     pmfd_text.y += 6;
+                    cpt_message++;
                 }
                 break;
             }

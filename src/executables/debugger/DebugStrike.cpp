@@ -49,8 +49,7 @@ void DebugStrike::simInfo() {
 
     ImGui::Text("Pitch %.3f, Yaw %.3f, roll %.3f", this->player_plane->elevationf, this->player_plane->azimuthf,
                 this->player_plane->twist);
-    ImGui::Text("Pich input %.3f, Roll input %d, Yaw input %.3f", this->player_plane->elevation_speedf,
-                this->player_plane->roll_speed, this->player_plane->azimuth_speedf);
+    ImGui::Text("Pich input %.3f, Roll input %d, Yaw input %.3f", this->player_plane->elevation_speedf, this->player_plane->roll_speed, this->player_plane->azimuth_speedf);
     ImGui::Text("Y %.3f, On ground %d", this->player_plane->y, this->player_plane->on_ground);
     ImGui::Text("flight [roller:%4f, elevator:%4f, rudder:%4f]", this->player_plane->rollers,
                 this->player_plane->elevator, this->player_plane->rudder);
@@ -573,6 +572,9 @@ void DebugStrike::radar() {
             case EntityType::destroyed_object:
                 color = IM_COL32(128, 0, 128, 255);
                 break;
+            default:
+                color = IM_COL32(255, 255, 0, 255);
+                break;
             }
             
             if (actor->is_destroyed) {
@@ -750,6 +752,12 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
             if (ImGui::TreeNode("ASKS")) {
                 for (auto msg : actor->profile->radi.asks) {
                     ImGui::Text("- [%s]: %s", msg.first.c_str(), msg.second.c_str());
+                }
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("OPS")) {
+                for (auto msg : actor->profile->radi.opts) {
+                    ImGui::Text("- %c", msg);
                 }
                 ImGui::TreePop();
             }
@@ -954,8 +962,7 @@ void DebugStrike::renderMenu() {
                             360 - (ai_actor->plane->azimuthf / 10.0f));
                 ImGui::SameLine();
                 if (ai_actor->pilot != nullptr) {
-                    ImGui::Text("{TH %.0f TA %d TS %.3f}", ai_actor->pilot->target_azimut,
-                                ai_actor->pilot->target_climb, ai_actor->pilot->target_speed);
+                    ImGui::Text("{TH %.0f TA %d TS %.3f}", ai_actor->pilot->target_azimut, ai_actor->pilot->target_climb, ai_actor->pilot->target_speed);
                     ImGui::SameLine();
                     ImGui::Text("AI OBJ %d", ai_actor->current_objective);
                     ImGui::SameLine();
@@ -1555,6 +1562,9 @@ void DebugStrike::renderUI() {
                 } else {
                     ImGui::Text("No scene selected");
                 }
+                break;
+                default:
+                    ImGui::Text("No entity selected");
                 break;
             }
 

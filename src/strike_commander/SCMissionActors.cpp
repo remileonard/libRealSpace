@@ -378,6 +378,9 @@ bool SCMissionActors::ifTargetInSameArea(uint8_t arg) {
     }
     return false;
 }
+bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission) {
+    return false;
+}
 /**
  * @brief Activates the target actor with the specified ID.
  *

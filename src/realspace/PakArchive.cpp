@@ -133,7 +133,7 @@ bool PakArchive::Decompress(const char* dstDirectory,const char* extension){
     const char* filePattern = "FILE%d.%s";
     char fullDstPath[512];
     
-    printf("Decompressing PAK %s (size: %llu bytes)\n.",this->path,this->size);
+    printf("Decompressing PAK %s (size: %zu bytes)\n.",this->path,this->size);
     
     for( size_t i = 0 ; i < this->entries.size() ; i++){
         
@@ -183,10 +183,10 @@ bool PakArchive::Decompress(const char* dstDirectory,const char* extension){
         
         if (byteWritten != entry->size){
 
-            printf("*Error while writing entry (errono: %s) size(size: %llu).\n",strerror(errno),entry->size);
+            printf("*Error while writing entry (errono: %s) size(size: %zu).\n",strerror(errno),entry->size);
         }
         else
-            printf("Extracted file: '%s. (size: %llu).'\n",fullDstPath,entry->size);
+            printf("Extracted file: '%s. (size: %zu).'\n",fullDstPath,entry->size);
         fclose(dstFile);
         
         
@@ -211,9 +211,9 @@ void PakArchive::List(FILE* output){
     for(size_t i =0; i < GetNumEntries() ; i++){
         PakEntry* entry = entries[i];
         if (entry->size != 0)
-            fprintf(output,"    Entry [%3zu] offset[0x%8llX] size: %7llu bytes, type: %X.\n",i,entry->data-this->data, entry->size,entry->type);
+            fprintf(output,"    Entry [%3zu] offset[0x%8lX] size: %zu bytes, type: %X.\n",i,entry->data-this->data, entry->size,entry->type);
         else
-            fprintf(output,"    Entry [%3llu] offset[0x%8llX] size: %7llu bytes, type: %X (DUPLICATE).\n",i,entry->data-this->data, entry->size,entry->type);
+            fprintf(output,"    Entry [%3zu] offset[0x%8lX] size: %zu bytes, type: %X (DUPLICATE).\n",i,entry->data-this->data, entry->size,entry->type);
     }
 }
 
