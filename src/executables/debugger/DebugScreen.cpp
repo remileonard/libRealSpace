@@ -140,11 +140,13 @@ void DebugScreen::refresh(void){
                         debugGameInstance->testObjects();
                     }
                     if (VGA != nullptr) {
-                        if (ImGui::MenuItem("Toggle upscale")) {
+                        if (ImGui::MenuItem("Toggle upscale", nullptr, VGA->upscale)) {
                             VGA->upscale = !VGA->upscale;
                         }
                     }
-                    
+                    if (ImGui::MenuItem("Toggle UI", nullptr, this->show_ui)) {
+                        this->show_ui = !this->show_ui;
+                    }
                     if (ImGui::MenuItem("Exit")) {
                         exit(0);
                     }
@@ -162,7 +164,7 @@ void DebugScreen::refresh(void){
         }
         ImVec2 winsize = ImGui::GetContentRegionAvail();
         float width = winsize.x * 0.75f; // 75% of the available width for the game screen
-        if (debugGameInstance == nullptr  || !debugGameInstance->hasActivity()) {
+        if (debugGameInstance == nullptr  || !debugGameInstance->hasActivity() || !this->show_ui) {
             width = winsize.x; // If no game instance, use full width
         }
         ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
@@ -170,7 +172,7 @@ void DebugScreen::refresh(void){
         ImVec2 avail_size = ImGui::GetContentRegionAvail();
         ImGui::Image((void*)(intptr_t)this->screen_texture, avail_size, {0, 1}, {1, 0});
         ImGui::EndChild();
-        if (debugGameInstance != nullptr && debugGameInstance->hasActivity()) {
+        if (debugGameInstance != nullptr && debugGameInstance->hasActivity() && this->show_ui) {
             ImGui::SameLine();
             // Calculate the remaining width for the Console child
             float remainingWidth = ImGui::GetContentRegionAvail().x;

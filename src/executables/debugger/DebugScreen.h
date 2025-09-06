@@ -28,6 +28,7 @@ extern "C" {
 class DebugScreen: public RSScreen{
 private:
     GLuint screen_texture;
+    bool show_ui{true};
 public:
     
     DebugScreen();
