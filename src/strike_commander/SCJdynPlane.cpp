@@ -290,10 +290,6 @@ void SCJdynPlane::updatePosition() {
     this->y = this->ptw.v[3][1];
     this->z = this->ptw.v[3][2];
 
-    /****************************************************************
-    /*	perform incremental rotations on velocities
-    /****************************************************************/
-
     this->incremental.Identity();
     if (this->roll_speed)
         this->incremental.rotateM(tenthOfDegreeToRad((float)-this->roll_speed), 0, 0, 1);
@@ -467,7 +463,7 @@ void SCJdynPlane::checkStatus() {
             this->status = MEXPLODE;
         }
         
-        if (this->isOnRunWay())
+        if (this->isOnRunWay()) {
             /* and not on ground before */
             if (!this->on_ground) {
                 int rating;
@@ -495,6 +491,7 @@ void SCJdynPlane::checkStatus() {
                     this->status = MEXPLODE;
                 }
             }
+        }
         //this->ptw.v[3][1] = this->y = groundlevel;
         this->on_ground = TRUE;
         if (this->airspeed < 30 && this->thrust < 20) {

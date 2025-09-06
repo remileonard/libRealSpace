@@ -126,11 +126,11 @@ void TreArchive::Parse(void){
 void TreArchive::List(FILE* output){
     
     fprintf(output,"Listing content of TRE archive '%s'.\n",this->path);
-    fprintf(output,"    %llu entrie(s) found.\n",entries.size());
+    fprintf(output,"    %zu entrie(s) found.\n",entries.size());
 
     for (size_t i=0 ; i < entries.size() ; i++){
         TreEntry* entry = entries[i];
-        fprintf(output,"    Entry [%3zu] offset[0x%8llX]'%s' size: %zu bytes.\n",i,entry->data-this->data,entry->name,entry->size);
+        fprintf(output,"    Entry [%3zu] offset[0x%8llX]'%s' size: %zu bytes.\n",i,(unsigned long long)(entry->data-this->data),entry->name,entry->size);
     }
 }
 

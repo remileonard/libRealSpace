@@ -33,7 +33,7 @@ bool IFFSaxLexer::InitFromFile(const char *filepath,
 
     uint8_t *fileData = new uint8_t[fileSize];
     size_t t = fread(fileData, 1, fileSize, file);
-    printf("file %s read %llu bytes should be %llu\n", fullPath, t, fileSize);
+    printf("file %s read %zu bytes should be %zu\n", fullPath, t, fileSize);
     strcpy(this->path, filepath);
     fclose(file);
     return InitFromRAM(fileData, fileSize, events);

@@ -33,7 +33,7 @@ public:
     DebugScreen();
     ~DebugScreen() override;
     
-    void init(int width, int height, bool fullscreen);
-    void setTitle(const char* title);
-    void refresh(void);
+    void init(int width, int height, bool fullscreen) override;
+    void setTitle(const char* title) override;
+    void refresh(void) override;
 };

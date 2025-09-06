@@ -184,9 +184,9 @@ void RSScreen::fxTurnOnTv() {
         glColor4f(1.0f, 1.0f, 1.0f, noiseIntensity);
         glBegin(GL_QUADS);
         for (int i = 0; i < 10000; i++) {
-            float x = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-            float y = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-            float size = 0.003f + 0.002f * static_cast<float>(rand()) / RAND_MAX;
+            float x = static_cast<float>(rand()) / (float) RAND_MAX * 2.0f - 1.0f;
+            float y = static_cast<float>(rand()) / (float) RAND_MAX * 2.0f - 1.0f;
+            float size = 0.003f + 0.002f * static_cast<float>(rand()) / (float) RAND_MAX;
             
             glVertex2f(x - size, y - size);
             glVertex2f(x + size, y - size);

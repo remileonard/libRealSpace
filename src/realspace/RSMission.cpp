@@ -299,7 +299,7 @@ void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
 }
 void RSMission::parseMISN_PART(uint8_t *data, size_t size) {
     printf("PARSING PART\n");
-    printf("Number of entries %llu\n", size / 62);
+    printf("Number of entries %zu\n", size / 62);
     ByteStream stream(data);
     size_t numParts = size / 62;
     for (int i = 0; i < numParts; i++) {

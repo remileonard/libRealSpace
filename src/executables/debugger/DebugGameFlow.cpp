@@ -303,9 +303,9 @@ void DebugGameFlow::renderMissionInfos() {
         sceneid = this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID;
     }
     ImGui::Text("Current Miss %d, Current Scen %d", this->current_miss, sceneid);
-    ImGui::Text("Nb Miss %d", this->gameFlowParser.game.game.size());
-    ImGui::Text("Nb Layers %d", this->layers.size());
-    ImGui::Text("Nb Scenes %d", this->gameFlowParser.game.game[this->current_miss]->scen.size());
+    ImGui::Text("Nb Miss %zu", this->gameFlowParser.game.game.size());
+    ImGui::Text("Nb Layers %zu", this->layers.size());
+    ImGui::Text("Nb Scenes %zu", this->gameFlowParser.game.game[this->current_miss]->scen.size());
     if (this->gameFlowParser.game.game[this->current_miss]->efct != nullptr) {
         ImGui::Text("Miss has efct");
         if (ImGui::TreeNodeEx("Miss Efect", tflag)) {
@@ -315,12 +315,12 @@ void DebugGameFlow::renderMissionInfos() {
             ImGui::TreePop();
         }
     }
-    ImGui::Text("Nb Zones %d", this->zones->size());
+    ImGui::Text("Nb Zones %d", static_cast<int>(this->zones->size()));
     if (this->zones->size() > 1) {
         if (ImGui::TreeNodeEx("Zones", tflag)) {
             for (auto zone : *this->zones) {
                 if (ImGui::TreeNodeEx((void *)(intptr_t)zone->id, tflag, "Zone %d", zone->id)) {
-                    ImGui::Text(zone->label->c_str());
+                    ImGui::Text("%s", zone->label->c_str());
                     animatedSprites *sprite = zone->sprite;
                     if (sprite == nullptr) {
                         ImGui::Text("No sprite");
@@ -333,7 +333,7 @@ void DebugGameFlow::renderMissionInfos() {
                     if (ImGui::TreeNodeEx((void *)(intptr_t)sprite->shapid, tflag ,"Sprite, Frame %d, %d %d",
                                         sprite->frameCounter, sprite->shapid, sprite->unkown)) {
                         if (sprite->frames != nullptr) {
-                            ImGui::Text("Frames %d", sprite->frames->size());
+                            ImGui::Text("Frames %zu", sprite->frames->size());
                         }
                         if (sprite->quad != nullptr) {
                             ImGui::Text("Quad selection area");

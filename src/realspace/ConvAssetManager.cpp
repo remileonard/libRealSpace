@@ -59,7 +59,7 @@ CharFace *ConvAssetManager::GetCharFace(std::string name) {
         set->Add(RLEShape::GetEmptyShape());
         dummy.appearances = set;
         npc = &dummy;
-        printf("ConvAssetManager: Cannot find npc '%s', returning dummy npc instead.\n", name);
+        printf("ConvAssetManager: Cannot find npc '%s', returning dummy npc instead.\n", name.c_str());
         this->faces[name] = npc;
     }
 
@@ -81,7 +81,7 @@ ConvBackGround *ConvAssetManager::GetBackGround(std::string name) {
     ConvBackGround *shape = this->backgrounds[name];
 
     if (shape == NULL) {
-        printf("ConvAssetManager: Cannot find loc '%s', returning dummy loc instead.\n", name);
+        printf("ConvAssetManager: Cannot find loc '%s', returning dummy loc instead.\n", name.c_str());
         static ConvBackGround dummy;
         uint8_t dummyPalettePatch[5] = {0, 0, 0, 0, 0};
         dummy.palettes.push_back(dummyPalettePatch);

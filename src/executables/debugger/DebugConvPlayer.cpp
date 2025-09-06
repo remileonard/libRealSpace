@@ -86,7 +86,7 @@ void DebugConvPlayer::renderUI() {
                     if (frame->participants.size() > 0) {
                         if (ImGui::TreeNodeEx("Participants", ImGuiTreeNodeFlags_DefaultOpen)) {
                             for (auto part : frame->participants) {
-                                ImGui::Text("Participant: %s", part->name);
+                                ImGui::Text("Participant: %s", part->name.c_str());
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
                                 fb->fillWithColor(223);
                                 fb->drawShape(part->appearances->GetShape(0));

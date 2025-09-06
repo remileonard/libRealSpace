@@ -49,14 +49,28 @@
             "name": "windows-debug",
             "displayName": "Visual Studio Community 2022 Release - x86_amd64 - Debug",
             "configurePreset": "windows",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "jobs": 8
         },
         {
             "name": "Release",
             "description": "",
             "displayName": "Visual Studio Community 2022 Release - x86_amd64 - Release",
             "configurePreset": "windows",
-            "configuration": "Release"
+            "configuration": "Release",
+            "jobs": 8
+        },
+        {
+            "name": "linux-debug",
+            "displayName": "Linux GCC Debug",
+            "configurePreset": "linux",
+            "jobs": 8
+        },
+        {
+            "name": "linux-clang-debug",
+            "displayName": "Linux Clang Debug",
+            "configurePreset": "linux_clang",
+            "jobs": 8
         }
     ]
 }

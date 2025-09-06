@@ -11,6 +11,6 @@ public:
     ~DebugObjectViewer();
 
     void runFrame(void) override;
-    void renderMenu();
-    void renderUI();
+    void renderMenu() override;
+    void renderUI() override;
 };

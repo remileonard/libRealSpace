@@ -217,7 +217,7 @@ void DebugObjectViewer::renderUI() {
             }
             ImGui::EndChild();
             ImGui::BeginChild("Textures", ImVec2(0, 400), true);
-            ImGui::Text("Textures loaded: %d", objs.showCases[currentObject].entity->images.size());
+            ImGui::Text("Textures loaded: %zu", objs.showCases[currentObject].entity->images.size());
             if (ImGui::BeginTable("TexturesTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
                 ImGui::TableSetupColumn("Texture Name");
                 ImGui::TableSetupColumn("Texture ID");

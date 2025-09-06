@@ -4,8 +4,8 @@
 class DebugGameFlow : public SCGameFlow {
 protected:
     bool pause{false};
-    void flyMission();
-    void playConv(uint8_t convId);
+    void flyMission() override;
+    void playConv(uint8_t convId) override;
     void renderGameState();
     void renderMissionInfos();
 public:

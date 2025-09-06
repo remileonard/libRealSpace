@@ -1201,13 +1201,9 @@ void SCCockpit::Update() {
     this->gear              = this->player_plane->GetWheel();
     this->flaps             = this->player_plane->GetFlaps() > 0;
     this->airbrake          = this->player_plane->GetSpoilers() > 0;
-    this->target            = this->target;
     this->player            = this->player_plane->object;
     this->weapoint_coords.x = this->current_mission->waypoints[*this->nav_point_id]->spot->position.x;
     this->weapoint_coords.y = this->current_mission->waypoints[*this->nav_point_id]->spot->position.z;
-    this->ai_planes         = this->ai_planes;
-    this->player_prof       = this->player_prof;
-    this->player_plane      = this->player_plane;
 }
 
 void SCCockpit::RenderHUD() {

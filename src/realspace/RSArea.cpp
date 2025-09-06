@@ -550,7 +550,7 @@ void RSArea::parseTERA_TXMS_MAPS(uint8_t *data, size_t size) {
         uint8_t unknown = textureRefStrean.ReadByte();
         uint8_t numImages = textureRefStrean.ReadByte();
 
-        printf("Texture Set Ref [%3llu] 0x0x%X[%-8s] %02X (%2u files).\n", i, fastID, setName, unknown, numImages);
+        printf("Texture Set Ref [%3zu] 0x0x%X[%-8s] %02X (%2u files).\n", i, fastID, setName, unknown, numImages);
     }
 }
 

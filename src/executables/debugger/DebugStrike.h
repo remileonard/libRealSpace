@@ -27,9 +27,9 @@ private:
 public:
     DebugStrike();
     ~DebugStrike();
-    void init();
+    void init() override;
     void setMission(std::string mission_name);
-    void renderMenu();
+    void renderMenu() override;
     void renderUI() override;
     void renderWorkingRegisters();
 };
