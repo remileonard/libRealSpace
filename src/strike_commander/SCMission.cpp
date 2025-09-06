@@ -97,6 +97,7 @@ void SCMission::loadMission() {
                 actor->actor_name = cast->actor;
                 actor->actor_id = part->id;
                 actor->object = part;
+                actor->health = part->entity->health;
                 actor->profile = this->LoadProfile(cast->actor);
                 actor->mission = this;
                 if (actor->object->on_is_activated != 255) {

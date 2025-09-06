@@ -30,6 +30,7 @@ public:
     bool taken_off{false};
     bool is_destroyed{false};
     bool prog_executed{false};
+    int health{0};
     int current_target{0};
     bool current_command_executed{false};
     prog_op current_command{prog_op::OP_NOOP};
@@ -53,6 +54,7 @@ public:
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);
     virtual void shootWeapon(SCMissionActors *target);
+    virtual void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker);
     std::vector<uint8_t> executed_opcodes;
 private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};

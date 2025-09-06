@@ -379,6 +379,58 @@ bool SCMissionActors::ifTargetInSameArea(uint8_t arg) {
     return false;
 }
 bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission) {
+    int cpt = 1;
+    for (auto ask: this->profile->radi.opts) {
+        if (cpt == message_id) {
+            switch (ask) {
+                case 'd':
+                {
+                    // request status 2 - 5 
+                    float health_remaing = this->health / (float) this->object->entity->health * 100.0f;
+                    if (health_remaing > 75.0f) {
+                        this->setMessage(2); // All is well
+                    } else if (health_remaing > 50.0f) {
+                        this->setMessage(3); // Minor damage
+                    } else if (health_remaing > 25.0f) {
+                        this->setMessage(4); // Major damage
+                    } else {
+                        this->setMessage(5); // Critical damage
+                    }
+                }
+                break;
+                case 'e':
+                    // request take off
+                break;
+                case 'f':
+                    // request land 
+                break;
+                case 'g':
+                    // break formation
+                break;
+                case 'h':
+                    // build formation
+                break;
+                case 'i':
+                    // attack my target
+                break;
+                case 'j':
+                    // return to base
+                break;
+                case 'k':
+                    // help me
+                break;
+                case 'l':
+                    // maintain radio silence
+                break;
+                case 'm':
+                    // break radio silence
+                break;
+                default:
+                break;
+            }
+        }
+        cpt++;
+    }
     return false;
 }
 /**
@@ -520,6 +572,32 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
     weapon->shooter = this;
     this->object->entity->swpn_data->weapons_round--;
     this->weapons_shooted.push_back(weapon);
+}
+void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
+    if (this->object->entity->entity_type == EntityType::swpn) {
+        return; // Weapons cannot be hit
+    }
+    int damage = 10;
+    this->health -= damage;
+    if (this->object->entity->explos != nullptr) {
+        SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
+        this->mission->explosions.push_back(explosion);
+        if (this->mission->sound.sounds.size() > 0) {   
+            MemSound *sound;
+            if (weapon->obj->entity_type == EntityType::tracer) {
+                sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
+            } else {
+                sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+            }
+            RSMixer::getInstance().playSoundVoc(sound->data, sound->size);
+        }
+    }
+    attacker->score += 100;
+    if (this->plane != nullptr) {
+        attacker->plane_down += 1;
+    } else {
+        attacker->ground_down += 1;
+    }
 }
 /**
  * SCMissionActorsPlayer::takeOff

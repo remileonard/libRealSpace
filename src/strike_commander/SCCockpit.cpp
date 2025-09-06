@@ -1015,23 +1015,20 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
         }
     } else if (mode > 0) {
         int cpt = 1;
-        for (auto ai : this->current_mission->friendlies) {
-            if (cpt == mode) {
-                int cpt_message = 1;
-                for (auto asks : ai->profile->radi.opts) {
-                    std::string toask    = std::string("") + asks;
-                    std::string request  = this->current_mission->player->profile->radi.asks.at(toask);
-                    Point2D pfmd_entry   = {pmfd_text.x, pmfd_text.y};
-                    std::string asks_str = std::to_string(cpt_message) + ". " + request;
-                    fb->printText(
-                        this->big_font, &pfmd_entry, (char *)asks_str.c_str(), 124, 0, (uint32_t)asks_str.length(), 2, 2
-                    );
-                    pmfd_text.y += 6;
-                    cpt_message++;
-                }
-                break;
+        if (this->comm_actor != nullptr) {
+            auto ai = this->comm_actor;        
+            int cpt_message = 1;
+            for (auto asks : ai->profile->radi.opts) {
+                std::string toask    = std::string("") + asks;
+                std::string request  = this->current_mission->player->profile->radi.asks.at(toask);
+                Point2D pfmd_entry   = {pmfd_text.x, pmfd_text.y};
+                std::string asks_str = std::to_string(cpt_message) + ". " + request;
+                fb->printText(
+                    this->big_font, &pfmd_entry, (char *)asks_str.c_str(), 124, 0, (uint32_t)asks_str.length(), 2, 2
+                );
+                pmfd_text.y += 6;
+                cpt_message++;
             }
-            cpt++;
         }
     }
 }
@@ -1395,4 +1392,22 @@ void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125,166}, FrameBuffer *f
     // Draw the needle
     fb->line(center.x, center.y, needleEnd.x, needleEnd.y, 223); // Draw the speed needle
 
+}
+
+void SCCockpit::SetCommActorTarget(int target) {
+    if (target == 0) {
+        this->comm_actor = nullptr;
+    } else {
+        int cpt = 1;
+        for (auto ai : this->current_mission->friendlies) {
+            if (ai->actor_name != "PLAYER" && ai->is_active) {
+                if (cpt == target) {
+                    this->comm_actor = ai;
+                    this->comm_target = cpt;
+                    break;
+                }
+                cpt++;
+            }
+        }
+    }
 }

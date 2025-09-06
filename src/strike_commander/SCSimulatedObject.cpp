@@ -357,29 +357,9 @@ void GunSimulatedObject::Simulate(int tps) {
     for (auto entity: this->mission->actors) {
         if (this->CheckCollision(entity)) {
             if (entity->actor_name != "PLAYER") {
-                entity->object->alive = false;
+                entity->hasBeenHit(this, this->shooter);
             }
             this->alive = false;
-            
-            if (entity->object->entity->explos != nullptr) {
-                SCExplosion *explosion = new SCExplosion(entity->object->entity->explos->objct, position);
-                this->mission->explosions.push_back(explosion);
-                if (this->mission->sound.sounds.size() > 0) {   
-                    MemSound *sound;
-                    if (this->obj->entity_type == EntityType::tracer) {
-                        sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                    } else {
-                        sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                    }
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
-            this->shooter->score += 100;
-            if (entity->plane != nullptr) {
-                this->shooter->plane_down += 1;
-            } else {
-                this->shooter->ground_down += 1;
-            }
             break;
         }
     }
@@ -393,21 +373,7 @@ void GunSimulatedObject::Simulate(int tps) {
                     continue;
                 }
                 if (distance < this->obj->wdat->radius) {
-                    entity->object->alive = false;
-                    if (entity->object->entity->explos != nullptr) {
-                        SCExplosion *explosion = new SCExplosion(entity->object->entity->explos->objct, position);
-                        if (this->mission->sound.sounds.size() > 0) {
-                            MemSound *sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_2];
-                            Mixer.playSoundVoc(sound->data, sound->size);
-                        }
-                        this->mission->explosions.push_back(explosion);
-                    }
-                    this->shooter->score += 100;
-                    if (entity->plane != nullptr) {
-                        this->shooter->plane_down += 1;
-                    } else {
-                        this->shooter->ground_down += 1;
-                    }
+                    entity->hasBeenHit(this, this->shooter);
                 }
             }
         }

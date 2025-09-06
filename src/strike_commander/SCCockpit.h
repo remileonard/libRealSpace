@@ -105,5 +105,6 @@ public:
     void RenderTargetWithCam(Point2D top_left, FrameBuffer *fb);
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);
     void RenderSpeedOmetter(Point2D speed_top_left, FrameBuffer *fb);
+    void SetCommActorTarget(int target);
 };
 #endif
