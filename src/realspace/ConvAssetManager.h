@@ -20,21 +20,21 @@
 
 typedef struct CharFace {
 
-    char name[9];
+    std::string name;
     RSImageSet *appearances;
     // size_t paletteID;
 } CharFace;
 
 typedef struct FacePalette {
 
-    char name[9];
+    std::string name;
     uint8_t index;
 
 } FacePalette;
 
 typedef struct CharFigure {
 
-    char name[9];
+    std::string name;
     RSImageSet *appearances;
     size_t paletteID;
     uint16_t x{0}, y{0};
@@ -44,7 +44,7 @@ typedef struct CharFigure {
 typedef struct ConvBackGround {
     std::vector<RLEShape *> layers;
     std::vector<uint8_t *> palettes;
-    char name[9];
+    std::string name;
 } ConvBackGround;
 
 class ConvAssetManager {
@@ -52,10 +52,10 @@ private:
     void BuildDB(void);
 
 
-    std::unordered_map<char *, CharFace *> faces;
-    std::unordered_map<char *, FacePalette *> facePalettes;
-    std::unordered_map<char *, ConvBackGround *> backgrounds;
-    std::unordered_map<char *, CharFigure *> figures;
+    std::unordered_map<std::string, CharFace *> faces;
+    std::unordered_map<std::string, FacePalette *> facePalettes;
+    std::unordered_map<std::string, ConvBackGround *> backgrounds;
+    std::unordered_map<std::string, CharFigure *> figures;
 
     PakArchive convShps;
     PakArchive convPals;
@@ -101,11 +101,11 @@ public:
 
     void init(void);
 
-    CharFace *GetCharFace(char *name);
-    ConvBackGround *GetBackGround(char *name);
-    CharFigure *GetFigure(char *name);
+    CharFace *GetCharFace(std::string name);
+    ConvBackGround *GetBackGround(std::string name);
+    CharFigure *GetFigure(std::string name);
 
-    uint8_t GetFacePaletteID(char *name);
+    uint8_t GetFacePaletteID(std::string name);
     std::string conv_file_name;
 
 };

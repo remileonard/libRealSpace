@@ -218,6 +218,8 @@ void DebugStrike::loadPlane() {
         new_plane->object = player_plane->object;
         new_plane->object->entity = plane_to_load;
         new_plane->yaw = player_plane->yaw;
+        new_plane->pilot = player_plane->pilot;
+        new_plane->InitLoadout();
         this->player_plane = new_plane;
         this->current_mission->player->plane = this->player_plane;
 

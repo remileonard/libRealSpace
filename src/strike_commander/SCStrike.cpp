@@ -655,7 +655,8 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_WEAPONS))) {
         if (this->cockpit->show_weapons) {
-            this->player_plane->selected_weapon = (this->player_plane->selected_weapon+1) % 5;
+            int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 +1;
+            this->player_plane->selected_weapon = (this->player_plane->selected_weapon+1) % nb_hardpoint;
             this->player_plane->wp_cooldown = 0;
             this->mfd_timeout = 400;
         } else {

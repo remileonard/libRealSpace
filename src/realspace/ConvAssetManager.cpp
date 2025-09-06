@@ -49,7 +49,7 @@ void ConvAssetManager::init(void) {
  *
  * @return A CharFace object.
  */
-CharFace *ConvAssetManager::GetCharFace(char *name) {
+CharFace *ConvAssetManager::GetCharFace(std::string name) {
 
     CharFace *npc = this->faces[name];
 
@@ -76,7 +76,7 @@ CharFace *ConvAssetManager::GetCharFace(char *name) {
  *
  * @return A ConvBackGround object.
  */
-ConvBackGround *ConvAssetManager::GetBackGround(char *name) {
+ConvBackGround *ConvAssetManager::GetBackGround(std::string name) {
 
     ConvBackGround *shape = this->backgrounds[name];
 
@@ -103,7 +103,7 @@ ConvBackGround *ConvAssetManager::GetBackGround(char *name) {
  *
  * @return A CharFigure object.
  */
-CharFigure *ConvAssetManager::GetFigure(char *name) {
+CharFigure *ConvAssetManager::GetFigure(std::string name) {
     if (this->figures.count(name) > 0) {
         return this->figures[name];
     } else {
@@ -113,7 +113,7 @@ CharFigure *ConvAssetManager::GetFigure(char *name) {
         set->Add(RLEShape::GetEmptyShape());
         dummy.appearances = set;
         npc = &dummy;
-        printf("ConvAssetManager: Cannot find npc '%s', returning dummy npc instead.\n", name);
+        printf("ConvAssetManager: Cannot find npc '%s', returning dummy npc instead.\n", name.c_str());
         this->figures[name] = npc;
         return npc;
     }
@@ -122,7 +122,7 @@ CharFigure *ConvAssetManager::GetFigure(char *name) {
 /**
  * Given a face name, return the ID of its palette. If the face is not found, return 0.
  */
-uint8_t ConvAssetManager::GetFacePaletteID(char *name) {
+uint8_t ConvAssetManager::GetFacePaletteID(std::string name) {
     if (this->facePalettes.count(name) > 0) {
         return this->facePalettes[name]->index;
     }
@@ -190,7 +190,7 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
     if (!subPAK.IsReady()) {
 
         // Sometimes the image is not in a PAK but as raw data.
-        printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name);
+        printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
 
         // Using an empty shape for now...
         *s = *RLEShape::GetEmptyShape();
@@ -277,8 +277,7 @@ void ConvAssetManager::parseBCKS_BACK(uint8_t *data, size_t size) {
 
 }
 void ConvAssetManager::parseBCKS_BACK_INFO(uint8_t *data, size_t size) {
-    memset(this->tmp_conv_bg->name, 0, 9);
-    memcpy(this->tmp_conv_bg->name, data, size);
+    this->tmp_conv_bg->name = std::string((char *)data, strnlen((char *)data, 8));
 }
 void ConvAssetManager::parseBCKS_BACK_DATA(uint8_t *data, size_t size) {
     size_t numLayers = size / 5; // A layer entry is 5 bytes wide
@@ -298,8 +297,7 @@ void ConvAssetManager::parseFACE_DATA(uint8_t *data, size_t size) {
     ByteStream s(data);
 
     CharFace *tmp_face = new CharFace();
-    memcpy(tmp_face->name, data, 8);
-    tmp_face->name[8] = '\0';
+    tmp_face->name = std::string((char *)data, strnlen((char *)data, 8));
 
     s.MoveForward(8);
 
@@ -332,8 +330,7 @@ void ConvAssetManager::parseFIGR_DATA(uint8_t *data, size_t size) {
     ByteStream s(data);
 
     CharFigure *figr = new CharFigure();
-    memcpy(figr->name, data, 8);
-    figr->name[8] = '\0';
+    figr->name = std::string((char *)data, strnlen((char *)data, 8));
 
     s.MoveForward(8);
 
@@ -363,9 +360,8 @@ void ConvAssetManager::parsePFIG(uint8_t *data, size_t size) {
 }
 void ConvAssetManager::parsePFIG_DATA(uint8_t *data, size_t size) {
     ByteStream s(data);
-    char *figr = new char[9];
-    memcpy(figr, data, 8);
-    figr[8] = '\0';
+    std::string figr;
+    figr = std::string((char *)data, strnlen((char *)data, 8));
     if (this->figures.find(figr) != this->figures.end()) {
         this->figures[figr]->paletteID = *(data + 8);
     }
@@ -380,8 +376,7 @@ void ConvAssetManager::parseFCPL(uint8_t *data, size_t size) {
 }
 void ConvAssetManager::parseFCPL_DATA(uint8_t *data, size_t size) {
     FacePalette *pal = new FacePalette();
-    memcpy(pal->name, data, 8);
-    pal->name[8] = '\0';
+    pal->name = std::string((char *)data, strnlen((char *)data, 8));
     pal->index = *(data + 8);
     this->facePalettes[pal->name] = pal;
 }

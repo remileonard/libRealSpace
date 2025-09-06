@@ -666,8 +666,8 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
         { 8,  "GBU-15"},
         { 9, "AIM-120"}
     };
-    if (this->player_plane->object->entity->hpts.size() == 9) {
-        for (int indice = 1; indice < 5; indice++) {
+    if (this->player_plane->object->entity->hpts.size() > 1) {
+        for (int indice = 1; indice < this->player_plane->object->entity->hpts.size() / 2 + 1; indice++) {
             if (this->player_plane->weaps_load[indice] == nullptr) {
                 continue;
             }
@@ -693,10 +693,10 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
                     this->big_font, &pmfd_right_weapon_hp_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2
                 );
             }
-            if (this->player_plane->weaps_load[9 - indice] == nullptr) {
+            if (this->player_plane->weaps_load[this->player_plane->object->entity->hpts.size() - indice] == nullptr) {
                 continue;
             }
-            nb_weap  = this->player_plane->weaps_load[9 - indice]->nb_weap;
+            nb_weap  = this->player_plane->weaps_load[this->player_plane->object->entity->hpts.size() - indice]->nb_weap;
             selected = 9 - indice == this->player_plane->selected_weapon;
             shape    = this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(weapons_shape[weapon_id] + selected);
             if (nb_weap > 0) {
@@ -721,7 +721,11 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
     int sel_nb_weap   = 0;
     if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
         sel_weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
-        sel_nb_weap   = this->player_plane->weaps_load[this->player_plane->selected_weapon]->nb_weap;
+        for (auto weap : this->player_plane->weaps_load) {
+            if (weap != nullptr && weap->objct->wdat->weapon_id == sel_weapon_id) {
+                sel_nb_weap += weap->nb_weap;
+            }
+        }
     }
 
     Point2D pmfd_right_weapon_gun{
@@ -1256,7 +1260,11 @@ void SCCockpit::RenderHUD() {
     bool in_range = false;
     if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
         int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
-        weapons_count = this->player_plane->weaps_load[this->player_plane->selected_weapon]->nb_weap;
+        for (auto weap : this->player_plane->weaps_load) {
+            if (weap != nullptr && weap->objct->wdat->weapon_id == weapon_id) {
+                weapons_count += weap->nb_weap;
+            }
+        }
         if (this->target != nullptr) {
             uint32_t weap_range = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
             Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
