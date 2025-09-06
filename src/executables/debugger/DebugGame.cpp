@@ -13,7 +13,7 @@
 #include "DebugStrike.h"
 #include "DebugGameFlow.h"
 #include "DebugObjectViewer.h"
-#include "../../engine/Keyboard.h"
+#include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
 
 #include "../../strike_commander/precomp.h"

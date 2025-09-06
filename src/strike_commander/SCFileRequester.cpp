@@ -96,7 +96,7 @@ SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint
     };
     
     m_textInputZone = new SCZone();
-    m_textInputZone->id = 999; // Un ID spécial pour la zone de texte
+    m_textInputZone->id = 255; // Un ID spécial pour la zone de texte
     m_textInputZone->position = {frp.x + 31, frp.y + 27};
     m_textInputZone->dimension = {120, 9};
     m_textInputZone->active = true;
@@ -199,7 +199,7 @@ SCFileRequester::SCFileRequester(std::function<void(std::string)> callback, uint
     };
     
     m_textInputZone = new SCZone();
-    m_textInputZone->id = 999; // Un ID spécial pour la zone de texte
+    m_textInputZone->id = 255; // Un ID spécial pour la zone de texte
     m_textInputZone->position = {frp.x + 30, frp.y + 28};
     m_textInputZone->dimension = {120, 11};
     m_textInputZone->active = true;
