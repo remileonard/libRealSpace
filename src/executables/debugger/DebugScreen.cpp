@@ -163,7 +163,7 @@ void DebugScreen::refresh(void){
             ImGui::EndMenuBar();
         }
         ImVec2 winsize = ImGui::GetContentRegionAvail();
-        float width = winsize.x * 0.75f; // 75% of the available width for the game screen
+        float width = winsize.x * 0.70f;
         if (debugGameInstance == nullptr  || !debugGameInstance->hasActivity() || !this->show_ui) {
             width = winsize.x; // If no game instance, use full width
         }
