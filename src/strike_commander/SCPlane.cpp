@@ -212,7 +212,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case 12:
             weap = new GunSimulatedObject();
-            this->wp_cooldown = 3;
+            this->wp_cooldown = 30;
             break;
         case 5:
         case 6:
@@ -221,7 +221,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
-            this->wp_cooldown = 10;
+            this->wp_cooldown = 120;
             break;
         default:
             if (this->pilot->mission->sound.sounds.size() > 0) {
@@ -229,7 +229,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
             weap = new SCSimulatedObject();
-            this->wp_cooldown = 10;
+            this->wp_cooldown = 160;
             break;
     }
     // Calcul de la direction et vitesse initiale avec ajustement
@@ -1176,8 +1176,11 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         return;
     }
     if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
-        this->ShootWithPrediction(weapon_hard_point_id, target, mission);
-        return;
+        int precision = std::rand() % 16;
+        if (precision <= this->pilot->profile->ai.atrb.AA) {
+            this->ShootWithPrediction(weapon_hard_point_id, target, mission);
+            return;
+        }
     }
     SCSimulatedObject *weap{nullptr};
     Vector3D initial_trust = {0,0,0};

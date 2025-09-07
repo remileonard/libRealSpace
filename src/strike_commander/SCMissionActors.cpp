@@ -177,21 +177,24 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                         target_dir.Normalize();
                         
                         // Calculate the angle in radians and convert to degrees
-                        target_azimuth = std::atan2(-target_dir.z, target_dir.x) * 180.0f / M_PI;
-                        
-                        // Adjust to game's coordinate system
-                        target_azimuth = 90.0f - target_azimuth;
-                        if (target_azimuth < 0.0f) target_azimuth += 360.0f;
-                        
-                        // Calculate relative azimuth from plane's current heading
-                        float rel_azimuth = target_azimuth - this->plane->yaw/10.0f;
-                        if (rel_azimuth > 180.0f) rel_azimuth -= 360.0f;
-                        if (rel_azimuth < -180.0f) rel_azimuth += 360.0f;
-                        
+                        target_azimuth = std::atan2(target_dir.z, target_dir.x) * 180.0f / M_PI;
+                        target_azimuth -= 360.0f;
+                        target_azimuth += 90.0f;
+                        if (target_azimuth > 360.0f) {
+                            target_azimuth -= 360.0f;
+                        }
+                        while (target_azimuth < 0.0f) {
+                            target_azimuth += 360.0f;
+                        }
+                        target_azimuth -= (this->plane->yaw/10.0f);
                         // Only shoot if target is within firing arc
-                        if (std::abs(rel_azimuth) < 30.0f) {
+                        if (std::abs(target_azimuth) < 30.0f) {
                             if (this->plane->weaps_object.size() < 40) {
-                                this->plane->Shoot(0, actor, this->mission);
+                                int should_shoot = std::rand() % 16;
+                                if (should_shoot <= this->profile->ai.atrb.TH) {
+                                    this->plane->Shoot(0, actor, this->mission);
+                                }
+                                
                             }
                         }    
                     }
@@ -638,6 +641,16 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
     }
     int damage = 10;
     this->health = 0;
+    if (this->health <= 0 && this->object->alive) {
+        if (this->profile != nullptr && this->profile->radi.msgs.size() > 0) {
+            std::srand(std::time(0));
+            int r = std::rand() % 16;
+            if (r<=this->profile->ai.atrb.VB) {
+                int message = std::rand() % 4;
+                this->setMessage(23 + message); // Bail out messages
+            }
+        }
+    }
     this->object->alive = false;
     if (this->object->entity->explos != nullptr) {
         SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
@@ -659,16 +672,7 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         attacker->ground_down += 1;
     }
     // If the actor is destroyed, process it
-    if (this->health <= 0 && !this->object->alive) {
-        if (this->profile != nullptr && this->profile->radi.msgs.size() > 0) {
-            std::srand(std::time(0));
-            int r = std::rand() % 16;
-            if (r<=this->profile->ai.atrb.VB) {
-                int message = std::rand() % 4;
-                this->setMessage(23 + message); // Bail out messages
-            }
-        }
-    }
+   
 }
 /**
  * SCMissionActorsPlayer::takeOff
