@@ -185,9 +185,29 @@ void SCMission::loadMission() {
                     }
                     this->actors.push_back(actor);
                 } else if (actor->profile != nullptr && cast->actor == "PLAYER") {
-                    actor->plane = new SCPlane(10.0f, -7.0f, 40.0f, 40.0f, 30.0f, 100.0f, 390.0f, 18000.0f, 8000.0f,
+                    /*actor->plane = new SCPlane(10.0f, -7.0f, 40.0f, 40.0f, 30.0f, 100.0f, 390.0f, 18000.0f, 8000.0f,
                                                 23000.0f, 32.0f, .93f, 120, this->area, part->position.x,
-                                                part->position.y, part->position.z);
+                                                part->position.y, part->position.z);*/
+                    BoudingBox *bb = actor->object->entity->GetBoudingBpx();
+                    actor->plane = new SCJdynPlane(
+                        10.0f,
+                        -7.0f,
+                        40.0f,
+                        40.0f,
+                        30.0f,
+                        100.0f,
+                        actor->object->entity->wing_area,
+                        (float) actor->object->entity->weight_in_kg,
+                        (float) actor->object->entity->jdyn->FUEL,
+                        (float) actor->object->entity->thrust_in_newton,
+                        (bb->max.z - bb->min.z) / 2.0f,
+                        .93f,
+                        120,
+                        this->area,
+                        part->position.x,
+                        part->position.y,
+                        part->position.z
+                    );
                     actor->plane->yaw = (360 - part->azymuth) * 10.0f;
                     actor->plane->simple_simulation = false;
                     actor->plane->yaw = (360 - part->azymuth) * (float) M_PI / 180.0f;
@@ -514,7 +534,14 @@ void SCMission::update() {
         }
         
         ai_actor->plane->Simulate();
+        // Update attack position offset based on plane's yaw to keep it behind the plane
         
+        float yawRad = ai_actor->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
+        // Position the offset behind the aircraft based on current yaw
+        ai_actor->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
+        ai_actor->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
+        ai_actor->attack_pos_offset.y = 0.0f; // Same altitude
+    
         ai_actor->pilot->AutoPilot();
         
         Vector3D npos;

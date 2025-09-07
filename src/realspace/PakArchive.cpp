@@ -211,9 +211,9 @@ void PakArchive::List(FILE* output){
     for(size_t i =0; i < GetNumEntries() ; i++){
         PakEntry* entry = entries[i];
         if (entry->size != 0)
-            fprintf(output,"    Entry [%3zu] offset[0x%8lX] size: %zu bytes, type: %X.\n",i,entry->data-this->data, entry->size,entry->type);
+            fprintf(output,"    Entry [%3zu] offset[0x%8zu] size: %zu bytes, type: %X.\n",i,entry->data-this->data, entry->size,entry->type);
         else
-            fprintf(output,"    Entry [%3zu] offset[0x%8lX] size: %zu bytes, type: %X (DUPLICATE).\n",i,entry->data-this->data, entry->size,entry->type);
+            fprintf(output,"    Entry [%3zu] offset[0x%8zu] size: %zu bytes, type: %X (DUPLICATE).\n",i,entry->data-this->data, entry->size,entry->type);
     }
 }
 

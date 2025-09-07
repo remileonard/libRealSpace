@@ -157,30 +157,10 @@ void SCSimulatedObject::Simulate(int tps) {
     Vector3D position, velocity;
     std::tie(position, velocity) = this->ComputeTrajectory(tps);
 
-    if (this->target != nullptr) {
+    if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
             this->alive = false;
-            this->target->object->alive = false;
-            if (this->target->object->entity->explos != nullptr) {
-                SCExplosion *explosion = new SCExplosion(this->target->object->entity->explos->objct, position);
-                if (this->mission->sound.sounds.size() > 0) {
-                    MemSound *sound;
-                    if (this->obj->entity_type == EntityType::tracer) {
-                        sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                    } else {
-                        sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                    }
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-                this->mission->explosions.push_back(explosion);
-            }
-            
-            this->shooter->score += 100;
-            if (this->target->plane != nullptr) {
-                this->shooter->plane_down += 1;
-            } else {
-                this->shooter->ground_down += 1;
-            }
+            this->target->hasBeenHit(this, this->shooter);
             return;
         } else {
             const float distanceThreshold = 50.0f;
@@ -191,30 +171,8 @@ void SCSimulatedObject::Simulate(int tps) {
             };
             float distance = (targetPos - position).Norm();
             if (distance < distanceThreshold) {
-                if (this->target->actor_name != "PLAYER") {
-                    this->target->object->alive = false;
-                }
+                this->target->hasBeenHit(this, this->shooter);
                 this->alive = false;
-                
-                this->shooter->score += 100;
-                if (this->target->object->entity->explos != nullptr) {
-                    SCExplosion *explosion = new SCExplosion(this->target->object->entity->explos->objct, position);
-                    if (this->mission->sound.sounds.size() > 0) {
-                        MemSound *sound;
-                        if (this->obj->entity_type == EntityType::tracer) {
-                            sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                        } else {
-                            sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                        }
-                        Mixer.playSoundVoc(sound->data, sound->size);
-                    }
-                    this->mission->explosions.push_back(explosion);
-                }
-                if (this->target->plane != nullptr) {
-                    this->shooter->plane_down += 1;
-                } else {
-                    this->shooter->ground_down += 1;
-                }
                 return;
             }
         }
@@ -354,36 +312,37 @@ void GunSimulatedObject::Simulate(int tps) {
     if (this->distance > this->obj->wdat->effective_range * 10.0f && this->obj->entity_type == EntityType::tracer) {
         this->alive = false;
     }
-    for (auto entity: this->mission->actors) {
-        if (this->CheckCollision(entity)) {
-            if (entity->actor_name != "PLAYER") {
+    if (!this->is_simulated) {
+        for (auto entity: this->mission->actors) {
+            if (this->CheckCollision(entity)) {
                 entity->hasBeenHit(this, this->shooter);
+                this->alive = false;
+                break;
             }
+        }
+        if (this->y < this->mission->area->getY(this->x, this->z)) {
             this->alive = false;
-            break;
-        }
-    }
-    // Désactive l'objet s'il touche le sol
-    if (this->y < this->mission->area->getY(this->x, this->z)) {
-        this->alive = false;
-        if (this->obj->wdat->radius > 5 && this->obj->entity_type == EntityType::bomb) {
-            for (auto entity : this->mission->actors) {
-                float distance = entity->object->position.Distance(&position);
-                if (!entity->object->alive) {
-                    continue;
-                }
-                if (distance < this->obj->wdat->radius) {
-                    entity->hasBeenHit(this, this->shooter);
+            if (this->obj->wdat->radius > 5 && this->obj->entity_type == EntityType::bomb) {
+                for (auto entity : this->mission->actors) {
+                    float distance = entity->object->position.Distance(&position);
+                    if (!entity->object->alive) {
+                        continue;
+                    }
+                    if (distance < this->obj->wdat->radius) {
+                        entity->hasBeenHit(this, this->shooter);
+                    }
                 }
             }
-        }
-        if (this->obj->explos != nullptr && this->obj->explos->objct != nullptr) {
-            SCExplosion *explosion = new SCExplosion(this->obj->explos->objct, position);
-            if (this->mission->sound.sounds.size() > 0) {
-                MemSound *sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_3];
-                Mixer.playSoundVoc(sound->data, sound->size);
+            if (this->obj->explos != nullptr && this->obj->explos->objct != nullptr) {
+                SCExplosion *explosion = new SCExplosion(this->obj->explos->objct, position);
+                this->mission->explosions.push_back(explosion);
+                if (this->obj->entity_type != EntityType::tracer) {
+                    if (this->mission->sound.sounds.size() > 0) {
+                        MemSound *sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_3];
+                        Mixer.playSoundVoc(sound->data, sound->size);
+                    }
+                }
             }
-            this->mission->explosions.push_back(explosion);
         }
     }
 }

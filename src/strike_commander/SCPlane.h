@@ -48,6 +48,9 @@ static float ro[75] = {
 
 class SCMissionActors;
 class SCMission;
+// Ajoutez ces déclarations dans SCPlane.h
+class SCWeaponPredictor;
+
 
 struct SCWeaponLoadoutHardPoint {
     RSEntity *objct;
@@ -150,6 +153,12 @@ protected:
     virtual void updatePlaneStatus();
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
+     // Stocke le prédicteur de trajectoire
+    SCWeaponPredictor* weapon_predictor = nullptr;
+    
+    // Trajectoire actuellement affichée
+    bool is_showing_trajectory = false;
+    int trajectory_display_counter = 0;
 public:
     short alive;
     unsigned int status;
@@ -288,6 +297,15 @@ public:
     virtual void Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
     virtual void InitLoadout();
     void renderPlaneLined();
+    // Nouvelle méthode pour simuler un tir
+    Vector3D PredictShot(int weapon_hard_point_id, SCMissionActors *target);
+    
+    // Méthode pour tirer avec ajustement basé sur la prédiction
+    void ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    
+    // Visualisation de la trajectoire projetée
+    void RenderWeaponTrajectories();
+    
 };
 
 #endif

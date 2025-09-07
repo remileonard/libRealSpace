@@ -1,5 +1,7 @@
 #include "precomp.h"
 #include "SCMissionActors.h"
+#include <cstdlib>
+#include <ctime>
 
 bool SCMissionActors::execute() {
     return true;
@@ -114,53 +116,105 @@ bool SCMissionActors::flyToArea(uint8_t arg) {
  */
 bool SCMissionActors::destroyTarget(uint8_t arg) {
     Vector3D wp;
+    bool should_talk = false;
+    bool is_ground_target = false;
+    if (this->target == nullptr) {
+        should_talk = true;
+    }
+    if (this->current_target != arg) {
+        this->current_target = arg;
+        this->target = nullptr;
+        target_position.Clear();
+    }
     this->current_objective = OP_SET_OBJ_DESTROY_TARGET;
     this->current_target = arg;
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg) {
-            if (actor->plane != nullptr) {
-                if (!actor->plane->object->alive) {
-                    return true;
-                }
-                wp.x = actor->plane->x;
-                wp.y = actor->plane->y;
-                wp.z = actor->plane->z;
-                wp = wp + actor->attack_pos_offset;
-                if (target_position.Length() == 0.0f) {
-                    target_position = wp;
-                    target_position_update = 2000;
-                }
-                Vector3D target_position_diff = target_position - wp;
-                if (target_position_diff.Length() > 0.0f && target_position_update == 0) {
-                    target_position = wp;
-                    target_position_update = 2000;
-                } else if (target_position_diff.Length() > 0.0f) {
-                    target_position_update -= 1;
-                }
-                this->pilot->SetTargetWaypoint(wp);
-                Vector3D diff = wp - position;
-                float dist = diff.Length();
-                if (!actor->plane->on_ground) {
-                    this->pilot->target_climb = (int) wp.y;
-                    if (dist > 1000.0f) {
-                        this->pilot->target_speed = -60;
-                    } else if (dist > 300.0f) {
-                        this->pilot->target_speed = (int) actor->plane->vz;
-                        if (this->plane->weaps_object.size() < 40) {
-                            this->plane->Shoot(0, actor, this->mission);    
-                        }
-                    }
-                }
-            } else {
-                wp.x = actor->object->position.x;
-                wp.y = this->plane->y;
-                wp.z = actor->object->position.z;
-                this->pilot->SetTargetWaypoint(wp);
-                this->pilot->target_speed = -10;
+            this->target = actor;
+            break;
+        }
+    }
+    
+    if (this->target != nullptr) {
+        SCMissionActors *actor = this->target;
+        if (actor->plane != nullptr) {
+            if (!actor->plane->object->alive) {
+                this->current_target = 0;
+                this->target = nullptr;
                 return true;
             }
-            return false;
+            wp.x = actor->plane->x;
+            wp.y = actor->plane->y;
+            wp.z = actor->plane->z;
+            wp = wp + actor->attack_pos_offset;
+            if (target_position.Length() == 0.0f) {
+                target_position = wp;
+                target_position_update = 2000;
+            }
+            Vector3D target_position_diff = target_position - wp;
+            if (target_position_diff.Length() > 0.0f && target_position_update == 0) {
+                target_position = wp;
+                target_position_update = 2000;
+            } else if (target_position_diff.Length() > 0.0f) {
+                target_position_update -= 1;
+            }
+            this->pilot->SetTargetWaypoint(wp);
+            Vector3D diff = wp - position;
+            float dist = diff.Length();
+            if (!actor->plane->on_ground) {
+                this->pilot->target_climb = (int) wp.y;
+                if (dist > 1000.0f) {
+                    this->pilot->target_speed = -60;
+                } else if (dist > 300.0f) {
+                    this->pilot->target_speed = (int) actor->plane->vz;
+                    // Calculate azimuth between plane and target
+                    float target_azimuth = 0.0f;
+                    if (actor->plane != nullptr) {
+                        Vector3D target_dir = {actor->plane->x - this->plane->x,
+                                              0.0f,  // Ignore Y for horizontal azimuth
+                                              actor->plane->z - this->plane->z};
+                        target_dir.Normalize();
+                        
+                        // Calculate the angle in radians and convert to degrees
+                        target_azimuth = std::atan2(-target_dir.z, target_dir.x) * 180.0f / M_PI;
+                        
+                        // Adjust to game's coordinate system
+                        target_azimuth = 90.0f - target_azimuth;
+                        if (target_azimuth < 0.0f) target_azimuth += 360.0f;
+                        
+                        // Calculate relative azimuth from plane's current heading
+                        float rel_azimuth = target_azimuth - this->plane->yaw/10.0f;
+                        if (rel_azimuth > 180.0f) rel_azimuth -= 360.0f;
+                        if (rel_azimuth < -180.0f) rel_azimuth += 360.0f;
+                        
+                        // Only shoot if target is within firing arc
+                        if (std::abs(rel_azimuth) < 30.0f) {
+                            if (this->plane->weaps_object.size() < 40) {
+                                this->plane->Shoot(0, actor, this->mission);
+                            }
+                        }    
+                    }
+                }
+            }
+        } else {
+            wp.x = actor->object->position.x;
+            wp.y = this->plane->y;
+            wp.z = actor->object->position.z;
+            this->pilot->SetTargetWaypoint(wp);
+            this->pilot->target_speed = -10;
+            is_ground_target = true;
+        }
+        if (should_talk) {
+            std::srand(static_cast<unsigned int>(std::time(nullptr)));
+            int talking = std::rand() % 16;
+            if (talking >= this->profile->ai.atrb.VB) {
+                if (is_ground_target) {
+                    this->setMessage(11);
+                } else {
+                    this->setMessage(12);
+                }
+            }
         }
     }
     return false;
@@ -337,7 +391,7 @@ bool SCMissionActors::followAlly(uint8_t arg) {
                 this->pilot->target_climb = (int) wp.y;
                 if (dist > 1000.0f) {
                     this->pilot->target_speed = -60;
-                } else if (dist < 100.0f) {
+                } else if (dist < 400.0f) {
                     this->pilot->target_speed = (int) actor->plane->vz;
                     this->pilot->turning = false;
                 }
@@ -476,7 +530,12 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
 
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    Vector3D diff = this->mission->actors[arg]->plane->position - position;
+    Vector3D diff;
+    if (this->mission->actors[arg]->plane != nullptr) {
+        diff = this->mission->actors[arg]->object->position - position;
+    } else {
+        diff = this->mission->actors[arg]->plane->position - position;
+    }
     return (int) diff.Length()/1000;
 }
 
@@ -578,7 +637,8 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         return; // Weapons cannot be hit
     }
     int damage = 10;
-    this->health -= damage;
+    this->health = 0;
+    this->object->alive = false;
     if (this->object->entity->explos != nullptr) {
         SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
         this->mission->explosions.push_back(explosion);
@@ -597,6 +657,17 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         attacker->plane_down += 1;
     } else {
         attacker->ground_down += 1;
+    }
+    // If the actor is destroyed, process it
+    if (this->health <= 0 && !this->object->alive) {
+        if (this->profile != nullptr && this->profile->radi.msgs.size() > 0) {
+            std::srand(std::time(0));
+            int r = std::rand() % 16;
+            if (r<=this->profile->ai.atrb.VB) {
+                int message = std::rand() % 4;
+                this->setMessage(23 + message); // Bail out messages
+            }
+        }
     }
 }
 /**
@@ -720,6 +791,11 @@ bool SCMissionActorsPlayer::setMessage(uint8_t arg) {
         this->mission->waypoints.back()->message = this->mission->mission->mission_data.messages[arg];
     }
     return true;
+}
+
+void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
+    // for the moment, the player cannot be hit
+    return;
 }
 
 bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {

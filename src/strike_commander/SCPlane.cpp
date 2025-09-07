@@ -6,8 +6,9 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 #include "precomp.h"
+#include "SCWeaponPredictor.h"
 
-
+void cartesianToPolar(Vector3D v, float *phi, float *theta);
 // Définition des constantes physiques
 const float GRAVITY = 9.81f; // m/s^2
 const float AIR_DENSITY = 1.225f; // kg/m^3
@@ -57,6 +58,244 @@ int mrandom(int maxr) {
         return (retval);
     else
         return (-retval);
+}
+
+// Ajouter ces méthodes
+
+Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target) {
+    if (this->weaps_load[weapon_hard_point_id] == nullptr) {
+        return {0, 0, 0};
+    }
+    
+    // Initialiser le prédicteur si nécessaire
+    if (!this->weapon_predictor) {
+        this->weapon_predictor = new SCWeaponPredictor();
+    }
+    
+    // Calcul de la direction et vitesse initiale comme dans la méthode Shoot()
+    Vector3D initial_trust = {0, 0, 0};
+    Vector3D direction = {
+        this->x - this->last_px, this->y - this->last_py,
+        this->z - this->last_pz
+    };
+    float planeSpeed = direction.Length();
+    
+    if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
+        if (target->plane != nullptr) {
+            direction = {
+                target->plane->x - this->x, target->plane->y - this->y,
+                target->plane->z - this->z
+            };
+        }
+    }
+    
+    float thrustMagnitude = -planeSpeed;
+    
+    // Ajuster le thrust selon le type d'arme
+    switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
+        case 12: // Gun
+            thrustMagnitude = -planeSpeed * 250.0f;
+            break;
+        case 5:
+        case 6: // Bombs
+            thrustMagnitude = -planeSpeed * 50.0f;
+            break;
+        default: // Missiles
+            thrustMagnitude = -planeSpeed * 100.0f;
+            break;
+    }
+    
+    // Calcul de la direction comme dans Shoot()
+    float yawRad = tenthOfDegreeToRad(this->yaw);
+    float pitchRad = tenthOfDegreeToRad(-this->pitch);
+    float rollRad = 0.0f;
+    float cosRoll = cosf(rollRad);
+    float sinRoll = sinf(rollRad);
+    
+    initial_trust.x = thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
+    initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
+    initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
+    
+    // Prédiction pour les tirs IA comme dans Shoot()
+    if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
+        Vector3D targetVelocity = {0, 0, 0};
+        if (target->plane != nullptr) {
+            targetVelocity = {
+                target->plane->x - target->plane->last_px,
+                target->plane->y - target->plane->last_py,
+                target->plane->z - target->plane->last_pz
+            };
+        }
+        
+        float distance = direction.Length();
+        float timeToTarget = distance / -thrustMagnitude;
+        
+        Vector3D predictedPosition = {
+            target->plane->x + targetVelocity.x * timeToTarget,
+            target->plane->y + targetVelocity.y * timeToTarget,
+            target->plane->z + targetVelocity.z * timeToTarget
+        };
+        
+        direction = {
+            predictedPosition.x - this->x,
+            predictedPosition.y - this->y,
+            predictedPosition.z - this->z
+        };
+        
+        // Affiner la prédiction
+        for (int i = 0; i < 3; i++) {
+            distance = direction.Length();
+            timeToTarget = distance / -thrustMagnitude;
+            
+            predictedPosition = {
+                target->plane->x + targetVelocity.x * timeToTarget,
+                target->plane->y + targetVelocity.y * timeToTarget,
+                target->plane->z + targetVelocity.z * timeToTarget
+            };
+            
+            direction = {
+                predictedPosition.x - this->x,
+                predictedPosition.y - this->y,
+                predictedPosition.z - this->z
+            };
+        }
+        
+        direction.Normalize();
+        initial_trust = direction * -thrustMagnitude;
+    }
+    
+    // Position initiale
+    Vector3D position = {this->x, this->y, this->z};
+    
+    // Prédire la trajectoire en utilisant l'objet de simulation réel
+    Vector3D adjusted_direction = this->weapon_predictor->PredictTrajectory(
+        this->weaps_load[weapon_hard_point_id]->objct,
+        this->pilot,
+        target,
+        position,
+        initial_trust,
+        this->pilot->mission
+    );
+    
+    // Activer l'affichage de la trajectoire
+    this->is_showing_trajectory = true;
+    this->trajectory_display_counter = 0;
+    
+    return adjusted_direction;
+}
+
+void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
+    // Prédire d'abord le tir
+    Vector3D adjusted_direction = this->PredictShot(weapon_hard_point_id, target);
+    
+    // Vérifier que l'arme est disponible
+    if (this->weaps_load[weapon_hard_point_id]->nb_weap <= 0) {
+        weapon_hard_point_id = (int) this->object->entity->hpts.size() - weapon_hard_point_id;
+        if (weapon_hard_point_id <= 0 || 
+            weapon_hard_point_id >= this->weaps_load.size() ||
+            this->weaps_load[weapon_hard_point_id] == nullptr || 
+            this->weaps_load[weapon_hard_point_id]->nb_weap == 0) {
+            return;
+        }
+    }
+    
+    // Si en cooldown, ne pas tirer
+    if (this->wp_cooldown > 0) {
+        this->wp_cooldown--;
+        return;
+    }
+    
+    // Créer l'objet réel en utilisant les paramètres ajustés
+    SCSimulatedObject *weap = nullptr;
+    MemSound *sound = nullptr;
+    
+    switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
+        case 12:
+            weap = new GunSimulatedObject();
+            this->wp_cooldown = 3;
+            break;
+        case 5:
+        case 6:
+            weap = new GunSimulatedObject();
+            if (this->pilot->mission->sound.sounds.size() > 0) {
+                sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
+                Mixer.playSoundVoc(sound->data, sound->size);
+            }
+            this->wp_cooldown = 10;
+            break;
+        default:
+            if (this->pilot->mission->sound.sounds.size() > 0) {
+                sound = this->pilot->mission->sound.sounds[SoundEffectIds::AIM9_SHOOT];
+                Mixer.playSoundVoc(sound->data, sound->size);
+            }
+            weap = new SCSimulatedObject();
+            this->wp_cooldown = 10;
+            break;
+    }
+    // Calcul de la direction et vitesse initiale avec ajustement
+    Vector3D initial_trust = {0, 0, 0};
+    Vector3D direction = {
+        this->x - this->last_px, this->y - this->last_py,
+        this->z - this->last_pz
+    };
+    float planeSpeed = direction.Length();
+    
+    float thrustMagnitude = planeSpeed;
+    switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
+        case 12: // Gun
+            thrustMagnitude = planeSpeed * 250.0f;
+            break;
+        case 5:
+        case 6: // Bombs
+            thrustMagnitude = planeSpeed * 50.0f;
+            break;
+        default: // Missiles
+            thrustMagnitude = planeSpeed * 100.0f;
+            break;
+    }
+    
+    // Appliquer la direction ajustée
+    initial_trust = adjusted_direction * thrustMagnitude;
+    
+    // Configurer l'objet d'arme
+    weap->mission = mission;
+    weap->shooter = this->pilot;
+    weap->obj = this->weaps_load[weapon_hard_point_id]->objct;
+    weap->x = this->x;
+    weap->y = this->y;
+    weap->z = this->z;
+    
+    // Calculer l'orientation à partir de la direction
+    float azimut = 0.0f;
+    float elevation = 0.0f;
+    cartesianToPolar(initial_trust, &azimut, &elevation);
+    weap->azimuthf = (float)(azimut - M_PI_2);
+    weap->elevationf = (float)(M_PI_2-elevation);
+    
+    weap->vx = initial_trust.x;
+    weap->vy = initial_trust.y;
+    weap->vz = initial_trust.z;
+    weap->weight = this->weaps_load[weapon_hard_point_id]->objct->weight_in_kg * 2.205f;
+    weap->target = target;
+    
+    // Décrémenter le nombre d'armes disponibles
+    this->weaps_load[weapon_hard_point_id]->nb_weap--;
+    
+    // Ajouter à la liste des objets simulés
+    this->weaps_object.push_back(weap);
+}
+
+void SCPlane::RenderWeaponTrajectories() {
+    // Afficher la trajectoire si nécessaire
+    if (this->is_showing_trajectory && this->weapon_predictor) {
+        this->weapon_predictor->RenderTrajectory();
+        
+        // Compteur pour limiter la durée d'affichage
+        this->trajectory_display_counter++;
+        if (this->trajectory_display_counter > 30) { // 1 seconde à 30 FPS
+            this->is_showing_trajectory = false;
+        }
+    }
 }
 
 /**
@@ -158,6 +397,10 @@ SCPlane::~SCPlane() {
     for (auto smoke: this->smoke_set->textures) {
         glDeleteTextures(1, &smoke->id);
         smoke->initialized = false;
+    }
+    if (this->weapon_predictor) {
+        delete this->weapon_predictor;
+        this->weapon_predictor = nullptr;
     }
 }
 /**
@@ -932,6 +1175,10 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
     if (this->weaps_load[weapon_hard_point_id] == nullptr) {
         return;
     }
+    if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
+        this->ShootWithPrediction(weapon_hard_point_id, target, mission);
+        return;
+    }
     SCSimulatedObject *weap{nullptr};
     Vector3D initial_trust = {0,0,0};
     Vector3D direction       = {
@@ -939,6 +1186,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         this->z - this->last_pz
     };
     float planeSpeed      = direction.Length();
+    
     float thrustMagnitude = -planeSpeed;
     MemSound *sound;
     if (this->wp_cooldown > 0) {
@@ -984,6 +1232,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
     initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
     initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
 
+    
     weap->shooter = this->pilot;
     
     if (this->weaps_load[weapon_hard_point_id]->nb_weap <= 0) {
@@ -1017,107 +1266,6 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
     weap->target = target;
     this->weaps_object.push_back(weap);
 }
-#ifdef OLD_LOADOUT
-void SCPlane::InitLoadout() {
-    std::unordered_map<int, std::vector<int>> weap_map = {
-        {ID_20MM, {0}},
-        {ID_AIM9J, {4, 1, 2}},
-        {ID_AIM9M, {4, 1, 2}},
-        {ID_AGM65D, {2,3}},
-        {ID_LAU3, {2,3}},
-        {ID_MK20, {2,3}},
-        {ID_MK82, {2,3}},
-        {ID_DURANDAL, {2,3}},
-        {ID_GBU15, {2,3}},
-        {ID_AIM120, {1,2}},
-    };
-    std::unordered_map<int, std::unordered_map<int, int>> max_load_out = {
-        {ID_20MM, {{0, 1000}}},
-        {ID_AIM9J, {{4, 1}, {1, 1}, {2, 1}}},
-        {ID_AIM9M, {{4, 1}, {1, 1}, {2, 1}}},
-        {ID_AGM65D, {{2, 3}, {3, 3}}},
-        {ID_LAU3, {{2, 3}, {3, 2}}},
-        {ID_MK20, {{2, 3}, {3, 3}}},
-        {ID_MK82, {{2, 6}, {3, 6}}},
-        {ID_DURANDAL, {{2, 3}, {3, 3}}},
-        {ID_GBU15, {{2, 1}, {3, 1}}},
-        {ID_AIM120, {{1, 1}, {2, 2}}}
-    };
-    for (auto loadout: this->object->entity->weaps) {
-        if (loadout->nb_weap == 0) {
-            continue;
-        }
-        if (loadout->objct->wdat == nullptr) {
-            continue;
-        }
-        std::vector<int> hpt_ids = weap_map[loadout->objct->wdat->weapon_id];
-        int nbwep = loadout->nb_weap / 2;
-        if (loadout->objct->wdat->weapon_id == ID_20MM) {
-            SCWeaponLoadoutHardPoint *weap = new SCWeaponLoadoutHardPoint();
-            weap = new SCWeaponLoadoutHardPoint();
-            weap->objct = loadout->objct;
-            weap->nb_weap = loadout->nb_weap;
-            weap->hpts_type = this->object->entity->hpts[0]->id;
-            weap->name = loadout->name;
-            weap->position = {
-                (float) this->object->entity->hpts[0]->x,
-                (float) this->object->entity->hpts[0]->y,
-                (float) this->object->entity->hpts[0]->z
-            };
-            weap->hud_pos = {0, 0};
-            this->weaps_load[0] = weap;
-        } else {
-            for (int i = 0; i < hpt_ids.size() && nbwep>0; i++) {
-                int hpt_type = hpt_ids[i];
-                int hpt_id = -1;
-                int nb_hpt_to_test = ((int)this->object->entity->hpts.size()-1)/2;
-                for (int i=1; i<=nb_hpt_to_test && hpt_id == -1; i++) {
-                    if (this->object->entity->hpts[i]->id == hpt_type) {
-                        hpt_id = i;
-                    }
-                }
-                if (hpt_id == -1) {
-                    continue;
-                }
-                if (this->weaps_load[hpt_id] == nullptr) {
-                    SCWeaponLoadoutHardPoint *weap = new SCWeaponLoadoutHardPoint();
-                    weap->objct = loadout->objct;
-                    int maxloadout = max_load_out[loadout->objct->wdat->weapon_id][hpt_type];
-                    weap->nb_weap = (std::min)(nbwep, maxloadout);
-                    weap->hpts_type = this->object->entity->hpts[hpt_id]->id;
-                    weap->name = loadout->name;
-                    weap->position = {
-                        (float) this->object->entity->hpts[hpt_id]->x,
-                        (float) this->object->entity->hpts[hpt_id]->y,
-                        (float) this->object->entity->hpts[hpt_id]->z
-                    };
-                    weap->hud_pos = {0, 0};
-                    if (hpt_id < this->weaps_load.size()) {
-                        this->weaps_load[hpt_id] = weap;
-                    }
-
-                    int second_hpt_id = (int)this->object->entity->hpts.size()-hpt_id;
-                    weap = new SCWeaponLoadoutHardPoint();
-                    weap->objct = loadout->objct;
-                    weap->nb_weap = (std::min)(nbwep, maxloadout);
-                    weap->hpts_type = this->object->entity->hpts[second_hpt_id]->id;
-                    weap->name = loadout->name;
-                    weap->position = {
-                        (float) this->object->entity->hpts[second_hpt_id]->x,
-                        (float) this->object->entity->hpts[second_hpt_id]->y,
-                        (float) this->object->entity->hpts[second_hpt_id]->z
-                    };
-                    weap->hud_pos = {0, 0};
-                    if (second_hpt_id < this->weaps_load.size()) {
-                        this->weaps_load[second_hpt_id] = weap;
-                    }
-                    nbwep -= weap->nb_weap;
-                }
-            }
-        }
-    }
-}
-#endif
 void SCPlane::InitLoadout() {
     // this->object->entity->weaps
     // this->object->entity->hpts

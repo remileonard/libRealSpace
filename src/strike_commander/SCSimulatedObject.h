@@ -19,6 +19,7 @@ protected:
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
 public:
+    bool is_simulated{false};
     float x{0.0f};
     float y{0.0f};
     float z{0.0f};

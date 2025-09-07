@@ -23,6 +23,7 @@ public:
     SCPlane *plane{nullptr};
     SCPilot *pilot{nullptr};
     SCMission *mission{nullptr};
+    SCMissionActors *target{nullptr};
     prog_op current_objective;
     Vector3D formation_pos_offset{150.0f, 0.0f, 0.0f};
     Vector3D attack_pos_offset{0.0f, 0.0f, -1000.0f};
@@ -64,13 +65,14 @@ private:
 
 class SCMissionActorsPlayer : public SCMissionActors {
 public:
-    bool takeOff(uint8_t arg); 
-    bool land(uint8_t arg);
-    bool flyToWaypoint(uint8_t arg);
-    bool flyToArea(uint8_t arg);
-    bool destroyTarget(uint8_t arg);
-    bool defendTarget(uint8_t arg);
-    bool setMessage(uint8_t arg);
+    bool takeOff(uint8_t arg) override; 
+    bool land(uint8_t arg) override;
+    bool flyToWaypoint(uint8_t arg) override;
+    bool flyToArea(uint8_t arg) override;
+    bool destroyTarget(uint8_t arg) override;
+    bool defendTarget(uint8_t arg) override;
+    bool setMessage(uint8_t arg) override;
+    void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) override;
 };
 
 class SCMissionActorsStrikeBase : public SCMissionActors {
