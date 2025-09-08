@@ -274,8 +274,9 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
                 bool ret = this->destroyTarget(actor->actor_id);
                 if (ret) {
                     this->profile->ai.goal[0] = 0;
+                } else {
+                    return ret;
                 }
-                return ret;
             }
         }
     }
