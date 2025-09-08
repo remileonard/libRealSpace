@@ -168,10 +168,14 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                 float real_distance = real_dist.Length();
                 int hpt_id = 0;
                 int attack_range = 0;
+                int max_weap = 1;
                 for (auto weap : this->plane->weaps_load) {
                     if (weap != nullptr && weap->objct->wdat->effective_range >= real_distance) {
                         if (weap->nb_weap > 0) {
-                            attack_range = weap->objct->wdat->effective_range;
+                            attack_range = weap->objct->wdat->target_range;
+                            if (weap->objct->wdat->weapon_category==0) {
+                                max_weap = 40;
+                            }
                             break;
                         }
                     }
@@ -203,7 +207,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                         target_azimuth -= (this->plane->yaw/10.0f);
                         // Only shoot if target is within firing arc
                         if (std::abs(target_azimuth) < 30.0f) {
-                            if (this->plane->weaps_object.size() < 40) {
+                            if (this->plane->weaps_object.size() < max_weap) {
                                 int should_shoot = std::rand() % 16;
                                 if (should_shoot <= this->profile->ai.atrb.TH) {
                                     this->plane->Shoot(hpt_id, actor, this->mission);
