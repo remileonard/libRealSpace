@@ -195,7 +195,7 @@ void SCProg::execute() {
                     this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_SET_OBJ_DEFEND_AREA:
-                    this->actor->current_command_executed = this->actor->defendTarget(prog.arg);
+                    this->actor->current_command_executed = this->actor->defendArea(prog.arg);
                     this->actor->current_command = OP_SET_OBJ_DEFEND_AREA;
                     this->actor->current_command_arg = prog.arg;
                 case OP_SET_MESSAGE:

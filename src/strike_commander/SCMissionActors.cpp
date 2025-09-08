@@ -163,10 +163,24 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             Vector3D diff = wp - position;
             float dist = diff.Length();
             if (!actor->plane->on_ground) {
+                Vector3D real_pos = {actor->plane->x, actor->plane->y, actor->plane->z};
+                Vector3D real_dist = real_pos - position;
+                float real_distance = real_dist.Length();
+                int hpt_id = 0;
+                int attack_range = 0;
+                for (auto weap : this->plane->weaps_load) {
+                    if (weap != nullptr && weap->objct->wdat->effective_range >= real_distance) {
+                        if (weap->nb_weap > 0) {
+                            attack_range = weap->objct->wdat->effective_range;
+                            break;
+                        }
+                    }
+                    hpt_id++;
+                }
                 this->pilot->target_climb = (int) wp.y;
-                if (dist > 1000.0f) {
+                if (dist > attack_range - 1000.0f) {
                     this->pilot->target_speed = -60;
-                } else if (dist > 300.0f) {
+                } else if (dist < attack_range - 300.0f) {
                     this->pilot->target_speed = (int) actor->plane->vz;
                     // Calculate azimuth between plane and target
                     float target_azimuth = 0.0f;
@@ -192,7 +206,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                             if (this->plane->weaps_object.size() < 40) {
                                 int should_shoot = std::rand() % 16;
                                 if (should_shoot <= this->profile->ai.atrb.TH) {
-                                    this->plane->Shoot(0, actor, this->mission);
+                                    this->plane->Shoot(hpt_id, actor, this->mission);
                                 }
                                 
                             }
@@ -265,7 +279,7 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
             }
         }
     }
-    return true;
+    return this->followAlly(arg);
 }
 bool SCMissionActors::defendArea(uint8_t arg) { 
     this->current_objective = OP_SET_OBJ_DEFEND_AREA;
