@@ -205,6 +205,12 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                             target_azimuth += 360.0f;
                         }
                         target_azimuth -= (this->plane->yaw/10.0f);
+                        if (target_azimuth > 360.0f) {
+                            target_azimuth -= 360.0f;
+                        }
+                        if (target_azimuth < -360.0f) {
+                            target_azimuth += 360.0f;
+                        }
                         // Only shoot if target is within firing arc
                         if (std::abs(target_azimuth) < 30.0f) {
                             if (this->plane->weaps_object.size() < max_weap) {
