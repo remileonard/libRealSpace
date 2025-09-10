@@ -1,7 +1,10 @@
 file (GLOB SC_SOURCE "*.cpp")
 file (GLOB SC_HEADER "*.h")
+if(WIN32)
+    set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/resources/debugger.rc")
+endif()
 
-add_executable (debugger ${SC_SOURCE} ${SC_HEADER})
+add_executable (debugger ${SC_SOURCE} ${SC_HEADER} ${APP_ICON_RESOURCE})
 
 target_include_directories(debugger PUBLIC ${SC_INCLUDES})
 target_include_directories(debugger PUBLIC ${SDL2_INCLUDE_DIRS})

@@ -117,33 +117,43 @@ bool SCMissionActors::flyToArea(uint8_t arg) {
 bool SCMissionActors::destroyTarget(uint8_t arg) {
     Vector3D wp;
     bool should_talk = false;
+    bool is_new_target = false;
     bool is_ground_target = false;
     if (this->target == nullptr) {
         should_talk = true;
     }
-    if (this->current_target != arg) {
+    if (this->current_target == 0) {
         this->current_target = arg;
-        this->target = nullptr;
-        target_position.Clear();
-    }
-    this->current_objective = OP_SET_OBJ_DESTROY_TARGET;
-    this->current_target = arg;
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    for (auto actor: this->mission->actors) {
-        if (actor->actor_id == arg) {
-            this->target = actor;
-            break;
-        }
+        is_new_target = true;
     }
     
+    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+    if (this->target == nullptr) {
+        for (auto actor: this->mission->actors) {
+            if (actor->actor_id == this->current_target) {
+                this->target = actor;
+                break;
+            }
+        }
+    }
+    if (this->current_target != 0 && this->target != nullptr && this->target->plane != nullptr && this->target->plane->object->alive == 0) {
+        this->current_target = 0;
+        this->target = nullptr;
+        this->target_position.Clear();
+        if (!is_new_target && this->current_objective == OP_SET_OBJ_DESTROY_TARGET) {
+            std::srand(static_cast<unsigned int>(std::time(nullptr)));
+            int talking = std::rand() % 16;
+            if (talking >= this->profile->ai.atrb.VB) {
+                this->setMessage(13);
+            }
+        }
+        return true;
+    }
+    this->current_objective = OP_SET_OBJ_DESTROY_TARGET;
+    uint8_t area_id = this->mission->getAreaID({this->plane->x, this->plane->y, this->plane->z});
     if (this->target != nullptr) {
         SCMissionActors *actor = this->target;
         if (actor->plane != nullptr) {
-            if (!actor->plane->object->alive) {
-                this->current_target = 0;
-                this->target = nullptr;
-                return true;
-            }
             wp.x = actor->plane->x;
             wp.y = actor->plane->y;
             wp.z = actor->plane->z;
@@ -192,10 +202,8 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                         Vector3D target_dir = {actor->plane->x - this->plane->x,
                                               0.0f,  // Ignore Y for horizontal azimuth
                                               actor->plane->z - this->plane->z};
-                        target_dir.Normalize();
-                        
                         // Calculate the angle in radians and convert to degrees
-                        target_azimuth = std::atan2(target_dir.z, target_dir.x) * 180.0f / M_PI;
+                        target_azimuth = atan2f(target_dir.z, target_dir.x) * 180.0f / M_PI;
                         target_azimuth -= 360.0f;
                         target_azimuth += 90.0f;
                         if (target_azimuth > 360.0f) {
@@ -204,15 +212,13 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                         while (target_azimuth < 0.0f) {
                             target_azimuth += 360.0f;
                         }
-                        target_azimuth -= (this->plane->yaw/10.0f);
-                        if (target_azimuth > 360.0f) {
-                            target_azimuth -= 360.0f;
-                        }
-                        if (target_azimuth < -360.0f) {
-                            target_azimuth += 360.0f;
-                        }
+                        target_azimuth = 360.0f - target_azimuth;;
+                        float target_diff = target_azimuth - (this->plane->yaw/10.0f);
+                        while (target_diff > 180.0f) target_diff -= 360.0f;
+                        while (target_diff < -180.0f) target_diff += 360.0f;
+     
                         // Only shoot if target is within firing arc
-                        if (std::abs(target_azimuth) < 30.0f) {
+                        if (std::abs(target_diff) < 30.0f) {
                             if (this->plane->weaps_object.size() < max_weap) {
                                 int should_shoot = std::rand() % 16;
                                 if (should_shoot <= this->profile->ai.atrb.TH) {
@@ -266,27 +272,29 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
  */
 
 bool SCMissionActors::defendTarget(uint8_t arg) {
-    this->current_objective = OP_SET_OBJ_DEFEND_TARGET;
-    if (this->profile->ai.goal[0] != 0) {
-        bool ret = this->destroyTarget(this->profile->ai.goal[0]);
+    if (this->current_target != 0) {
+        bool ret = this->destroyTarget(this->current_target);
         if (ret) {
-            this->profile->ai.goal[0] = 0;
+            this->current_target = 0;
         }
         return ret;
     }
+    this->current_objective = OP_SET_OBJ_DEFEND_TARGET;
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
     uint8_t area_id = this->mission->getAreaID(position);
     for (auto actor: this->mission->enemies) {
         if (actor->plane != nullptr) {
             uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
-            if (actor_area_id == area_id) {
-                this->profile->ai.goal[0] = actor->actor_id;
+            if (actor_area_id == area_id && actor->is_active && actor->target != nullptr && actor->target->actor_id == arg) {
+                if (actor->plane != nullptr && actor->plane->object->alive == 0) {
+                    continue;
+                }
+                this->current_target = actor->actor_id;
                 bool ret = this->destroyTarget(actor->actor_id);
                 if (ret) {
-                    this->profile->ai.goal[0] = 0;
-                } else {
-                    return ret;
+                    this->current_target = 0;
                 }
+                return ret;
             }
         }
     }

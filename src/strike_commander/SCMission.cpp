@@ -310,6 +310,11 @@ void SCMission::update() {
     }
     this->tick_counter++;
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
+    float yawRad = this->player->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
+    // Position the offset behind the aircraft based on current yaw
+    this->player->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
+    this->player->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
+    this->player->attack_pos_offset.y = 0.0f; // Same altitude
     if (area_id != this->current_area_id) {
         for (auto scene: this->mission->mission_data.scenes) {
             if (scene->area_id == this->current_area_id-1 && scene->on_leaving != -1) {
@@ -536,7 +541,7 @@ void SCMission::update() {
         ai_actor->plane->Simulate();
         // Update attack position offset based on plane's yaw to keep it behind the plane
         
-        float yawRad = ai_actor->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
+        yawRad = ai_actor->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
         // Position the offset behind the aircraft based on current yaw
         ai_actor->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
         ai_actor->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
