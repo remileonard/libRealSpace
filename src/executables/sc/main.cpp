@@ -10,11 +10,10 @@
 #define FLOPPY 0
 
 int main(int argc, char* argv[]) {
-    GameEngine::setInstance(std::make_unique<GameEngine>());
     RSScreen::setInstance(std::make_unique<RSScreen>());
-    
+    GameEngine::setInstance(std::make_unique<GameEngine>());
+
     RSScreen &screen = RSScreen::instance();
-    GameEngine &game = GameEngine::instance();
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
     screen.init(WIDTH,HEIGHT,FULLSCREEN);
@@ -77,6 +76,17 @@ int main(int argc, char* argv[]) {
         ConvAssetManager::getInstance().init();
         loader->setProgress(90.0f);
         RSSound::getInstance().init();
+        RSVGA &VGA = RSVGA::getInstance();
+        GameEngine *game = &GameEngine::instance();
+        VGA.upscale = true;
+        game->init();
+        //Add MainMenu activity on the game stack.
+        SCMainMenu* main = new SCMainMenu();
+        main->init();
+        game->addActivity(main);
+        SCAnimationPlayer *intro = new SCAnimationPlayer();
+        intro->init();
+        game->addActivity(intro);
         loader->setProgress(100.0f);
     });
     while (!loader.isLoadingComplete()) {
@@ -84,17 +94,8 @@ int main(int argc, char* argv[]) {
         screen.refresh();
         SDL_PumpEvents();
     }
-    RSVGA &VGA = RSVGA::getInstance();
-    VGA.upscale = true;
-    game.init();
-    //Add MainMenu activity on the game stack.
-    SCMainMenu* main = new SCMainMenu();
-    main->init();
-    game.addActivity(main);
-    SCAnimationPlayer *intro = new SCAnimationPlayer();
-    intro->init();
-    game.addActivity(intro);
-    game.run();
+    GameEngine *game = &GameEngine::instance();
+    game->run();
 
     return EXIT_SUCCESS;
 }
