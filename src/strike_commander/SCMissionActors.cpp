@@ -281,11 +281,24 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
     }
     this->current_objective = OP_SET_OBJ_DEFEND_TARGET;
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    uint8_t area_id = this->mission->getAreaID(position);
     for (auto actor: this->mission->enemies) {
         if (actor->plane != nullptr) {
-            uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
-            if (actor_area_id == area_id && actor->is_active && actor->target != nullptr && actor->target->actor_id == arg) {
+            if (actor->is_active && actor->target != nullptr && actor->target->actor_id == arg) {
+                if (actor->plane != nullptr && actor->plane->object->alive == 0) {
+                    continue;
+                }
+                this->current_target = actor->actor_id;
+                bool ret = this->destroyTarget(actor->actor_id);
+                if (ret) {
+                    this->current_target = 0;
+                }
+                return ret;
+            }
+        }
+    }
+    for (auto actor: this->mission->enemies) {
+        if (actor->plane != nullptr) {
+            if (actor->is_active && actor->target != nullptr && actor->target->actor_id == this->actor_id) {
                 if (actor->plane != nullptr && actor->plane->object->alive == 0) {
                     continue;
                 }

@@ -138,7 +138,12 @@ static std::unordered_map<prog_op, std::string> prog_op_names = {
     {OP_SELECT_FLAG_208, "OP_SELECT_FLAG_208"}
 };
 
+enum KillBoardType {
+    AIR_KILL = 0,
+    GROUND_KILL = 1
+};
 enum PilotsId {
+    PLAYER=0,
     PRIMETIME=1,
     PHOENIX=2,
     BASELINE=3,
@@ -162,6 +167,17 @@ static std::unordered_map<uint8_t, std::string> pilot_names = {
     {6, "VIXEN"},
     {7, "HAWK"}
 };
+
+static std::unordered_map<std::string, uint8_t> pilot_profile = {
+    {"BILLY", 1},
+    {"GWEN", 2},
+    {"BASELINE", 3},
+    {"ZORRO", 4},
+    {"TEX", 5},
+    {"VIXEN", 6},
+    {"HAWK", 7}
+};
+
 enum View { FRONT = 0, FOLLOW, RIGHT, LEFT, REAR, REAL, TARGET, EYE_ON_TARGET, MISSILE_CAM, OBJECT, AUTO_PILOT };
 
 enum CatalogItems {

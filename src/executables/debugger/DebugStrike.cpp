@@ -526,6 +526,8 @@ void DebugStrike::radar() {
                 ImGui::OpenPopup("Actor Details");
                 if (ImGui::BeginPopup("Actor Details")) {
                     ImGui::Text("Actor: %s", actor->actor_name.c_str());
+                    ImGui::SameLine();
+                    ImGui::Text("ID: %d", actor->actor_id);
                     if (actor->plane) {
                         ImGui::Text("Air Speed: %d", actor->plane->airspeed);
                         ImGui::Text("Altitude: %.0f", actor->plane->y);
@@ -535,6 +537,7 @@ void DebugStrike::radar() {
                         ImGui::Text("Position: (%.2f, %.2f, %.2f)", actor->object->position.x,
                                     actor->object->position.y, actor->object->position.z);
                     }
+                    ImGui::Text("Current Target: %d" , actor->current_target);
 
                     ImGui::EndPopup();
                 }

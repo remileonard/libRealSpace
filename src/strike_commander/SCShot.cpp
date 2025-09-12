@@ -216,7 +216,7 @@ void MapShot::init() {
         {132, {0, 200}},
         {133, {177, 0}},
         {134, {0, 0}}
-     };
+    };
     std::vector<uint8_t> shpids_to_paint = {134, 132, 133, 128, 129, 130, 131};
 
     for (auto i : shpids_to_paint) {

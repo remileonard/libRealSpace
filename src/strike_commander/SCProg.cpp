@@ -190,6 +190,8 @@ void SCProg::execute() {
                     this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_SET_OBJ_DEFEND_TARGET:
+                    this->actor->current_target = 0;
+                    this->actor->target = nullptr;
                     this->actor->current_command_executed = this->actor->defendTarget(prog.arg);
                     this->actor->current_command = OP_SET_OBJ_DEFEND_TARGET;
                     this->actor->current_command_arg = prog.arg;
