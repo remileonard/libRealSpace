@@ -180,7 +180,12 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                 int attack_range = 0;
                 int max_weap = 1;
                 for (auto weap : this->plane->weaps_load) {
-                    if (weap != nullptr && weap->objct->wdat->effective_range >= real_distance) {
+                    if (weap == nullptr) {
+                        hpt_id++;
+                        continue;
+                    }
+                    int effective_range = weap->objct->wdat->effective_range + 500 * (this->profile->ai.atrb.AA / 16);
+                    if (effective_range >= real_distance) {
                         if (weap->nb_weap > 0) {
                             attack_range = weap->objct->wdat->target_range;
                             if (current_weapon_index != weap->objct->wdat->weapon_category) {
@@ -585,7 +590,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
     Vector3D diff;
-    if (this->mission->actors[arg]->plane != nullptr) {
+    if (this->mission->actors[arg]->plane == nullptr) {
         diff = this->mission->actors[arg]->object->position - position;
     } else {
         diff = this->mission->actors[arg]->plane->position - position;
