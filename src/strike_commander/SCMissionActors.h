@@ -60,6 +60,7 @@ public:
 private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};
     int target_position_update{0};
+    int current_weapon_index{-1};
     AssetManager &Assets = AssetManager::getInstance();
 };
 

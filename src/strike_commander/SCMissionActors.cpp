@@ -183,6 +183,10 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                     if (weap != nullptr && weap->objct->wdat->effective_range >= real_distance) {
                         if (weap->nb_weap > 0) {
                             attack_range = weap->objct->wdat->target_range;
+                            if (current_weapon_index != weap->objct->wdat->weapon_category) {
+                                current_weapon_index = weap->objct->wdat->weapon_category;
+                                this->plane->wp_cooldown = 0;
+                            }
                             if (weap->objct->wdat->weapon_category==0) {
                                 max_weap = 40;
                             }
@@ -288,6 +292,7 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
                     continue;
                 }
                 this->current_target = actor->actor_id;
+                this->target = actor;
                 bool ret = this->destroyTarget(actor->actor_id);
                 if (ret) {
                     this->current_target = 0;

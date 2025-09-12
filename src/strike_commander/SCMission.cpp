@@ -124,6 +124,7 @@ void SCMission::loadMission() {
                 if (actor->profile != nullptr && actor->profile->ai.isAI) {
                     if (actor->profile->ai.goal.size() > 0) {
                         actor->pilot = new SCPilot();
+                        actor->pilot->actor = actor;
                         BoudingBox *bb = actor->object->entity->GetBoudingBpx();
                         
                         actor->plane = new SCJdynPlane(

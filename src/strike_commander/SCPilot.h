@@ -38,7 +38,7 @@ private:
     };
     
     float turnRate;
-    
+    float calculateMaxTurnRate(float airspeed, float maxG);
     
 public:
     Vector3D target_waypoint{0.0f, 0.0f, 0.0f};
@@ -51,6 +51,7 @@ public:
     bool land{false};
     TurnState turnState;
     SCPlane* plane{nullptr};
+    SCMissionActors *actor{nullptr};
     SCPilot();
     ~SCPilot();
     void SetTargetWaypoint(Vector3D waypoint);

@@ -175,7 +175,7 @@ Vector3D Camera::getUp(void) {
     up.y = m.v[1][1];
     up.z = m.v[2][1];
     return up;
- }
+}
 
 Vector3D Camera::getRight(void) { 
     Matrix m = orientation.ToMatrix();

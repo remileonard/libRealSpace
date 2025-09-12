@@ -51,6 +51,25 @@ void SCPilot::SetTargetWaypoint(Vector3D waypoint) {
     }
 }
 
+float SCPilot::calculateMaxTurnRate(float airspeed, float maxG) {
+    // Constantes
+    const float G = 9.81f;          // Accélération gravitationnelle en m/s²
+    const float KNOTS_TO_MS = 0.514444f;  // Facteur de conversion noeuds -> m/s
+    
+    // Vitesse en m/s
+    float speed_ms = airspeed * KNOTS_TO_MS;
+    
+    // Calcul de l'angle de roulis maximum pour le facteur G donné
+    float max_bank_angle_rad = acosf(1.0f / maxG);
+    
+    // Formule physique du taux de virage maximum (en degrés/seconde)
+    float max_turn_rate_deg_sec = (G * tanf(max_bank_angle_rad)) / (M_PI * speed_ms / 180.0f);
+    
+    // Convertir en unités du jeu (dixièmes de degrés)
+    return max_turn_rate_deg_sec * 10.0f;
+}
+
+
 void SCPilot::AutoPilot() {
     PIDController altitudeController(1.0f, 0.1f, 0.05f); // Adjust these values as needed
     PIDController azimuthController(1.0f, 0.1f, 0.05f); // Adjust these values as needed
@@ -141,9 +160,17 @@ void SCPilot::AutoPilot() {
     }
 
     // Taux de virage basé sur l'écart (plus rapide pour grand angle)
-    turnRate = fabs(yaw_difference) / 450.0f;
-    if (turnRate < 1.0f) {
-        turnRate = 1.0f; // Assurer un minimum de virage
+    // 450.0f = 45°
+    float based_turn_rate = 450.0f;
+    float minTurnRate = 1.0f + (this->plane->object->entity->jdyn->MAX_G / 10.0f);
+    if (this->actor->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET) {
+        based_turn_rate = 450.0f - 100.0f * this->plane->object->entity->jdyn->MAX_G / 10.0f - 150.0f * (this->actor->profile->ai.atrb.AA / 16.0f);
+        minTurnRate = 1.0f + (this->plane->object->entity->jdyn->MAX_G / 10.0f) + (this->actor->profile->ai.atrb.AA / 16.0f) * 1.0f;
+    }
+    turnRate = fabs(yaw_difference) / based_turn_rate;
+    
+    if (turnRate < minTurnRate) {
+        turnRate = minTurnRate;
     }
     targetRoll = 0.0f;
     if (turnState == TURN_LEFT) {
