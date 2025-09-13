@@ -6,6 +6,7 @@ class SCMission;
 
 class SCMissionActors {
 public:
+    bool talkative{true};
     int score{0};
     int plane_down{0};
     int ground_down{0};
@@ -50,7 +51,7 @@ public:
     virtual bool setMessage(uint8_t arg);
     virtual bool followAlly(uint8_t arg);
     virtual bool ifTargetInSameArea(uint8_t arg);
-    virtual bool respondToRadioMessage(int message_id, SCMission *mission);
+    virtual bool respondToRadioMessage(int message_id, SCMission *mission, SCMissionActors *sender=nullptr);
     virtual bool activateTarget(uint8_t arg);
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);

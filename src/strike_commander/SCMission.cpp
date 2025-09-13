@@ -491,46 +491,19 @@ void SCMission::update() {
         if (ai_actor->is_active == false) {
             continue;
         }
-        if (ai_actor->current_command != prog_op::OP_NOOP && ai_actor->current_command_executed == false) {
-            switch (ai_actor->current_command) {
-                case prog_op::OP_SET_OBJ_TAKE_OFF:
-                    ai_actor->current_command_executed = ai_actor->takeOff(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_LAND:
-                    ai_actor->current_command_executed = ai_actor->land(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_FLY_TO_WP:
-                    ai_actor->current_command_executed = ai_actor->flyToWaypoint(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_FLY_TO_AREA:
-                    ai_actor->current_command_executed = ai_actor->flyToArea(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_DESTROY_TARGET:
-                    ai_actor->current_command_executed = ai_actor->destroyTarget(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_DEFEND_TARGET:
-                    ai_actor->current_command_executed = ai_actor->defendTarget(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_DEFEND_AREA:
-                    ai_actor->current_command_executed = ai_actor->defendArea(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_DEACTIVATE_OBJ:
-                    ai_actor->current_command_executed = ai_actor->deactivate(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_MESSAGE:
-                    ai_actor->current_command_executed = ai_actor->setMessage(ai_actor->current_command_arg);
-                    break;
-                case prog_op::OP_SET_OBJ_FOLLOW_ALLY:
-                    ai_actor->current_command_executed = ai_actor->followAlly(ai_actor->current_command_arg);
-                    break;
-                default:
-                    break;
-            }
-        }
-        if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false) {
+        
+        if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
             SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this, ai_actor->object->on_mission_update);
             p->execute();
             delete p;
+        } else if (ai_actor->override_progs.size() > 0 && ai_actor->is_destroyed == false) {
+            SCProg *p = new SCProg(ai_actor, ai_actor->override_progs, this, 255);
+            p->execute();
+            delete p;
+            if (ai_actor->current_command_executed) {
+                ai_actor->override_progs.clear();
+                ai_actor->override_progs.shrink_to_fit();
+            }
         }
         if (ai_actor->pilot == nullptr) {
             continue;

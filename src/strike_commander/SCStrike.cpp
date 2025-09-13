@@ -696,69 +696,7 @@ void SCStrike::checkKeyboard(void) {
         this->cockpit->show_comm = !this->cockpit->show_comm;
         this->mfd_timeout = 400;
     }
-    if (this->cockpit->show_comm) {
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M1))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(1);
-            } else {
-                // send message 1 to ai comm_target
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(1, this->current_mission);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M2))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(2);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(2, this->current_mission);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M3))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(3);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(3, this->current_mission);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M4))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(4);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(4, this->current_mission);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M5))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(5);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }    
-    }
+    
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
         this->camera_mode = View::TARGET;
@@ -842,6 +780,69 @@ void SCStrike::checkKeyboard(void) {
                 Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
             }
         }
+    }
+    if (this->cockpit->show_comm) {
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M1))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(1);
+            } else {
+                // send message 1 to ai comm_target
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(1, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M2))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(2);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(2, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M3))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(3);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(3, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M4))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(4);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(4, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M5))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(5);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }    
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_60))) {
         this->player_plane->SetThrottle(60);
@@ -937,6 +938,7 @@ void SCStrike::findTarget() {
     if (nearestIndex != -1) {
         this->current_target = nearestIndex;
         this->target = this->current_mission->enemies[nearestIndex];
+        this->current_mission->player->target = this->target;
         this->cockpit->target = this->target->object;
     }
 }

@@ -203,8 +203,8 @@ void SCProg::execute() {
                     this->actor->setMessage(prog.arg);
                 break;
                 case OP_SET_OBJ_FOLLOW_ALLY:
-                    this->actor->current_command_executed = this->actor->defendTarget(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_DEFEND_TARGET;
+                    this->actor->current_command_executed = this->actor->followAlly(prog.arg);
+                    this->actor->current_command = OP_SET_OBJ_FOLLOW_ALLY;
                     this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_DEACTIVATE_OBJ:

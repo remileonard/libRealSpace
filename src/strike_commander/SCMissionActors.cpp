@@ -392,7 +392,10 @@ bool SCMissionActors::deactivate(uint8_t arg) {
  * @param arg The index of the message to be set.
  * @return true Always returns true.
  */
-bool SCMissionActors::setMessage(uint8_t arg) {   
+bool SCMissionActors::setMessage(uint8_t arg) {
+    if (!this->talkative) {
+        return false;
+    }
     for (auto message: this->profile->radi.msgs) {
         if (message.first == arg) {
             std::string *message = new std::string();
@@ -491,15 +494,17 @@ bool SCMissionActors::ifTargetInSameArea(uint8_t arg) {
     }
     return false;
 }
-bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission) {
+bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, SCMissionActors *sender) {
     int cpt = 1;
+    float health_remaing = this->health / (float) this->object->entity->health * 100.0f;
+    bool obeying = true;
     for (auto ask: this->profile->radi.opts) {
         if (cpt == message_id) {
             switch (ask) {
                 case 'd':
                 {
                     // request status 2 - 5 
-                    float health_remaing = this->health / (float) this->object->entity->health * 100.0f;
+                    
                     if (health_remaing > 75.0f) {
                         this->setMessage(2); // All is well
                     } else if (health_remaing > 50.0f) {
@@ -518,25 +523,64 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission) 
                     // request land 
                 break;
                 case 'g':
-                    // break formation
+                {
+                    int8_t area_to_defend = this->mission->getAreaID({this->plane->x, this->plane->y, this->plane->z});
+                    this->override_progs.clear();
+                    this->override_progs.push_back({prog_op::OP_SET_OBJ_DEFEND_AREA, area_to_defend});
+                    this->setMessage(1);
+                }
                 break;
                 case 'h':
                     // build formation
+                    this->override_progs.clear();
+                    this->setMessage(1);
                 break;
                 case 'i':
                     // attack my target
+                    if (sender != nullptr && sender->target != nullptr) {
+                        if (this->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET || this->current_command == prog_op::OP_SET_OBJ_DESTROY_TARGET) {
+                            obeying = std::rand() % 16 < this->profile->ai.atrb.LY;
+                        }
+                        if (obeying) {
+                            this->override_progs.clear();
+                            this->override_progs.push_back({prog_op::OP_SET_OBJ_DESTROY_TARGET, (int8_t) sender->target->actor_id});
+                            this->setMessage(1);
+                        } else {
+                            this->setMessage(0);
+                        }
+                    }
                 break;
                 case 'j':
-                    // return to base
+                    if (this->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET || this->current_command == prog_op::OP_SET_OBJ_DESTROY_TARGET || health_remaing > 75.0f) {
+                        obeying = std::rand() % 16 < this->profile->ai.atrb.LY;
+                    }
+                    if (health_remaing < 30.0f) {
+                        obeying = true;
+                    }
+                    if (obeying) {
+                        this->override_progs.clear();
+                        this->override_progs.push_back({prog_op::OP_SET_OBJ_LAND, 0});
+                        this->setMessage(1);
+                    } else {
+                        this->setMessage(0);
+                    }
+                    
                 break;
                 case 'k':
-                    // help me
+                    if (sender != nullptr) {
+                        this->override_progs.clear();
+                        this->override_progs.push_back({prog_op::OP_SET_OBJ_DEFEND_TARGET, (int8_t) sender->actor_id});
+                        this->setMessage(1);
+                    }
                 break;
                 case 'l':
                     // maintain radio silence
+                    this->talkative = false;
                 break;
                 case 'm':
                     // break radio silence
+                    this->talkative = true;
+                    this->setMessage(1);
                 break;
                 default:
                 break;
