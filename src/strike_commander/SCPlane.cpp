@@ -7,7 +7,7 @@
 //
 #include "precomp.h"
 #include "SCWeaponPredictor.h"
-
+#include <map>
 void cartesianToPolar(Vector3D v, float *phi, float *theta);
 // Définition des constantes physiques
 const float GRAVITY = 9.81f; // m/s^2
@@ -540,9 +540,10 @@ void SCPlane::Simulate() {
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
     if (this->object->alive == false) {
-        this->smoke_positions.push_back({this->x, this->y, this->z});
-        if (this->smoke_positions.size() > this->smoke_set->textures.size() - 1) {
-            this->smoke_positions.erase(this->smoke_positions.begin());
+        
+        this->smoke_positions.insert(this->smoke_positions.begin(), {this->x, this->y, this->z});
+        if (this->smoke_positions.size() > this->smoke_set->smoke_textures.size() - 1) {
+            this->smoke_positions.pop_back();
         }
     }
     this->tick_counter++;
@@ -1155,15 +1156,32 @@ void SCPlane::Render() {
 }
 void SCPlane::RenderSmoke() {
     int cpt = 0;
-    static int img_count[46] = {0};
-
+    static int img_count[5] = {0};
+    static int tick = 10;
+    std::map<int, int> anim_map = {
+        {0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}
+    };
+    tick--;
     for (auto pos: this->smoke_positions) {
-        img_count[cpt]++;
-        if (img_count[cpt] > this->smoke_set->textures.size()-1) {
-            img_count[cpt] = 0;
+        int id_anim = 4;
+        if (cpt < 10) {
+            cpt++;
+            continue;
         }
-        Renderer.drawBillboard(pos, this->smoke_set->textures[img_count[cpt]], 10*(this->smoke_positions.size()-cpt)/(1.0f*this->smoke_positions.size()));
+        if (cpt-10 < anim_map.size()) {
+            id_anim = anim_map[cpt-10];
+        }
+        if (tick <= 0) {
+            img_count[cpt-10]++;
+        }
+        if (img_count[id_anim] > this->smoke_set->smoke_textures[id_anim].size()-1) {
+            img_count[id_anim] = 0;
+        }
+        Renderer.drawBillboard(pos, this->smoke_set->smoke_textures[id_anim][img_count[id_anim]], 10);
         cpt++;
+    }
+    if (tick <= 0) {
+        tick = 10;
     }
 }
 void SCPlane::RenderSimulatedObject() {
