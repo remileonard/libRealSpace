@@ -8,6 +8,7 @@
 
 #include "precomp.h"
 #include "SCAnimationPlayer.h"
+#include "SCMidGamesEnum.h"
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
@@ -18,7 +19,7 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, OptionShapeID::SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0},
-                    { &this->midgames, 20, 0, 0, {0,0}, {0,0}, {0,0} }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,0}, {0,0} }
                 },
                 {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -32,13 +33,13 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, OptionShapeID::SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,0}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 }, 
                 {
-                    { this->mid[0], 3, 0, 0, {0,32}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::EAGLE_PASS, 0, 0, {0,32}, {0,0}, {0,0} ,0 }
                 },
                 36,
                 255,
@@ -47,7 +48,7 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, OptionShapeID::SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,0}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -60,11 +61,11 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, OptionShapeID::SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,-32}, {0,-1} ,0},
-                    { &this->midgames, 20, 0, 0, {0,0}, {0,-32}, {0,-1} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,151}, {0,119}, {0,-1} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,-32}, {0,-1} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,151}, {0,119}, {0,-1} ,0 },
                     { &this->optShps, OptionShapeID::MOUTAINS_BG, 0, 0, {0,16}, {0,-16}, {0,-1} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,183}, {0,119}, {0,-2} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,186}, {0,90}, {0,-3} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,183}, {0,119}, {0,-2} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,186}, {0,90}, {0,-3} ,0 }
                 },
                 {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -77,17 +78,17 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 13, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_F16_FLYBY_1_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 109,
                 255,
@@ -97,13 +98,13 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 20, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 39,
                 255,
@@ -112,13 +113,13 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 20, 0, 0, {0,-10}, {0,0}, {0,0}  ,0}
+                    { this->mid[0], MID1_IDS::MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0}  ,0}
                 },
                 39,
                 255,
@@ -127,9 +128,9 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
-                    { this->mid[0],1, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0],1, 4, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::AIR_HEAD, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::AIR_HEAD, 4, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -142,17 +143,17 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 22, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_F16_FLYBY_ANIM_2, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 50,
                 255,
@@ -161,26 +162,26 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 23, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::F16_MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 15,
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 23, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::F16_MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 39,
                 255,
@@ -189,8 +190,8 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 0, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -205,7 +206,7 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 2, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 2, 0, {0,-25}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -220,13 +221,13 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 20, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 39,
                 255,
@@ -240,7 +241,7 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 16, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::F16_FORMATION_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 19,
             },
@@ -252,15 +253,15 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 24, 0, 0, {0,36}, {0,0}, {0,0} ,1 }
+                    { this->mid[0], MID1_IDS::PILOT_STICK_SHOOTING, 0, 0, {0,36}, {0,0}, {0,0} ,1 }
                 },
                 5
             },
             {
                 {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0},
-                    { this->mid[0], 24, 1, 0, {0,36}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 24, 5, 0, {0,36}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::PILOT_STICK_SHOOTING, 1, 0, {0,36}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::PILOT_STICK_SHOOTING, 5, 0, {0,36}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -278,7 +279,7 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 18, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::F16_FORMATION_SHOOT_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 19,
                 255,
@@ -292,7 +293,7 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 15, 0, 0, {0,32}, {0,0}, {0,0} , 0 }
+                    { this->mid[0], MID1_IDS::MISSILE_CHASE_ANIM, 0, 0, {0,32}, {0,0}, {0,0} , 0 }
                 },
                 23
             },
@@ -304,7 +305,7 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 21, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_HIT_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 13,
                 255,
@@ -318,7 +319,7 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 29, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_DESTROYED_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 12
             },
@@ -330,82 +331,82 @@ void SCAnimationPlayer::initMid1() {
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 35, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::MIG29_GOING_DOWN_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 13
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 30, 0, 0, {0,-10}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 17, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::SMOKE_TRAIL_WITH_CHUTE_1, 0, 0, {0,-10}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::MIG29_DOWN_FLYBY_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 49
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 31, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::SMOKE_TRAIL_WITH_CHUTE_2, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 14
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 32, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::SMOKE_TRAIL_WITH_CHUTE_3, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
                 },
                 15
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
                     
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 0, 0, 0, {0,0}, {0,0}, {0,0} ,1 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 0, 0, {0,0}, {0,0}, {0,0} ,1 },
                 },
                 13,
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 0, 1, 0, {0,0}, {0,0}, {0,0} , 0 },
-                    { this->mid[0], 0, 14, 0, {0,0}, {0,0}, {0,0} , 0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 1, 0, {0,0}, {0,0}, {0,0} , 0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 14, 0, {0,0}, {0,0}, {0,0} , 0 },
                     
                 },
                 { 
@@ -421,9 +422,9 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
-                    { this->mid[0],1, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0],1, 4, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::AIR_HEAD, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::AIR_HEAD, 4, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -436,7 +437,7 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 2, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 2, 0, {0,-25}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -449,42 +450,42 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 10, 0, 0, {0,32}, {0,0}, {0,0} ,1 }
+                    { this->mid[0], MID1_IDS::PILOT_GROUND_FACE, 0, 0, {0,32}, {0,0}, {0,0} ,1 }
                 },
                 19
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,110}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 2, 1, 0, {0,22}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 2, 2, 0, {0,22}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,110}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::PILOT_GROUND_SHUT, 1, 0, {0,22}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::PILOT_GROUND_SHUT, 2, 0, {0,22}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 19, 0, 0, {0,-10}, {0,0}, {0,0} ,1 }
+                    { this->mid[0], MID1_IDS::F16_FLYBY_2_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,1 }
                 },
                 56
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 0, 1, 0, {0,0}, {0,0}, {0,0} , 0 },
-                    { this->mid[0], 0, 14, 0, {0,0}, {0,0}, {0,0} , 0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 1, 0, {0,0}, {0,0}, {0,0} , 0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 14, 0, {0,0}, {0,0}, {0,0} , 0 },
                     
                 },
                 { 
@@ -500,8 +501,8 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
-                    { this->mid[0],1, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::AIR_HEAD, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -516,9 +517,9 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 0, 1, 0, {0,0}, {0,0}, {0,0} , 0 },
-                    { this->mid[0], 0, 14, 0, {0,0}, {0,0}, {0,0} , 0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 4, 0, {0,-25}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 1, 0, {0,0}, {0,0}, {0,0} , 0 },
+                    { this->mid[0], MID1_IDS::BILLY_HEAD, 14, 0, {0,0}, {0,0}, {0,0} , 0 },
                     
                 },
                 { 
@@ -534,8 +535,8 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 6, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
-                    { this->mid[0],1, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::F16_PICS, 3, 0, {0,-15}, {0,0}, {0,0} ,0 },
+                    { this->mid[0], MID1_IDS::AIR_HEAD, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -550,62 +551,62 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 25, 0, 0, {0,36}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::PILOT_LOOKING_AROUND, 0, 0, {0,36}, {0,0}, {0,0} ,0 }
                 },
                 6
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-29}, {0,0}, {0,1} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,-19}, {0,10}, {0,1} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-19}, {0,10}, {0,1} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,1} ,0 },
-                    { &this->midgames, 19, 2, 0, {0,119}, {0,160}, {0,3} ,0 },
-                    { &this->midgames, 19, 3, 0, {0,90}, {0,160}, {0,3} ,0 },
-                    { this->mid[0], 25, 7, 0, {0,36}, {0,80}, {0,3} ,0 }
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,160}, {0,3} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,160}, {0,3} ,0 },
+                    { this->mid[0], MID1_IDS::PILOT_LOOKING_AROUND, 7, 0, {0,36}, {0,80}, {0,3} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 33, 0, 0, {0,32}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::F16_FLYING_AWAY_ANIM_1, 0, 0, {0,32}, {0,0}, {0,0} ,0 }
                 },
                 29
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 34, 0, 0, {0,32}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::F16_FLYING_AWAY_ANIM_2, 0, 0, {0,32}, {0,0}, {0,0} ,0 }
                 },
                 200
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 9, 0, 0, {0,16}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::TITLE_SCREEN_ANIM_1, 0, 0, {0,16}, {0,0}, {0,0} ,0 }
                 },
                 19,
                 23,
@@ -614,23 +615,23 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
                 },
                 {
-                    { this->mid[0], 14, 0, 0, {0,16}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::TITLE_SCREEN_ANIM_2, 0, 0, {0,16}, {0,0}, {0,0} ,0 }
                 },
                 10
             },
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { &this->midgames, 20, 0, 0, {0,0}, {0,10}, {0,0} ,0 },
+                    { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,10}, {0,0} ,0 },
                     { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], 14, 11, 0, {0,16}, {0,0}, {0,0} ,0 }
+                    { this->mid[0], MID1_IDS::TITLE_SCREEN_ANIM_2, 11, 0, {0,16}, {0,0}, {0,0} ,0 }
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
