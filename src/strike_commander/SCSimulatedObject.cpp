@@ -31,11 +31,13 @@ void SCSimulatedObject::Render() {
 
     Renderer.drawModel(this->obj, position, orientaton);
     
-    size_t cpt=this->smoke_positions.size();
-    
+    int cpt=0;
     for (auto pos: this->smoke_positions) {
         float alpha = 0.6f * ((float) cpt / (1.0f*(float)this->smoke_positions.size()));
-        Renderer.drawParticle(pos, alpha);
+        if (cpt > this->SmokeSet.missile_smoke_textures.size()-1) {
+            cpt = 0;
+        }
+        Renderer.drawBillboard(pos, this->SmokeSet.missile_smoke_textures[cpt], 10);
     }
 }
 
@@ -177,9 +179,9 @@ void SCSimulatedObject::Simulate(int tps) {
             }
         }
     }
-    this->smoke_positions.push_back(position);
+    this->smoke_positions.insert(this->smoke_positions.begin(), position);
     if (this->smoke_positions.size() > 20) {
-        this->smoke_positions.erase(this->smoke_positions.begin());
+        this->smoke_positions.pop_back();
     }
     
     
@@ -293,10 +295,6 @@ void GunSimulatedObject::Simulate(int tps) {
     cartesianToPolar(velocity, &azimut, &elevation);
     this->azimuthf = (float)(azimut - M_PI_2);
     this->elevationf = (float)(M_PI_2-elevation);
-    this->smoke_positions.push_back(position);
-    if (this->smoke_positions.size() > 20) {
-        this->smoke_positions.erase(this->smoke_positions.begin());
-    }
     this->vx = velocity.x;
     this->vy = velocity.y;
     this->vz = velocity.z;
@@ -364,9 +362,4 @@ void GunSimulatedObject::Render() {
         Vector3D orient = {this->azimuthf, this->elevationf, 0.0f};
         Renderer.drawModel(this->obj, pos, orient);
     }
-    
-    /*size_t cpt=this->smoke_positions.size();
-    for (auto pos: this->smoke_positions) {
-        Renderer.drawParticle(pos, 0.6f * ((float) cpt / (1.0f*(float)this->smoke_positions.size())));
-    }*/
 }

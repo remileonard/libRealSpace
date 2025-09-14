@@ -18,6 +18,7 @@ protected:
     int run_iterations{0};
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
+    SCSmokeSet &SmokeSet = SCSmokeSet::getInstance();
 public:
     bool is_simulated{false};
     float x{0.0f};

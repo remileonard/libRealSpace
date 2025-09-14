@@ -736,9 +736,6 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
     this->weapons_shooted.push_back(weapon);
 }
 void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
-    if (this->object->entity->entity_type == EntityType::swpn) {
-        return; // Weapons cannot be hit
-    }
     int damage = 10;
     this->health = 0;
     if (this->health <= 0 && this->object->alive) {

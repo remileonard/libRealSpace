@@ -25,51 +25,51 @@ void RSScreen::init(int width, int height, bool fullscreen){
     this->width = width;
     this->height = height;
 
-    
-    SDL_CreateWindowAndRenderer(width, height, SDL_WINDOW_HIDDEN, &sdlWindow, &sdlRenderer);
-    
-    
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
-        printf("Unable to initialize SDL:  %s\n",SDL_GetError());
-        return ;
+    // 1. Initialiser SDL AVANT toute création de fenêtre
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
+        printf("Unable to initialize SDL: %s\n", SDL_GetError());
+        return;
     }
-
 
 #ifdef SDL_HINT_IME_SHOW_UI
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 #endif
 
+    // 2. Attributs OpenGL adaptés macOS 10.14 (2.1 max)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (fullscreen) {
-        SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
-    } else {
-        SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        window_flags = (SDL_WindowFlags)(SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
     }
-    
-    sdlWindow = SDL_CreateWindow("Neo Strike Commander",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,this->width,this->height,SDL_WINDOW_OPENGL);
-    
-    // Create an OpenGL context associated with the window.
+
+    // 3. UNE seule création de fenêtre
+    sdlWindow = SDL_CreateWindow("Neo Strike Commander",
+                                 SDL_WINDOWPOS_UNDEFINED,
+                                 SDL_WINDOWPOS_UNDEFINED,
+                                 this->width,
+                                 this->height,
+                                 window_flags);
+    if (!sdlWindow) {
+        printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
+        return;
+    }
+
     SDL_GLContext gl_context = SDL_GL_CreateContext(sdlWindow);
-    
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+    if (!gl_context) {
+        printf("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
+        return;
+    }
+    SDL_GL_MakeCurrent(sdlWindow, gl_context);
+    SDL_GL_SetSwapInterval(1); // vsync
 
-    // Setup Dear ImGui style
-    //ImGui::StyleColorsDark();
-    ImGui::StyleColorsLight();
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL(sdlWindow, gl_context);
-    ImGui_ImplOpenGL2_Init();
     openScreen();
+
     SDL_ShowWindow(sdlWindow);
 }
 
