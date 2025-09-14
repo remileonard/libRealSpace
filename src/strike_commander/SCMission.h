@@ -52,7 +52,8 @@ public:
     RSWorld *world{nullptr};
     RSSound &sound = RSSound::getInstance();;
     std::vector<RadioMessages*> radio_messages;
-    
+    bool mission_over{false};
+    bool mission_won{false};
     SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache);
     ~SCMission();
     void loadMission();

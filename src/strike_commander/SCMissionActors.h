@@ -79,5 +79,5 @@ public:
 
 class SCMissionActorsStrikeBase : public SCMissionActors {
 public:
-    bool setMessage(uint8_t arg);
+    bool setMessage(uint8_t arg) override;
 };

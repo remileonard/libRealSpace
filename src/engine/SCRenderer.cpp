@@ -567,7 +567,7 @@ void SCRenderer::drawLine(Vector3D start, Vector3D end, Vector3D color, Vector3D
 void SCRenderer::drawLine(Vector3D start, Vector3D end, Vector3D color) {
     glPushMatrix();
     glTranslatef(start.x, start.y, start.z);
-    glLineWidth(1.2f);
+    glLineWidth(2.2f);
     glBegin(GL_LINES);
     glColor3f(color.x, color.y, color.z);
     glVertex3f(0.0f,0.0f,0.0f);

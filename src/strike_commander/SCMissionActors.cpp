@@ -403,7 +403,6 @@ bool SCMissionActors::setMessage(uint8_t arg) {
             RadioMessages *msg = new RadioMessages();
             msg->message = *message;
             
-            printf("Message  %s\n", message->c_str());
             if (this->mission->sound.inGameVoices.size() > 0) {
                 
                 if (this->mission->sound.inGameVoices.find(this->profile->radi.spch) == this->mission->sound.inGameVoices.end()) {
@@ -902,8 +901,24 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
 bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {
     RadioMessages *msg = new RadioMessages();
     msg->message = this->profile->radi.msgs[arg];
+    if (this->mission->sound.inGameVoices.size() > 0) {
+        if (this->mission->sound.inGameVoices.find(this->profile->radi.spch) == this->mission->sound.inGameVoices.end()) {
+            printf("No voice found for %d\n", this->profile->radi.spch);
+        }
+        if (this->mission->sound.inGameVoices[this->profile->radi.spch]->messages.find(arg) == this->mission->sound.inGameVoices[this->profile->radi.spch]->messages.end()) {
+            printf("No message found for %d\n", arg);
+        }
+        MemSound *message_sound = this->mission->sound.inGameVoices[this->profile->radi.spch]->messages[arg];
+        msg->sound = message_sound;
+    }
     this->mission->radio_messages.push_back(msg);
-    printf("Message  %s\n", this->profile->radi.msgs[arg].c_str()); 
+    if (arg == 20) {
+        this->mission->mission_over = true;
+        this->mission->mission_won = true;
+    } else if (arg == 21) {
+        this->mission->mission_over = true;
+        this->mission->mission_won = false;
+    }
     return true;
 }
 /*

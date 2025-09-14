@@ -92,7 +92,10 @@ RSMixer::~RSMixer() {
 
 
 void RSMixer::playMusic(uint32_t index, int loop) {
-    if (this->current_music == index) return;
+    if (this->isplaying && this->current_music == index) return;
+    if (this->isplaying) {
+        this->stopMusic();
+    }
     if (shuttingDown) return;
     Mix_ADLMIDI_setCustomBankFile("./assets/STRIKE.wopl");
     MemMusic *mus = this->music->GetMusic(index);

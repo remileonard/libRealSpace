@@ -1142,6 +1142,11 @@ void SCStrike::runFrame(void) {
         this->mfd_timeout--;
         this->player_plane->Simulate();
         this->current_mission->update();
+        if (this->current_mission->mission_over && this->current_mission->mission_won) {
+            this->Mixer.playMusic(13); // play victory music
+        } else if (this->current_mission->mission_over && !this->current_mission->mission_won) {
+            this->Mixer.playMusic(12); // play victory music
+        }
         if (this->current_mission->mission_ended) {
             GameState.missions_flags.clear();
             GameState.missions_flags.shrink_to_fit();

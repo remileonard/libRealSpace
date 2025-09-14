@@ -90,6 +90,8 @@ void SCMission::loadMission() {
                         part->position.y += correction.y;
                         part->position.z += correction.z;
                     }
+                } else if (cast->actor == "STRIBASE") {
+                    actor = new SCMissionActorsStrikeBase();
                 }
                 if (cast->actor == "TEAM0") {
                     cast->actor = GameState.wingman;

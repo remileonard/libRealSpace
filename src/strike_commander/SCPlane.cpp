@@ -1157,22 +1157,22 @@ void SCPlane::Render() {
 void SCPlane::RenderSmoke() {
     int cpt = 0;
     static int img_count[5] = {0};
-    static int tick = 10;
+    static int tick = 20;
     std::map<int, int> anim_map = {
-        {0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}
+        {0, 0}, {1, 3}, {2, 2}, {3, 1}, {4, 4}
     };
     tick--;
     for (auto pos: this->smoke_positions) {
         int id_anim = 4;
-        if (cpt < 10) {
+        if (cpt < 5) {
             cpt++;
             continue;
         }
-        if (cpt-10 < anim_map.size()) {
-            id_anim = anim_map[cpt-10];
-        }
+        
+        id_anim = anim_map[(cpt -5) % (anim_map.size()-1)];
+        
         if (tick <= 0) {
-            img_count[cpt-10]++;
+            img_count[id_anim]++;
         }
         if (img_count[id_anim] > this->smoke_set->smoke_textures[id_anim].size()-1) {
             img_count[id_anim] = 0;
@@ -1181,7 +1181,7 @@ void SCPlane::RenderSmoke() {
         cpt++;
     }
     if (tick <= 0) {
-        tick = 10;
+        tick = 20;
     }
 }
 void SCPlane::RenderSimulatedObject() {

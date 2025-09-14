@@ -204,27 +204,27 @@ void SCSimulatedObject::Simulate(int tps) {
     this->distance += length_vect.Length();
     if (this->distance > this->obj->wdat->effective_range) {
         this->alive = false;
-        this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-        if (this->mission->sound.sounds.size() > 0) {
-            MemSound *sound;
-            if (this->obj->entity_type == EntityType::tracer) {
-                sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-            } else {
-                sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+        if (!this->is_simulated) {
+            this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
+            if (this->mission->sound.sounds.size() > 0) {
+                MemSound *sound;
+                if (this->obj->entity_type == EntityType::tracer) {
+                    sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
+                } else {
+                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+                }
+                Mixer.playSoundVoc(sound->data, sound->size);
             }
-            Mixer.playSoundVoc(sound->data, sound->size);
         }
     }
     if (this->y < this->mission->area->getY(this->x, this->z)) {
-        this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-        if (this->mission->sound.sounds.size() > 0) {
-            MemSound *sound;
-            if (this->obj->entity_type == EntityType::tracer) {
-                sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-            } else {
+        if (!this->is_simulated) {
+            this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
+            if (this->mission->sound.sounds.size() > 0) {
+                MemSound *sound;
                 sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+                Mixer.playSoundVoc(sound->data, sound->size);
             }
-            Mixer.playSoundVoc(sound->data, sound->size);
         }
         this->alive = false;
     }
