@@ -11,7 +11,7 @@ public:
     int plane_down{0};
     int ground_down{0};
     std::string actor_name;
-    uint8_t actor_id;
+    uint8_t actor_id{0};
     RSProf *profile{nullptr};
     std::vector<PROG> prog;
     std::vector<PROG> on_mission_start;
@@ -39,6 +39,7 @@ public:
     prog_op override_command{prog_op::OP_NOOP};
     uint8_t current_command_arg;
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
+    std::vector<uint8_t> executed_opcodes;
     virtual bool execute();
     virtual bool takeOff(uint8_t arg); 
     virtual bool land(uint8_t arg);
@@ -57,7 +58,7 @@ public:
     virtual int getDistanceToSpot(uint8_t arg);
     virtual void shootWeapon(SCMissionActors *target);
     virtual void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker);
-    std::vector<uint8_t> executed_opcodes;
+    
 private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};
     int target_position_update{0};

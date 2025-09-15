@@ -5,9 +5,9 @@
 
 class SCProg {
 public:
-    SCMissionActors *actor;
+    SCMissionActors *actor{nullptr};
     std::vector<PROG> prog;
-    SCMission *mission;
+    SCMission *mission{nullptr};
     uint8_t prog_id{0};
     std::unordered_map<uint8_t, size_t> labels;
 
