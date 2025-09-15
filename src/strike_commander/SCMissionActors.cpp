@@ -83,8 +83,24 @@ bool SCMissionActors::flyToWaypoint(uint8_t arg) {
 }
 bool SCMissionActors::flyToArea(uint8_t arg) {
     this->current_objective = OP_SET_OBJ_FLY_TO_AREA;
-    if (arg < this->mission->mission->mission_data.areas.size()) {
-        AREA *area = this->mission->mission->mission_data.areas[arg];
+    SPOT *wp = nullptr;
+    for (auto spot: this->mission->mission->mission_data.spots) {
+        if (spot->id == arg) {
+            wp = spot;
+            break;
+        }
+    }
+    
+    if (wp != nullptr) {
+        int area_id = this->mission->getAreaID({wp->position.x, wp->position.y, wp->position.z});
+
+        AREA *area = nullptr;
+        for (auto area_test: this->mission->mission->mission_data.areas) {
+            if (area_test->id == area_id) {
+                area = area_test;
+                break;
+            }
+        }
         this->pilot->SetTargetWaypoint(area->position);
         this->pilot->target_speed = -10;
         Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
@@ -325,44 +341,62 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
 }
 bool SCMissionActors::defendArea(uint8_t arg) { 
     this->current_objective = OP_SET_OBJ_DEFEND_AREA;
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    uint8_t area_id = this->mission->getAreaID(position);
-
-    if (area_id != arg) {
-        this->current_target = 0;
-        return this->flyToArea(arg);
-    }
-    if (this->current_target == 0) {
-        if (std::find(this->mission->enemies.begin(), this->mission->enemies.end(), this) == this->mission->enemies.end()) {
-            for (auto actor: this->mission->friendlies) {
-                if (actor->plane != nullptr) {
-                    uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
-                    if (actor_area_id == area_id) {
-                        this->current_target = actor->actor_id;
-                        break;
-                    }
-                }
-            }
-        } else {
-            for (auto actor: this->mission->enemies) {
-                if (actor->plane != nullptr) {
-                    uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
-                    if (actor_area_id == area_id) {
-                        this->current_target = actor->actor_id;
-                        break;
-                    }
-                }
-            }
-        }
-    }
     if (this->current_target != 0) {
         bool ret = this->destroyTarget(this->current_target);
         if (ret) {
             this->current_target = 0;
         }
         return ret;
-    } else {
-        return this->flyToArea(arg);
+    }
+    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+    SPOT *wp = nullptr;
+    for (auto spot: this->mission->mission->mission_data.spots) {
+        if (spot->id == arg) {
+            wp = spot;
+            break;
+        }
+    }
+    
+    if (wp != nullptr) {
+        int area_id = this->mission->getAreaID({wp->position.x, wp->position.y, wp->position.z});
+        Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+        int test_area_id = this->mission->getAreaID(position);
+        if (area_id != test_area_id) {
+            this->current_target = 0;
+            return this->flyToArea(arg);
+        }
+        if (this->current_target == 0) {
+            bool is_enemy = false;
+            for (auto actor: this->mission->enemies) {
+                if (actor->plane != nullptr) {
+                    if (actor->actor_id == this->actor_id) {
+                        is_enemy = true;
+                        break;
+                    }
+                }
+            }
+            if (is_enemy) {
+                for (auto actor: this->mission->friendlies) {
+                    if (actor->plane != nullptr) {
+                        uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
+                        if (actor_area_id == area_id) {
+                            this->current_target = actor->actor_id;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                for (auto actor: this->mission->enemies) {
+                    if (actor->plane != nullptr) {
+                        uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
+                        if (actor_area_id == area_id) {
+                            this->current_target = actor->actor_id;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
     return true;
 }
