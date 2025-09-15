@@ -38,7 +38,8 @@ enum class InputAction {
     NAVMAP_START = 3000,
     NAVMAP_END = 3999,
     // Valeurs spéciales
-    CUSTOM_ACTION_START = 10000  // Début de la plage pour actions personnalisées
+    CUSTOM_ACTION_START = 10000,  // Début de la plage pour actions personnalisées
+    KEYBOARD_TEST = 20000
 };
 
 // Fonction utilitaire pour créer des actions dynamiques dans une plage réservée

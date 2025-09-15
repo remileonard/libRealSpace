@@ -270,8 +270,8 @@ void EventManager::handleJoystickEvent(const SDL_Event& event) {
     int axisIndex = -1;
     Uint8 buttonState = 0;
     float axisValue = 0.0f;
-    
-    // Extraire l'ID d'instance et les données pertinentes selon le type d'événement
+
+    // Extraire ID et indices
     switch (event.type) {
         case SDL_JOYBUTTONDOWN:
         case SDL_JOYBUTTONUP:
@@ -279,52 +279,62 @@ void EventManager::handleJoystickEvent(const SDL_Event& event) {
             buttonIndex = event.jbutton.button;
             buttonState = event.jbutton.state;
             break;
-            
+
         case SDL_JOYAXISMOTION:
             instanceId = event.jaxis.which;
             axisIndex = event.jaxis.axis;
-            // Normaliser la valeur de l'axe entre -1.0 et 1.0
             axisValue = static_cast<float>(event.jaxis.value) / 32768.0f;
             break;
-            
+
         case SDL_CONTROLLERBUTTONDOWN:
         case SDL_CONTROLLERBUTTONUP:
             instanceId = event.cbutton.which;
             buttonIndex = event.cbutton.button;
             buttonState = event.cbutton.state;
             break;
-            
+
         case SDL_CONTROLLERAXISMOTION:
             instanceId = event.caxis.which;
             axisIndex = event.caxis.axis;
-            // Normaliser la valeur de l'axe entre -1.0 et 1.0
             axisValue = static_cast<float>(event.caxis.value) / 32768.0f;
             break;
     }
-    
-    // Trouver le joystick correspondant à l'ID d'instance
+
+    // Trouver l'entrée joystick
     auto it = m_joystickInstanceMap.find(instanceId);
-    if (it != m_joystickInstanceMap.end()) {
-        int joystickIndex = it->second;
-        
-        // Mettre à jour l'état du bouton
-        if (buttonIndex >= 0 && static_cast<size_t>(buttonIndex) < m_joysticks[joystickIndex].currentButtonStates.size()) {
-            m_joysticks[joystickIndex].currentButtonStates[buttonIndex] = buttonState;
+    if (it == m_joystickInstanceMap.end()) return;
+
+    int joystickIndex = it->second;
+    auto& js = m_joysticks[joystickIndex];
+
+    // IMPORTANT: éviter le double traitement
+    // - si device est un GameController: ignorer tous les événements SDL_JOY*
+    // - si device n'est PAS un GameController: ignorer les événements SDL_CONTROLLER*
+    if (js.isGamepad) {
+        if (event.type == SDL_JOYBUTTONDOWN || event.type == SDL_JOYBUTTONUP || event.type == SDL_JOYAXISMOTION) {
+            return;
         }
-        
-        // Mettre à jour la valeur de l'axe
-        if (axisIndex >= 0 && static_cast<size_t>(axisIndex) < m_joysticks[joystickIndex].axisValues.size()) {
-            // Appliquer une zone morte
-            if (std::abs(axisValue) < m_joystickDeadzone) {
-                axisValue = 0.0f;
-            } else {
-                // Normaliser la valeur après application de la zone morte
-                float sign = (axisValue > 0) ? 1.0f : -1.0f;
-                axisValue = sign * (std::abs(axisValue) - m_joystickDeadzone) / (1.0f - m_joystickDeadzone);
-            }
-            
-            m_joysticks[joystickIndex].axisValues[axisIndex] = axisValue;
+    } else {
+        if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP || event.type == SDL_CONTROLLERAXISMOTION) {
+            return;
         }
+    }
+
+    // Mettre à jour l'état du bouton
+    if (buttonIndex >= 0 && static_cast<size_t>(buttonIndex) < js.currentButtonStates.size()) {
+        js.currentButtonStates[buttonIndex] = buttonState;
+    }
+
+    // Mettre à jour l'état de l'axe (avec deadzone)
+    if (axisIndex >= 0 && static_cast<size_t>(axisIndex) < js.axisValues.size()) {
+        float v = axisValue;
+        if (std::abs(v) < m_joystickDeadzone) {
+            v = 0.0f;
+        } else {
+            float sign = (v > 0) ? 1.0f : -1.0f;
+            v = sign * (std::abs(v) - m_joystickDeadzone) / (1.0f - m_joystickDeadzone);
+        }
+        js.axisValues[axisIndex] = v;
     }
 }
 

@@ -34,7 +34,7 @@ void DebugScreen::init(int w, int h, bool fullscreen){
     height = h;
 
     // 1. Initialiser SDL AVANT toute création de fenêtre
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
         printf("Unable to initialize SDL: %s\n", SDL_GetError());
         return;
     }
@@ -138,6 +138,9 @@ void DebugScreen::refresh(void){
                     }
                     if (ImGui::MenuItem("Test Objects")) {
                         debugGameInstance->testObjects();
+                    }
+                    if (ImGui::MenuItem("Test Inputs")) {
+                        debugGameInstance->testController();
                     }
                     if (VGA != nullptr) {
                         if (ImGui::MenuItem("Toggle upscale", nullptr, VGA->upscale)) {

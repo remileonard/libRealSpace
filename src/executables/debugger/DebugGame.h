@@ -29,4 +29,5 @@ public:
     void loadPacific();
     void testMissionSC();
     void testObjects();
+    void testController();
 };

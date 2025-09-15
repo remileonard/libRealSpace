@@ -13,6 +13,8 @@
 #include "DebugStrike.h"
 #include "DebugGameFlow.h"
 #include "DebugObjectViewer.h"
+#include "DebugControllerActivity.h"
+
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
 
@@ -336,6 +338,13 @@ void DebugGame::testObjects() {
         Game->addActivity(main);
     });
     
+}
+
+void DebugGame::testController() {
+    DebugControllerActivity* main = new DebugControllerActivity();
+    main->init();
+    GameEngine *Game = &GameEngine::instance();
+    Game->addActivity(main);
 }
 
 void DebugGame::loadPacific() {
