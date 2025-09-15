@@ -24,6 +24,9 @@ void RSScreen::init(int width, int height, bool fullscreen){
     
     this->width = width;
     this->height = height;
+    
+    SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2"); // ou "permonitor" si votre SDL est plus ancienne
+    SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 
     // 1. Initialiser SDL AVANT toute création de fenêtre
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
@@ -74,19 +77,42 @@ void RSScreen::init(int width, int height, bool fullscreen){
 }
 
 void RSScreen::openScreen(void){
-    int w = (int) ((float)this->height * (4.0f/3.0f));
-    
-	glClearColor(0.0f, 0.3f, 0.0f, 1.0f);				// Black Background
-    glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
+    // Utiliser la taille du framebuffer OpenGL (pixels réels)
+    int drawableW = 0, drawableH = 0;
+    SDL_GL_GetDrawableSize(sdlWindow, &drawableW, &drawableH);
+    if (drawableW <= 0 || drawableH <= 0) {
+        drawableW = this->width;
+        drawableH = this->height;
+    }
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Letterboxing 4:3 dans le framebuffer réel
+    int vpX = 0, vpY = 0, vpW = drawableW, vpH = drawableH;
+    int targetW = (int)((float)drawableH * (4.0f/3.0f));
+    if (targetW <= drawableW) {
+        vpW = targetW;
+        vpX = (drawableW - vpW) / 2;
+    } else {
+        int targetH = (int)((float)drawableW * (3.0f/4.0f));
+        vpH = targetH;
+        vpY = (drawableH - vpH) / 2;
+    }
+
+    glViewport(vpX, vpY, vpW, vpH);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glViewport((int)((float)(this->width - w)/2.0f),0,w,this->height);			// Reset The Current Viewport
 }
 
 void RSScreen::refresh(void){
     SDL_GL_SwapWindow(sdlWindow);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 }
 
 void RSScreen::fxTurnOnTv() {

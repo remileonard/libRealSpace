@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include "RSScreen.h"
 
 class EventManager {
 public:
@@ -103,7 +104,7 @@ public:
 private:
     EventManager();
     ~EventManager();
-    
+    RSScreen *screen = &RSScreen::instance();
     // Gestion des joysticks/gamepads
     void openJoysticks();
     void closeJoysticks();

@@ -199,6 +199,9 @@ void EventManager::update() {
                 } else if (event.window.event == SDL_WINDOWEVENT_LEAVE) {
                     SDL_ShowCursor(SDL_ENABLE);
                 }
+                if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED || event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    screen->openScreen();
+                }
                 break;
             case SDL_QUIT:
                 m_quit = true;
