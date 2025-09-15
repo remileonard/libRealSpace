@@ -5,6 +5,23 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 
+static inline bool IsImGuiKeyboardEvent(const SDL_Event& e) {
+    switch (e.type) {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+        case SDL_TEXTINPUT:
+        case SDL_TEXTEDITING:
+        case SDL_JOYBUTTONDOWN:
+        case SDL_JOYBUTTONUP:
+        case SDL_JOYAXISMOTION:
+        case SDL_CONTROLLERBUTTONDOWN:
+        case SDL_CONTROLLERBUTTONUP:
+        case SDL_CONTROLLERAXISMOTION:
+            return true;
+        default:
+            return false;
+    }
+}
 EventManager& EventManager::getInstance() {
     static EventManager instance;
     return instance;
@@ -189,7 +206,8 @@ void EventManager::update() {
     // Traiter tous les événements en attente
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        if (m_forwardImGui) {
+        const bool isKb = IsImGuiKeyboardEvent(event);
+        if (!isKb || (isKb && m_forwardImGui)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
         }
         switch (event.type) {

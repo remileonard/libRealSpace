@@ -11,7 +11,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl2.h"
-
+#include "../../engine/EventManager.h"
 static SDL_Window *sdlWindow;
 static SDL_Renderer *sdlRenderer;
 
@@ -102,6 +102,19 @@ void DebugScreen::init(int w, int h, bool fullscreen){
 void DebugScreen::refresh(void){
     DebugGame *debugGameInstance = static_cast<DebugGame*>(&GameEngine::instance());
     RSVGA *VGA = &RSVGA::instance();
+
+    static bool s_gameChildFocusedPrev = false; // mémorise le focus du Child "Game" à la frame précédente
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        if (s_gameChildFocusedPrev) {
+            // Couper la navigation gamepad ImGui cette frame
+            io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+        } else {
+            // Autoriser la navigation gamepad ImGui
+            io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+        }
+    }
+
     glBindTexture(GL_TEXTURE_2D, this->screen_texture);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, this->width, this->height, 0);
     glViewport(0,0,this->width,this->height);			// Reset The Current Viewport
@@ -171,7 +184,19 @@ void DebugScreen::refresh(void){
             width = winsize.x; // If no game instance, use full width
         }
         ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
-        // Check if mouse is hovering over the Game window
+        const bool gameChildFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_None);
+        const bool gameChildHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        if (gameChildHovered) {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        } else {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+        }
+        if (gameChildFocused) {
+            EventManager::getInstance().enableImGuiForwarding(false);
+        } else {
+            EventManager::getInstance().enableImGuiForwarding(true);
+        }
+        s_gameChildFocusedPrev = gameChildFocused;
         ImVec2 avail_size = ImGui::GetContentRegionAvail();
         ImGui::Image((void*)(intptr_t)this->screen_texture, avail_size, {0, 1}, {1, 0});
         ImGui::EndChild();
