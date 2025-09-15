@@ -182,58 +182,57 @@ void SCGameFlow::runEffect() {
     if (this->efect == nullptr) {
         return;
     }
-    struct IfCondition {
-        bool value;
-        bool elseEncountered;
-    };
-    std::stack<IfCondition> ifStack;
+    // Structure de contrôle simplifiée
+    const int MAX_IF_DEPTH = 10;  // Profondeur maximale des conditions imbriquées
+    bool executeStack[MAX_IF_DEPTH] = {true};  // Pile d'exécution (par défaut: true)
+    bool elseEncountered[MAX_IF_DEPTH] = {false};  // Suivi des else
+    int ifDepth = 0;  // Niveau d'imbrication actuel
+    
     bool flymission = false;
     int i = 0;
-    // Fonction pour vérifier si nous sommes dans un bloc à ignorer
-    auto shouldSkipInstruction = [&ifStack]() -> bool {
-        // Faire une copie de la pile pour l'itération
-        std::stack<IfCondition> tempStack = ifStack;
-        while (!tempStack.empty()) {
-            if (!tempStack.top().value) {
-                return true; // Au moins une condition est fausse, ignorer l'instruction
-            }
-            tempStack.pop();
-        }
-        return false; // Toutes les conditions sont vraies, exécuter l'instruction
-    };
+    
     for (auto instruction : *this->efect) {
         if (i < this->currentOptCode) {
             i++;
             continue;
         }
-        if (shouldSkipInstruction()) {
-            // Nous sommes dans un bloc à ignorer
+        
+        // Vérifier si nous sommes dans un contexte d'exécution actif
+        bool shouldExecute = true;
+        for (int depth = 0; depth <= ifDepth; depth++) {
+            if (!executeStack[depth]) {
+                shouldExecute = false;
+                break;
+            }
+        }
+        
+        if (!shouldExecute) {
+            // Traitement spécial pour les instructions de contrôle dans les blocs ignorés
             switch (instruction->opcode) {
             case EFECT_OPT_MISS_ELSE:
-                // Si nous n'avons pas encore rencontré de else pour cette condition
-                if (!ifStack.top().elseEncountered) {
-                    IfCondition cond = ifStack.top();
-                    ifStack.pop();
-                    cond.value = !cond.value;       // Inverser la valeur
-                    cond.elseEncountered = true;    // Marquer que le else a été traité
-                    ifStack.push(cond);
+                if (ifDepth >= 0 && !elseEncountered[ifDepth]) {
+                    executeStack[ifDepth] = !executeStack[ifDepth];
+                    elseEncountered[ifDepth] = true;
                 }
                 break;
+                
             case EFECT_OPT_MISS_ENDIF:
-                if (ifStack.size() > 0) {
-                    ifStack.pop();
+                if (ifDepth > 0) {
+                    ifDepth--;
                 }
                 break;
+                
             case EFECT_OPT_IF_FLAG:
             case EFECT_OPT_MISS_ACCEPTED:
             case EFECT_OPT_MISS_REJECTED:
             case EFECT_OPT_IF_NOT_FLAG:
             case EFFCT_OPT_IF_MISS_SUCCESS:
-                // Pour les if imbriqués dans un bloc ignoré, simplement les empiler comme faux
-                ifStack.push({false, false});
-                break;
-            default:
-                printf("Opcode %d ignored cause flag is false\n", instruction->opcode);
+                // Pour les if imbriqués dans un bloc ignoré
+                ifDepth++;
+                if (ifDepth < MAX_IF_DEPTH) {
+                    executeStack[ifDepth] = false;
+                    elseEncountered[ifDepth] = false;
+                }
                 break;
             }
             i++;
@@ -326,12 +325,13 @@ void SCGameFlow::runEffect() {
                 this->currentOptCode = i;
                 return;
             }
-            if (GameState.mission_accepted == true) {
-                ifStack.push({true, false});
-            } else {
-                ifStack.push({false, false});
+            ifDepth++;
+            if (ifDepth < MAX_IF_DEPTH) {
+                executeStack[ifDepth] = (GameState.mission_accepted == true);
+                elseEncountered[ifDepth] = false;
             }
             break;
+            
         case EFECT_OPT_MISS_REJECTED:
             if (this->convs.size() > 0) {
                 SCConvPlayer *conv = this->convs.front();
@@ -340,40 +340,47 @@ void SCGameFlow::runEffect() {
                 this->currentOptCode = i;
                 return;
             }
-            if (GameState.mission_accepted == false) {
-                ifStack.push({true, false});
-            } else {
-                ifStack.push({false, false});
+            ifDepth++;
+            if (ifDepth < MAX_IF_DEPTH) {
+                executeStack[ifDepth] = (GameState.mission_accepted == false);
+                elseEncountered[ifDepth] = false;
             }
             break;
+            
         case EFECT_OPT_IF_FLAG:
-            if (GameState.requierd_flags[instruction->value] == true) {
-                ifStack.push({true, false});
-            } else {
-                ifStack.push({false, false});
+            ifDepth++;
+            if (ifDepth < MAX_IF_DEPTH) {
+                executeStack[ifDepth] = (GameState.requierd_flags[instruction->value] == true);
+                elseEncountered[ifDepth] = false;
             }
             break;
-        case EFECT_OPT_MISS_ELSE:
-            if (ifStack.size() > 0 && !ifStack.top().elseEncountered) {
-                IfCondition cond = ifStack.top();
-                ifStack.pop();
-                cond.value = !cond.value;
-                cond.elseEncountered = true;
-                ifStack.push(cond);
-            }
-            break;
+            
         case EFECT_OPT_IF_NOT_FLAG:
-            if (GameState.requierd_flags[instruction->value] == false) {
-                ifStack.push({true, false});
-            } else {
-                ifStack.push({false, false});
+            ifDepth++;
+            if (ifDepth < MAX_IF_DEPTH) {
+                executeStack[ifDepth] = (GameState.requierd_flags[instruction->value] == false);
+                elseEncountered[ifDepth] = false;
             }
             break;
+            
         case EFFCT_OPT_IF_MISS_SUCCESS:
-            if (GameState.mission_flyed_success[instruction->value]) {
-                ifStack.push({true, false});
-            } else {
-                ifStack.push({false, false});
+            ifDepth++;
+            if (ifDepth < MAX_IF_DEPTH) {
+                executeStack[ifDepth] = GameState.mission_flyed_success[instruction->value];
+                elseEncountered[ifDepth] = false;
+            }
+            break;
+            
+        case EFECT_OPT_MISS_ELSE:
+            if (ifDepth >= 0 && !elseEncountered[ifDepth]) {
+                executeStack[ifDepth] = !executeStack[ifDepth];
+                elseEncountered[ifDepth] = true;
+            }
+            break;
+            
+        case EFECT_OPT_MISS_ENDIF:
+            if (ifDepth > 0) {
+                ifDepth--;
             }
             break;
         case EFECT_OPT_LOAD_GAME:
@@ -440,11 +447,6 @@ void SCGameFlow::runEffect() {
             break;
         case EFECT_OPT_GO:
             this->next_miss = GameState.mission_id;
-            break;
-        case EFECT_OPT_MISS_ENDIF:
-            if (ifStack.size() > 0) {
-                ifStack.pop();
-            }
             break;
         case EFECT_OPT_TUNE_MODIFIER:
             GameState.tune_modifier = instruction->value;
