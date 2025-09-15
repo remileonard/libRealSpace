@@ -1172,6 +1172,7 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
         img->buffer_size.y = (int32_t) tex->height;
         size_t imgsize = tex->width*tex->height;
         uint8_t *imgdata = (uint8_t *)malloc(imgsize);
+        memset(imgdata, 255, imgsize);
         size_t byteRead = 0;
         img->Expand(imgdata, &byteRead);
         if (byteRead > imgsize) {
@@ -1179,7 +1180,7 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
         }
         
         tex->data = (uint8_t *)malloc(imgsize*4);
-
+        memset(tex->data, 255, imgsize*4);
         uint8_t *dst = tex->data;
         long checksum = 0;
         for (size_t j = 0; j < imgsize; j++) {

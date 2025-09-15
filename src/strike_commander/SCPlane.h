@@ -65,7 +65,7 @@ class SCPlane {
 
 protected:
     
-    int thrust;
+    int thrust{0};
     float ELEVF_CSTE{0.0f};
     float ROLLFF_CSTE{0.0f};
     float LminDEF{0.0f};
@@ -90,31 +90,31 @@ protected:
     float ROLLF{0.0f};
 
     /* TRUE if wing g-limit is hit	*/
-    short g_limit;
+    short g_limit{0};
     /* fuel (0 - 12800)		*/
-    int fuel;
+    int fuel{0};
     /* upper limit on engines	*/
-    short max_throttle;
+    short max_throttle{0};
     /* lower limit on engines	*/
-    short min_throttle;
+    short min_throttle{0};
 
     /* minimum lift-up speed fps	*/
-    short MIN_LIFT_SPEED;
-    short climbspeed;
+    short MIN_LIFT_SPEED{0};
+    short climbspeed{0};
 
     /* fps to knots conversion factor */
     float fps_knots{0.0f};
     
 
-    int nocrash;
+    int nocrash{1};
     int IN_BOX(int llx, int urx, int llz, int urz);
     int report_card(int descent, float roll, int vx, int vz, int wheels);
     
     float fuel_consump(float f, float b);
 
-    uint32_t last_time;
-    uint32_t tick_counter;
-    uint32_t last_tick;
+    uint32_t last_time{0};
+    uint32_t tick_counter{0};
+    uint32_t last_tick{0};
 
     /* TRUE if the wheels are down	*/
     short wheels{0};
@@ -157,8 +157,8 @@ protected:
     SCWeaponPredictor* weapon_predictor = nullptr;
     
     // Trajectoire actuellement affichée
-    bool is_showing_trajectory = false;
-    int trajectory_display_counter = 0;
+    bool is_showing_trajectory{false};
+    int trajectory_display_counter{0};
 public:
     short alive;
     unsigned int status;
@@ -186,7 +186,7 @@ public:
     float lift_drag_force {0.0f};
     float gravity_force {0.0f};
 
-    int tps;
+    int tps{0};
     int fps{0};
     /* plane velocity */
     float vx{0.0f};
@@ -229,21 +229,21 @@ public:
     /* ground effect, ro/2*Vz*s		*/
     float qs{0.0f};
     /* TRUE if wing is stalling	*/
-    short wing_stall;
+    short wing_stall{0};
     /* air density / 2.0, speed of sound	*/
     float ro2{0.0f};
     float sos{0.0f};
 
-    int control_stick_x;
-    int control_stick_y;
+    int control_stick_x{0};
+    int control_stick_y{0};
 
     float pitch_speed{0.0f};
     float yaw_speed{0.0f};
     float roll_speed{0.0f};
 
-    short on_ground;
+    short on_ground{1};
 
-    int airspeed;
+    int airspeed{0};
     float twist{0.0f};
     float azimuthf{0.0f};
     float elevationf{0.0f};
@@ -251,14 +251,14 @@ public:
     float rollers{0.0f};
     float rudder{0.0f};
     float elevator{0.0f};
-    RSArea *area;
+    RSArea *area{nullptr};
     
     float lift{0.0f};
     std::vector <SCWeaponLoadoutHardPoint *> weaps_load;
     std::vector <SCSimulatedObject *> weaps_object;
     int selected_weapon{0};
-    MISN_PART *object;
-    SCMissionActors *pilot;
+    MISN_PART *object{nullptr};
+    SCMissionActors *pilot {nullptr};
     bool takeoff{false};
     bool landed{false};
     float pitch{0.0f};
