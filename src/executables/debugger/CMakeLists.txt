@@ -5,7 +5,7 @@ if(WIN32)
 endif()
 
 add_executable (debugger ${SC_SOURCE} ${SC_HEADER} ${APP_ICON_RESOURCE})
-
+set(DEBUGGER_TARGET_NAME debugger PARENT_SCOPE)
 target_include_directories(debugger PUBLIC ${SC_INCLUDES})
 target_include_directories(debugger PUBLIC ${SDL2_INCLUDE_DIRS})
 target_include_directories(debugger PUBLIC ${OPENGL_INCLUDE_DIR})

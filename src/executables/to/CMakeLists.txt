@@ -4,7 +4,7 @@ if(WIN32)
     set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/resources/debugger.rc")
 endif()
 add_executable (neoto ${SC_SOURCE} ${SC_HEADER} ${APP_ICON_RESOURCE})
-
+set(TO_TARGET_NAME neoto PARENT_SCOPE)
 target_include_directories(neoto PUBLIC ${SC_INCLUDES})
 target_include_directories(neoto PUBLIC ${SDL2_INCLUDE_DIRS})
 target_include_directories(neoto PUBLIC ${OPENGL_INCLUDE_DIR})

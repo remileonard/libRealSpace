@@ -4,7 +4,7 @@ if(WIN32)
     set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/resources/debugger.rc")
 endif()
 add_executable (neosc ${SC_SOURCE} ${SC_HEADER} ${APP_ICON_RESOURCE})
-
+set(SC_TARGET_NAME neosc PARENT_SCOPE)
 target_include_directories(neosc PUBLIC ${SC_INCLUDES})
 target_include_directories(neosc PUBLIC ${SDL2_INCLUDE_DIRS})
 target_include_directories(neosc PUBLIC ${OPENGL_INCLUDE_DIR})

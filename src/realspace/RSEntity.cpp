@@ -1154,7 +1154,13 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
     }
     
     RSPalette palette;
-    palette.initFromFileData(this->assetsManager.GetFileData("PALETTE.IFF"));
+    FileData *f = assetsManager.GetFileData("PALETTE.IFF");
+    if (f == nullptr) {
+        TreEntry *entries = (TreEntry *)assetsManager.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+        palette.initFromFileRam(entries->data, entries->size);
+    } else {
+        palette.initFromFileData(f);
+    }
 
     for (auto img : img_set->shapes) {
         Texture *tex = new Texture();

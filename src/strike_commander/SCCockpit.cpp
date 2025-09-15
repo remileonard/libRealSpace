@@ -68,7 +68,13 @@ SCCockpit::~SCCockpit() {
  */
 void SCCockpit::init() {
     RSPalette palette;
-    palette.initFromFileData(Assets.GetFileData("PALETTE.IFF"));
+    FileData *f = Assets.GetFileData("PALETTE.IFF");
+    if (f == nullptr) {
+        TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+        palette.initFromFileRam(entries->data, entries->size);
+    } else {
+        palette.initFromFileData(f);
+    }
     this->palette         = *palette.GetColorPalette();
     cockpit               = new RSCockpit();
     TreEntry *cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F16-CKPT.IFF");
