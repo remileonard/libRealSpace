@@ -192,9 +192,9 @@ void DebugScreen::refresh(void){
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
         }
         if (gameChildFocused) {
-            EventManager::getInstance().enableImGuiForwarding(false);
+            EventManager::getInstance().enableImGuiKeyboardCapture(false);
         } else {
-            EventManager::getInstance().enableImGuiForwarding(true);
+            EventManager::getInstance().enableImGuiKeyboardCapture(true);
         }
         s_gameChildFocusedPrev = gameChildFocused;
         ImVec2 avail_size = ImGui::GetContentRegionAvail();

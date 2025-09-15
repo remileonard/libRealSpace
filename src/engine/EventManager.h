@@ -101,6 +101,7 @@ public:
     // Effacer le buffer de texte (à appeler après avoir traité le texte)
     void clearTextInputBuffer() { m_textInputBuffer.clear(); }
     void enableImGuiForwarding(bool enabled);
+    void enableImGuiKeyboardCapture(bool enabled);
 private:
     EventManager();
     ~EventManager();
@@ -115,6 +116,7 @@ private:
     
     bool m_quit = false;
     bool m_forwardImGui = false;
+    bool m_keyboardCaptureImGui = false;
     // État actuel et précédent du clavier
     const Uint8* m_currentKeyStates = nullptr;
     std::vector<Uint8> m_previousKeyStates;

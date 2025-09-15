@@ -188,6 +188,9 @@ void EventManager::closeJoysticks() {
 void EventManager::enableImGuiForwarding(bool enabled) {
     m_forwardImGui = enabled;
 }
+void EventManager::enableImGuiKeyboardCapture(bool enabled) {
+    m_keyboardCaptureImGui = enabled;
+}
 void EventManager::update() {
     // Sauvegarder l'état précédent du clavier
     std::memcpy(m_previousKeyStates.data(), m_currentKeyStates, m_numKeys);
@@ -207,8 +210,10 @@ void EventManager::update() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         const bool isKb = IsImGuiKeyboardEvent(event);
-        if (!isKb || (isKb && m_forwardImGui)) {
-            ImGui_ImplSDL2_ProcessEvent(&event);
+        if (m_forwardImGui) {
+            if (!isKb || (isKb && m_keyboardCaptureImGui)) {
+                ImGui_ImplSDL2_ProcessEvent(&event);
+            }
         }
         switch (event.type) {
             case SDL_WINDOWEVENT:

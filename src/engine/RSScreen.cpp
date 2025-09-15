@@ -72,7 +72,6 @@ void RSScreen::init(int width, int height, bool fullscreen){
     SDL_GL_SetSwapInterval(1); // vsync
 
     openScreen();
-
     SDL_ShowWindow(sdlWindow);
 }
 
