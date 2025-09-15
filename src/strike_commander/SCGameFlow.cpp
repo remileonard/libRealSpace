@@ -182,36 +182,62 @@ void SCGameFlow::runEffect() {
     if (this->efect == nullptr) {
         return;
     }
+    struct IfCondition {
+        bool value;
+        bool elseEncountered;
+    };
+    std::stack<IfCondition> ifStack;
     bool flymission = false;
-    std::stack<uint8_t> ifStack;
     int i = 0;
+    // Fonction pour vérifier si nous sommes dans un bloc à ignorer
+    auto shouldSkipInstruction = [&ifStack]() -> bool {
+        // Faire une copie de la pile pour l'itération
+        std::stack<IfCondition> tempStack = ifStack;
+        while (!tempStack.empty()) {
+            if (!tempStack.top().value) {
+                return true; // Au moins une condition est fausse, ignorer l'instruction
+            }
+            tempStack.pop();
+        }
+        return false; // Toutes les conditions sont vraies, exécuter l'instruction
+    };
     for (auto instruction : *this->efect) {
         if (i < this->currentOptCode) {
             i++;
             continue;
         }
-        if (ifStack.size() > 0) {
-            if (ifStack.top() == false) {
-                switch (instruction->opcode) {
-                case EFECT_OPT_MISS_ELSE:
-                    if (ifStack.size() > 0) {
-                        uint8_t ifval = 0;
-                        ifval = ifStack.top();
-                        ifStack.pop();
-                        ifStack.push(!ifval);
-                    }
-                    break;
-                case EFECT_OPT_MISS_ENDIF:
-                    if (ifStack.size() > 0) {
-                        ifStack.pop();
-                    }
-                    break;
-                default:
-                    printf("Opcode %d ignored cause flag is false\n", instruction->opcode);
-                    break;
+        if (shouldSkipInstruction()) {
+            // Nous sommes dans un bloc à ignorer
+            switch (instruction->opcode) {
+            case EFECT_OPT_MISS_ELSE:
+                // Si nous n'avons pas encore rencontré de else pour cette condition
+                if (!ifStack.top().elseEncountered) {
+                    IfCondition cond = ifStack.top();
+                    ifStack.pop();
+                    cond.value = !cond.value;       // Inverser la valeur
+                    cond.elseEncountered = true;    // Marquer que le else a été traité
+                    ifStack.push(cond);
                 }
-                continue;
+                break;
+            case EFECT_OPT_MISS_ENDIF:
+                if (ifStack.size() > 0) {
+                    ifStack.pop();
+                }
+                break;
+            case EFECT_OPT_IF_FLAG:
+            case EFECT_OPT_MISS_ACCEPTED:
+            case EFECT_OPT_MISS_REJECTED:
+            case EFECT_OPT_IF_NOT_FLAG:
+            case EFFCT_OPT_IF_MISS_SUCCESS:
+                // Pour les if imbriqués dans un bloc ignoré, simplement les empiler comme faux
+                ifStack.push({false, false});
+                break;
+            default:
+                printf("Opcode %d ignored cause flag is false\n", instruction->opcode);
+                break;
             }
+            i++;
+            continue;
         }
         switch (instruction->opcode) {
         case EFFCT_OPT_SHOW_MAP: {
@@ -301,9 +327,9 @@ void SCGameFlow::runEffect() {
                 return;
             }
             if (GameState.mission_accepted == true) {
-                ifStack.push(true);
+                ifStack.push({true, false});
             } else {
-                ifStack.push(false);
+                ifStack.push({false, false});
             }
             break;
         case EFECT_OPT_MISS_REJECTED:
@@ -315,38 +341,39 @@ void SCGameFlow::runEffect() {
                 return;
             }
             if (GameState.mission_accepted == false) {
-                ifStack.push(true);
+                ifStack.push({true, false});
             } else {
-                ifStack.push(false);
+                ifStack.push({false, false});
             }
             break;
         case EFECT_OPT_IF_FLAG:
             if (GameState.requierd_flags[instruction->value] == true) {
-                ifStack.push(true);
+                ifStack.push({true, false});
             } else {
-                ifStack.push(false);
+                ifStack.push({false, false});
             }
             break;
         case EFECT_OPT_MISS_ELSE:
-            if (ifStack.size() > 0) {
-                uint8_t ifval = 0;
-                ifval = ifStack.top();
+            if (ifStack.size() > 0 && !ifStack.top().elseEncountered) {
+                IfCondition cond = ifStack.top();
                 ifStack.pop();
-                ifStack.push(!ifval);
+                cond.value = !cond.value;
+                cond.elseEncountered = true;
+                ifStack.push(cond);
             }
             break;
         case EFECT_OPT_IF_NOT_FLAG:
             if (GameState.requierd_flags[instruction->value] == false) {
-                ifStack.push(true);
+                ifStack.push({true, false});
             } else {
-                ifStack.push(false);
+                ifStack.push({false, false});
             }
             break;
         case EFFCT_OPT_IF_MISS_SUCCESS:
             if (GameState.mission_flyed_success[instruction->value]) {
-                ifStack.push(true);
+                ifStack.push({true, false});
             } else {
-                ifStack.push(false);
+                ifStack.push({false, false});
             }
             break;
         case EFECT_OPT_LOAD_GAME:

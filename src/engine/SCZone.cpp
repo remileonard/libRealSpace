@@ -55,12 +55,12 @@ bool  SCZone::isActive(std::unordered_map<uint8_t, bool> *requierd_flags) {
                 break;
             case 2:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    isActive = isActive || !requierd_flags->at(requ_flag->value);
+                    isActive = isActive || requierd_flags->at(requ_flag->value);
                 }
                 break;
             case 3:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    isActive = isActive || requierd_flags->at(requ_flag->value);
+                    isActive = isActive || !requierd_flags->at(requ_flag->value);
                 }
                 break;
             default:
