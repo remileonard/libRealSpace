@@ -141,54 +141,172 @@ flowchart LR
   MISS47
     MISS47-->|GO TO|MISS48
   MISS48
-  MISS0-->|FLY MISSION|FLY_0x00_0
-  MISS1-->|FLY MISSION|FLY_0x01_1
-  MISS2-->|FLY MISSION|FLY_0x02_2
-  MISS4-->|FLY MISSION|FLY_0x03_3
-  MISS6-->|FLY MISSION|FLY_0x04_4
-  MISS7-->|FLY MISSION|FLY_0x05_5
-  MISS8-->|FLY MISSION|FLY_0x06_6
-  MISS10-->|FLY MISSION|FLY_0x07_7
-  MISS11-->|FLY MISSION|FLY_0x08_8
-  MISS12-->|FLY MISSION|FLY_0x09_9
-  MISS14-->|FLY MISSION|FLY_0x0B_11
-  MISS15-->|FLY MISSION|FLY_0x0C_12
-  MISS16-->|FLY MISSION|FLY_0x0D_13
-  MISS17-->|FLY MISSION|FLY_0x0E_14
-  MISS18-->|FLY MISSION|FLY_0x0F_15
-  MISS18-->|FLY MISSION|FLY_0x2B_43
-  MISS19-->|FLY MISSION|FLY_0x10_16
-  MISS20-->|FLY MISSION|FLY_0x11_17
-  MISS21-->|FLY MISSION|FLY_0x12_18
-  MISS22-->|FLY MISSION|FLY_0x13_19
-  MISS23-->|FLY MISSION|FLY_0x14_20
-  MISS23-->|FLY MISSION|FLY_0x14_20
-  MISS24-->|FLY MISSION|FLY_0x15_21
-  MISS25-->|FLY MISSION|FLY_0x16_22
-  MISS26-->|FLY MISSION|FLY_0x17_23
-  MISS26-->|FLY MISSION|FLY_0x2C_44
-  MISS26-->|FLY MISSION|FLY_0x17_23
-  MISS26-->|FLY MISSION|FLY_0x2C_44
-  MISS26-->|FLY MISSION|FLY_0x17_23
-  MISS26-->|FLY MISSION|FLY_0x2C_44
-  MISS27-->|FLY MISSION|FLY_0x18_24
-  MISS29-->|FLY MISSION|FLY_0x19_25
-  MISS30-->|FLY MISSION|FLY_0x1A_26
-  MISS31-->|FLY MISSION|FLY_0x1B_27
-  MISS32-->|FLY MISSION|FLY_0x1C_28
-  MISS33-->|FLY MISSION|FLY_0x1D_29
-  MISS33-->|FLY MISSION|FLY_0x2D_45
-  MISS34-->|FLY MISSION|FLY_0x1E_30
-  MISS35-->|FLY MISSION|FLY_0x1F_31
-  MISS36-->|FLY MISSION|FLY_0x20_32
-  MISS37-->|FLY MISSION|FLY_0x21_33
-  MISS37-->|FLY MISSION|FLY_0x2E_46
-  MISS38-->|FLY MISSION|FLY_0x22_34
-  MISS40-->|FLY MISSION|FLY_0x23_35
-  MISS41-->|FLY MISSION|FLY_0x24_36
-  MISS42-->|FLY MISSION|FLY_0x25_37
-  MISS43-->|FLY MISSION|FLY_0x26_38
-  MISS45-->|FLY MISSION|FLY_0x27_39
+
+  subgraph M0
+    direction TB
+    MISS0-->|FLY MISSION|FLY_0x00_0
+  end
+  subgraph M1
+    direction TB
+    MISS1-->|FLY MISSION|FLY_0x01_1
+  end
+  subgraph M2
+    direction TB
+    MISS2-->|FLY MISSION|FLY_0x02_2
+  end
+  subgraph M4
+    direction TB
+    MISS4-->|FLY MISSION|FLY_0x03_3
+  end
+  subgraph M6
+    direction TB
+    MISS6-->|FLY MISSION|FLY_0x04_4
+  end
+  subgraph M7
+    direction TB
+    MISS7-->|FLY MISSION|FLY_0x05_5
+  end
+  subgraph M8
+    direction TB
+    MISS8-->|FLY MISSION|FLY_0x06_6
+  end
+  subgraph M10
+    direction TB
+    MISS10-->|FLY MISSION|FLY_0x07_7
+  end
+  subgraph M11
+    direction TB
+    MISS11-->|FLY MISSION|FLY_0x08_8
+  end
+  subgraph M12
+    direction TB
+    MISS12-->|FLY MISSION|FLY_0x09_9
+  end
+  subgraph M14
+    direction TB
+    MISS14-->|FLY MISSION|FLY_0x0B_11
+  end
+  subgraph M15
+    direction TB
+    MISS15-->|FLY MISSION|FLY_0x0C_12
+  end
+  subgraph M16
+    direction TB
+    MISS16-->|FLY MISSION|FLY_0x0D_13
+  end
+  subgraph M17
+    direction TB
+    MISS17-->|FLY MISSION|FLY_0x0E_14
+  end
+  subgraph M18
+    direction TB
+    MISS18-->|FLY MISSION|FLY_0x0F_15
+    MISS18-->|FLY MISSION|FLY_0x2B_43
+  end
+  subgraph M19
+    direction TB
+    MISS19-->|FLY MISSION|FLY_0x10_16
+  end
+  subgraph M20
+    direction TB
+    MISS20-->|FLY MISSION|FLY_0x11_17
+  end
+  subgraph M21
+    direction TB
+    MISS21-->|FLY MISSION|FLY_0x12_18
+  end
+  subgraph M22
+    direction TB
+    MISS22-->|FLY MISSION|FLY_0x13_19
+  end
+  subgraph M23
+    direction TB
+    MISS23-->|FLY MISSION|FLY_0x14_20
+    MISS23-->|FLY MISSION|FLY_0x14_20
+  end
+  subgraph M24
+    direction TB
+    MISS24-->|FLY MISSION|FLY_0x15_21
+  end
+  subgraph M25
+    direction TB
+    MISS25-->|FLY MISSION|FLY_0x16_22
+  end
+  subgraph M26
+    direction TB
+    MISS26-->|FLY MISSION|FLY_0x17_23
+    MISS26-->|FLY MISSION|FLY_0x2C_44
+    MISS26-->|FLY MISSION|FLY_0x17_23
+    MISS26-->|FLY MISSION|FLY_0x2C_44
+    MISS26-->|FLY MISSION|FLY_0x17_23
+    MISS26-->|FLY MISSION|FLY_0x2C_44
+  end
+  subgraph M27
+    direction TB
+    MISS27-->|FLY MISSION|FLY_0x18_24
+  end
+  subgraph M29
+    direction TB
+    MISS29-->|FLY MISSION|FLY_0x19_25
+  end
+  subgraph M30
+    direction TB
+    MISS30-->|FLY MISSION|FLY_0x1A_26
+  end
+  subgraph M31
+    direction TB
+    MISS31-->|FLY MISSION|FLY_0x1B_27
+  end
+  subgraph M32
+    direction TB
+    MISS32-->|FLY MISSION|FLY_0x1C_28
+  end
+  subgraph M33
+    direction TB
+    MISS33-->|FLY MISSION|FLY_0x1D_29
+    MISS33-->|FLY MISSION|FLY_0x2D_45
+  end
+  subgraph M34
+    direction TB
+    MISS34-->|FLY MISSION|FLY_0x1E_30
+  end
+  subgraph M35
+    direction TB
+    MISS35-->|FLY MISSION|FLY_0x1F_31
+  end
+  subgraph M36
+    direction TB
+    MISS36-->|FLY MISSION|FLY_0x20_32
+  end
+  subgraph M37
+    direction TB
+    MISS37-->|FLY MISSION|FLY_0x21_33
+    MISS37-->|FLY MISSION|FLY_0x2E_46
+  end
+  subgraph M38
+    direction TB
+    MISS38-->|FLY MISSION|FLY_0x22_34
+  end
+  subgraph M40
+    direction TB
+    MISS40-->|FLY MISSION|FLY_0x23_35
+  end
+  subgraph M41
+    direction TB
+    MISS41-->|FLY MISSION|FLY_0x24_36
+  end
+  subgraph M42
+    direction TB
+    MISS42-->|FLY MISSION|FLY_0x25_37
+  end
+  subgraph M43
+    direction TB
+    MISS43-->|FLY MISSION|FLY_0x26_38
+  end
+  subgraph M45
+    direction TB
+    MISS45-->|FLY MISSION|FLY_0x27_39
+  end
 
 
   %% Définition des styles pour différencier MISS et FLY
