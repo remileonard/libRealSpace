@@ -1,4 +1,5 @@
 #include "precomp.h"
+#include <limits>
 
 SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->mission_name = mission_name;
@@ -559,12 +560,18 @@ void SCMission::executeProg(std::vector<PROG> *prog) {
 }
 uint8_t SCMission::getAreaID(Vector3D position) {
     uint8_t area_id = 255;
+    float smallest_area_width = (std::numeric_limits<float>::max)();
+    
     for (auto ar: this->mission->mission_data.areas) {
         if (ar->position.x - ar->AreaWidth / 2 <= position.x && ar->position.x + ar->AreaWidth / 2 >= position.x) {
             if (ar->position.z - ar->AreaWidth / 2 <= position.z && ar->position.z + ar->AreaWidth / 2 >= position.z) {
-                area_id = ar->id;
+                if (area_id == 255 || ar->AreaWidth < smallest_area_width) {
+                    smallest_area_width = ar->AreaWidth;
+                    area_id = ar->id;
+                }
             }
         }
     }
+    
     return area_id;
 }

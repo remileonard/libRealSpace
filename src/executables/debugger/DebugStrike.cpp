@@ -618,9 +618,9 @@ void DebugStrike::radar() {
             }
         }
     }
+    int cpt_scenes = 0;
     for (auto scene : this->current_mission->mission->mission_data.scenes) {
         if (scene) {
-
             int area_id = scene->area_id;
             float world_x = 0.0f;
             float world_z = 0.0f;
@@ -642,13 +642,14 @@ void DebugStrike::radar() {
                 ImVec2(scene_canvas_pos.x + square_size * 0.5f, scene_canvas_pos.y + square_size * 0.5f);
             draw_list->AddRect(top_left, bottom_right, IM_COL32(0, 255, 255, 255));
             draw_list->AddText(ImVec2(bottom_right.x + 2, top_left.y), IM_COL32(255, 255, 255, 255),
-                               ("Scene: " + std::to_string(scene->is_active)).c_str());
+                               ("Scene: " + std::to_string(cpt_scenes) + (scene->is_active?" ACTIVE ": " NON ACTIVE") ).c_str());
             if (ImGui::IsMouseHoveringRect(top_left, bottom_right)) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     this->debug_scene = scene;
                     this->debug_entity_mode = DebugEntityMode::Scene;
                 }
             }
+            cpt_scenes++;
         }
     }
 }
