@@ -920,11 +920,7 @@ void SCStrike::findTarget() {
             continue;
         }
         auto enemy = this->current_mission->enemies[i];
-        if (this->current_mission->area->getY(enemy->object->position.x, enemy->object->position.z) > enemy->object->position.y) {
-            // under the ground
-            continue;
-        }
-        if (enemy->object->alive) {
+        if (enemy->is_active && !enemy->is_destroyed) {
             float dx = enemy->object->position.x - this->player_plane->x;
             float dy = enemy->object->position.y - this->player_plane->y;
             float dz = enemy->object->position.z - this->player_plane->z;
@@ -940,6 +936,11 @@ void SCStrike::findTarget() {
         this->target = this->current_mission->enemies[nearestIndex];
         this->current_mission->player->target = this->target;
         this->cockpit->target = this->target->object;
+    } else {
+        this->current_target = 0;
+        this->target = nullptr;
+        this->current_mission->player->target = nullptr;
+        this->cockpit->target = nullptr;
     }
 }
 /**

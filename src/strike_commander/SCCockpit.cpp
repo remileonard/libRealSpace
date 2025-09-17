@@ -853,20 +853,23 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
     float headingRad = heading / 180.0f * (float)M_PI;
     
     // Fonction pour dessiner un contact sur le radar
-    auto drawContact = [&](MISN_PART* object, bool isFriendly, bool isDestroyed) {
+    auto drawContact = [&](SCMissionActors* object, bool isFriendly, bool isDestroyed) {
         // Vérifier si l'entité correspond au mode actuel
         bool valid_entity;
+        if (!object->is_active)
+            return;
         if (air_mode) {
-            valid_entity = (object->entity->entity_type == EntityType::jet);
+            valid_entity = (object->object->entity->entity_type == EntityType::jet);
         } else {
-            valid_entity = (object->entity->entity_type == EntityType::ground || 
-                           object->entity->entity_type == EntityType::ornt);
+            valid_entity = (object->object->entity->entity_type == EntityType::ground || 
+                           object->object->entity->entity_type == EntityType::ornt ||
+                           object->object->entity->entity_type == EntityType::swpn);
         }
         
         if (!valid_entity)
             return;
             
-        Vector2D objPos = {object->position.x, object->position.z};
+        Vector2D objPos = {object->object->position.x, object->object->position.z};
         
         // Rotation selon le heading du joueur
         Vector2D rotatedPos = rotateAroundPoint(objPos, center, headingRad);
@@ -912,7 +915,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         );
         
         // Si c'est la cible actuelle, dessine le marqueur de cible
-        if (object == this->target) {
+        if (object->object == this->target) {
             Point2D targetPos = {screenPos.x - 2, screenPos.y - 1};
             // Utilise toujours l'icône de cible du mode air
             this->cockpit->MONI.MFDS.AARD.ARTS.GetShape(2)->SetPosition(&targetPos);
@@ -925,13 +928,13 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
     
     // Dessine les ennemis
     for (auto actor : this->current_mission->enemies) {
-        drawContact(actor->object, false, actor->is_destroyed);
+        drawContact(actor, false, actor->is_destroyed);
     }
     
     // Dessine les alliés (sauf le joueur)
     for (auto actor : this->current_mission->friendlies) {
         if (actor != this->current_mission->player) {
-            drawContact(actor->object, true, actor->is_destroyed);
+            drawContact(actor, true, actor->is_destroyed);
         }
     }
 }
