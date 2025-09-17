@@ -94,14 +94,14 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
     // Ajuster le thrust selon le type d'arme
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case 12: // Gun
-            thrustMagnitude = -planeSpeed * 250.0f;
+            thrustMagnitude = -planeSpeed * 250.0f * (this->tps / 60.0f);
             break;
         case 5:
         case 6: // Bombs
-            thrustMagnitude = -planeSpeed * 50.0f;
+            thrustMagnitude = -planeSpeed * 50.0f * (this->tps / 60.0f);
             break;
         default: // Missiles
-            thrustMagnitude = -planeSpeed * 100.0f;
+            thrustMagnitude = -planeSpeed * 100.0f * (this->tps / 60.0f);
             break;
     }
     
@@ -243,14 +243,14 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     float thrustMagnitude = planeSpeed;
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case 12: // Gun
-            thrustMagnitude = planeSpeed * 250.0f;
+            thrustMagnitude = planeSpeed * 250.0f * (this->tps / 60.0f);
             break;
         case 5:
         case 6: // Bombs
-            thrustMagnitude = planeSpeed * 50.0f;
+            thrustMagnitude = planeSpeed * 50.0f * (this->tps / 60.0f);
             break;
         default: // Missiles
-            thrustMagnitude = planeSpeed * 100.0f;
+            thrustMagnitude = planeSpeed * 100.0f * (this->tps / 60.0f);
             break;
     }
     
@@ -1217,12 +1217,12 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case 12:
             weap = new GunSimulatedObject();
-            thrustMagnitude = -planeSpeed * 250.0f; // coefficient ajustable
+            thrustMagnitude = -planeSpeed * 250.0f * (this->tps / 60.0f); // coefficient ajustable
             this->wp_cooldown = 3; // Cooldown between two shots
         break;
         case 5:
         case 6:
-            thrustMagnitude = -planeSpeed * 50.0f;
+            thrustMagnitude = -planeSpeed * 50.0f * (this->tps / 60.0f);
             weap = new GunSimulatedObject();
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];

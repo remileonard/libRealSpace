@@ -492,7 +492,7 @@ void SCCockpit::RenderTargetingReticle() {
     };
     float planeSpeed      = direction.Length();
     float thrustMagnitude = -planeSpeed;
-    thrustMagnitude       = -planeSpeed * 150.0f; // coefficient ajustable
+    thrustMagnitude       = -planeSpeed * 250.0f * (60 / this->player_plane->tps); // coefficient ajustable
 
     float yawRad   = tenthOfDegreeToRad(this->player_plane->yaw);
     float pitchRad = tenthOfDegreeToRad(-this->player_plane->pitch);
@@ -574,7 +574,7 @@ void SCCockpit::RenderBombSight() {
     };
     float planeSpeed      = direction.Length();
     float thrustMagnitude = -planeSpeed;
-    thrustMagnitude       = -planeSpeed * 50.0f; // coefficient ajustable
+    thrustMagnitude       = -planeSpeed * 50.0f * ((float) this->player_plane->tps / 60.0f); // coefficient ajustable
 
     float yawRad   = tenthOfDegreeToRad(this->player_plane->yaw);
     float pitchRad = tenthOfDegreeToRad(-this->player_plane->pitch);
