@@ -106,7 +106,7 @@ void DebugGameFlow::renderMenu() {
             }
             ImGui::EndCombo();
         }
-        delete [] miss;
+        //delete [] miss;
         if (ImGui::Button("Load Mission")) {
             this->current_miss = miss_selected;
             this->current_scen = 0;

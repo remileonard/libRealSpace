@@ -26,7 +26,7 @@ public:
     uint8_t mission_id{0};
     uint8_t next_mission{0};
     uint8_t mission_flyed{0};
-    uint8_t tune_modifier{0};
+    uint8_t tune_modifier{1};
     int32_t cash{0};
     int32_t proj_cash{0};
     int32_t over_head{0};

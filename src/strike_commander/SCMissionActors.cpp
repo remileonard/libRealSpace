@@ -665,7 +665,12 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
 }
 
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+    Vector3D position;
+    if (this->plane == nullptr) {
+        position = {this->object->position.x, this->object->position.y, this->object->position.z};
+    } else {
+        position = {this->plane->x, this->plane->y, this->plane->z};
+    }
     Vector3D diff;
     if (this->mission->actors[arg]->plane == nullptr) {
         diff = this->mission->actors[arg]->object->position - position;

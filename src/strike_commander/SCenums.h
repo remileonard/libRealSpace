@@ -243,7 +243,7 @@ enum GameFlowOpCode {
     EFECT_OPT_MISS_ACCEPTED = 20,
     EFECT_OPT_MISS_REJECTED = 21,
     EFECT_OPT_END_MISS = 22,
-    EFECT_OPT_TUNE_MODIFIER = 27,
+    EFECT_OPT_TUNE_MODIFIER = 38,
     EFECT_OPT_MISS_ELSE = 30,
     EFECT_OPT_MISS_ENDIF = 31,
     EFFCT_OPT_IF_MISS_SUCCESS = 32,
@@ -262,7 +262,7 @@ enum GameFlowOpCode {
     EFECT_OPT_U12 = 29,
     EFECT_OPT_U14 = 36,
     EFECT_OPT_U15 = 37,
-    EFECT_OPT_U16 = 38
+    EFECT_OPT_U16 = 27
 };
 static std::unordered_map<GameFlowOpCode, std::string> game_flow_op_name = {
     {EFECT_OPT_CONV, "PLAY CONV"},

@@ -11,6 +11,7 @@
 #include "precomp.h"
 #include <stdint.h>
 #include <vector>
+#include <unordered_map>
 
 struct MemMusic {
     uint8_t *data;
@@ -21,9 +22,11 @@ class RSMusic {
 private:
     std::vector<MemMusic *> gameflow_music;
     AssetManager &assetManager = AssetManager::instance();
-
 public:
     uint8_t bank{0};
+    std::unordered_map<uint8_t, std::vector<MemMusic *>> midgames_musics;
+    std::unordered_map<uint8_t, std::vector<MemMusic *>> combat_musics;
+    std::unordered_map<uint8_t, std::vector<MemMusic *>> gameflow_musics;
     std::unordered_map<uint8_t, std::vector<MemMusic *>> musics;
     void init();
     void SwitchBank(uint8_t bank);

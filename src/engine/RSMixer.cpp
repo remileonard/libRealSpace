@@ -118,6 +118,32 @@ void RSMixer::playMusic(uint32_t index, int loop) {
     }
 }
 
+void RSMixer::playMusic(MemMusic *mus, int loop) {
+    if (this->isplaying && this->currentMusicMemPtr == mus) return;
+    if (this->isplaying) {
+        this->stopMusic();
+    }
+    this->currentMusicMemPtr = mus;
+    if (!mus) return;
+    if (shuttingDown) return;
+    Mix_ADLMIDI_setCustomBankFile("./assets/STRIKE.wopl");
+    SDL_RWops *rw = SDL_RWFromConstMem(mus->data, (int) mus->size);
+    Mix_Music *music = Mix_LoadMUSType_RW(rw, MUS_ADLMIDI, 1);
+    if (!music) {
+        printf("Error loading music: %s\n", Mix_GetError());
+        return;
+    }
+    if (currentMusicPtr) {
+        Mix_HaltMusic();
+        Mix_FreeMusic(currentMusicPtr);
+    }
+    currentMusicPtr = music;
+    this->isplaying = true;
+    if (Mix_PlayMusic(music, loop) == -1) {
+        printf("Error playing music: %s\n", Mix_GetError());
+    }
+}
+
 void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
     if (shuttingDown || !data) return;
     

@@ -128,6 +128,7 @@ void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
             tmparea->position.y = stream.ReadInt24LE() * HEIGH_MAP_SCALE;
 
             tmparea->AreaWidth = stream.ReadUShort();
+            tmparea->AreaHeight = tmparea->AreaWidth;
             tmparea->unknown_bytes.push_back(stream.ReadByte());
             read += 49;
             break;

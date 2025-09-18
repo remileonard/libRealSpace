@@ -419,9 +419,9 @@ void DebugStrike::radar() {
             float world_z = -area->position.z;
             ImVec2 area_canvas_pos = ImVec2(canvas_center.x + world_x * scale_x, canvas_center.y - world_z * scale_z);
             ImVec2 top_left = ImVec2(area_canvas_pos.x - area->AreaWidth * scale_x * 0.5f,
-                                     area_canvas_pos.y - area->AreaWidth * scale_z * 0.5f);
+                                     area_canvas_pos.y - area->AreaHeight * scale_z * 0.5f);
             ImVec2 bottom_right = ImVec2(area_canvas_pos.x + area->AreaWidth * scale_x * 0.5f,
-                                         area_canvas_pos.y + area->AreaWidth * scale_z * 0.5f);
+                                         area_canvas_pos.y + area->AreaHeight * scale_z * 0.5f);
 
             draw_list->AddRect(top_left, bottom_right, IM_COL32(0, 255, 0, 255));
 
@@ -701,6 +701,9 @@ void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor, int prog_id
 }
 void DebugStrike::showActorDetails(SCMissionActors *actor) {
     if (actor->object != nullptr) {
+        ImGui::Text("Actor ID: %d", actor->actor_id);
+        ImGui::Text("Active: %d", actor->is_active);
+        ImGui::Text("Destroyed: %d", actor->is_destroyed);
         if (ImGui::TreeNode("Object")) {
             RSEntity *entity = actor->object->entity;
             ImGui::Text("Name: %s", actor->object->member_name.c_str());
@@ -1497,13 +1500,13 @@ void DebugStrike::renderUI() {
                 break;
             case DebugEntityMode::Scene:
                 if (this->debug_scene != nullptr) {
-                    ImGui::Text("Area ID: %d", this->debug_scene->area_id);
+                    ImGui::Text("Scene ID: %d", this->debug_scene->area_id);
                     ImGui::Text("Is Active: %d", this->debug_scene->is_active);
                     ImGui::Text("Is Coord Relative to Area: %d", this->debug_scene->is_coord_on_area);
                     if (this->debug_scene->cast.size() > 0) {
                         if (ImGui::TreeNode("Cast Actors")) {
                             for (auto cast_actor : this->debug_scene->cast) {
-                                if (ImGui::TreeNode((void *)(intptr_t)cast_actor, "Cast Actor %d", cast_actor)) {
+                                if (ImGui::TreeNode((void *)(intptr_t)cast_actor, "Cast Actor [SCENE ID:%d]", cast_actor)) {
                                     int i = 0;
                                     for (auto part : this->current_mission->mission->mission_data.parts) {
                                         if (i == cast_actor) {

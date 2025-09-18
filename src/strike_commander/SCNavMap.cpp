@@ -416,7 +416,7 @@ void SCNavMap::showArea(AREA *area, float center, float map_width, int w, int h,
     int neww = (int) ((area->AreaWidth / map_width) * w);
     int newh = neww;
     bool isCircle = true;
-    if (area->AreaHeight != 0) {
+    if (area->AreaWidth != area->AreaHeight && area->AreaType != 'S') {
         newh = (int) ((area->AreaHeight / map_width) * h);
         isCircle = false;
     }

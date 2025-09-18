@@ -247,7 +247,8 @@ def parse_basic_iff_chunk(f, dec):
 
 def parse_iff_file(file_path):
     with open(file_path, 'rb') as f:
-        parse_iff_filereader(f, file_path)
+        fname = file_path.split('\\')[-1]
+        parse_iff_filereader(f, fname)
 
 def print_int_from_chunk(chunk_data, dec):
     for c in chunk_data:
@@ -271,4 +272,4 @@ def extract_bin_to_file(chunk_data):
         f.write(chunk_data)
 
 
-parse_iff_file(files[17])
+parse_iff_file(f"D:\\Projects\\perso\\SCDATA\\DATA\\GAMEFLOW\\{files[0]}")

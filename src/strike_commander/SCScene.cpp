@@ -137,19 +137,7 @@ void SCScene::Render() {
     }
 
     if (this->sceneOpts != nullptr && this->sceneOpts->tune != nullptr && this->music) {
-        if (GameState.tune_modifier != 0 && (this->sceneOpts->infos.ID == 20 || this->sceneOpts->infos.ID == 29)) {
-            if (Mixer.getMusicID() != this->sceneOpts->tune->ID + GameState.tune_modifier) {
-                Mixer.switchBank(1);
-                Mixer.stopMusic();
-                Mixer.playMusic(this->sceneOpts->tune->ID + GameState.tune_modifier);
-            }
-        } else {
-            if (Mixer.getMusicID() != this->sceneOpts->tune->ID) {
-                Mixer.switchBank(1);
-                Mixer.stopMusic();
-                Mixer.playMusic(this->sceneOpts->tune->ID);
-            }
-        }
+        Mixer.playMusic(Mixer.music->gameflow_musics[GameState.tune_modifier][this->sceneOpts->tune->ID],1);
     }
     if (this->rawPalette != nullptr) {
         ByteStream paletteReader;

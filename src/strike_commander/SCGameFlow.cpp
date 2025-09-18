@@ -50,14 +50,9 @@ void SCGameFlow::clicked(std::vector<EFCT *> *script, uint8_t id) {
     this->currentSpriteId = id;
     this->currentOptCode = 0;
     VGA.fadeOut(30, 6);
-    if (this->scen->sceneOpts->foreground->sprites[id]->tune != nullptr) {
-        Mixer.switchBank(1);
-        Mixer.stopMusic();
-        if (GameState.tune_modifier != 0 && id == 18) {
-            Mixer.playMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID + GameState.tune_modifier, 1);
-        } else {
-            Mixer.playMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID, 1);
-        }
+    if (this->scen->sceneOpts->foreground->sprites[id]->tune != nullptr) {        
+        Mixer.playMusic(Mixer.music->gameflow_musics[GameState.tune_modifier][this->scen->sceneOpts->foreground->sprites[id]->tune->ID],1);
+        
     }
     this->runEffect();
 }

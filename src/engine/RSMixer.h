@@ -23,6 +23,7 @@ public:
     bool shuttingDown = false;
     std::unordered_map<int, Mix_Chunk*> channelChunks;
     Mix_Music* currentMusicPtr = nullptr;
+    MemMusic* currentMusicMemPtr = nullptr;
     static RSMixer &getInstance() {
         static RSMixer instance;
         return instance;
@@ -31,6 +32,7 @@ public:
     ~RSMixer();
     void init();
     void playMusic(uint32_t index, int loop=1);
+    void playMusic(MemMusic *mus, int loop=1);
     void switchBank(uint8_t bank);
     void stopMusic();
     uint32_t getMusicID() { return this->current_music; };

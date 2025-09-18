@@ -215,5 +215,5 @@ void SCState::Reset() {
     this->current_scene = 0;
     this->over_head = 0;
     this->proj_cash = 0;
-    this->tune_modifier = 0;
+    this->tune_modifier = 1;
 }

@@ -20,6 +20,7 @@ void RSMusic::init() {
         music->data = data;
         music->size = e->size;
         musics[0].push_back(music);
+        midgames_musics[0].push_back(music);
     }
     TreEntry *gameflow = assetManager.GetEntryByName("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL");
     pak = new PakArchive();
@@ -28,30 +29,23 @@ void RSMusic::init() {
         PakEntry *e = pak->GetEntry(i);
         PakArchive *subpak = new PakArchive();
         subpak->InitFromRAM("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL", e->data, e->size);
+        if (i > 0) {
+            for (size_t t = 0; t < gameflow_musics[0].size(); t++) {
+                gameflow_musics[i].push_back(gameflow_musics[0][t]);
+            }
+        }
         for (size_t j = 0; j < subpak->GetNumEntries(); j++) {
             PakEntry *sub = subpak->GetEntry(j);
             uint8_t *data = new uint8_t[sub->size];
             if (sub->data[0] != 'F') {
                 continue;
-                /*PakArchive *subsubpak = new PakArchive();
-                subsubpak->InitFromRAM("..\\..\\DATA\\SOUND\\COMBAT.ADL", sub->data, sub->size);
-                for (size_t k = 0; k < subsubpak->GetNumEntries(); k++) {
-                    PakEntry *subsub = subsubpak->GetEntry(k);
-                    if (subsub != NULL) {
-                        uint8_t *data = new uint8_t[subsub->size];
-                        memcpy(data, subsub->data, subsub->size);
-                        MemMusic *music = new MemMusic();
-                        music->data = data;
-                        music->size = subsub->size;
-                        musics[1].push_back(music);    
-                    }
-                }*/
             } else {
                 memcpy(data, sub->data, sub->size);
                 MemMusic *music = new MemMusic();
                 music->data = data;
                 music->size = sub->size;
                 musics[1].push_back(music);
+                gameflow_musics[i].push_back(music);
             }
             
         }
@@ -78,7 +72,8 @@ void RSMusic::init() {
                     MemMusic *music = new MemMusic();
                     music->data = data;
                     music->size = subsub->size;
-                    musics[2].push_back(music);    
+                    musics[2].push_back(music);
+                    combat_musics[i].push_back(music); 
                 }
             }
         }
