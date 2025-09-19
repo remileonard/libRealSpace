@@ -665,7 +665,11 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                 actor->plane->y = actor->object->position.y;
                 actor->plane->z = actor->object->position.z;
             }
-            
+            if (actor->team_id == this->mission->player->team_id) {
+                this->mission->friendlies.push_back(actor);
+            } else {
+                this->mission->enemies.push_back(actor);
+            }
             if (actor->on_is_activated.size() > 0) {
                 SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);
                 p->execute();

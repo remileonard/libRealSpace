@@ -319,7 +319,15 @@ void SCStrike::registerSimulatorInputs() {
         SimActionOfst::VIEW_BEHIND,
         SimActionOfst::VIEW_COCKPIT,
         SimActionOfst::VIEW_WEAPONS,
-        SimActionOfst::MDFS_TARGET_CAMERA
+        SimActionOfst::MDFS_TARGET_CAMERA,
+        SimActionOfst::PAUSE,
+        SimActionOfst::EYES_ON_TARGET,
+        SimActionOfst::END_MISSION,
+        SimActionOfst::MOUSE_X,
+        SimActionOfst::MOUSE_Y,
+        SimActionOfst::COMM_RADIO_M6,
+        SimActionOfst::COMM_RADIO_M7,
+        SimActionOfst::COMM_RADIO_M8,
     };
     
     for (auto action : allActions) {
@@ -377,6 +385,9 @@ void SCStrike::registerSimulatorInputs() {
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION), SDL_SCANCODE_ESCAPE);
     m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X), 0, 1.0f);
     m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y), 1, 1.0f);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M6),SDL_SCANCODE_6);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M7),SDL_SCANCODE_7);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M8),SDL_SCANCODE_8);
 }
 void SCStrike::autopilotCompute() {
     Vector2D destination = {this->current_mission->waypoints[this->nav_point_id]->spot->position.x,
@@ -842,7 +853,43 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->comm_target = 0;
                 this->mfd_timeout = 400;
             }
-        }    
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M6))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(6);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M7))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(7);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }
+        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M8))) {
+            if (this->cockpit->comm_target == 0) {
+                this->cockpit->SetCommActorTarget(8);
+            } else {
+                if (this->cockpit->comm_actor != nullptr) {
+                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->show_comm = false;
+                }
+                this->cockpit->comm_target = 0;
+                this->mfd_timeout = 400;
+            }
+        }   
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_60))) {
         this->player_plane->SetThrottle(60);

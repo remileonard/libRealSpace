@@ -204,7 +204,10 @@ protected:
         EYES_ON_TARGET = 48,
         END_MISSION = 49,
         MOUSE_X = 50,
-        MOUSE_Y = 51
+        MOUSE_Y = 51,
+        COMM_RADIO_M6 = 52,
+        COMM_RADIO_M7 = 53,
+        COMM_RADIO_M8 = 54,
     };
     float mouseAxisAccumX = 0.0f;
     float mouseAxisAccumY = 0.0f;
