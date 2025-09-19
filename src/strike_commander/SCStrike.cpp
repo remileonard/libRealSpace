@@ -1339,6 +1339,10 @@ void SCStrike::runFrame(void) {
     }
     break;
     case View::EYE_ON_TARGET: {
+        if (this->target == nullptr) {
+            this->camera_mode = View::FRONT;
+            break;
+        }
         Vector3D pos = {this->new_position.x, this->new_position.y + this->eye_y, this->new_position.z};
         float r_twist = tenthOfDegreeToRad(this->player_plane->twist);
         float r_elev  = tenthOfDegreeToRad(this->player_plane->elevationf);

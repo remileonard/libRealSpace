@@ -1007,7 +1007,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
             Vector2D roa_dir     = {ai_position.x - center.x, ai_position.y - center.y};
 
             float distance = sqrtf((float)(roa_dir.x * roa_dir.x) + (float)(roa_dir.y * roa_dir.y));
-            if (ai->actor_name != "PLAYER" && ai->is_active) {
+            if (ai->actor_name != "PLAYER" && ai->is_active && ai->profile != nullptr) {
                 std::string name_str = std::to_string(cpt) + ". " + ai->actor_name;
                 Point2D pfmd_entry   = {pmfd_text.x, pmfd_text.y};
                 fb->printText(
@@ -1024,7 +1024,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
         }
     } else if (mode > 0) {
         int cpt = 1;
-        if (this->comm_actor != nullptr) {
+        if (this->comm_actor != nullptr && this->comm_actor->profile != nullptr) {
             auto ai = this->comm_actor;        
             int cpt_message = 1;
             for (auto asks : ai->profile->radi.opts) {
