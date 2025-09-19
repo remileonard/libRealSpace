@@ -354,6 +354,14 @@ void SCProg::execute() {
                         }
                     }
                 break;
+                case OP_DEACTIVATE_SCENE:
+                    for (auto scen: this->mission->mission->mission_data.scenes) {
+                        if (scen->area_id == prog.arg) {
+                            scen->is_active = 0;
+                            break;
+                        }
+                    }
+                break;
                 default:
                 break;
             }

@@ -702,6 +702,7 @@ void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor, int prog_id
 void DebugStrike::showActorDetails(SCMissionActors *actor) {
     if (actor->object != nullptr) {
         ImGui::Text("Actor ID: %d", actor->actor_id);
+        ImGui::Text("Actor Team Id: %d", actor->team_id);
         ImGui::Text("Active: %d", actor->is_active);
         ImGui::Text("Destroyed: %d", actor->is_destroyed);
         if (ImGui::TreeNode("Object")) {

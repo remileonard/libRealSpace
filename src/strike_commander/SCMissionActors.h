@@ -25,6 +25,7 @@ public:
     SCPilot *pilot{nullptr};
     SCMission *mission{nullptr};
     SCMissionActors *target{nullptr};
+    SCMissionActors *attacker{nullptr};
     prog_op current_objective;
     Vector3D formation_pos_offset{150.0f, 0.0f, 0.0f};
     Vector3D attack_pos_offset{0.0f, 0.0f, -1000.0f};
@@ -33,6 +34,7 @@ public:
     bool is_destroyed{false};
     bool prog_executed{false};
     int health{0};
+    int team_id{0};
     int current_target{0};
     bool current_command_executed{false};
     prog_op current_command{prog_op::OP_NOOP};

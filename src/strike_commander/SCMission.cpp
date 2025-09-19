@@ -97,6 +97,7 @@ void SCMission::loadMission() {
                 if (cast->actor == "TEAM0") {
                     cast->actor = GameState.wingman;
                 }
+                actor->team_id = part->unknown_bytes[2];
                 actor->actor_name = cast->actor;
                 actor->actor_id = part->id;
                 actor->object = part;
@@ -321,7 +322,7 @@ void SCMission::update() {
     this->player->attack_pos_offset.y = 0.0f; // Same altitude
     if (area_id != this->current_area_id) {
         for (auto scene: this->mission->mission_data.scenes) {
-            if (scene->area_id == this->current_area_id-1 && scene->on_leaving != -1) {
+            if ((scene->area_id == -1) || (scene->area_id == this->current_area_id-1) && scene->on_leaving != -1) {
                 // leaving current area
                 if (scene->on_leaving < this->mission->mission_data.prog.size()) {
                     std::vector<PROG> prog;
@@ -354,6 +355,20 @@ void SCMission::update() {
     }
     for (auto scene: this->mission->mission_data.scenes) {
         if (scene->area_id == area_id-1 || scene->area_id == -1) {
+            if (scene->on_leaving != -1) {
+                // entering new area
+                if (scene->on_leaving < this->mission->mission_data.prog.size()) {
+                    std::vector<PROG> prog;
+                    for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
+                        prog.push_back(prg);
+                    }
+                    SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
+                    p->execute();
+                    delete p;
+                    prog.clear();
+                    prog.shrink_to_fit();
+                }
+            }
             if (scene->is_active == 0) {
                 if (scene->on_mission_update != -1) {
                     if (scene->on_mission_update < this->mission->mission_data.prog.size()) {
@@ -459,12 +474,28 @@ void SCMission::update() {
                     ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
                 }
             }
+            if (ai_actor->target != nullptr) {
+                if (ai_actor->target->attacker == ai_actor) {
+                    ai_actor->target->attacker = nullptr;
+                }
+            }
         }
         if (ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {
-            for (auto targets: this->friendlies) {
-                if (targets->object->alive && (targets->profile != nullptr || targets->actor_name == "PLAYER")) {
-                    ai_actor->shootWeapon(targets);
-                }
+            if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == false) {
+                ai_actor->shootWeapon(ai_actor->target);
+            } else if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == true) {
+                ai_actor->target = nullptr;
+            } else if (ai_actor->target == nullptr) {
+                for (auto targets: this->actors) {
+                    if (targets->team_id == ai_actor->team_id) {
+                        continue;
+                    }
+                    if (targets->is_active && targets->is_destroyed == false && targets->object->alive && (targets->profile != nullptr || targets->actor_name == "PLAYER")) {
+                        ai_actor->shootWeapon(targets);
+                        ai_actor->target = targets;
+                        break;
+                    }
+                }   
             }
         }
         for (auto weapon: ai_actor->weapons_shooted) {

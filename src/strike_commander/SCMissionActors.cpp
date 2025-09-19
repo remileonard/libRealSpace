@@ -148,12 +148,14 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
         for (auto actor: this->mission->actors) {
             if (actor->actor_id == this->current_target) {
                 this->target = actor;
+                actor->attacker = this;
                 break;
             }
         }
     }
     if (this->current_target != 0 && this->target != nullptr && this->target->plane != nullptr && this->target->plane->object->alive == 0) {
         this->current_target = 0;
+        this->target->attacker = nullptr;
         this->target = nullptr;
         this->target_position.Clear();
         if (!is_new_target && this->current_objective == OP_SET_OBJ_DESTROY_TARGET) {
@@ -469,6 +471,9 @@ bool SCMissionActors::setMessage(uint8_t arg) {
 bool SCMissionActors::followAlly(uint8_t arg) {
     Vector3D wp;
     this->current_objective = OP_SET_OBJ_FOLLOW_ALLY;
+    if (this->attacker != nullptr) {
+        this->destroyTarget(this->attacker->actor_id);
+    }
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg) {
             if (actor->plane == nullptr || !actor->plane->object->alive) {
@@ -646,9 +651,16 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                     this->mission->player->plane->z
                 };
             }
-            actor->object->position += correction;
+            if (actor->object->area_id != 255) {
+                actor->object->position += correction;
+            }
             if (actor->plane != nullptr) {
-                actor->plane->on_ground = false;
+                if (this->mission->area->getY(actor->object->position.x, actor->object->position.z) <= actor->object->position.y) {
+                    actor->object->position.y = this->mission->area->getY(actor->object->position.x, actor->object->position.z)+10.0f;
+                    actor->plane->on_ground = true;
+                } else {
+                    actor->plane->on_ground = false;
+                }
                 actor->plane->x = actor->object->position.x;
                 actor->plane->y = actor->object->position.y;
                 actor->plane->z = actor->object->position.z;

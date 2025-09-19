@@ -404,11 +404,11 @@ void SCStrike::autopilotCompute() {
             // Assume each area is represented as an axis-aligned rectangle in the X-Z plane.
             // Compute rectangle boundaries.
             float halfWidth  = area->AreaWidth / 2.0f;
-            
+            float halfHeight = area->AreaHeight / 2.0f;
             float left   = area->position.x - halfWidth;
             float right  = area->position.x + halfWidth;
-            float top    = area->position.z - halfWidth;
-            float bottom = area->position.z + halfWidth;
+            float top    = area->position.z - halfHeight;
+            float bottom = area->position.z + halfHeight;
 
             // Lambda to test if a point is inside the rectangle.
             auto pointInRect = [&](const Vector2D &pt) -> bool {
@@ -920,6 +920,9 @@ void SCStrike::findTarget() {
             continue;
         }
         auto enemy = this->current_mission->enemies[i];
+        if (enemy->team_id == this->current_mission->player->team_id) {
+            continue;
+        }
         if (enemy->is_active && !enemy->is_destroyed) {
             float dx = enemy->object->position.x - this->player_plane->x;
             float dy = enemy->object->position.y - this->player_plane->y;

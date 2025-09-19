@@ -70,6 +70,7 @@ This document details the opcodes used in the PROG chunk of Strike Commander mis
 | 148 | 0x94 | OP_INSTANT_DESTROY_TARGET | Instantly destroys a target, may trigger an explosion |
 | 190 | 0xBE | OP_DEACTIVATE_OBJ | Deactivates a target (disables AI) |
 | 128 | 0x80 | OP_ACTIVATE_SCENE | Activates a scene matching the specified area ID |
+| 129 | 0x81 | OP_DEACTIVATE_SCENE | De activates a scene matching the specified area ID |
 
 ### Miscellaneous
 
