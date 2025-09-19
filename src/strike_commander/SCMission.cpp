@@ -442,7 +442,8 @@ void SCMission::update() {
         
         if (ai_actor->object->alive == false && ai_actor->is_destroyed == false) {
             ai_actor->is_destroyed = true;
-            if (ai_actor->on_is_destroyed.size() > 0) {
+            if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane == nullptr) {
+                ai_actor->is_active = false;
                 SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, this, ai_actor->object->on_is_destroyed);
                 p->execute();
                 delete p;
@@ -538,6 +539,11 @@ void SCMission::update() {
         if (ai_actor->is_destroyed == true && ai_actor->object->position.y < this->area->getY(ai_actor->object->position.x, ai_actor->object->position.z)) {
             ai_actor->object->alive = false;
             ai_actor->is_active = false;
+            if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane != nullptr) {
+                SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, this, ai_actor->object->on_is_destroyed);
+                p->execute();
+                delete p;
+            }
             this->explosions.push_back(new SCExplosion(ai_actor->object->entity->explos->objct, ai_actor->object->position));
             if (this->sound.sounds.size() > 0) {
                 MemSound *sound = this->sound.sounds[SoundEffectIds::EXPLOSION_4];

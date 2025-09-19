@@ -307,17 +307,27 @@ void SCProg::execute() {
                     work_register = this->actor->getDistanceToSpot(prog.arg);
                 break;
                 case OP_IS_TARGET_ALIVE:
-                    if (this->mission->actors[prog.arg]->object->alive == true) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
-                    } else {
-                        compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                    for (auto test_actor: this->mission->actors) {
+                        if (test_actor->actor_id == prog.arg) {
+                            if (test_actor->object->alive == true) {
+                                compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+                            } else {
+                                compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                            }
+                            break;
+                        }
                     }
                 break;
                 case OP_IS_TARGET_ACTIVE:
-                    if (this->mission->actors[prog.arg]->is_active == true) {
-                        compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
-                    } else {
-                        compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                    for (auto test_actor: this->mission->actors) {
+                        if (test_actor->actor_id == prog.arg) {
+                            if (test_actor->is_active) {
+                                compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+                            } else {
+                                compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                            }
+                            break;
+                        }
                     }
                 break;
                 case OP_SET_FLAG_TO_TRUE:
