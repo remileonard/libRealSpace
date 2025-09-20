@@ -1093,7 +1093,7 @@ void SCStrike::runFrame(void) {
             //GameState.cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000;
             GameState.proj_cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000 - GameState.over_head - GameState.weapons_costs - GameState.f16_replacements ;
             GameState.weapons_costs = 0;
-            GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0];
+            GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0]>0;
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
             for (auto team: this->current_mission->friendlies) {

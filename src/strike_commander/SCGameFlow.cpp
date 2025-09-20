@@ -516,12 +516,20 @@ void SCGameFlow::runEffect() {
     if (flymission) {
         if (this->scen != nullptr) {
             delete this->scen;
+            this->scen = nullptr;
+            this->zones = nullptr;
         }
         this->next_miss = 0;
-        this->scen = new WeaponLoadoutScene(&this->optShps, &this->optPals);
-        this->zones = this->scen->init(
-            this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[15],
-            std::bind(&SCGameFlow::flyOrReturnFromScene, this, std::placeholders::_1, std::placeholders::_2));
+        if (this->gameFlowParser.game.game[this->current_miss]->scen.size() > 0) {
+            this->scen = new WeaponLoadoutScene(&this->optShps, &this->optPals);
+            this->zones = this->scen->init(
+                this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[15],
+                std::bind(&SCGameFlow::flyOrReturnFromScene, this, std::placeholders::_1, std::placeholders::_2)
+            );
+        } else {
+            this->flyMission();
+        }
+        
     }
     this->efect = nullptr;
     this->currentOptCode = 0;
@@ -652,7 +660,10 @@ void SCGameFlow::loadMiss() {
  * @throws None
  */
 void SCGameFlow::createScen() {
-    this->zones->clear();
+    if (this->zones != nullptr) {
+        this->zones->clear();
+    }
+    
     if (this->gameFlowParser.game.game[this->current_miss]->scen.size() > 0) {
         uint8_t optionScenID = this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID;
         if (this->scen != nullptr) {

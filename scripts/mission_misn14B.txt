@@ -1,0 +1,678 @@
+ Chunk: FORM, Taille: 1356
+     TYPE: MISN
+     Chunk: VERS, Taille: 2
+       0x00	 0
+       0x05	 5
+     Chunk: INFO, Taille: 8
+       Value: Turkey
+     Chunk: TUNE, Taille: 2
+       0x01	 1
+       0x00	 0
+     Chunk: NAME, Taille: 8
+       Value: Turkey
+     Chunk: FORM, Taille: 20
+         TYPE: WRLD
+         Chunk: FILE, Taille: 8
+           Value: turkey2
+     Chunk: AREA, Taille: 50
+       ID 0, Strike Base, Area type: S)
+         X: 100000, Y: 1845, Z: 144000, Width: 32
+         remaining data 1 49 49
+           0x4E	 78
+           0x00	 0
+           0x00	 0
+       Unknown byte: 0 0x00	
+     Chunk: SPOT, Taille: 42
+       Nombre de spot: 3.0
+       0x00	 0
+       0x00	 0
+       AREA 0, X: -460, Y: 0, Z: 2482
+       0x00	 0
+       0x00	 0
+       AREA 0, X: -460, Y: 0, Z: 400
+       0x00	 0
+       0x00	 0
+       AREA 0, X: -460, Y: 1000, Z: -2600
+     Chunk: NUMS, Taille: 0
+     Chunk: MSGS, Taille: 14
+       Message: Heading home.
+     Chunk: FLAG, Taille: 6
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+     Chunk: CAST, Taille: 108
+       Nombre de cast: 12.0
+       ID: 0, Nom: JANET14B
+       ID: 1, Nom: JACKALA
+       ID: 2, Nom: JACKALA
+       ID: 3, Nom: PLAYER
+       ID: 4, Nom: STRIBASE
+       ID: 5, Nom: NULL
+       ID: 6, Nom: NULL
+       ID: 7, Nom: NULL
+       ID: 8, Nom: NULL
+       ID: 9, Nom: NULL
+       ID: 10, Nom: NULL
+       ID: 11, Nom: NULL
+     Chunk: PROG, Taille: 66
+       ==== PROG ID 0
+         [165 ] OP_SET_OBJ_FLY_TO_WP                           VALUE 0x02	 2
+         [162 ] OP_SET_OBJ_LAND                                VALUE 0x02	 2
+         [9   ] OP_INVERT_FLAG                                 VALUE 0x01	 1
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 1
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x00	 0
+         [64  ] OP_CMP_GREATER_EQUAL_THAN                      VALUE 0x03	 3
+         [74  ] OP_IF_LESS_THAN_GOTO                           VALUE 0x41	 65
+         [82  ] OP_SET_FLAG_TO_TRUE                            VALUE 0x01	 1
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 2
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x02	 2
+         [20  ] OP_SAVE_VALUE_TO_GAMFLOW_REGISTER              VALUE 0x07	 7
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x01	 1
+         [20  ] OP_SAVE_VALUE_TO_GAMFLOW_REGISTER              VALUE 0x00	 0
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 3
+         [69  ] OP_GET_FLAG_ID                                 VALUE 0x01	 1
+         [73  ] OP_GOTO_LABEL_IF_FALSE                         VALUE 0x42	 66
+         OPCODE 0x0F 15          VALUE 0x01	 1
+         [8   ] OP_SET_LABEL                                   VALUE 0x42	 66
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 4
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x03	 3
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 5
+         [170 ] OP_SET_OBJ_FOLLOW_ALLY                         VALUE 0x00	 0
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x03	 3
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 6
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x00	 0
+         [2   ] OP_EXEC_SUB_PROG                               VALUE 0x01	 1
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 7
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x00	 0
+         [2   ] OP_EXEC_SUB_PROG                               VALUE 0x01	 1
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 8
+     Chunk: PART, Taille: 744
+       Nombre de part: 12.0
+       ID: 11
+         Nom: RWYEXT18
+         destroyed: 
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -460, 0, -1440
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 4
+         Nom: WCB78
+         destroyed: 
+         Load: 
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: 99750, 1845, -146000
+         UB: 0
+         Azymuth: 90
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 5
+         Nom: HANGB22
+         destroyed: HANGB22D
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -250, 0, -2350
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 6
+         Nom: HANGB22
+         destroyed: HANGB22D
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -250, 0, -2500
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 7
+         Nom: HANGB22
+         destroyed: HANGB22D
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -470, 0, -2750
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 8
+         Nom: HANGB22
+         destroyed: HANGB22D
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -700, 0, -2750
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 9
+         Nom: TOWB24
+         destroyed: TOWB24D
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -600, 0, -700
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 10
+         Nom: RDRSTL2
+         destroyed: DRADARST
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -600, 0, -300
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 3
+         Nom: F-22
+         destroyed: 
+         Load: 
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: 100000, 10000, 0
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x90	 144
+           0x01	 1
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 0
+           [165 ] OP_SET_OBJ_FLY_TO_WP                   0x02 2 
+           [162 ] OP_SET_OBJ_LAND                        0x02 2 
+           [9   ] OP_INVERT_FLAG                         0x01 1 
+           OPCODE 0x00 0  0x00 0 
+       ID: 0
+         Nom: MIG29GRA
+         destroyed: 
+         Load: M29LOADA
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: 99800, 9980, 400
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x54	 84
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x04	 4
+           0x00	 0
+           0x07	 7
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 4
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x03 3 
+           OPCODE 0x00 0  0x00 0 
+         Program: 7
+           [85  ] OP_ADD_1_TO_FLAG                       0x00 0 
+           [2   ] OP_EXEC_SUB_PROG                       0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 1
+         Nom: MIG29GRA
+         destroyed: 
+         Load: M29LOADA
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: 102000, 9907, 420
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x4A	 74
+           0x01	 1
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0xF4	 244
+           0x01	 1
+           0x00	 0
+           0x00	 0
+           0x64	 100
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x05	 5
+           0x00	 0
+           0x06	 6
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 5
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x00 0 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x03 3 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 6
+           [85  ] OP_ADD_1_TO_FLAG                       0x00 0 
+           [2   ] OP_EXEC_SUB_PROG                       0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 2
+         Nom: MIG29GRA
+         destroyed: 
+         Load: M29LOADA
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: 101000, 9910, 800
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x4A	 74
+           0x01	 1
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x32	 50
+           0x00	 0
+           0x7C	 124
+           0xFC	 252
+           0x9C	 156
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x05	 5
+           0x00	 0
+           0x06	 6
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 5
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x00 0 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x03 3 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 6
+           [85  ] OP_ADD_1_TO_FLAG                       0x00 0 
+           [2   ] OP_EXEC_SUB_PROG                       0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+     Chunk: TEAM, Taille: 2
+       0x08	 8
+       0x00	 0
+     Chunk: FORM, Taille: 80
+         TYPE: PLAY
+         Chunk: SCNE, Taille: 34
+           IS_ACTIVE: 1
+           Area ID: 65535
+           Prog ID: 65535, 65535, 65535
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 5
+            Cast ID: 8
+            Cast ID: 1
+            Cast ID: 9
+            Cast ID: 10
+            Cast ID: 11
+         Chunk: SCNE, Taille: 26
+           IS_ACTIVE: 1
+           Area ID: 0
+           Prog ID: 65535, 3, 65535
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 1
+            Cast ID: 0
+     Chunk: LOAD, Taille: 72
+       File: MIG29
+       File: F-16DES
+       File: FUELEXP1
+       File: FUELEXP2
+       File: EXPLODE1
+       File: EXPLODE2
+       File: GRNDEX1
+       File: GRNDEX4
+Part 11 RWYEXT18 [65535, 65535, 65535, 65535]
+Part 4 WCB78 [65535, 65535, 65535, 65535]
+Part 5 HANGB22 [65535, 65535, 65535, 65535]
+Part 6 HANGB22 [65535, 65535, 65535, 65535]
+Part 7 HANGB22 [65535, 65535, 65535, 65535]
+Part 8 HANGB22 [65535, 65535, 65535, 65535]
+Part 9 TOWB24 [65535, 65535, 65535, 65535]
+Part 10 RDRSTL2 [65535, 65535, 65535, 65535]
+Part 3 F-22 [65535, 65535, 65535, 0]
+   ** Fly to waypoint 2[-460, 1000, -2600] - Area Strike Base
+   ** Land to waypoint 2[-460, 1000, -2600] - Area Strike Base
+   [9   ] OP_INVERT_FLAG                        	1
+   UNDEC OPCODE :[0]	0
+Part 0 MIG29GRA [65535, 4, 7, 65535]
+   ** Destroy target F-22
+   UNDEC OPCODE :[0]	0
+   [85  ] OP_ADD_1_TO_FLAG                      	0
+   [2   ] OP_EXEC_SUB_PROG                      	1
+   UNDEC OPCODE :[0]	0
+Part 1 MIG29GRA [65535, 5, 6, 65535]
+   ** Follow target MIG29GRA
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   ** Destroy target F-22
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+   [85  ] OP_ADD_1_TO_FLAG                      	0
+   [2   ] OP_EXEC_SUB_PROG                      	1
+   UNDEC OPCODE :[0]	0
+Part 2 MIG29GRA [65535, 5, 6, 65535]
+   ** Follow target MIG29GRA
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   ** Destroy target F-22
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+   [85  ] OP_ADD_1_TO_FLAG                      	0
+   [2   ] OP_EXEC_SUB_PROG                      	1
+   UNDEC OPCODE :[0]	0
+Scene 0 1
+   Area: 65535 Id not found
+   Prog:
+   Cast:
+     - F-22
+     - WCB78
+     - MIG29GRA
+     - MIG29GRA
+     - MIG29GRA
+Scene 1 1
+   Area: Strike Base
+   Prog:
+    prog id 3
+     [69  ] OP_GET_FLAG_ID                         0x01 1 
+     [73  ] OP_GOTO_LABEL_IF_FALSE                 0x42 66 
+     OPCODE 0x0F 15  0x01 1 
+     [8   ] OP_SET_LABEL                           0x42 66 
+     OPCODE 0x00 0  0x00 0 
+   Cast:
+     - RWYEXT18

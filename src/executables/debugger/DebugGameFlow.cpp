@@ -399,25 +399,61 @@ void DebugGameFlow::renderMissionInfos() {
         }
     }
     if (ImGui::TreeNodeEx("Scene Info",tflag)) {
-        this->sceneOpts = this->scen->sceneOpts;
-        if (this->sceneOpts->foreground != nullptr) {
-            if (ImGui::TreeNodeEx("Forground Sprites", tflag)) {
-                for (auto sprt : this->sceneOpts->foreground->sprites) {
-                    ImGui::Text("Sprite %d", sprt.second->sprite.SHP_ID);
-                    RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(0);
-                    if (shp != nullptr) {
-                        ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
-                        if (shp->GetWidth() > 0 && shp->GetHeight() > 0) {
+        if (this->scen != nullptr) {
+            this->sceneOpts = this->scen->sceneOpts;
+            if (this->sceneOpts != nullptr) {
+                if (this->sceneOpts->foreground != nullptr) {
+                    if (ImGui::TreeNodeEx("Forground Sprites", tflag)) {
+                        for (auto sprt : this->sceneOpts->foreground->sprites) {
+                            ImGui::Text("Sprite %d", sprt.second->sprite.SHP_ID);
+                            RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(0);
+                            if (shp != nullptr) {
+                                ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
+                                if (shp->GetWidth() > 0 && shp->GetHeight() > 0) {
+                                    FrameBuffer *fb = new FrameBuffer(320, 200);
+                                    fb->clear();
+                                    fb->drawShape(shp);
+                                    fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
+                                    for (int j = 1; j < this->getShape(sprt.second->sprite.SHP_ID)->GetNumImages(); j++) {
+                                        RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(j);
+                                        if (shp != nullptr) {
+                                            fb->drawShape(shp);
+                                        }
+                                    }
+                                    Texel* tex = fb->getTexture(VGA.getPalette());
+                                    GLuint glTex = 0;
+                                    glGenTextures(1, &glTex);
+                                    glBindTexture(GL_TEXTURE_2D, glTex);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+                                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 320, 200, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+
+                                    // Affichage dans ImGui
+                                    ImGui::Image((ImTextureID)(intptr_t)glTex, ImVec2(320, 200));
+                                    delete fb;
+                                    delete tex;
+                                    s_CurrentFrameGLTex.push_back(glTex);
+                                }
+                            } else {
+                                ImGui::Text("No shape for this image");
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                }
+                if (ImGui::TreeNodeEx("Background", tflag)) {
+                    for (auto bg : this->sceneOpts->background->images) {
+                        ImGui::Text("Image %d", bg->ID);
+                        RLEShape *shp = this->getShape(bg->ID)->GetShape(0);
+                        if (shp != nullptr) {
+                            
+                            ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                             FrameBuffer *fb = new FrameBuffer(320, 200);
                             fb->clear();
-                            fb->drawShape(shp);
                             fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
-                            for (int j = 1; j < this->getShape(sprt.second->sprite.SHP_ID)->GetNumImages(); j++) {
-                                RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(j);
-                                if (shp != nullptr) {
-                                    fb->drawShape(shp);
-                                }
-                            }
+                            fb->drawShape(shp);
                             Texel* tex = fb->getTexture(VGA.getPalette());
                             GLuint glTex = 0;
                             glGenTextures(1, &glTex);
@@ -433,79 +469,47 @@ void DebugGameFlow::renderMissionInfos() {
                             delete fb;
                             delete tex;
                             s_CurrentFrameGLTex.push_back(glTex);
+                            
+                        } else {
+                            ImGui::Text("No shape for this image");
                         }
-                    } else {
-                        ImGui::Text("No shape for this image");
                     }
+                    ImGui::TreePop();
                 }
-                ImGui::TreePop();
-            }
-        }
-        if (ImGui::TreeNodeEx("Background", tflag)) {
-            for (auto bg : this->sceneOpts->background->images) {
-                ImGui::Text("Image %d", bg->ID);
-                RLEShape *shp = this->getShape(bg->ID)->GetShape(0);
-                if (shp != nullptr) {
-                    
-                    ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
-                    FrameBuffer *fb = new FrameBuffer(320, 200);
-                    fb->clear();
-                    fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
-                    fb->drawShape(shp);
-                    Texel* tex = fb->getTexture(VGA.getPalette());
-                    GLuint glTex = 0;
-                    glGenTextures(1, &glTex);
-                    glBindTexture(GL_TEXTURE_2D, glTex);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 320, 200, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+                if (ImGui::TreeNodeEx("Extras", tflag)) {
+                    for (auto extra : this->sceneOpts->extr) {
+                        ImGui::Text("Extra %d", extra->SHAPE_ID);
+                        RLEShape *shp = this->getShape(extra->SHAPE_ID)->GetShape(0);
+                        if (shp != nullptr) {
+                            
+                            ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
+                            FrameBuffer *fb = new FrameBuffer(320, 200);
+                            fb->clear();
+                            fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
+                            fb->drawShape(shp);
+                            Texel* tex = fb->getTexture(VGA.getPalette());
+                            GLuint glTex = 0;
+                            glGenTextures(1, &glTex);
+                            glBindTexture(GL_TEXTURE_2D, glTex);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+                            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 320, 200, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
-                    // Affichage dans ImGui
-                    ImGui::Image((ImTextureID)(intptr_t)glTex, ImVec2(320, 200));
-                    delete fb;
-                    delete tex;
-                    s_CurrentFrameGLTex.push_back(glTex);
-                    
-                } else {
-                    ImGui::Text("No shape for this image");
+                            // Affichage dans ImGui
+                            ImGui::Image((ImTextureID)(intptr_t)glTex, ImVec2(320, 200));
+                            delete fb;
+                            delete tex;
+                            s_CurrentFrameGLTex.push_back(glTex);
+                            
+                        } else {
+                            ImGui::Text("No shape for this image");
+                        }
+                    }
+                    ImGui::TreePop();
                 }
             }
-            ImGui::TreePop();
-        }
-        if (ImGui::TreeNodeEx("Extras", tflag)) {
-            for (auto extra : this->sceneOpts->extr) {
-                ImGui::Text("Extra %d", extra->SHAPE_ID);
-                RLEShape *shp = this->getShape(extra->SHAPE_ID)->GetShape(0);
-                if (shp != nullptr) {
-                    
-                    ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
-                    FrameBuffer *fb = new FrameBuffer(320, 200);
-                    fb->clear();
-                    fb->rect_slow(0, 0, 319, 199, 0x1F); // Bordure bleue
-                    fb->drawShape(shp);
-                    Texel* tex = fb->getTexture(VGA.getPalette());
-                    GLuint glTex = 0;
-                    glGenTextures(1, &glTex);
-                    glBindTexture(GL_TEXTURE_2D, glTex);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 320, 200, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
-
-                    // Affichage dans ImGui
-                    ImGui::Image((ImTextureID)(intptr_t)glTex, ImVec2(320, 200));
-                    delete fb;
-                    delete tex;
-                    s_CurrentFrameGLTex.push_back(glTex);
-                    
-                } else {
-                    ImGui::Text("No shape for this image");
-                }
-            }
-            ImGui::TreePop();
         }
         ImGui::TreePop();
     }

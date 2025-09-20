@@ -309,6 +309,10 @@ void SCProg::execute() {
                 case OP_IS_TARGET_ALIVE:
                     for (auto test_actor: this->mission->actors) {
                         if (test_actor->actor_id == prog.arg) {
+                            if (test_actor->actor_name == "PLAYER") {
+                                compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                                break;
+                            }
                             if (test_actor->object->alive == true) {
                                 compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
                             } else {
@@ -321,7 +325,7 @@ void SCProg::execute() {
                 case OP_IS_TARGET_ACTIVE:
                     for (auto test_actor: this->mission->actors) {
                         if (test_actor->actor_id == prog.arg) {
-                            if (test_actor->is_active) {
+                            if ((test_actor->is_active) || (test_actor->actor_name == "PLAYER")) {
                                 compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
                             } else {
                                 compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
