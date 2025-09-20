@@ -351,7 +351,6 @@ void SCMission::update() {
                             }
                             if (actor->actor_id == part->id && actor->is_active == false) {
                                 actor->is_active = true;
-                                
                                 if (scene->area_id != -1) {
                                     Vector3D correction;
                                     if (actor->object->unknown2 == 0) {
@@ -363,7 +362,12 @@ void SCMission::update() {
                                             this->player->plane->z
                                         };
                                     }
-                                    actor->object->position += correction;
+                                    if (actor->object->area_id != 255) {
+                                        actor->object->position += correction;
+                                    }
+                                    if (actor->object->position.y < this->area->getY(actor->object->position.x, actor->object->position.z)) {
+                                        actor->object->position.y = this->area->getY(actor->object->position.x, actor->object->position.z);
+                                    }
                                     if (actor->plane != nullptr) {
                                         actor->plane->on_ground = false;
                                         actor->plane->x = actor->object->position.x;
@@ -456,17 +460,26 @@ void SCMission::update() {
         }
         if (ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {
             if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == false) {
-                ai_actor->shootWeapon(ai_actor->target);
+                if (ai_actor->retarget_cooldown > 0) {
+                    ai_actor->shootWeapon(ai_actor->target);
+                    ai_actor->retarget_cooldown--;
+                } else {
+                    ai_actor->target = nullptr;
+                }
             } else if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == true) {
                 ai_actor->target = nullptr;
             } else if (ai_actor->target == nullptr) {
                 for (auto targets: this->actors) {
+                    if (targets->plane == nullptr) {
+                        continue;
+                    }
                     if (targets->team_id == ai_actor->team_id) {
                         continue;
                     }
-                    if (targets->is_active && targets->is_destroyed == false && targets->object->alive && (targets->profile != nullptr || targets->actor_name == "PLAYER")) {
+                    if ((targets->is_active && targets->is_destroyed == false && targets->object->alive) || (targets->actor_name == "PLAYER")) {
                         ai_actor->shootWeapon(targets);
                         ai_actor->target = targets;
+                        ai_actor->retarget_cooldown = 100 + (rand() % 200);
                         break;
                     }
                 }   
@@ -576,7 +589,7 @@ uint8_t SCMission::getAreaID(Vector3D position) {
     for (auto ar: this->mission->mission_data.areas) {
         if (ar->position.x - ar->AreaWidth / 2 <= position.x && ar->position.x + ar->AreaWidth / 2 >= position.x) {
             if (ar->position.z - ar->AreaWidth / 2 <= position.z && ar->position.z + ar->AreaWidth / 2 >= position.z) {
-                if (area_id == 255 || ar->AreaWidth < smallest_area_width) {
+                if (area_id == 255 || ar->AreaWidth <= smallest_area_width) {
                     smallest_area_width = ar->AreaWidth;
                     area_id = ar->id;
                 }

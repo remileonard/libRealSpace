@@ -347,20 +347,28 @@ void SCProg::execute() {
                     work_register *= prog.arg;
                 break;
                 case OP_ACTIVATE_SCENE:
+                {
+                    int scene_id=0;
                     for (auto scen: this->mission->mission->mission_data.scenes) {
-                        if (scen->area_id == prog.arg) {
+                        if (scene_id == prog.arg) {
                             scen->is_active = 1;
                             break;
                         }
+                        scene_id++;
                     }
+                }
                 break;
                 case OP_DEACTIVATE_SCENE:
+                {
+                    int scene_id=0;
                     for (auto scen: this->mission->mission->mission_data.scenes) {
-                        if (scen->area_id == prog.arg) {
+                        if (scene_id == prog.arg) {
                             scen->is_active = 0;
                             break;
                         }
+                        scene_id++;
                     }
+                }
                 break;
                 default:
                 break;

@@ -659,6 +659,9 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             if (actor->object->area_id != 255) {
                 actor->object->position += correction;
             }
+            if (actor->object->position.y < this->mission->area->getY(actor->object->position.x, actor->object->position.z)) {
+                actor->object->position.y = this->mission->area->getY(actor->object->position.x, actor->object->position.z);
+            }
             if (actor->plane != nullptr) {
                 if (this->mission->area->getY(actor->object->position.x, actor->object->position.z) <= actor->object->position.y) {
                     actor->object->position.y = this->mission->area->getY(actor->object->position.x, actor->object->position.z)+10.0f;

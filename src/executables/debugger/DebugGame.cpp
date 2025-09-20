@@ -34,27 +34,8 @@ void DebugGame::init() {
     Renderer.init(1200,800);
     // Load the Mouse Cursor
     Mouse.init();
-    // Crée le clavier (abstraction)
-    m_keyboard = new Keyboard();
+    this->initKeyboard();
 
-    // Enregistrer actions souris (position + boutons)
-    m_keyboard->registerAction(InputAction::MOUSE_POS_X);
-    m_keyboard->registerAction(InputAction::MOUSE_POS_Y);
-    m_keyboard->registerAction(InputAction::MOUSE_LEFT);
-    m_keyboard->registerAction(InputAction::MOUSE_MIDDLE);
-    m_keyboard->registerAction(InputAction::MOUSE_RIGHT);
-
-    // Bind position absolue (axis: 0 = X, 1 = Y)
-    m_keyboard->bindMousePositionToAction(InputAction::MOUSE_POS_X, 0, 1.0f);
-    m_keyboard->bindMousePositionToAction(InputAction::MOUSE_POS_Y, 1, 1.0f);
-
-    // Bind boutons (indices SDL : left=1, middle=2, right=3)
-    m_keyboard->bindMouseButtonToAction(InputAction::MOUSE_LEFT,   SDL_BUTTON_LEFT);
-    m_keyboard->bindMouseButtonToAction(InputAction::MOUSE_MIDDLE, SDL_BUTTON_MIDDLE);
-    m_keyboard->bindMouseButtonToAction(InputAction::MOUSE_RIGHT,  SDL_BUTTON_RIGHT);
-
-    m_keyboard->registerAction(InputAction::KEY_ESCAPE);
-    m_keyboard->bindKeyToAction(InputAction::KEY_ESCAPE, SDL_SCANCODE_ESCAPE);
     EventManager::getInstance().enableImGuiForwarding(true);
 }
 

@@ -36,8 +36,12 @@ void GameEngine::init() {
     // Load the Mouse Cursor
     Mouse.init();
     // Crée le clavier (abstraction)
-    m_keyboard = new Keyboard();
+    this->initKeyboard();
 
+}
+
+void GameEngine::initKeyboard() {
+    m_keyboard = new Keyboard();
     // Enregistrer actions souris (position + boutons)
     m_keyboard->registerAction(InputAction::MOUSE_POS_X);
     m_keyboard->registerAction(InputAction::MOUSE_POS_Y);
@@ -57,6 +61,122 @@ void GameEngine::init() {
     m_keyboard->registerAction(InputAction::KEY_ESCAPE);
     m_keyboard->bindKeyToAction(InputAction::KEY_ESCAPE, SDL_SCANCODE_ESCAPE);
 
+    // Créer et enregistrer les actions du simulateur
+    std::vector<SimActionOfst> allActions = {
+        SimActionOfst::THROTTLE_UP,
+        SimActionOfst::THROTTLE_DOWN,
+        SimActionOfst::THROTTLE_10,
+        SimActionOfst::THROTTLE_20,
+        SimActionOfst::THROTTLE_30,
+        SimActionOfst::THROTTLE_40,
+        SimActionOfst::THROTTLE_50,
+        SimActionOfst::THROTTLE_60,
+        SimActionOfst::THROTTLE_70,
+        SimActionOfst::THROTTLE_80,
+        SimActionOfst::THROTTLE_90,
+        SimActionOfst::THROTTLE_100,
+        SimActionOfst::AUTOPILOT,
+        SimActionOfst::LOOK_LEFT,
+        SimActionOfst::LOOK_RIGHT,
+        SimActionOfst::LOOK_BEHIND,
+        SimActionOfst::LOOK_FORWARD,
+        SimActionOfst::PITCH_UP,
+        SimActionOfst::PITCH_DOWN,
+        SimActionOfst::ROLL_LEFT,
+        SimActionOfst::ROLL_RIGHT,
+        SimActionOfst::FIRE_PRIMARY,
+        SimActionOfst::TOGGLE_MOUSE,
+        SimActionOfst::LANDING_GEAR,
+        SimActionOfst::TOGGLE_BRAKES,
+        SimActionOfst::TOGGLE_FLAPS,
+        SimActionOfst::TARGET_NEAREST,
+        SimActionOfst::MDFS_RADAR,
+        SimActionOfst::MDFS_DAMAGE,
+        SimActionOfst::MDFS_WEAPONS,
+        SimActionOfst::SHOW_NAVMAP,
+        SimActionOfst::CHAFF,
+        SimActionOfst::FLARE,
+        SimActionOfst::RADAR_ZOOM_IN,
+        SimActionOfst::RADAR_ZOOM_OUT,
+        SimActionOfst::COMM_RADIO,
+        SimActionOfst::COMM_RADIO_M1,
+        SimActionOfst::COMM_RADIO_M2,
+        SimActionOfst::COMM_RADIO_M3,
+        SimActionOfst::COMM_RADIO_M4,
+        SimActionOfst::COMM_RADIO_M5,
+        SimActionOfst::VIEW_TARGET,
+        SimActionOfst::VIEW_BEHIND,
+        SimActionOfst::VIEW_COCKPIT,
+        SimActionOfst::VIEW_WEAPONS,
+        SimActionOfst::MDFS_TARGET_CAMERA,
+        SimActionOfst::PAUSE,
+        SimActionOfst::EYES_ON_TARGET,
+        SimActionOfst::END_MISSION,
+        SimActionOfst::MOUSE_X,
+        SimActionOfst::MOUSE_Y,
+        SimActionOfst::COMM_RADIO_M6,
+        SimActionOfst::COMM_RADIO_M7,
+        SimActionOfst::COMM_RADIO_M8,
+    };
+    
+    for (auto action : allActions) {
+        m_keyboard->registerAction(CreateAction(InputAction::SIM_START, action));
+    }
+    // Association des touches aux actions
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_UP), SDL_SCANCODE_EQUALS);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_DOWN), SDL_SCANCODE_MINUS);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_10), SDL_SCANCODE_1);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_20), SDL_SCANCODE_2);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_30), SDL_SCANCODE_3);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_40), SDL_SCANCODE_4);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_50), SDL_SCANCODE_5);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_60), SDL_SCANCODE_6);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_70), SDL_SCANCODE_7);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_80), SDL_SCANCODE_8);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_90), SDL_SCANCODE_9);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_100), SDL_SCANCODE_0);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AUTOPILOT), SDL_SCANCODE_A);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_LEFT), SDL_SCANCODE_F3);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_RIGHT), SDL_SCANCODE_F4);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_BEHIND), SDL_SCANCODE_F5);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_FORWARD), SDL_SCANCODE_F1);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PITCH_UP), SDL_SCANCODE_UP);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PITCH_DOWN), SDL_SCANCODE_DOWN);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::ROLL_LEFT), SDL_SCANCODE_LEFT);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::ROLL_RIGHT), SDL_SCANCODE_RIGHT);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY), SDL_SCANCODE_SPACE);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_MOUSE), SDL_SCANCODE_M);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::LANDING_GEAR), SDL_SCANCODE_L);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_BRAKES), SDL_SCANCODE_B);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_FLAPS), SDL_SCANCODE_F);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TARGET_NEAREST), SDL_SCANCODE_T);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_RADAR), SDL_SCANCODE_R);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_DAMAGE), SDL_SCANCODE_D);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_WEAPONS), SDL_SCANCODE_W);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP), SDL_SCANCODE_N);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CHAFF), SDL_SCANCODE_SEMICOLON);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::FLARE),SDL_SCANCODE_APOSTROPHE);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_ZOOM_IN), SDL_SCANCODE_LEFTBRACKET);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_ZOOM_OUT), SDL_SCANCODE_RIGHTBRACKET);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO), SDL_SCANCODE_C);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M1), SDL_SCANCODE_1);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M2), SDL_SCANCODE_2);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M3), SDL_SCANCODE_3);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M4), SDL_SCANCODE_4);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M5), SDL_SCANCODE_5);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET), SDL_SCANCODE_F7);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND), SDL_SCANCODE_F2);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT), SDL_SCANCODE_F6);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_WEAPONS), SDL_SCANCODE_F8);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_TARGET_CAMERA), SDL_SCANCODE_F9);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE), SDL_SCANCODE_P);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::EYES_ON_TARGET), SDL_SCANCODE_Y);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION), SDL_SCANCODE_ESCAPE);
+    m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X), 0, 1.0f);
+    m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y), 1, 1.0f);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M6),SDL_SCANCODE_6);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M7),SDL_SCANCODE_7);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M8),SDL_SCANCODE_8);
 }
 
 void GameEngine::pumpEvents(void) {

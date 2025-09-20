@@ -42,6 +42,7 @@ public:
     uint8_t current_command_arg;
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
+    int retarget_cooldown{0};
     virtual bool execute();
     virtual bool takeOff(uint8_t arg); 
     virtual bool land(uint8_t arg);
@@ -65,6 +66,7 @@ private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};
     int target_position_update{0};
     int current_weapon_index{-1};
+    
     AssetManager &Assets = AssetManager::getInstance();
 };
 
