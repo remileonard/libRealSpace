@@ -1,0 +1,2288 @@
+ Chunk: FORM, Taille: 3164
+     TYPE: MISN
+     Chunk: VERS, Taille: 2
+       0x00	 0
+       0x05	 5
+     Chunk: INFO, Taille: 16
+       Value: Andes Mallorca
+     Chunk: TUNE, Taille: 2
+       0x00	 0
+       0x00	 0
+     Chunk: NAME, Taille: 12
+       Value: A. Mallorca
+     Chunk: FORM, Taille: 20
+         TYPE: WRLD
+         Chunk: FILE, Taille: 8
+           Value: andmal2
+     Chunk: AREA, Taille: 262
+       ID 0, Strike Base, Area type: S)
+         X: -118000, Y: 3970, Z: -122000, Width: 32
+         remaining data 213 49 49
+           0x4E	 78
+           0x00	 0
+           0x53	 83
+       ID 1, Strike Base, Area type: S)
+         X: -118000, Y: 3970, Z: -122000, Width: 32
+         remaining data 164 98 49
+           0x4E	 78
+           0x00	 0
+           0x42	 66
+       ID: 2, . Area type: B)
+         X: -110000, Y: 3970, Z: -92000, Width: 80, Height: 16
+         Xrelativ (control): -110000, Zrelativ (control): 92000
+         unknown bytes 1 : 
+           0x00	 0
+           0x00	 0
+           0x70	 112
+           0x11	 17
+           0x01	 1
+           0x00	 0
+           0x10	 16
+           0x27	 39
+           0x00	 0
+           0x00	 0
+         unknown bytes 2 : 
+           0x00	 0
+           0x00	 0
+           0xA0	 160
+           0x86	 134
+           0x01	 1
+         remaining data 99 163 65
+       ID 3, Target, Area type: S)
+         X: -142000, Y: 3710, Z: 28000, Width: 48
+         remaining data 50 212 49
+           0x75	 117
+           0x00	 0
+           0x53	 83
+       ID 4, Emergency Landing, Area type: S)
+         X: 2538, Y: 3920, Z: -119577, Width: 32
+         remaining data 1 261 49
+           0x4E	 78
+           0x00	 0
+           0x00	 0
+       Unknown byte: 0 0x00	
+     Chunk: SPOT, Taille: 168
+       Nombre de spot: 12.0
+       0x00	 0
+       0x00	 0
+       AREA 0, X: -560, Y: 0, Z: 389
+       0x00	 0
+       0x00	 0
+       AREA 0, X: -560, Y: 0, Z: 2502
+       0x00	 0
+       0x00	 0
+       AREA 0, X: -560, Y: 1000, Z: 5502
+       0x00	 0
+       0x00	 0
+       AREA 4, X: 0, Y: 0, Z: 0
+       0x00	 0
+       0x00	 0
+       AREA 4, X: 0, Y: 0, Z: 2080
+       0x00	 0
+       0x00	 0
+       AREA 4, X: 0, Y: 1000, Z: 5080
+       0x00	 0
+       0x00	 0
+       AREA 3, X: -507, Y: 0, Z: 248
+       0x00	 0
+       0x00	 0
+       AREA 3, X: -507, Y: 0, Z: 2498
+       0x00	 0
+       0x00	 0
+       AREA 3, X: -507, Y: 1000, Z: 5498
+       0x00	 0
+       0x00	 0
+       AREA 3, X: 0, Y: 5000, Z: 0
+       0xFF	 255
+       0x00	 0
+       AREA 255, X: 50000, Y: 9000, Z: 0
+       0xFF	 255
+       0x00	 0
+       AREA 255, X: 0, Y: 0, Z: -60
+     Chunk: NUMS, Taille: 0
+     Chunk: MSGS, Taille: 50
+       Message: Bomb enemy#base
+       Message: Emergency#landing#site.
+       Message: Head home
+     Chunk: FLAG, Taille: 16
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x41	 65
+       0x00	 0
+       0x00	 0
+       0x00	 0
+       0x41	 65
+       0x00	 0
+       0x00	 0
+       0x00	 0
+     Chunk: CAST, Taille: 216
+       Nombre de cast: 24.0
+       ID: 0, Nom: TEAM0
+       ID: 1, Nom: AMMIG29a
+       ID: 2, Nom: AMMIG29
+       ID: 3, Nom: AMMIG29a
+       ID: 4, Nom: AMMIG29
+       ID: 5, Nom: AMMIG29a
+       ID: 6, Nom: AMMIG29
+       ID: 7, Nom: AMMIG29a
+       ID: 8, Nom: AMMIG29
+       ID: 9, Nom: AMIRAGE
+       ID: 10, Nom: AMIRAGEr
+       ID: 11, Nom: AMIRAGEr
+       ID: 12, Nom: AMIRAGEr
+       ID: 13, Nom: NULL
+       ID: 14, Nom: NULL
+       ID: 15, Nom: NULL
+       ID: 16, Nom: NULL
+       ID: 17, Nom: NULL
+       ID: 18, Nom: NULL
+       ID: 19, Nom: PLAYER
+       ID: 20, Nom: STRIBASE
+       ID: 21, Nom: NULL
+       ID: 22, Nom: NULL
+       ID: 23, Nom: NULL
+     Chunk: PROG, Taille: 400
+       ==== PROG ID 0
+         [161 ] OP_SET_OBJ_TAKE_OFF                            VALUE 0x01	 1
+         [166 ] OP_SET_OBJ_FLY_TO_AREA                         VALUE 0x09	 9
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x00	 0
+         [165 ] OP_SET_OBJ_FLY_TO_WP                           VALUE 0x02	 2
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x02	 2
+         [165 ] OP_SET_OBJ_FLY_TO_WP                           VALUE 0x05	 5
+         [162 ] OP_SET_OBJ_LAND                                VALUE 0x05	 5
+         [9   ] OP_INVERT_FLAG                                 VALUE 0x04	 4
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 1
+         [69  ] OP_GET_FLAG_ID                                 VALUE 0x02	 2
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x04	 4
+         [79  ] OP_EXECUTE_CALL                                VALUE 0x00	 0
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x42	 66
+         [160 ] OP_SET_OBJ_UNKNOWN                            VALUE 0x0F	 15
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x43	 67
+         [208 ] OP_SELECT_FLAG_208                            VALUE 0x00	 0
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x18	 24
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x44	 68
+         [160 ] OP_SET_OBJ_UNKNOWN                            VALUE 0x0A	 10
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x45	 69
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x06	 6
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x46	 70
+         [160 ] OP_SET_OBJ_UNKNOWN                            VALUE 0x14	 20
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x47	 71
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x04	 4
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x1B	 27
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x48	 72
+         [160 ] OP_SET_OBJ_UNKNOWN                            VALUE 0x0A	 10
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x49	 73
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x1A	 26
+         [208 ] OP_SELECT_FLAG_208                            VALUE 0x01	 1
+         [82  ] OP_SET_FLAG_TO_TRUE                            VALUE 0x07	 7
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [160 ] OP_SET_OBJ_UNKNOWN                            VALUE 0x19	 25
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x4A	 74
+         [171 ] OP_SET_MESSAGE                                 VALUE 0x16	 22
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x4B	 75
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x02	 2
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x4C	 76
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 2
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x01	 1
+         [20  ] OP_SAVE_VALUE_TO_GAMFLOW_REGISTER              VALUE 0x07	 7
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x00	 0
+         [20  ] OP_SAVE_VALUE_TO_GAMFLOW_REGISTER              VALUE 0x00	 0
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 3
+         [82  ] OP_SET_FLAG_TO_TRUE                            VALUE 0x00	 0
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 4
+         [16  ] OP_MOVE_VALUE_TO_WORK_REGISTER                 VALUE 0x67	 103
+         [80  ] OP_MOVE_WORK_REGISTER_TO_FLAG                  VALUE 0x03	 3
+         OPCODE 0xB6 182          VALUE 0xFF	 255
+         OPCODE 0xB8 184          VALUE 0xFF	 255
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 5
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x03	 3
+         [79  ] OP_EXECUTE_CALL                                VALUE 0x00	 0
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x67	 103
+         [161 ] OP_SET_OBJ_TAKE_OFF                            VALUE 0x01	 1
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x69	 105
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x03	 3
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x68	 104
+         [170 ] OP_SET_OBJ_FOLLOW_ALLY                         VALUE 0x13	 19
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x69	 105
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 6
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x13	 19
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 7
+         [170 ] OP_SET_OBJ_FOLLOW_ALLY                         VALUE 0x01	 1
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x13	 19
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 8
+         [170 ] OP_SET_OBJ_FOLLOW_ALLY                         VALUE 0x03	 3
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x13	 19
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 9
+         [170 ] OP_SET_OBJ_FOLLOW_ALLY                         VALUE 0x05	 5
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x13	 19
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 10
+         [170 ] OP_SET_OBJ_FOLLOW_ALLY                         VALUE 0x07	 7
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [167 ] OP_SET_OBJ_DESTROY_TARGET                      VALUE 0x13	 19
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 11
+         [146 ] OP_IF_TARGET_IN_AREA                          VALUE 0x09	 9
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [146 ] OP_IF_TARGET_IN_AREA                          VALUE 0x0A	 10
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x0B	 11
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x0C	 12
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 12
+         [146 ] OP_IF_TARGET_IN_AREA                          VALUE 0x0B	 11
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [146 ] OP_IF_TARGET_IN_AREA                          VALUE 0x0C	 12
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         OPCODE 0x4E 78          VALUE 0x42	 66
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         [69  ] OP_GET_FLAG_ID                                 VALUE 0x05	 5
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x42	 66
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         OPCODE 0x81 129          VALUE 0x00	 0
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x02	 2
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x01	 1
+         [8   ] OP_SET_LABEL                                   VALUE 0x42	 66
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 13
+         [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER                  VALUE 0x06	 6
+         [79  ] OP_EXECUTE_CALL                                VALUE 0x00	 0
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x42	 66
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x03	 3
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x04	 4
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x06	 6
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x44	 68
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x05	 5
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x06	 6
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x06	 6
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x46	 70
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x07	 7
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x08	 8
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x06	 6
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         [8   ] OP_SET_LABEL                                   VALUE 0x43	 67
+         [8   ] OP_SET_LABEL                                   VALUE 0x45	 69
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x06	 6
+         [1   ] OP_EXIT_PROG                                   VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x47	 71
+         [208 ] OP_SELECT_FLAG_208                            VALUE 0x01	 1
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 14
+         [69  ] OP_GET_FLAG_ID                                 VALUE 0x07	 7
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [208 ] OP_SELECT_FLAG_208                            VALUE 0x00	 0
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 15
+         [69  ] OP_GET_FLAG_ID                                 VALUE 0x05	 5
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         OPCODE 0x81 129          VALUE 0x00	 0
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x02	 2
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x01	 1
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 16
+         [160 ] OP_SET_OBJ_UNKNOWN                            VALUE 0x3C	 60
+         [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS         VALUE 0x41	 65
+         [148 ] OP_INSTANT_DESTROY_TARGET                     VALUE 0x13	 19
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 17
+         [146 ] OP_IF_TARGET_IN_AREA                          VALUE 0x0D	 13
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [146 ] OP_IF_TARGET_IN_AREA                          VALUE 0x0E	 14
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x0F	 15
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x10	 16
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 18
+         [144 ] OP_ACTIVATE_OBJ                                VALUE 0x12	 18
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 19
+         [69  ] OP_GET_FLAG_ID                                 VALUE 0x05	 5
+         [72  ] OP_GOTO_LABEL_IF_TRUE                          VALUE 0x41	 65
+         [85  ] OP_ADD_1_TO_FLAG                               VALUE 0x04	 4
+         OPCODE 0x81 129          VALUE 0x00	 0
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x02	 2
+         [128 ] OP_ACTIVATE_SCENE                             VALUE 0x01	 1
+         [8   ] OP_SET_LABEL                                   VALUE 0x41	 65
+         OPCODE 0x00 0          VALUE 0x00	 0
+       ==== PROG ID 20
+     Chunk: PART, Taille: 1488
+       Nombre de part: 24.0
+       ID: 23
+         Nom: RWYEXT18
+         destroyed: 
+         Load: 
+         0x04	 4
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 4, 0, 4
+         Relative: 0, 0, -1040
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 21
+         Nom: RWYEXT18
+         destroyed: 
+         Load: 
+         0x03	 3
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 3, 0, 3
+         Relative: -507, 10, -1348
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x13	 19
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 19
+           [69  ] OP_GET_FLAG_ID                         0x05 5 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           OPCODE 0x81 129  0x00 0 
+           [128 ] OP_ACTIVATE_SCENE                     0x02 2 
+           [128 ] OP_ACTIVATE_SCENE                     0x01 1 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 22
+         Nom: RWYEXT18
+         destroyed: 
+         Load: 
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 0, 0, 0
+         Relative: -560, 0, -1447
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 20
+         Nom: STRIBASE
+         destroyed: 
+         Load: 
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: -118100, 3970, 122100
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x01	 1
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 1
+           [69  ] OP_GET_FLAG_ID                         0x02 2 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x04 4 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [160 ] OP_SET_OBJ_UNKNOWN                    0x0F 15 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [208 ] OP_SELECT_FLAG_208                    0x00 0 
+           [171 ] OP_SET_MESSAGE                         0x18 24 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [160 ] OP_SET_OBJ_UNKNOWN                    0x0A 10 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [171 ] OP_SET_MESSAGE                         0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [160 ] OP_SET_OBJ_UNKNOWN                    0x14 20 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [128 ] OP_ACTIVATE_SCENE                     0x04 4 
+           [171 ] OP_SET_MESSAGE                         0x1B 27 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x48 72 
+           [160 ] OP_SET_OBJ_UNKNOWN                    0x0A 10 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x49 73 
+           [171 ] OP_SET_MESSAGE                         0x1A 26 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           [82  ] OP_SET_FLAG_TO_TRUE                    0x07 7 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [160 ] OP_SET_OBJ_UNKNOWN                    0x19 25 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x4A 74 
+           [171 ] OP_SET_MESSAGE                         0x16 22 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x4B 75 
+           [85  ] OP_ADD_1_TO_FLAG                       0x02 2 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x4C 76 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+         Program: 65535
+       ID: 9
+         Nom: MIRAGE
+         destroyed: 
+         Load: MIRLOADA
+         0x03	 3
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 3, 1, 65539
+         Relative: 100, 100, 11000
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0B	 11
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 11
+           [146 ] OP_IF_TARGET_IN_AREA                  0x09 9 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0A 10 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [144 ] OP_ACTIVATE_OBJ                        0x0B 11 
+           [144 ] OP_ACTIVATE_OBJ                        0x0C 12 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 10
+         Nom: MIRAGE
+         destroyed: 
+         Load: MIRLOADA
+         0x03	 3
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 3, 1, 65539
+         Relative: 0, 20, 10000
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0x09	 9
+           0x00	 0
+           0x64	 100
+           0x00	 0
+           0x38	 56
+           0xFF	 255
+           0xF4	 244
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0B	 11
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 11
+           [146 ] OP_IF_TARGET_IN_AREA                  0x09 9 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0A 10 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [144 ] OP_ACTIVATE_OBJ                        0x0B 11 
+           [144 ] OP_ACTIVATE_OBJ                        0x0C 12 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 11
+         Nom: MIRAGE
+         destroyed: 
+         Load: MIRLOADA
+         0x03	 3
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 3, 1, 65539
+         Relative: 500, 1500, -2200
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0xC8	 200
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0C	 12
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 12
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0B 11 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0C 12 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           OPCODE 0x4E 78  0x42 66 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [69  ] OP_GET_FLAG_ID                         0x05 5 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x42 66 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           OPCODE 0x81 129  0x00 0 
+           [128 ] OP_ACTIVATE_SCENE                     0x02 2 
+           [128 ] OP_ACTIVATE_SCENE                     0x01 1 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 12
+         Nom: MIRAGE
+         destroyed: 
+         Load: MIRLOADA
+         0x03	 3
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 3, 1, 65539
+         Relative: -500, 200, -2000
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0xC8	 200
+           0x00	 0
+           0xFF	 255
+           0x0B	 11
+           0x00	 0
+           0x64	 100
+           0x00	 0
+           0x38	 56
+           0xFF	 255
+           0xF4	 244
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0C	 12
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 12
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0B 11 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0C 12 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           OPCODE 0x4E 78  0x42 66 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [69  ] OP_GET_FLAG_ID                         0x05 5 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x42 66 
+           [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+           OPCODE 0x81 129  0x00 0 
+           [128 ] OP_ACTIVATE_SCENE                     0x02 2 
+           [128 ] OP_ACTIVATE_SCENE                     0x01 1 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 19
+         Nom: F-16DES
+         destroyed: 
+         Load: 
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: -118558, 3975, 121611
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 0
+           [161 ] OP_SET_OBJ_TAKE_OFF                    0x01 1 
+           [166 ] OP_SET_OBJ_FLY_TO_AREA                 0x09 9 
+           [171 ] OP_SET_MESSAGE                         0x00 0 
+           [165 ] OP_SET_OBJ_FLY_TO_WP                   0x02 2 
+           [171 ] OP_SET_MESSAGE                         0x02 2 
+           [165 ] OP_SET_OBJ_FLY_TO_WP                   0x05 5 
+           [162 ] OP_SET_OBJ_LAND                        0x05 5 
+           [9   ] OP_INVERT_FLAG                         0x04 4 
+           OPCODE 0x00 0  0x00 0 
+       ID: 0
+         Nom: F-16DES
+         destroyed: 
+         Load: BMBLOADH
+         0xFF	 255
+         0xFF	 255
+         0x00	 0
+         0x00	 0
+         Unknown: 65535, 0, 65535
+         Relative: -118558, 3975, 121511
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0x01	 1
+           0x13	 19
+           0x00	 0
+           0xF4	 244
+           0x01	 1
+           0x18	 24
+           0xFC	 252
+           0x32	 50
+           0x00	 0
+           0x04	 4
+           0x00	 0
+           0x05	 5
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 4
+           [16  ] OP_MOVE_VALUE_TO_WORK_REGISTER         0x67 103 
+           [80  ] OP_MOVE_WORK_REGISTER_TO_FLAG          0x03 3 
+           OPCODE 0xB6 182  0xFF 255 
+           OPCODE 0xB8 184  0xFF 255 
+           OPCODE 0x00 0  0x00 0 
+         Program: 5
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x03 3 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x67 103 
+           [161 ] OP_SET_OBJ_TAKE_OFF                    0x01 1 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x69 105 
+           [85  ] OP_ADD_1_TO_FLAG                       0x03 3 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x68 104 
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x13 19 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x69 105 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+         Program: 65535
+       ID: 1
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x02	 2
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 2, 1, 65538
+         Relative: 0, 0, 2000
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x64	 100
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 2
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x02	 2
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 2, 1, 65538
+         Relative: 0, 0, 2200
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x64	 100
+           0x00	 0
+           0xFF	 255
+           0x01	 1
+           0x00	 0
+           0xF4	 244
+           0x01	 1
+           0xA8	 168
+           0xFD	 253
+           0x9C	 156
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x07	 7
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 7
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x01 1 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 3
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x02	 2
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 2, 1, 65538
+         Relative: -4100, 2000, 1100
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0x82	 130
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 4
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x02	 2
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 2, 1, 65538
+         Relative: -4000, 500, 1000
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0xB4	 180
+           0x00	 0
+           0xFF	 255
+           0x03	 3
+           0x00	 0
+           0xF4	 244
+           0x01	 1
+           0xA8	 168
+           0xFD	 253
+           0x9C	 156
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x08	 8
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 8
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x03 3 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 5
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x02	 2
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 2, 1, 65538
+         Relative: 4000, 0, 0
+         UB: 0
+         Azymuth: 90
+         remaining data 20
+           0xB4	 180
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 6
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x01	 1
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 1, 1, 65537
+         Relative: 41000, 2000, 50
+         UB: 0
+         Azymuth: 90
+         remaining data 20
+           0x64	 100
+           0x00	 0
+           0xFF	 255
+           0x05	 5
+           0x00	 0
+           0xF4	 244
+           0x01	 1
+           0xA8	 168
+           0xFD	 253
+           0x9C	 156
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x09	 9
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 9
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x05 5 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 7
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x01	 1
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 1, 1, 65537
+         Relative: -2000, 1000, 0
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0xB4	 180
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0x06	 6
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 6
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 8
+         Nom: MIG29
+         destroyed: 
+         Load: M29LOADA
+         0x02	 2
+         0x00	 0
+         0x01	 1
+         0x00	 0
+         Unknown: 2, 1, 65538
+         Relative: 2000, 0, 50
+         UB: 0
+         Azymuth: 90
+         remaining data 20
+           0xB4	 180
+           0x00	 0
+           0xFF	 255
+           0x07	 7
+           0x00	 0
+           0xF4	 244
+           0x01	 1
+           0xA8	 168
+           0xFD	 253
+           0x9C	 156
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x0A	 10
+           0x00	 0
+           0x0D	 13
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 10
+           [170 ] OP_SET_OBJ_FOLLOW_ALLY                 0x07 7 
+           [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+           [167 ] OP_SET_OBJ_DESTROY_TARGET              0x13 19 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 13
+           [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER          0x06 6 
+           [79  ] OP_EXECUTE_CALL                        0x00 0 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x42 66 
+           [144 ] OP_ACTIVATE_OBJ                        0x03 3 
+           [144 ] OP_ACTIVATE_OBJ                        0x04 4 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x44 68 
+           [144 ] OP_ACTIVATE_OBJ                        0x05 5 
+           [144 ] OP_ACTIVATE_OBJ                        0x06 6 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x46 70 
+           [144 ] OP_ACTIVATE_OBJ                        0x07 7 
+           [144 ] OP_ACTIVATE_OBJ                        0x08 8 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           [8   ] OP_SET_LABEL                           0x43 67 
+           [8   ] OP_SET_LABEL                           0x45 69 
+           [85  ] OP_ADD_1_TO_FLAG                       0x06 6 
+           [1   ] OP_EXIT_PROG                           0x00 0 
+           [8   ] OP_SET_LABEL                           0x47 71 
+           [208 ] OP_SELECT_FLAG_208                    0x01 1 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 17
+         Nom: MOBSAMLN
+         destroyed: 
+         Load: 
+         0x01	 1
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 1, 0, 1
+         Relative: 10000, 0, 0
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x12	 18
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 18
+           [144 ] OP_ACTIVATE_OBJ                        0x12 18 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 18
+         Nom: MOBSAMLN
+         destroyed: 
+         Load: 
+         0x01	 1
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 1, 0, 1
+         Relative: 0, 0, 10000
+         UB: 0
+         Azymuth: 90
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 13
+         Nom: ZSU-23
+         destroyed: 
+         Load: 
+         0x01	 1
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 1, 0, 1
+         Relative: -5000, 0, 5000
+         UB: 0
+         Azymuth: 0
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x11	 17
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 17
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0D 13 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0E 14 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [144 ] OP_ACTIVATE_OBJ                        0x0F 15 
+           [144 ] OP_ACTIVATE_OBJ                        0x10 16 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 14
+         Nom: ZSU-23
+         destroyed: 
+         Load: 
+         0x01	 1
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 1, 0, 1
+         Relative: 5000, 0, -5000
+         UB: 0
+         Azymuth: 90
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x11	 17
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 17
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0D 13 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [146 ] OP_IF_TARGET_IN_AREA                  0x0E 14 
+           [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+           [144 ] OP_ACTIVATE_OBJ                        0x0F 15 
+           [144 ] OP_ACTIVATE_OBJ                        0x10 16 
+           [8   ] OP_SET_LABEL                           0x41 65 
+           OPCODE 0x00 0  0x00 0 
+         Program: 65535
+       ID: 15
+         Nom: ZSU-23
+         destroyed: 
+         Load: 
+         0x01	 1
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 1, 0, 1
+         Relative: 5000, 0, 5000
+         UB: 0
+         Azymuth: 270
+         remaining data 20
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+       ID: 16
+         Nom: ZSU-23
+         destroyed: 
+         Load: 
+         0x01	 1
+         0x00	 0
+         0x00	 0
+         0x00	 0
+         Unknown: 1, 0, 1
+         Relative: -5000, 0, -5000
+         UB: 0
+         Azymuth: 180
+         remaining data 20
+           0x05	 5
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0x00	 0
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+           0xFF	 255
+         Program: 65535
+         Program: 65535
+         Program: 65535
+         Program: 65535
+     Chunk: TEAM, Taille: 4
+       0x08	 8
+       0x00	 0
+       0x09	 9
+       0x00	 0
+     Chunk: FORM, Taille: 222
+         TYPE: PLAY
+         Chunk: SCNE, Taille: 30
+           IS_ACTIVE: 1
+           Area ID: 65535
+           Prog ID: 65535, 65535, 65535
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 3
+            Cast ID: 8
+            Cast ID: 3
+            Cast ID: 9
+         Chunk: SCNE, Taille: 26
+           IS_ACTIVE: 1
+           Area ID: 0
+           Prog ID: 65535, 65535, 65535
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 1
+            Cast ID: 2
+         Chunk: SCNE, Taille: 30
+           IS_ACTIVE: 0
+           Area ID: 1
+           Prog ID: 65535, 16, 65535
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 3
+            Cast ID: 18
+            Cast ID: 20
+            Cast ID: 21
+         Chunk: SCNE, Taille: 30
+           IS_ACTIVE: 1
+           Area ID: 3
+           Prog ID: 14, 65535, 15
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 3
+            Cast ID: 4
+            Cast ID: 5
+            Cast ID: 1
+         Chunk: SCNE, Taille: 26
+           IS_ACTIVE: 0
+           Area ID: 4
+           Prog ID: 3, 65535, 65535
+           Unknown: 1
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 234
+           Unknown: 9
+           Unknown: 0
+           Unknown: 0
+           Unknown: 89
+           Unknown: 187
+           Unknown: 1
+           Unknown: 0
+           Unknown: 56
+           Unknown: 19
+           Unknown: 0
+           Nombre de cast: 1
+            Cast ID: 0
+         Chunk: SCNE, Taille: 28
+           IS_ACTIVE: 0
+           Area ID: 2
+           Prog ID: 14, 65535, 65535
+           Unknown: 0
+           Unknown: 180
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Unknown: 0
+           Nombre de cast: 2
+            Cast ID: 10
+            Cast ID: 11
+     Chunk: LOAD, Taille: 154
+       File: F-16des
+       File: FUELEXP1
+       File: FUELEXP2
+       File: EXPLODE1
+       File: EXPLODE2
+       File: GRNDEX4
+       File: GUNSPARK
+       File: GENDEB1
+       File: GENDEB2
+       File: GENDEB3
+       File: GENDEB4
+       File: GENDEB5
+       File: GENDEB6
+       File: GENDEB7
+       File: GENDEB8
+       File: GENDEB9
+       File: F16DDEB2
+Part 23 RWYEXT18 [65535, 65535, 65535, 65535]
+Part 21 RWYEXT18 [65535, 65535, 19, 65535]
+   [69  ] OP_GET_FLAG_ID                        	5
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   UNDEC OPCODE :[129]	0
+   [128 ] OP_ACTIVATE_SCENE                    	2
+   [128 ] OP_ACTIVATE_SCENE                    	1
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+Part 22 RWYEXT18 [65535, 65535, 65535, 65535]
+Part 20 STRIBASE [65535, 1, 65535, 65535]
+   [69  ] OP_GET_FLAG_ID                        	2
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	4
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [160 ] OP_SET_OBJ_UNKNOWN                   	15
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	67
+   [208 ] OP_SELECT_FLAG_208                   	0
+   [171 ] OP_SET_MESSAGE                        	24
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [160 ] OP_SET_OBJ_UNKNOWN                   	10
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	69
+   [171 ] OP_SET_MESSAGE                        	6
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [160 ] OP_SET_OBJ_UNKNOWN                   	20
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [128 ] OP_ACTIVATE_SCENE                    	4
+   [171 ] OP_SET_MESSAGE                        	27
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	72
+   [160 ] OP_SET_OBJ_UNKNOWN                   	10
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	73
+   [171 ] OP_SET_MESSAGE                        	26
+   [208 ] OP_SELECT_FLAG_208                   	1
+   [82  ] OP_SET_FLAG_TO_TRUE                   	7
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [160 ] OP_SET_OBJ_UNKNOWN                   	25
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	74
+   [171 ] OP_SET_MESSAGE                        	22
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	75
+   [85  ] OP_ADD_1_TO_FLAG                      	2
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	76
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+Part 9 MIRAGE [65535, 6, 11, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   [144 ] OP_ACTIVATE_OBJ                       	11
+   [144 ] OP_ACTIVATE_OBJ                       	12
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+Part 10 MIRAGE [65535, 6, 11, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   [144 ] OP_ACTIVATE_OBJ                       	11
+   [144 ] OP_ACTIVATE_OBJ                       	12
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+Part 11 MIRAGE [65535, 6, 12, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   UNDEC OPCODE :[78]	66
+   [8   ] OP_SET_LABEL                          	65
+   [69  ] OP_GET_FLAG_ID                        	5
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	66
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   UNDEC OPCODE :[129]	0
+   [128 ] OP_ACTIVATE_SCENE                    	2
+   [128 ] OP_ACTIVATE_SCENE                    	1
+   [8   ] OP_SET_LABEL                          	66
+   UNDEC OPCODE :[0]	0
+Part 12 MIRAGE [65535, 6, 12, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   -- if MIRAGE is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   UNDEC OPCODE :[78]	66
+   [8   ] OP_SET_LABEL                          	65
+   [69  ] OP_GET_FLAG_ID                        	5
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	66
+   [85  ] OP_ADD_1_TO_FLAG                      	4
+   UNDEC OPCODE :[129]	0
+   [128 ] OP_ACTIVATE_SCENE                    	2
+   [128 ] OP_ACTIVATE_SCENE                    	1
+   [8   ] OP_SET_LABEL                          	66
+   UNDEC OPCODE :[0]	0
+Part 19 F-16DES [65535, 65535, 65535, 0]
+   ** Take off from waypoint 1[-560, 0, 2502] - Area Strike Base
+   ** Fly to area 9[0, 5000, 0] - Area Target
+   [171 ] OP_SET_MESSAGE                        	0
+   ** Fly to waypoint 2[-560, 1000, 5502] - Area Strike Base
+   [171 ] OP_SET_MESSAGE                        	2
+   ** Fly to waypoint 5[0, 1000, 5080] - Area Emergency Landing
+   ** Land to waypoint 5[0, 1000, 5080] - Area Emergency Landing
+   [9   ] OP_INVERT_FLAG                        	4
+   UNDEC OPCODE :[0]	0
+Part 0 F-16DES [4, 5, 65535, 65535]
+   [16  ] OP_MOVE_VALUE_TO_WORK_REGISTER        	103
+   [80  ] OP_MOVE_WORK_REGISTER_TO_FLAG         	3
+   UNDEC OPCODE :[182]	255
+   UNDEC OPCODE :[184]	255
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	3
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	103
+   ** Take off from waypoint 1[-560, 0, 2502] - Area Strike Base
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	105
+   [85  ] OP_ADD_1_TO_FLAG                      	3
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	104
+   ** Follow target F-16DES
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	105
+   UNDEC OPCODE :[0]	0
+Part 1 MIG29 [65535, 6, 13, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 2 MIG29 [65535, 7, 13, 65535]
+   ** Follow target MIG29
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   ** Destroy target F-16DES
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 3 MIG29 [65535, 6, 13, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 4 MIG29 [65535, 8, 13, 65535]
+   ** Follow target MIG29
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   ** Destroy target F-16DES
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 5 MIG29 [65535, 6, 13, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 6 MIG29 [65535, 9, 13, 65535]
+   ** Follow target MIG29
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   ** Destroy target F-16DES
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 7 MIG29 [65535, 6, 13, 65535]
+   ** Destroy target F-16DES
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 8 MIG29 [65535, 10, 13, 65535]
+   ** Follow target MIG29
+   [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS	65
+   ** Destroy target F-16DES
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+   [17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         	6
+   [79  ] OP_EXECUTE_CALL                       	0
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	66
+   [144 ] OP_ACTIVATE_OBJ                       	3
+   [144 ] OP_ACTIVATE_OBJ                       	4
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	68
+   [144 ] OP_ACTIVATE_OBJ                       	5
+   [144 ] OP_ACTIVATE_OBJ                       	6
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	70
+   [144 ] OP_ACTIVATE_OBJ                       	7
+   [144 ] OP_ACTIVATE_OBJ                       	8
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	65
+   [8   ] OP_SET_LABEL                          	67
+   [8   ] OP_SET_LABEL                          	69
+   [85  ] OP_ADD_1_TO_FLAG                      	6
+   [1   ] OP_EXIT_PROG                          	0
+   [8   ] OP_SET_LABEL                          	71
+   [208 ] OP_SELECT_FLAG_208                   	1
+   UNDEC OPCODE :[0]	0
+Part 17 MOBSAMLN [65535, 65535, 18, 65535]
+   [144 ] OP_ACTIVATE_OBJ                       	18
+   UNDEC OPCODE :[0]	0
+Part 18 MOBSAMLN [65535, 65535, 65535, 65535]
+Part 13 ZSU-23 [65535, 65535, 17, 65535]
+   -- if ZSU-23 is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   -- if ZSU-23 is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   [144 ] OP_ACTIVATE_OBJ                       	15
+   [144 ] OP_ACTIVATE_OBJ                       	16
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+Part 14 ZSU-23 [65535, 65535, 17, 65535]
+   -- if ZSU-23 is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   -- if ZSU-23 is in same area
+   [72  ] OP_GOTO_LABEL_IF_TRUE                 	65
+   [144 ] OP_ACTIVATE_OBJ                       	15
+   [144 ] OP_ACTIVATE_OBJ                       	16
+   [8   ] OP_SET_LABEL                          	65
+   UNDEC OPCODE :[0]	0
+Part 15 ZSU-23 [65535, 65535, 65535, 65535]
+Part 16 ZSU-23 [65535, 65535, 65535, 65535]
+Scene 0 1
+   Area: 65535 Id not found
+   Prog:
+   Cast:
+     - F-16DES
+     - STRIBASE
+     - F-16DES
+Scene 1 1
+   Area: Strike Base
+   Prog:
+   Cast:
+     - RWYEXT18
+Scene 2 0
+   Area: Strike Base
+   Prog:
+    prog id 16
+     [160 ] OP_SET_OBJ_UNKNOWN                    0x3C 60 
+     [70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS 0x41 65 
+     [148 ] OP_INSTANT_DESTROY_TARGET             0x13 19 
+     [8   ] OP_SET_LABEL                           0x41 65 
+     OPCODE 0x00 0  0x00 0 
+   Cast:
+     - MOBSAMLN
+     - ZSU-23
+     - ZSU-23
+Scene 3 1
+   Area: Target
+   Prog:
+    prog id 14
+     [69  ] OP_GET_FLAG_ID                         0x07 7 
+     [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+     [208 ] OP_SELECT_FLAG_208                    0x00 0 
+     [8   ] OP_SET_LABEL                           0x41 65 
+     OPCODE 0x00 0  0x00 0 
+    prog id 15
+     [69  ] OP_GET_FLAG_ID                         0x05 5 
+     [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+     [85  ] OP_ADD_1_TO_FLAG                       0x04 4 
+     OPCODE 0x81 129  0x00 0 
+     [128 ] OP_ACTIVATE_SCENE                     0x02 2 
+     [128 ] OP_ACTIVATE_SCENE                     0x01 1 
+     [8   ] OP_SET_LABEL                           0x41 65 
+     OPCODE 0x00 0  0x00 0 
+   Cast:
+     - MIRAGE
+     - MIRAGE
+     - RWYEXT18
+Scene 4 0
+   Area: Emergency Landing
+   Prog:
+    prog id 3
+     [82  ] OP_SET_FLAG_TO_TRUE                    0x00 0 
+     OPCODE 0x00 0  0x00 0 
+   Cast:
+     - RWYEXT18
+Scene 5 0
+   Area: .
+   Prog:
+    prog id 14
+     [69  ] OP_GET_FLAG_ID                         0x07 7 
+     [72  ] OP_GOTO_LABEL_IF_TRUE                  0x41 65 
+     [208 ] OP_SELECT_FLAG_208                    0x00 0 
+     [8   ] OP_SET_LABEL                           0x41 65 
+     OPCODE 0x00 0  0x00 0 
+   Cast:
+     - MIG29
+     - MIG29

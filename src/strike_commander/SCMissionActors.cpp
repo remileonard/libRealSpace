@@ -476,7 +476,7 @@ bool SCMissionActors::followAlly(uint8_t arg) {
     }
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg) {
-            if (actor->plane == nullptr || !actor->plane->object->alive) {
+            if (actor->is_destroyed || !actor->is_active) {
                 return false; // Actor not found or plane not alive
             }
             wp.x = actor->plane->x;
@@ -514,7 +514,12 @@ bool SCMissionActors::followAlly(uint8_t arg) {
  * actor, false otherwise.
  */
 bool SCMissionActors::ifTargetInSameArea(uint8_t arg) {
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+    Vector3D position;
+    if (this->plane == nullptr) {
+        position = {this->object->position.x, this->object->position.y, this->object->position.z};
+    } else {
+        position = {this->plane->x, this->plane->y, this->plane->z};
+    }
     Uint8 area_id = this->mission->getAreaID(position);
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg) {

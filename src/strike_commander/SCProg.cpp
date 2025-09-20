@@ -162,8 +162,8 @@ void SCProg::execute() {
                     }
                 break;
                 case OP_SET_OBJ_UNKNOWN:
-                    this->actor->flyToWaypoint(prog.arg);
-                    this->actor->current_command_executed = true;
+                    this->actor->current_command = OP_SET_OBJ_UNKNOWN;
+                    this->actor->current_command_executed = false;
                 break;
                 case OP_SET_OBJ_TAKE_OFF:
                     this->actor->current_command_executed = this->actor->takeOff(prog.arg);

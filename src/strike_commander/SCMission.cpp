@@ -321,54 +321,10 @@ void SCMission::update() {
     this->player->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
     this->player->attack_pos_offset.y = 0.0f; // Same altitude
     if (area_id != this->current_area_id) {
-        for (auto scene: this->mission->mission_data.scenes) {
-            if ((scene->area_id == -1) || (scene->area_id == this->current_area_id-1) && scene->on_leaving != -1) {
-                // leaving current area
-                if (scene->on_leaving < this->mission->mission_data.prog.size()) {
-                    std::vector<PROG> prog;
-                    for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
-                        prog.push_back(prg);
-                    }
-                    SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
-                    p->execute();
-                    delete p;
-                    prog.clear();
-                    prog.shrink_to_fit();
-                }
-            }
-            if (scene->area_id == area_id-1 && scene->on_leaving != -1) {
-                // entering new area
-                if (scene->on_leaving < this->mission->mission_data.prog.size()) {
-                    std::vector<PROG> prog;
-                    for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
-                        prog.push_back(prg);
-                    }
-                    SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
-                    p->execute();
-                    delete p;
-                    prog.clear();
-                    prog.shrink_to_fit();
-                }
-            }
-        }
         this->current_area_id = area_id;
     }
     for (auto scene: this->mission->mission_data.scenes) {
         if (scene->area_id == area_id-1 || scene->area_id == -1) {
-            if (scene->on_leaving != -1) {
-                // entering new area
-                if (scene->on_leaving < this->mission->mission_data.prog.size()) {
-                    std::vector<PROG> prog;
-                    for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
-                        prog.push_back(prg);
-                    }
-                    SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
-                    p->execute();
-                    delete p;
-                    prog.clear();
-                    prog.shrink_to_fit();
-                }
-            }
             if (scene->is_active == 0) {
                 if (scene->on_mission_update != -1) {
                     if (scene->on_mission_update < this->mission->mission_data.prog.size()) {
@@ -454,9 +410,27 @@ void SCMission::update() {
         
     }
     for (auto ai_actor : this->actors) {
-        
         if (ai_actor->object->alive == false && ai_actor->is_destroyed == false) {
             ai_actor->is_destroyed = true;
+            for (auto scene: this->mission->mission_data.scenes) {
+                if (scene->area_id == area_id-1 || scene->area_id == -1) {
+                    if (scene->is_active == 0) {
+                        if (scene->on_leaving != -1) {
+                            if (scene->on_leaving < this->mission->mission_data.prog.size()) {
+                                std::vector<PROG> prog;
+                                for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
+                                    prog.push_back(prg);
+                                }
+                                SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
+                                p->execute();
+                                delete p;
+                                prog.clear();
+                                prog.shrink_to_fit();
+                            }
+                        }
+                    }
+                }
+            }
             if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane == nullptr) {
                 ai_actor->is_active = false;
                 SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, this, ai_actor->object->on_is_destroyed);
