@@ -468,7 +468,7 @@ void SCStrike::checkKeyboard(void) {
         this->player_plane->control_stick_x = 0;
         this->player_plane->control_stick_y = 0;
     }
-    if (this->camera_mode == 5) {
+    if (this->camera_mode == View::REAL) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
@@ -477,6 +477,7 @@ void SCStrike::checkKeyboard(void) {
     
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_UP))) {
         if (this->player_plane->GetThrottle() == 0) {
+            this->player_plane->SetThrottle(21);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_START_MIL];
                 Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
@@ -841,6 +842,33 @@ void SCStrike::checkKeyboard(void) {
         this->current_mission->mission_ended = true;
         Mixer.stopSound();
         Mixer.stopSound(5);
+    }
+    float lx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X)); 
+    float ly = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y)); 
+
+    float rx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_X));
+    float ry = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_Y));
+
+    if (fabs(lx) > 0.1f) {
+        this->player_plane->control_stick_x = static_cast<int>(lx * (Screen->width/2.5f));
+        this->mouse_control = false;
+    }
+    if (fabs(ly) > 0.1f) {
+        this->player_plane->control_stick_y = static_cast<int>(-ly * (Screen->height/2.5f));
+        this->mouse_control = false;
+    }
+    if (fabs(rx) > 0.1f) {
+        this->pilote_lookat.x = static_cast<int>((rx * Screen->width) / 6);
+        this->camera_mode = View::CONTROLLER_LOOK;
+    }
+    if (fabs(ry) > 0.1f) {
+        this->pilote_lookat.y = static_cast<int>((ry * Screen->height) / 6);
+        this->camera_mode = View::CONTROLLER_LOOK;
+    }
+    if (fabs(rx) < 0.1f && fabs(ry) < 0.1f && this->camera_mode == View::CONTROLLER_LOOK) {
+        this->camera_mode = View::FRONT;
+        this->pilote_lookat.x = 0;
+        this->pilote_lookat.y = 0;
     }
     this->cockpit->mouse_control = this->mouse_control;
 }
@@ -1253,6 +1281,7 @@ void SCStrike::runFrame(void) {
         camera->lookAt(&targetPos, &up);
     } break;
     case View::REAL:
+    case View::CONTROLLER_LOOK:
     default: {
         Vector3D pos = {this->new_position.x, this->new_position.y + this->eye_y, this->new_position.z};
         camera->SetPosition(&pos);
@@ -1396,6 +1425,7 @@ void SCStrike::runFrame(void) {
         break;
     case View::EYE_ON_TARGET:
     case View::REAL:
+    case View::CONTROLLER_LOOK:
         this->renderVirtualCockpit();
         break;
     }

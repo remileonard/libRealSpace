@@ -33,8 +33,11 @@ void SCShot::checkKeyboard(void) {
     Keyboard* kb = Game->getKeyboard();
     if (!kb)
         return;
-    if (kb->isActionJustPressed(InputAction::MOUSE_LEFT) ||
-        kb->isActionJustPressed(InputAction::KEY_ESCAPE)) {
+    if (kb->isActionJustPressed(InputAction::KEY_ESCAPE)) {
+        Game->stopTopActivity();
+    }
+    if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
+        Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
         Game->stopTopActivity();
     }
 }

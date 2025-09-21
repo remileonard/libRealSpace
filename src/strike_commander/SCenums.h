@@ -180,7 +180,7 @@ static std::unordered_map<std::string, uint8_t> pilot_profile = {
     {"HAWK", 7}
 };
 
-enum View { FRONT = 0, FOLLOW, RIGHT, LEFT, REAR, REAL, TARGET, EYE_ON_TARGET, MISSILE_CAM, OBJECT, AUTO_PILOT };
+enum View { FRONT = 0, FOLLOW, RIGHT, LEFT, REAR, REAL, TARGET, EYE_ON_TARGET, MISSILE_CAM, OBJECT, AUTO_PILOT, CONTROLLER_LOOK };
 
 enum CatalogItems {
     CAT_AIM9J = 73,

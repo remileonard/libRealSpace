@@ -85,6 +85,10 @@ enum SimActionOfst {
     COMM_RADIO_M6 = 52,
     COMM_RADIO_M7 = 53,
     COMM_RADIO_M8 = 54,
+    CONTROLLER_STICK_LEFT_X = 55,
+    CONTROLLER_STICK_LEFT_Y = 56,
+    CONTROLLER_STICK_RIGHT_X = 57,
+    CONTROLLER_STICK_RIGHT_Y = 58,
 };
 
 class GameEngine{
@@ -104,7 +108,7 @@ protected:
     SCState &GameState = SCState::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
     RSScreen *Screen = &RSScreen::getInstance();
-    
+    Point2D lastControllerPosition{0,0};
 
 public:
     static GameEngine& getInstance() {

@@ -656,7 +656,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                     this->mission->player->plane->z
                 };
             }
-            if (actor->object->area_id != 255) {
+            if ((actor->object->area_id != 255) || (actor->object->area_id == 255 && actor->object->unknown2 == 1)) {
                 actor->object->position += correction;
             }
             if (actor->object->position.y < this->mission->area->getY(actor->object->position.x, actor->object->position.z)) {

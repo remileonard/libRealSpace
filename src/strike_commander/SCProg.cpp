@@ -164,10 +164,12 @@ void SCProg::execute() {
                 case OP_SET_OBJ_UNKNOWN:
                     this->actor->current_command = OP_SET_OBJ_UNKNOWN;
                     this->actor->current_command_executed = false;
+                    this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_SET_OBJ_TAKE_OFF:
                     this->actor->current_command_executed = this->actor->takeOff(prog.arg);
                     this->actor->current_command = OP_SET_OBJ_TAKE_OFF;
+                    this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_SET_OBJ_LAND:
                     this->actor->current_command_executed = this->actor->land(prog.arg);
@@ -309,14 +311,10 @@ void SCProg::execute() {
                 case OP_IS_TARGET_ALIVE:
                     for (auto test_actor: this->mission->actors) {
                         if (test_actor->actor_id == prog.arg) {
-                            if (test_actor->actor_name == "PLAYER") {
-                                compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
-                                break;
-                            }
                             if (test_actor->object->alive == true) {
-                                compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
-                            } else {
                                 compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+                            } else {
+                                compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
                             }
                             break;
                         }

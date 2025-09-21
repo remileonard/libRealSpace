@@ -117,6 +117,10 @@ void GameEngine::initKeyboard() {
         SimActionOfst::COMM_RADIO_M6,
         SimActionOfst::COMM_RADIO_M7,
         SimActionOfst::COMM_RADIO_M8,
+        SimActionOfst::CONTROLLER_STICK_LEFT_X,
+        SimActionOfst::CONTROLLER_STICK_LEFT_Y,
+        SimActionOfst::CONTROLLER_STICK_RIGHT_X,
+        SimActionOfst::CONTROLLER_STICK_RIGHT_Y,
     };
     
     for (auto action : allActions) {
@@ -177,6 +181,33 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M6),SDL_SCANCODE_6);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M7),SDL_SCANCODE_7);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M8),SDL_SCANCODE_8);
+
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY), 0, SDL_CONTROLLER_BUTTON_A);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TARGET_NEAREST), 0, SDL_CONTROLLER_BUTTON_B);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_RADAR), 0, SDL_CONTROLLER_BUTTON_X);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_WEAPONS), 0, SDL_CONTROLLER_BUTTON_Y);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_DOWN), 0, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_UP), 0, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_BRAKES), 0, SDL_CONTROLLER_BUTTON_DPAD_UP);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_FLAPS), 0, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::LANDING_GEAR), 0, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AUTOPILOT), 0, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE), 0, SDL_CONTROLLER_BUTTON_START);
+    m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP), 0, SDL_CONTROLLER_BUTTON_BACK);
+
+    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X), 0, SDL_CONTROLLER_AXIS_LEFTX, 1.0f);
+    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y), 0, SDL_CONTROLLER_AXIS_LEFTY, -1.0f);
+
+    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_X), 0, SDL_CONTROLLER_AXIS_RIGHTX, 1.0f);
+    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_Y), 0, SDL_CONTROLLER_AXIS_RIGHTY, -1.0f);
+
+    m_keyboard->bindGamepadAxisToAction(InputAction::CONTROLLER_STICK_LEFT_X, 0, SDL_CONTROLLER_AXIS_LEFTX, 1.0f);
+    m_keyboard->bindGamepadAxisToAction(InputAction::CONTROLLER_STICK_LEFT_Y, 0, SDL_CONTROLLER_AXIS_LEFTY, -1.0f);
+    m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_A, 0, SDL_CONTROLLER_BUTTON_A);
+    m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_B, 0, SDL_CONTROLLER_BUTTON_B);
+
+    m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_X, 0, 1.0f);
+    m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_Y, 1, 1.0f);
 }
 
 void GameEngine::pumpEvents(void) {
@@ -188,33 +219,57 @@ void GameEngine::pumpEvents(void) {
     int px, py;
     m_keyboard->getMouseAbsolutePosition(px, py);
 
+    float mx = m_keyboard->getActionValue(InputAction::MOUSE_DIFF_X);
+    float my = m_keyboard->getActionValue(InputAction::MOUSE_DIFF_Y);
+    
+    float cx = m_keyboard->getActionValue(InputAction::CONTROLLER_STICK_LEFT_X);
+    float cy = m_keyboard->getActionValue(InputAction::CONTROLLER_STICK_LEFT_Y);
+
+    
+    
     // Conversion vers l’espace 320x200 legacy
     Point2D newPosition;
-    newPosition.x = static_cast<int>(px * 320.0f / Screen->width);
-    newPosition.y = static_cast<int>(py * 200.0f / Screen->height);
+    if (cx != 0 || cy != 0) {
+        lastControllerPosition.x += cx * 10;
+        lastControllerPosition.y -= cy * 10;
+    } else if (mx != 0 || my != 0) {
+        lastControllerPosition.x += mx;
+        lastControllerPosition.y += my;
+    }
+    if (lastControllerPosition.x < 0) lastControllerPosition.x = 0;
+    if (lastControllerPosition.y < 0) lastControllerPosition.y = 0;
+    if (lastControllerPosition.x > 320) lastControllerPosition.x = 320;
+    if (lastControllerPosition.y > 200) lastControllerPosition.y = 200; 
+    newPosition.x = lastControllerPosition.x;
+    newPosition.y = lastControllerPosition.y;
     Mouse.setPosition(newPosition);
     Mouse.setVisible(true);
-    // Mettre à jour les événements des trois boutons via transitions
-    struct BtnMap {
-        InputAction action;
-        int legacyIndex; // 0=Left,1=Middle,2=Right (adapter si ordre différent)
-    } maps[] = {
-        { InputAction::MOUSE_LEFT,   0 },
-        { InputAction::MOUSE_MIDDLE, 1 },
-        { InputAction::MOUSE_RIGHT,  2 },
+    // --- Fusion souris + contrôleur sur les 3 boutons legacy (0:Left,1:Middle,2:Right)
+    // On combine les états "down" de chaque source puis on émet UNE transition.
+    static bool prevDown[3] = { false, false, false };
+
+    auto isDown = [&](InputAction a) -> bool {
+        // Hypothèse: getActionValue(a) retourne 1.0f si enfoncé, 0.0f sinon.
+        // Si ce n'est pas le cas, exposez un isActionDown(a) et utilisez-le ici.
+        return m_keyboard->getActionValue(a) > 0.5f;
     };
 
-    for (auto& m : maps) {
-        auto& legacyBtn = Mouse.buttons[m.legacyIndex];
-        if (m_keyboard->isActionJustPressed(m.action)) {
-            legacyBtn.event = MouseButton::PRESSED;
-        } else if (m_keyboard->isActionJustReleased(m.action)) {
-            legacyBtn.event = MouseButton::RELEASED;
-        } else {
-            legacyBtn.event = MouseButton::NONE;
+    bool currentDown[3];
+    currentDown[0] = isDown(InputAction::MOUSE_LEFT)   || isDown(InputAction::CONTROLLER_BUTTON_A);
+    currentDown[1] = isDown(InputAction::MOUSE_MIDDLE) || isDown(InputAction::CONTROLLER_BUTTON_B);
+    currentDown[2] = isDown(InputAction::MOUSE_RIGHT); // ajoutez ici d'autres boutons pad si besoin
+
+    for (int i = 0; i < 3; ++i) {
+        MouseButton::EventType e = MouseButton::NONE;
+        if ( currentDown[i] && !prevDown[i] ) {
+            e = MouseButton::PRESSED;
+        } else if ( !currentDown[i] && prevDown[i] ) {
+            e = MouseButton::RELEASED;
         }
+        Mouse.buttons[i].event = e;
+        prevDown[i] = currentDown[i];
     }
-    
+
     if (EventManager::getInstance().shouldQuit()) {
         terminate("System request.");
         return;
