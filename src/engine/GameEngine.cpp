@@ -232,11 +232,17 @@ void GameEngine::pumpEvents(void) {
     // Conversion vers l’espace 320x200 legacy
     Point2D newPosition;
     if (cx != 0 || cy != 0) {
-        lastControllerPosition.x += cx * 10;
-        lastControllerPosition.y -= cy * 10;
+        lastControllerPosition.x += cx * 4;
+        lastControllerPosition.y -= cy * 4;
     } else if (mx != 0 || my != 0) {
-        lastControllerPosition.x += mx;
-        lastControllerPosition.y += my;
+        if (direct_mouse_control) {
+            lastControllerPosition.x = (px * 320) / Screen->width;
+            lastControllerPosition.y = (py * 200) / Screen->height;
+        } else {
+            lastControllerPosition.x += mx;
+            lastControllerPosition.y += my;
+        }
+        
     }
     if (lastControllerPosition.x < 0) lastControllerPosition.x = 0;
     if (lastControllerPosition.y < 0) lastControllerPosition.y = 0;

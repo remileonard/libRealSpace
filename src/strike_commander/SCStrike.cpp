@@ -270,7 +270,9 @@ SCStrike::SCStrike() {
     }
 }
 
-SCStrike::~SCStrike() {}
+SCStrike::~SCStrike() {
+    Game->direct_mouse_control = false;
+}
 void SCStrike::registerSimulatorInputs() {
     
 }
@@ -457,7 +459,7 @@ void SCStrike::checkKeyboard(void) {
 
     msy = dy - (Screen->height / 2);
     msx = dx - (Screen->width / 2);
-
+    //Mouse.setPosition({(int)dx, (int)dy});
     if (this->camera_mode == View::AUTO_PILOT) {
         return;
     }
@@ -917,6 +919,7 @@ void SCStrike::findTarget() {
  */
 void SCStrike::init(void) {
     this->mouse_control = false;
+    Game->direct_mouse_control = true;
     this->pilote_lookat = {0, 0};
     this->registerSimulatorInputs();
 }
