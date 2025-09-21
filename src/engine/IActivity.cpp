@@ -62,6 +62,9 @@ void IActivity::checkKeyboard(void) {
     if (kb->isActionJustPressed(InputAction::KEY_ESCAPE)) {
         Game->stopTopActivity();
     }
+    if (kb->isActionJustPressed(InputAction::CONTROLLER_BUTTON_BACK)) {
+        Game->stopTopActivity();
+    }
 }
 
 SCButton *IActivity::checkButtons(void) {

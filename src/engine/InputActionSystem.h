@@ -27,6 +27,8 @@ enum class InputAction {
     CONTROLLER_BUTTON_B = 15,
     MOUSE_DIFF_X = 16,
     MOUSE_DIFF_Y = 17,
+    CONTROLLER_BUTTON_BACK = 18,
+    CONTROLLER_BUTTON_START = 19,
 
     // Plage réservée pour le File Requester (1000-1999)
     FILE_REQUESTER_START = 1000,

@@ -205,6 +205,8 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindGamepadAxisToAction(InputAction::CONTROLLER_STICK_LEFT_Y, 0, SDL_CONTROLLER_AXIS_LEFTY, -1.0f);
     m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_A, 0, SDL_CONTROLLER_BUTTON_A);
     m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_B, 0, SDL_CONTROLLER_BUTTON_B);
+    m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_BACK, 0, SDL_CONTROLLER_BUTTON_BACK);
+    m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_START, 0, SDL_CONTROLLER_BUTTON_START);
 
     m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_X, 0, 1.0f);
     m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_Y, 1, 1.0f);

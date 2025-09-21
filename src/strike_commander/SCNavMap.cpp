@@ -93,6 +93,9 @@ void SCNavMap::checkKeyboard(void) {
     if (this->m_keyboard->isActionJustPressed(CreateAction(InputAction::NAVMAP_START, NavActionOfst::NAV_ESCAPE2))) {
         Game->stopTopActivity();
     }
+    if (this->m_keyboard->isActionJustPressed(InputAction::CONTROLLER_BUTTON_BACK)) {
+        Game->stopTopActivity();
+    }
     if (this->m_keyboard->isActionJustPressed(CreateAction(InputAction::NAVMAP_START, NavActionOfst::NAV_NEXT_WP))) {
         *this->current_nav_point = *this->current_nav_point+1;
         if (*this->current_nav_point > this->mission->waypoints.size()-1) {
@@ -100,6 +103,18 @@ void SCNavMap::checkKeyboard(void) {
         }
     }
     if (this->m_keyboard->isActionJustPressed(CreateAction(InputAction::NAVMAP_START, NavActionOfst::NAV_PREV_WP))) {
+        *this->current_nav_point = *this->current_nav_point-1;
+        if (*this->current_nav_point == 255) {
+            *this->current_nav_point = 0;
+        }
+    }
+    if (this->m_keyboard->isActionJustPressed(InputAction::CONTROLLER_BUTTON_A)) {
+        *this->current_nav_point = *this->current_nav_point+1;
+        if (*this->current_nav_point > this->mission->waypoints.size()-1) {
+            *this->current_nav_point = (uint8_t) this->mission->waypoints.size()-1;
+        }
+    }
+    if (this->m_keyboard->isActionJustPressed(InputAction::CONTROLLER_BUTTON_B)) {
         *this->current_nav_point = *this->current_nav_point-1;
         if (*this->current_nav_point == 255) {
             *this->current_nav_point = 0;
