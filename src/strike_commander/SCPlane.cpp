@@ -1170,6 +1170,7 @@ void SCPlane::RenderSmoke() {
     if (frames_per_tick < 1) frames_per_tick = 1;
     this->anim_ticks++;
     int anim_frame = 0;
+    int nb_smoke = (int) this->smoke_positions.size();
     for (auto pos: this->smoke_positions) {
         int id_anim = 4;
         if (cpt < 5) {
@@ -1186,7 +1187,8 @@ void SCPlane::RenderSmoke() {
         if (this->anim_ticks % frames_per_tick == 0) {
             this->smoke_anim_counters[cpt] = (this->smoke_anim_counters[cpt]+1) % (this->smoke_set->smoke_textures[id_anim].size());
         }
-        Renderer.drawBillboard(pos, this->smoke_set->smoke_textures[id_anim][this->smoke_anim_counters[cpt]], 10);
+        float alpha = ((nb_smoke-5) - (cpt-5)) / ((float) nb_smoke-5.0f);
+        Renderer.drawBillboard(pos, this->smoke_set->smoke_textures[id_anim][this->smoke_anim_counters[cpt]], 10, alpha);
         cpt++;
     }
 }

@@ -1894,14 +1894,13 @@ void SCRenderer::renderWorldByID(RSArea *area, int LOD, int verticesPerBlock, in
     glPopMatrix();
 }
 
-void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size) {
+void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size, float alpha) {
     if (!initialized || tex == nullptr)
         return;
     
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_TEXTURE_2D);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-    glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_ADD);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     glEnable(GL_BLEND);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.1f);
@@ -1968,7 +1967,7 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size) {
     
     // Draw the billboard quad
     glBegin(GL_QUADS);
-    glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
     glTexCoord2f(0.0f, 0.0f);
     glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);

@@ -112,7 +112,7 @@ public:
     void drawModelWithChilds(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation,
                              int wheel_index, int thrust, std::vector<std::tuple<Vector3D, RSEntity *>> weaps_load);
     void drawModel(RSEntity *object, size_t lodLevel);
-    void drawBillboard(Vector3D pos, Texture *tex, float size);
+    void drawBillboard(Vector3D pos, Texture *tex, float size, float alpha = 1.0f);
     void displayModel(RSEntity *object, size_t lodLevel);
      
     void createTextureInGPU(Texture *texture);
