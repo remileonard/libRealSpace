@@ -243,11 +243,10 @@ void SCMission::loadMission() {
         actor->actor_id = part->id;
         actor->object = part;
         actor->profile = nullptr;
+        actor->is_active = true;
+        actor->is_hidden = false;
         if (area_actor.entity == nullptr) {
             continue;
-        }
-        if (area_actor.entity->entity_type == EntityType::ground || area_actor.entity->entity_type == EntityType::swpn) {
-            actor->is_active = true;
         }
         actor->mission = this;
         for (auto prg_id: area_actor.progs_id) {
@@ -364,6 +363,7 @@ void SCMission::update() {
                             }
                             if (actor->actor_id == part->id && actor->is_active == false) {
                                 actor->is_active = true;
+                                actor->is_hidden = false;
                                 if (scene->area_id != -1) {
                                     Vector3D correction;
                                     if (actor->object->unknown2 == 0) {

@@ -64,7 +64,7 @@ struct SCWeaponLoadoutHardPoint {
 class SCPlane {
 
 protected:
-    
+    int anim_ticks{0};
     int thrust{0};
     float ELEVF_CSTE{0.0f};
     float ROLLFF_CSTE{0.0f};
@@ -126,7 +126,7 @@ protected:
     
     SCSmokeSet *smoke_set{nullptr};
     std::vector<Vector3D> smoke_positions;
-    
+    std::vector<int> smoke_anim_counters;
 
     Vector3D thrust_vector {0.0f, 0.0f, 0.0f};
     Vector3D lift_vector {0.0f, 0.0f, 0.0f};

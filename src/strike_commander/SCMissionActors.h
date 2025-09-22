@@ -30,6 +30,7 @@ public:
     Vector3D formation_pos_offset{150.0f, 0.0f, 0.0f};
     Vector3D attack_pos_offset{0.0f, 0.0f, -1000.0f};
     bool is_active{false};
+    bool is_hidden{true};
     bool taken_off{false};
     bool is_destroyed{false};
     bool prog_executed{false};

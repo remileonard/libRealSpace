@@ -542,7 +542,10 @@ void SCPlane::Simulate() {
     if (this->object->alive == false) {
         
         this->smoke_positions.insert(this->smoke_positions.begin(), {this->x, this->y, this->z});
-        if (this->smoke_positions.size() > this->smoke_set->smoke_textures.size() - 1) {
+        if (this->smoke_anim_counters.size() < this->smoke_set->smoke_textures.size() + 10) {
+            this->smoke_anim_counters.insert(this->smoke_anim_counters.begin(), 0);
+        }
+        if (this->smoke_positions.size() > this->smoke_set->smoke_textures.size() + 10) {
             this->smoke_positions.pop_back();
         }
     }
@@ -1156,12 +1159,17 @@ void SCPlane::Render() {
 }
 void SCPlane::RenderSmoke() {
     int cpt = 0;
-    static int img_count[5] = {0};
-    static int tick = 20;
+    const int MAX_SMOKE=7;
     std::map<int, int> anim_map = {
-        {0, 0}, {1, 3}, {2, 2}, {3, 1}, {4, 4}
+        {0, 0}, {1, 1}, {2, 3}, {3, 2}, {4, 4}, {5, 2}, {6, 4}
     };
-    tick--;
+    
+
+    // Ensure we don't divide by zero
+    int frames_per_tick = this->tps / 12;
+    if (frames_per_tick < 1) frames_per_tick = 1;
+    this->anim_ticks++;
+    int anim_frame = 0;
     for (auto pos: this->smoke_positions) {
         int id_anim = 4;
         if (cpt < 5) {
@@ -1169,19 +1177,17 @@ void SCPlane::RenderSmoke() {
             continue;
         }
         
-        id_anim = anim_map[(cpt -5) % (anim_map.size()-1)];
-        
-        if (tick <= 0) {
-            img_count[id_anim]++;
+        int id_map = (cpt - 5);
+        if (id_map >= anim_map.size()-1) {
+            id_map = (int) (anim_map.size()-1)-(cpt % 2);
         }
-        if (img_count[id_anim] > this->smoke_set->smoke_textures[id_anim].size()-1) {
-            img_count[id_anim] = 0;
+        id_anim = anim_map[id_map];
+        int frame = 0;
+        if (this->anim_ticks % frames_per_tick == 0) {
+            this->smoke_anim_counters[cpt] = (this->smoke_anim_counters[cpt]+1) % (this->smoke_set->smoke_textures[id_anim].size());
         }
-        Renderer.drawBillboard(pos, this->smoke_set->smoke_textures[id_anim][img_count[id_anim]], 10);
+        Renderer.drawBillboard(pos, this->smoke_set->smoke_textures[id_anim][this->smoke_anim_counters[cpt]], 10);
         cpt++;
-    }
-    if (tick <= 0) {
-        tick = 20;
     }
 }
 void SCPlane::RenderSimulatedObject() {

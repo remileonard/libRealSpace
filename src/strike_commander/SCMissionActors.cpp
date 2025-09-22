@@ -476,7 +476,7 @@ bool SCMissionActors::followAlly(uint8_t arg) {
     }
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg) {
-            if (actor->is_destroyed || !actor->is_active) {
+            if (actor->is_destroyed || (!actor->is_active && (actor->actor_name != "PLAYER"))) {
                 return false; // Actor not found or plane not alive
             }
             wp.x = actor->plane->x;
@@ -646,6 +646,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
     for (auto actor: this->mission->actors) {
         if (actor->actor_id == arg && actor->is_active == false && actor->is_destroyed == false) {
             actor->is_active = true;
+            actor->is_hidden = false;
             Vector3D correction = {0.0f, 0.0f, 0.0f};
             if (actor->object->area_id != 255 && actor->object->unknown2 == 0) {
                 correction = this->mission->mission->mission_data.areas[actor->object->area_id]->position;
