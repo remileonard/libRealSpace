@@ -32,12 +32,15 @@ void SCSimulatedObject::Render() {
     Renderer.drawModel(this->obj, position, orientaton);
     
     int cpt=0;
+    int nb_smoke = (int) this->smoke_positions.size();
+    int cpt_smoke = 0;
     for (auto pos: this->smoke_positions) {
-        float alpha = 0.6f * ((float) cpt / (1.0f*(float)this->smoke_positions.size()));
+        float alpha = (nb_smoke - cpt_smoke) / ((float) nb_smoke);
+        cpt_smoke++;
         if (cpt > this->SmokeSet.missile_smoke_textures.size()-1) {
             cpt = 0;
         }
-        Renderer.drawBillboard(pos, this->SmokeSet.missile_smoke_textures[cpt], 10);
+        Renderer.drawBillboard(pos, this->SmokeSet.missile_smoke_textures[cpt], 10, alpha);
     }
 }
 
