@@ -993,7 +993,6 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
             continue;
         }
         Triangle *triangle = &object->triangles[triangleID];
-
         if (triangle->property == RSEntity::SC_TRANSPARENT)
             continue;
         if (triangle->property == 6) {
@@ -1022,7 +1021,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
                 ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
                 : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
 
-            const Texel *texel = palette.GetRGBColor(triangle->color-1);
+            const Texel *texel = palette.GetRGBColor(triangle->color);
             glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
                       texel->b / 255.0f * lambertianFactor, texel->a);
 

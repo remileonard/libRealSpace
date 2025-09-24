@@ -253,20 +253,23 @@ void DebugObjectViewer::renderUI() {
                     ImGui::Text("Color: R: %d, G: %d, B: %d, A: %d", color->r, color->g, color->b, color->a);
                     float colorValue[3] = {color->r / 255.0f, color->g / 255.0f, color->b / 255.0f};
                     ImGui::ColorPicker3("Color Picker", colorValue, ImGuiColorEditFlags_NoInputs);
-                    auto attr = objs.showCases[currentObject].entity->attrs[tri_count - 1];
-                    if (attr != nullptr) {
-                        ImGui::Text("Attribute props1: %d", attr->props1);
-                        ImGui::Text("Attribute props2: %d", attr->props2);
-                        
-                        ImGui::Text("Attribute ID: %d", attr->id);
-                        ImGui::Text("Attribute Type: %d", attr->type);
-                    } else {
+                    RSEntity *entity = objs.showCases[currentObject].entity;
+                    if (entity->attrs.find(tri_count - 1) == entity->attrs.end()) {
                         ImGui::Text("No attribute for this triangle");
+                    } else {
+                        Attr *attr = entity->attrs[tri_count - 1];
+                        if (attr != nullptr) {
+                            ImGui::Text("Attribute props1: %d", attr->props1);
+                            ImGui::Text("Attribute props2: %d", attr->props2);
+                            
+                            ImGui::Text("Attribute ID: %d", attr->id);
+                            ImGui::Text("Attribute Type: %d", attr->type);
+                        }
                     }
                     ImGui::Text("Vertices: ");
                     for (const auto &vertex : triangle.ids) {
                         ImGui::Text("  Vertex ID: %d", vertex);
-                        auto vert=objs.showCases[currentObject].entity->vertices[vertex];
+                        Vector3D vert=entity->vertices[vertex];
                         ImGui::Text("    Position: (%.2f, %.2f, %.2f)", vert.x, vert.y, vert.z);
                     }
                     this->vertices.clear();
