@@ -827,6 +827,7 @@ void SCAnimationPlayer::runFrame(void){
                 this->palette.ReadPatch(bg->pal->GetColorPalette());
                 VGA.setPalette(&this->palette);
             }
+            delete texture;
         }
     }
     for (auto sprt: shot->sprites) {
@@ -850,6 +851,7 @@ void SCAnimationPlayer::runFrame(void){
             this->palette.ReadPatch(sprt->pal->GetColorPalette());
             VGA.setPalette(&this->palette);
         }
+        delete texture;
     }
     
     fps_counter++;
