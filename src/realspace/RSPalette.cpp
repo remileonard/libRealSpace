@@ -38,6 +38,15 @@ void RSPalette::copyFrom(VGAPalette* other){
         if (this->colors.colors[i].r == 0 && this->colors.colors[i].g == 252 && this->colors.colors[i].b == 0) {
             this->colors.colors[i] = other->colors[i];
         }
+        if (this->colors.colors[i].r == 23 && this->colors.colors[i].g == 253 && this->colors.colors[i].b == 253) {
+            this->colors.colors[i] = other->colors[i];
+        }
+        if (this->colors.colors[i].r == 253 && this->colors.colors[i].g == 253 && this->colors.colors[i].b == 0) {
+            this->colors.colors[i] = other->colors[i];
+        }
+        if (this->colors.colors[i].r == 253 && this->colors.colors[i].g == 253 && this->colors.colors[i].b == 221) {
+            this->colors.colors[i] = other->colors[i];
+        }
     }
 }
 
@@ -69,6 +78,7 @@ void RSPalette::parsePAL_CMAP(uint8_t *data, size_t size){
         texel.g = stream.ReadByte();
         texel.b = stream.ReadByte();
         texel.a = 255;
+        
         colors.SetColor(i, &texel);
     }
 }

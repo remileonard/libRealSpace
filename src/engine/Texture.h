@@ -21,17 +21,17 @@ extern "C" {
 #include "../commons/ByteStream.h"
 
 class RSPalette;
-typedef struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
+typedef struct Texel{
+    uint8_t r{0};
+    uint8_t g{0};
+    uint8_t b{0};
+    uint8_t a{0};
 } Texel;
 
 typedef struct VGAPalette{
     
     Texel colors[256];
-    
+
     void SetColor(uint8_t value,Texel* texel){
         
         Texel* paletteColor ;
@@ -74,12 +74,32 @@ typedef struct VGAPalette{
             colors[offset+i].r = s->ReadByte();
             colors[offset+i].g = s->ReadByte();
             colors[offset+i].b = s->ReadByte();
+            colors[offset+i].a = 255;
 
-            colors[offset+i].r = (colors[offset+i].r<<2) | (colors[offset+i].r >> 4);
-            colors[offset+i].g = (colors[offset+i].g<<2) | (colors[offset+i].g >> 4);
-            colors[offset+i].b = (colors[offset+i].b<<2) | (colors[offset+i].b >> 4);
+            uint8_t r = colors[offset+i].r;
+            uint8_t g = colors[offset+i].g;
+            uint8_t b = colors[offset+i].b;
 
-            colors[offset+i].a = 255 ;
+            r = (r << 2) | (r >> 4); // Convert 6-bit to 8-bit
+            g = (g << 2) | (g >> 4);
+            b = (b << 2) | (b >> 4);
+
+            if (r == 0 && g == 255 && b == 0){
+                continue;
+            }
+            if (r == 255 && g == 0 && b == 255){
+                continue;
+            }
+            if (r == 255 && g == 0 && b == 143){
+                continue;
+            }
+            if (r == 0 && g == 253 && b == 253){
+                continue;
+            }
+
+            colors[offset+i].r = r;
+            colors[offset+i].g = g;
+            colors[offset+i].b = b;
         }
         
     }
@@ -91,6 +111,12 @@ typedef struct VGAPalette{
                 continue;
             }
             if (c.r == 255 && c.g == 0 && c.b == 255){
+                continue;
+            }
+            if (c.r == 255 && c.g == 0 && c.b == 143){
+                continue;
+            }
+            if (c.r == 0 && c.g == 253 && c.b == 253){
                 continue;
             }
             colors[i] = c;
