@@ -30,4 +30,5 @@ public:
     void testMissionSC();
     void testObjects();
     void testController();
+    void testMidGames();
 };

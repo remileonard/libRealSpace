@@ -88,6 +88,7 @@ private:
     int fps{1};
     int fps_timer{0};
     int current_music{255};
+    bool pause{false};
     void initMid1();
 public:
     SCAnimationPlayer();
@@ -95,6 +96,7 @@ public:
     void init();
     void runFrame(void);
     void renderMenu();
+    void renderUI(void);
 };
 
 #endif /* defined(__libRealSpace__SCAnimationPlayer__) */

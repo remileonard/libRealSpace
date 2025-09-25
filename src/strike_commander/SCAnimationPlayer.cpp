@@ -824,7 +824,7 @@ void SCAnimationPlayer::runFrame(void){
                 VGA.setPalette(&this->palette);
             }
             if (bg->pal != nullptr) {
-                this->palette.ReadPatch(bg->pal->GetColorPalette());
+                this->palette.CopyFromOtherPalette(bg->pal->GetColorPalette());
                 VGA.setPalette(&this->palette);
             }
             delete texture;
@@ -848,15 +848,16 @@ void SCAnimationPlayer::runFrame(void){
             VGA.setPalette(&this->palette);
         }
         if (sprt->pal != nullptr) {
-            this->palette.ReadPatch(sprt->pal->GetColorPalette());
+            this->palette.CopyFromOtherPalette(sprt->pal->GetColorPalette());
             VGA.setPalette(&this->palette);
         }
         delete texture;
     }
     
-    fps_counter++;
-    fps+=fpsupdate;
-    
+    if (!pause) {
+        fps_counter++;
+        fps+=fpsupdate;
+    }
     if (fps > shot->nbframe) {
         fps = 1;
         shot_counter++;
@@ -875,4 +876,107 @@ void SCAnimationPlayer::runFrame(void){
 void SCAnimationPlayer::renderMenu() {
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     ImGui::Text("Animation Player frame: %d, fps: %d, shot: %d", this->fps_counter, this->fps, this->shot_counter);
+}
+void SCAnimationPlayer::renderUI() {
+    if (ImGui::BeginTabBar("Animations")) {
+        if (ImGui::BeginTabItem("MidGames Data")) {
+            if (ImGui::Button("Previous Shot")) {
+                this->shot_counter--;
+                if (this->shot_counter < 0) {
+                    this->shot_counter = this->midgames_shots[1].size() - 1;
+                }
+                this->fps = 1;
+                this->fps_counter = 0;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Previous Frame")) {
+                this->fps--;
+                if (this->fps < 1) {
+                    this->fps = 1;
+                }
+                this->fps_counter--;
+                if (this->fps_counter < 0) {
+                    this->fps_counter = 0;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(pause ? "Resume" : "Pause")) {
+                this->pause = !this->pause;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Next Frame")) {
+                this->fps++;
+                if (this->fps > this->midgames_shots[1][this->shot_counter]->nbframe) {
+                    this->fps = this->midgames_shots[1][this->shot_counter]->nbframe;
+                }
+                this->fps_counter++;
+                if (this->fps_counter > this->midgames_shots[1][this->shot_counter]->nbframe) {
+                    this->fps_counter = this->midgames_shots[1][this->shot_counter]->nbframe;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Next Shot")) {
+                this->shot_counter++;
+                if (this->shot_counter > this->midgames_shots[1].size() - 1) {
+                    this->shot_counter = 0;
+                }
+                this->fps = 1;
+                this->fps_counter = 0;
+            }
+            ImGui::Separator();
+            ImGui::Text("Total shots: %d", this->midgames_shots[1].size());
+            if (this->midgames_shots[1].size() > 0 && this->shot_counter < this->midgames_shots[1].size()) {
+                MIDGAME_SHOT *shot = this->midgames_shots[1][this->shot_counter];
+                ImGui::Text("Shot %d/%d", this->shot_counter + 1, this->midgames_shots[1].size());
+                ImGui::Text("Number of frames: %d", shot->nbframe);
+                ImGui::Text("Music ID: %d", shot->music);
+                if (shot->sound != nullptr) {
+                    ImGui::Text("Sound available to play at frame %d", shot->sound_time_code);
+                } else {
+                    ImGui::Text("No sound available");
+                }
+                ImGui::Text("Backgrounds: %d", shot->background.size());
+                for (size_t i = 0; i < shot->background.size(); i++) {
+                    MIDGAME_SHOT_BG *bg = shot->background[i];
+                    ImGui::Text(" Background %d: ShapeID: %d, Pos Start: (%d,%d), Pos End: (%d,%d), Velocity: (%d,%d), PaletteID: %d, HasPal: %s", 
+                        i+1, bg->shapeid, bg->position_start.x, bg->position_start.y,
+                        bg->position_end.x, bg->position_end.y,
+                        bg->velocity.x, bg->velocity.y,
+                        bg->palette,
+                        bg->pal != nullptr ? "Yes" : "No"
+                    );
+                }
+                ImGui::Text("Sprites: %d", shot->sprites.size());
+                for (size_t i = 0; i < shot->sprites.size(); i++) {
+                    MIDGAME_SHOT_SPRITE *sprt = shot->sprites[i];
+                    ImGui::Text(" Sprite %d: NumImages: %d, Pos Start: (%d,%d), Pos End: (%d,%d), Velocity: (%d,%d), Keep first frame: %s, HasPal: %s", 
+                        i+1, sprt->image->GetNumImages(), sprt->position_start.x, sprt->position_start.y,
+                        sprt->position_end.x, sprt->position_end.y,
+                        sprt->velocity.x, sprt->velocity.y,
+                        sprt->keep_first_frame ? "Yes" : "No",
+                        sprt->pal != nullptr ? "Yes" : "No");
+                }
+            }
+            ImGui::Separator();
+            ImGui::Text("Current color palette");
+            for (int i = 0; i < 256; i++) {
+                if (i % 12 == 0 && i != 0) {
+                    ImGui::NewLine();
+                } else if (i != 0) {
+                    ImGui::SameLine();
+                }
+                ImGui::ColorButton(("##" + std::to_string(i)).c_str(), ImVec4(
+                    this->palette.colors[i].r / 255.0f,
+                    this->palette.colors[i].g / 255.0f,
+                    this->palette.colors[i].b / 255.0f,
+                    1.0f
+                ), ImGuiColorEditFlags_NoTooltip, ImVec2(20,20));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", i, this->palette.colors[i].r, this->palette.colors[i].g, this->palette.colors[i].b);
+                }
+            }
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
 }

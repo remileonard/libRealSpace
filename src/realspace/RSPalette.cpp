@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "RSPalette.h"
 
 
 RSPalette::RSPalette(){
@@ -35,21 +36,12 @@ void RSPalette::SetBWFlag(uint32_t flag){
 
 void RSPalette::copyFrom(VGAPalette* other){
     for (int i=0; i< 256; i++) {
-        if (this->colors.colors[i].r == 0 && this->colors.colors[i].g == 252 && this->colors.colors[i].b == 0) {
-            this->colors.colors[i] = other->colors[i];
-        }
-        if (this->colors.colors[i].r == 23 && this->colors.colors[i].g == 253 && this->colors.colors[i].b == 253) {
-            this->colors.colors[i] = other->colors[i];
-        }
-        if (this->colors.colors[i].r == 253 && this->colors.colors[i].g == 253 && this->colors.colors[i].b == 0) {
-            this->colors.colors[i] = other->colors[i];
-        }
-        if (this->colors.colors[i].r == 253 && this->colors.colors[i].g == 253 && this->colors.colors[i].b == 221) {
-            this->colors.colors[i] = other->colors[i];
-        }
+        if (other->colors[i].a == 0) {
+            continue;
+        }   
+        this->colors.colors[i] = other->colors[i];
     }
 }
-
 void RSPalette::initFromFileData(FileData* fileData) {
     this->initFromFileRam(fileData->data, fileData->size);
 }
@@ -128,9 +120,9 @@ void RSPalette::parsePALT_PALT(uint8_t *data, size_t size){
         uint8_t g = texel.g;
         uint8_t b = texel.b;
 
-        r = (r << 2) | (r >> 4); // Convert 6-bit to 8-bit
-        g = (g << 2) | (g >> 4);
-        b = (b << 2) | (b >> 4);
+        r = convertFrom6To8(r);
+        g = convertFrom6To8(g);
+        b = convertFrom6To8(b);
 
         texel.r = r;
         texel.g = g;
@@ -162,9 +154,9 @@ void RSPalette::parsePALT_BLWH(uint8_t *data, size_t size){
         uint8_t g = texel.g;
         uint8_t b = texel.b;
 
-        r = (r << 2) | (r >> 4); // Convert 6-bit to 8-bit
-        g = (g << 2) | (g >> 4);
-        b = (b << 2) | (b >> 4);
+        r = convertFrom6To8(r);
+        g = convertFrom6To8(g);
+        b = convertFrom6To8(b);
         
         texel.r = r;
         texel.g = g;

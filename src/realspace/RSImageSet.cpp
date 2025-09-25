@@ -50,6 +50,8 @@ void RSImageSet::InitFromPakEntry(PakEntry *entry) {
                 RLEShape *shape = new RLEShape();
                 *shape = *RLEShape::GetEmptyShape();
                 this->shapes.push_back(shape);
+            } else {
+                delete palette;
             }
         }
     }

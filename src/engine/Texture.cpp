@@ -18,6 +18,68 @@ Texture::Texture()
 {
     
 }
+uint8_t convertFrom6To8(uint8_t value) { 
+    
+    uint8_t algo1 = (value << 2) | (value & 0x30 >> 4);
+    uint8_t algo2 = (value * 255) / 63;
+    uint8_t algo3 = (value << 2) | (value >> 4);
+    uint8_t algo4 = (value * (255.0f / 63.0f));
+    uint8_t algo5 = (value * (255/63.0f));
+    uint8_t algo6 = (value * 254 / 63);
+
+    
+    return algo2;
+}
+void VGAPalette::Diff(VGAPalette* other){
+    for (int i=0  ;i <256 ; i++){
+        if(colors[i].r != other->colors[i].r ||
+            colors[i].g != other->colors[i].g ||
+            colors[i].b != other->colors[i].b ||
+            colors[i].a != other->colors[i].a
+            ) {}
+    }
+}
+void VGAPalette::ReadPatch(ByteStream* s){ 
+    int16_t offset = s->ReadShort();
+    int16_t numColors = s->ReadShort();
+    
+    if (offset + numColors > 256){
+        return;
+    }
+    
+    for (uint16_t i= 0 ; i < numColors ; i++){
+        colors[offset+i].r = s->ReadByte();
+        colors[offset+i].g = s->ReadByte();
+        colors[offset+i].b = s->ReadByte();
+        colors[offset+i].a = 255;
+
+        uint8_t r = colors[offset+i].r;
+        uint8_t g = colors[offset+i].g;
+        uint8_t b = colors[offset+i].b;
+
+        r = convertFrom6To8(r);
+        g = convertFrom6To8(g);
+        b = convertFrom6To8(b);
+
+        colors[offset+i].r = r;
+        colors[offset+i].g = g;
+        colors[offset+i].b = b;
+    }
+    
+}
+void VGAPalette::CopyFromOtherPalette(VGAPalette* other){
+    int i=-1;
+    for (auto c : other->colors){
+        i++;
+        if (c.r == 0 && c.g == 255 && c.b == 0) {
+            continue;
+        }
+        if (c.r == 255 && c.g == 0 && c.b == 255) {
+            continue;
+        }
+        colors[i] = c;
+    }
+}
 
 Texture::~Texture(){
     SCRenderer &Renderer = SCRenderer::getInstance();

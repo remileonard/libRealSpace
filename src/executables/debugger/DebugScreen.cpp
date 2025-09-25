@@ -155,6 +155,9 @@ void DebugScreen::refresh(void){
                     if (ImGui::MenuItem("Test Inputs")) {
                         debugGameInstance->testController();
                     }
+                    if (ImGui::MenuItem("Test MidGames")) {
+                        debugGameInstance->testMidGames();
+                    }
                     if (VGA != nullptr) {
                         if (ImGui::MenuItem("Toggle upscale", nullptr, VGA->upscale)) {
                             VGA->upscale = !VGA->upscale;
