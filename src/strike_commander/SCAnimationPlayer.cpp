@@ -938,23 +938,68 @@ void SCAnimationPlayer::renderUI() {
                 ImGui::Text("Backgrounds: %d", shot->background.size());
                 for (size_t i = 0; i < shot->background.size(); i++) {
                     MIDGAME_SHOT_BG *bg = shot->background[i];
-                    ImGui::Text(" Background %d: ShapeID: %d, Pos Start: (%d,%d), Pos End: (%d,%d), Velocity: (%d,%d), PaletteID: %d, HasPal: %s", 
-                        i+1, bg->shapeid, bg->position_start.x, bg->position_start.y,
-                        bg->position_end.x, bg->position_end.y,
-                        bg->velocity.x, bg->velocity.y,
-                        bg->palette,
-                        bg->pal != nullptr ? "Yes" : "No"
-                    );
+                    if (ImGui::TreeNode(("Background " + std::to_string(i+1)).c_str())) {
+                        ImGui::Text("Background %d:", i+1);
+                        ImGui::Text("ShapeID: %d",bg->shapeid);
+                        ImGui::Text("Pos Start: (%d,%d)",bg->position_start.x, bg->position_start.y);
+                        ImGui::Text("Pos End: (%d,%d)", bg->position_end.x, bg->position_end.y);
+                        ImGui::Text("Velocity: (%d,%d)",bg->velocity.x, bg->velocity.y);
+                        ImGui::Text("PaletteID: %d, HasPal: %s", bg->palette, bg->pal != nullptr ? "Yes" : "No");
+                        if (bg->pal != nullptr) {
+                            ImGui::Text("Palette Colors:");
+                            for (int c = 0; c < 256; c++) {
+                                if (c % 12 == 0 && c != 0) {
+                                    ImGui::NewLine();
+                                } else if (c != 0) {
+                                    ImGui::SameLine();
+                                }
+                                ImGui::ColorButton(("##bg" + std::to_string(i) + "color" + std::to_string(c)).c_str(), ImVec4(
+                                    bg->pal->GetColorPalette()->colors[c].r / 255.0f,
+                                    bg->pal->GetColorPalette()->colors[c].g / 255.0f,
+                                    bg->pal->GetColorPalette()->colors[c].b / 255.0f,
+                                    1.0f
+                                ), ImGuiColorEditFlags_NoTooltip, ImVec2(20,20));
+                                if (ImGui::IsItemHovered()) {
+                                    ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", c, bg->pal->GetColorPalette()->colors[c].r, bg->pal->GetColorPalette()->colors[c].g, bg->pal->GetColorPalette()->colors[c].b);
+                                }
+                            }
+                        }
+                        ImGui::TreePop();
+                    }   
+                    
                 }
                 ImGui::Text("Sprites: %d", shot->sprites.size());
                 for (size_t i = 0; i < shot->sprites.size(); i++) {
                     MIDGAME_SHOT_SPRITE *sprt = shot->sprites[i];
-                    ImGui::Text(" Sprite %d: NumImages: %d, Pos Start: (%d,%d), Pos End: (%d,%d), Velocity: (%d,%d), Keep first frame: %s, HasPal: %s", 
-                        i+1, sprt->image->GetNumImages(), sprt->position_start.x, sprt->position_start.y,
-                        sprt->position_end.x, sprt->position_end.y,
-                        sprt->velocity.x, sprt->velocity.y,
-                        sprt->keep_first_frame ? "Yes" : "No",
-                        sprt->pal != nullptr ? "Yes" : "No");
+                    if (ImGui::TreeNode(("Sprite " + std::to_string(i+1)).c_str())) {
+                        ImGui::Text("Sprite %d:", i+1);
+                        ImGui::Text("NumImages: %d", sprt->image->GetNumImages());
+                        ImGui::Text("Pos Start: (%d,%d)", sprt->position_start.x, sprt->position_start.y);
+                        ImGui::Text("Pos End: (%d,%d)", sprt->position_end.x, sprt->position_end.y);
+                        ImGui::Text("Velocity: (%d,%d)", sprt->velocity.x, sprt->velocity.y);
+                        ImGui::Text("Keep first frame: %s", sprt->keep_first_frame ? "Yes" : "No");
+                        ImGui::Text("HasPal: %s", sprt->pal != nullptr ? "Yes" : "No");
+                        if (sprt->pal != nullptr) {
+                            ImGui::Text("Palette Colors:");
+                            for (int c = 0; c < 256; c++) {
+                                if (c % 12 == 0 && c != 0) {
+                                    ImGui::NewLine();
+                                } else if (c != 0) {
+                                    ImGui::SameLine();
+                                }
+                                ImGui::ColorButton(("##sprt" + std::to_string(i) + "color" + std::to_string(c)).c_str(), ImVec4(
+                                    sprt->pal->GetColorPalette()->colors[c].r / 255.0f,
+                                    sprt->pal->GetColorPalette()->colors[c].g / 255.0f,
+                                    sprt->pal->GetColorPalette()->colors[c].b / 255.0f,
+                                    1.0f
+                                ), ImGuiColorEditFlags_NoTooltip, ImVec2(20,20));
+                                if (ImGui::IsItemHovered()) {
+                                    ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", c, sprt->pal->GetColorPalette()->colors[c].r, sprt->pal->GetColorPalette()->colors[c].g, sprt->pal->GetColorPalette()->colors[c].b);
+                                }
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
                 }
             }
             ImGui::Separator();
