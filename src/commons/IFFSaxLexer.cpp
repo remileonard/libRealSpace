@@ -98,8 +98,10 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                 read += chunk_size;
             } else {
                 printf("%s not handled\n", chunk_stype.c_str());
-                std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size);
-                read += chunk_size;
+                if (chunk_size > 0) {
+                    std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size);
+                    read += chunk_size;
+                }
             }
         }
     }
