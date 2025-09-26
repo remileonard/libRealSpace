@@ -23,8 +23,8 @@ void RSSmokeSet::parseSMOK_TYPE(uint8_t* data, size_t size){
 void RSSmokeSet::parseSMOK_TYPE_SMOK(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["INFO"] = std::bind(&RSSmokeSet::parseSMOK_TYPE_SMOK, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["ANIM"] = std::bind(&RSSmokeSet::parseSMOK_TYPE_SMOK, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSSmokeSet::parseSMOK_TYPE_SMOK_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["ANIM"] = std::bind(&RSSmokeSet::parseSMOK_TYPE_SMOK_ANIM, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSSmokeSet::parseSMOK_TYPE_SHAP(uint8_t* data, size_t size){
