@@ -144,6 +144,10 @@ public:
         }
         return bytes;
     }
+    inline void ReadBytes(uint8_t *buffer, size_t count) {
+        memcpy(buffer, this->cursor, count);
+        this->cursor += count;
+    }
 
 private:
     uint8_t *cursor;

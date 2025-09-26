@@ -60,16 +60,23 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
         if (chunk_stype == "FORM") {
             size_t chunk_size = this->stream->ReadUInt32BE();
             chunk_size += chunk_size % 2;
+            int offset = -4;
             std::vector<uint8_t> bname = this->stream->ReadBytes(4);
             chunk_stype.assign(bname.begin(), bname.end());
+            if (chunk_stype == "PAL ") {
+                offset = +4;
+            }
             read += 8;
             if (events.count(chunk_stype) > 0) {
-                events.at(chunk_stype)(this->stream->ReadBytes(chunk_size - 4).data(), chunk_size - 4);
-                read += (chunk_size - 4);
+                uint8_t * chunk_data = (uint8_t *)calloc(chunk_size + offset, sizeof(uint8_t));
+                this->stream->ReadBytes(chunk_data, chunk_size + offset);
+                events.at(chunk_stype)(chunk_data, chunk_size + offset);
+                read += (chunk_size+offset);
+                free(chunk_data);
             } else {
                 printf("%s not handled\n", chunk_stype.c_str());
-                std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size - 4);
-                read += (chunk_size - 4);
+                std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size);
+                read += (chunk_size);
             }
         } else {
             size_t chunk_size = this->stream->ReadUInt32BE();
@@ -81,7 +88,10 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
             read += 4;
             if (events.count(chunk_stype.c_str()) > 0) {
                 if (chunk_size > 0) {
-                    events.at(chunk_stype.c_str())(this->stream->ReadBytes(chunk_size).data(), chunk_size);
+                    uint8_t * chunk_data = (uint8_t *)calloc(chunk_size, sizeof(uint8_t));
+                    this->stream->ReadBytes(chunk_data, chunk_size);
+                    events.at(chunk_stype.c_str())(chunk_data, chunk_size);
+                    free(chunk_data);
                 } else {
                     events.at(chunk_stype.c_str())(NULL, 0);
                 }

@@ -53,7 +53,7 @@ typedef struct VGAPalette{
     
     void Diff(VGAPalette* other);
     void ReadPatch(ByteStream* s);
-    void CopyFromOtherPalette(VGAPalette* other);
+    void CopyFromOtherPalette(VGAPalette* other, bool filter=true);
     
 } VGAPalette ;
 

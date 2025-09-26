@@ -67,19 +67,22 @@ void VGAPalette::ReadPatch(ByteStream* s){
     }
     
 }
-void VGAPalette::CopyFromOtherPalette(VGAPalette* other){
+void VGAPalette::CopyFromOtherPalette(VGAPalette* other, bool filter){
     int i=-1;
     for (auto c : other->colors){
         i++;
-        if (c.r == 0 && c.g == 255 && c.b == 0) {
-            continue;
-        }
-        if (c.r == 255 && c.g == 0 && c.b == 255) {
-            continue;
+        if (filter) {
+            if (c.r == 0 && c.g == 255 && c.b == 0) {
+                continue;
+            }
+            if (c.r == 255 && c.g == 0 && c.b == 255) {
+                continue;
+            }
         }
         colors[i] = c;
     }
 }
+
 
 Texture::~Texture(){
     SCRenderer &Renderer = SCRenderer::getInstance();

@@ -90,6 +90,7 @@ private:
     int current_music{255};
     bool pause{false};
     void initMid1();
+    VGAPalette original_palette;
 public:
     SCAnimationPlayer();
     ~SCAnimationPlayer();

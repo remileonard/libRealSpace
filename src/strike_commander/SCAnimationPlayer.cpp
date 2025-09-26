@@ -767,8 +767,8 @@ void SCAnimationPlayer::init(){
         }
     }
 
-
-    this->palette = *VGA.getPalette();
+    this->original_palette.CopyFromOtherPalette(VGA.getPalette(), false);
+    this->palette.CopyFromOtherPalette(VGA.getPalette(), false);
     this->shot_counter = 0;
     this->fps_counter = 0;
     this->fps = 1;
@@ -780,6 +780,7 @@ void SCAnimationPlayer::runFrame(void){
     checkKeyboard();
     VGA.activate();
     VGA.getFrameBuffer()->clear();
+    this->palette.CopyFromOtherPalette(&this->original_palette, false);
     VGA.setPalette(&this->palette);
     FrameBuffer *fb = VGA.getFrameBuffer();
     fb->fillWithColor(0);
@@ -1011,6 +1012,49 @@ void SCAnimationPlayer::renderUI() {
                     ImGui::SameLine();
                 }
                 ImGui::ColorButton(("##" + std::to_string(i)).c_str(), ImVec4(
+                    this->palette.colors[i].r / 255.0f,
+                    this->palette.colors[i].g / 255.0f,
+                    this->palette.colors[i].b / 255.0f,
+                    1.0f
+                ), ImGuiColorEditFlags_NoTooltip, ImVec2(20,20));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", i, this->palette.colors[i].r, this->palette.colors[i].g, this->palette.colors[i].b);
+                }
+            }
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("VGA Pallette")) {
+            if (ImGui::Button("Reset to original palette")) {
+                this->palette.CopyFromOtherPalette(&this->original_palette, false);
+                VGA.setPalette(&this->palette);
+            }
+            ImGui::Separator();
+            ImGui::Text("Original color palette");
+            for (int i = 0; i < 256; i++) {
+                if (i % 12 == 0 && i != 0) {
+                    ImGui::NewLine();
+                } else if (i != 0) {
+                    ImGui::SameLine();
+                }
+                ImGui::ColorButton(("##orig" + std::to_string(i)).c_str(), ImVec4(
+                    this->original_palette.colors[i].r / 255.0f,
+                    this->original_palette.colors[i].g / 255.0f,
+                    this->original_palette.colors[i].b / 255.0f,
+                    1.0f
+                ), ImGuiColorEditFlags_NoTooltip, ImVec2(20,20));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", i, this->original_palette.colors[i].r, this->original_palette.colors[i].g, this->original_palette.colors[i].b);
+                }
+            }
+            ImGui::Separator();
+            ImGui::Text("Current color palette");
+            for (int i = 0; i < 256; i++) {
+                if (i % 12 == 0 && i != 0) {
+                    ImGui::NewLine();
+                } else if (i != 0) {
+                    ImGui::SameLine();
+                }
+                ImGui::ColorButton(("##curr" + std::to_string(i)).c_str(), ImVec4(
                     this->palette.colors[i].r / 255.0f,
                     this->palette.colors[i].g / 255.0f,
                     this->palette.colors[i].b / 255.0f,
