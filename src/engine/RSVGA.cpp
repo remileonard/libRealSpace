@@ -338,3 +338,124 @@ void RSVGA::vSync(void) {
     }
 }
 
+// Ajuster le contraste de la palette
+void RSVGA::ajusterContraste(float facteur) {
+    // Créer une copie de la palette originale pour préserver les couleurs d'origine
+    VGAPalette paletteOriginale = *getPalette();
+    
+    // Valeur centrale pour le contraste (128 pour 8 bits par canal)
+    const float valeurCentrale = 128.0f;
+    
+    // Pour chaque entrée dans la palette
+    for (int i = 0; i < 256; i++) {
+        Texel* couleur = palette.GetRGBColor(i);
+        
+        // Appliquer l'ajustement de contraste à chaque composante
+        couleur->r = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, valeurCentrale + facteur * (paletteOriginale.GetRGBColor(i)->r - valeurCentrale)));
+        couleur->g = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, valeurCentrale + facteur * (paletteOriginale.GetRGBColor(i)->g - valeurCentrale)));
+        couleur->b = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, valeurCentrale + facteur * (paletteOriginale.GetRGBColor(i)->b - valeurCentrale)));
+    }
+}
+
+// Ajuster la luminosité de la palette
+void RSVGA::ajusterLuminosite(float facteur) {
+    // Pour chaque entrée dans la palette
+    for (int i = 0; i < 256; i++) {
+        Texel* couleur = palette.GetRGBColor(i);
+        
+        // Appliquer l'ajustement de luminosité à chaque composante
+        couleur->r = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, couleur->r * facteur));
+        couleur->g = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, couleur->g * facteur));
+        couleur->b = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, couleur->b * facteur));
+    }
+}
+
+// Appliquer une teinte colorée à la palette
+void RSVGA::appliquerTeinte(uint8_t r, uint8_t g, uint8_t b, float intensite) {
+    // Pour chaque entrée dans la palette
+    for (int i = 0; i < 256; i++) {
+        Texel* couleur = palette.GetRGBColor(i);
+        
+        // Calculer la luminosité moyenne du pixel (niveau de gris)
+        float luminosite = (couleur->r + couleur->g + couleur->b) / 3.0f;
+        
+        // Mélanger la couleur originale avec la teinte selon l'intensité
+        couleur->r = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, couleur->r * (1.0f - intensite) + r * intensite * luminosite / 255.0f));
+        couleur->g = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, couleur->g * (1.0f - intensite) + g * intensite * luminosite / 255.0f));
+        couleur->b = (uint8_t)(std::min)(255.0f, (std::max)(0.0f, couleur->b * (1.0f - intensite) + b * intensite * luminosite / 255.0f));
+    }
+}
+
+// Redistribuer les couleurs en utilisant une égalisation d'histogramme
+void RSVGA::redistributionCouleurs() {
+    // Calculer l'histogramme pour chaque canal
+    int histR[256] = {0}, histG[256] = {0}, histB[256] = {0};
+    
+    // Compter les occurrences de chaque valeur
+    for (int i = 0; i < 256; i++) {
+        Texel* couleur = palette.GetRGBColor(i);
+        histR[couleur->r]++;
+        histG[couleur->g]++;
+        histB[couleur->b]++;
+    }
+    
+    // Calculer les histogrammes cumulatifs
+    int cumulR[256] = {0}, cumulG[256] = {0}, cumulB[256] = {0};
+    
+    cumulR[0] = histR[0];
+    cumulG[0] = histG[0];
+    cumulB[0] = histB[0];
+    
+    for (int i = 1; i < 256; i++) {
+        cumulR[i] = cumulR[i-1] + histR[i];
+        cumulG[i] = cumulG[i-1] + histG[i];
+        cumulB[i] = cumulB[i-1] + histB[i];
+    }
+    
+    // Normalisation et application
+    float facteurNormalisation = 255.0f / 256.0f;  // Pour éviter la valeur 256
+    
+    for (int i = 0; i < 256; i++) {
+        Texel* couleur = palette.GetRGBColor(i);
+        
+        // Appliquer l'égalisation d'histogramme
+        couleur->r = (uint8_t)(facteurNormalisation * cumulR[couleur->r]);
+        couleur->g = (uint8_t)(facteurNormalisation * cumulG[couleur->g]);
+        couleur->b = (uint8_t)(facteurNormalisation * cumulB[couleur->b]);
+    }
+}
+
+// Rétablir la palette d'origine
+void RSVGA::restaurerPalette() {
+    AssetManager &assets = AssetManager::instance();
+
+    RSPalette palette;
+    FileData *f = assets.GetFileData("PALETTE.IFF");
+    if (f == nullptr) {
+        TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+        palette.initFromFileRam(entries->data, entries->size);
+    } else {
+        palette.initFromFileData(f);
+    }
+    
+    this->palette = *palette.GetColorPalette();
+}
+
+// Interpoler entre deux palettes
+void RSVGA::interpolerPalettes(VGAPalette* palette1, VGAPalette* palette2, float facteur) {
+    // S'assurer que le facteur est dans la plage [0,1]
+    facteur = (std::min)(1.0f, (std::max)(0.0f, facteur));
+    
+    // Pour chaque entrée dans la palette
+    for (int i = 0; i < 256; i++) {
+        Texel* couleur = this->palette.GetRGBColor(i);
+        Texel* c1 = palette1->GetRGBColor(i);
+        Texel* c2 = palette2->GetRGBColor(i);
+        
+        // Interpolation linéaire entre les deux couleurs
+        couleur->r = (uint8_t)(c1->r * (1.0f - facteur) + c2->r * facteur);
+        couleur->g = (uint8_t)(c1->g * (1.0f - facteur) + c2->g * facteur);
+        couleur->b = (uint8_t)(c1->b * (1.0f - facteur) + c2->b * facteur);
+        couleur->a = (uint8_t)(c1->a * (1.0f - facteur) + c2->a * facteur);
+    }
+}

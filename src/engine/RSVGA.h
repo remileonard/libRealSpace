@@ -63,4 +63,12 @@ public:
     void fadeOut(int steps = 10, int delayMs = 50);
     FrameBuffer* getFrameBuffer(void){ return frameBuffer;};
 
+    void ajusterContraste(float facteur);
+    void ajusterLuminosite(float facteur);
+    void appliquerTeinte(uint8_t r, uint8_t g, uint8_t b, float intensite);
+    void redistributionCouleurs();
+    void restaurerPalette();
+    void interpolerPalettes(VGAPalette* palette1, VGAPalette* palette2, float facteur);
+    
+
 };
