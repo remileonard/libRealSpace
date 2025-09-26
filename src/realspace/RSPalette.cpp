@@ -45,8 +45,9 @@ void RSPalette::copyFrom(VGAPalette* other){
 void RSPalette::initFromFileData(FileData* fileData) {
     this->initFromFileRam(fileData->data, fileData->size);
 }
-void RSPalette::initFromFileRam(uint8_t *data, size_t size) {
+void RSPalette::initFromFileRam(uint8_t *data, size_t size, int size_offset) {
     IFFSaxLexer lexer;
+    lexer.size_offset = size_offset;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["PALT"] = std::bind(&RSPalette::parsePALT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["PAL "] = std::bind(&RSPalette::parsePAL, this, std::placeholders::_1, std::placeholders::_2);

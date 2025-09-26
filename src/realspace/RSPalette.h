@@ -23,7 +23,7 @@ public:
     ~RSPalette();
     
     void initFromFileData(FileData* fileData);
-    void initFromFileRam(uint8_t *data, size_t size);
+    void initFromFileRam(uint8_t *data, size_t size, int size_offset=-4);
     VGAPalette* GetColorPalette(void);
     void SetColorFlag(uint32_t flag);
     

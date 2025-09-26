@@ -39,8 +39,11 @@ bool IFFSaxLexer::InitFromFile(const char *filepath,
     return InitFromRAM(fileData, fileSize, events);
 }
 
-bool IFFSaxLexer::InitFromRAM(uint8_t *data, size_t size,
-                              std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {
+bool IFFSaxLexer::InitFromRAM(
+    uint8_t *data,
+    size_t size,
+    std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> events
+) {
     this->data = data;
     this->size = size;
     this->stream = new ByteStream();
@@ -60,18 +63,14 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
         if (chunk_stype == "FORM") {
             size_t chunk_size = this->stream->ReadUInt32BE();
             chunk_size += chunk_size % 2;
-            int offset = -4;
             std::vector<uint8_t> bname = this->stream->ReadBytes(4);
             chunk_stype.assign(bname.begin(), bname.end());
-            if (chunk_stype == "PAL ") {
-                offset = +4;
-            }
             read += 8;
             if (events.count(chunk_stype) > 0) {
-                uint8_t * chunk_data = (uint8_t *)calloc(chunk_size + offset, sizeof(uint8_t));
-                this->stream->ReadBytes(chunk_data, chunk_size + offset);
-                events.at(chunk_stype)(chunk_data, chunk_size + offset);
-                read += (chunk_size+offset);
+                uint8_t * chunk_data = (uint8_t *)calloc(chunk_size + size_offset, sizeof(uint8_t));
+                this->stream->ReadBytes(chunk_data, chunk_size + size_offset);
+                events.at(chunk_stype)(chunk_data, chunk_size + size_offset);
+                read += (chunk_size + size_offset);
                 free(chunk_data);
             } else {
                 printf("%s not handled\n", chunk_stype.c_str());

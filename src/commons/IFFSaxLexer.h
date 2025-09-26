@@ -27,7 +27,7 @@ public:
 
 	bool InitFromFile(const char* filepath, std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
 	bool InitFromRAM(uint8_t* data, size_t size, std::unordered_map<std::string, std::function<void(uint8_t* data, size_t size)>> events);
-
+	int size_offset = -4;
 
 private:
 
