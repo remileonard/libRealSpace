@@ -235,14 +235,12 @@ void SCGameFlow::runEffect() {
         }
         switch (instruction->opcode) {
         case EFFCT_OPT_SHOW_MAP: {
-            printf("PLAYING MAP %d\n", instruction->value);
             MapShot *map = new MapShot();
             map->init();
             map->SetPoints(&this->gameFlowParser.game.wrld[instruction->value]->data->points);
             this->cutsenes.push(map);
         } break;
         case EFECT_OPT_CONV: {
-            printf("PLAYING CONV %d\n", instruction->value);
             this->playConv(instruction->value);
         } break;
         case EFECT_OPT_SCEN:
@@ -250,8 +248,6 @@ void SCGameFlow::runEffect() {
                 if (this->gameFlowParser.game.game[this->current_miss]->scen.at(j)->info.ID == instruction->value) {
                     this->current_scen = j;
                     this->currentSpriteId = 0;
-                    printf("PLAYING SCEN %d\n", this->current_scen);
-
                     this->createScen();
                 }
             }
@@ -277,20 +273,14 @@ void SCGameFlow::runEffect() {
             }
         } break;
         case EFECT_OPT_MIS2:
-            // if (instruction->value != this->current_miss) {
             GameState.mission_id = instruction->value;
-            printf("PLAYING MIS2 %d\n", instruction->value);
-            //}
             break;
         case EFECT_OPT_SHOT: {
-            printf("PLAYING SHOT %d\n", instruction->value);
             this->playShot(instruction->value);
         } break;
         case EFECT_OPT_FLYM: {
             uint8_t flymID = instruction->value;
             GameState.mission_flyed = flymID;
-            printf("PLAYING FLYM %d\n", flymID);
-            printf("Mission Name %s\n", this->gameFlowParser.game.mlst->data[flymID]->c_str());
             this->missionToFly = (char *)malloc(13);
             sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
             strtoupper(this->missionToFly, this->missionToFly);
@@ -299,8 +289,6 @@ void SCGameFlow::runEffect() {
         case EFECT_OPT_FLYM2: {
             uint8_t flymID = instruction->value;
             GameState.mission_flyed = flymID;
-            printf("PLAYING FLYM %d\n", flymID);
-            printf("Mission Name %s\n", this->gameFlowParser.game.mlst->data[flymID]->c_str());
             this->missionToFly = (char *)malloc(13);
             sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
             strtoupper(this->missionToFly, this->missionToFly);
@@ -625,12 +613,10 @@ void SCGameFlow::createMiss() {
     this->convs = std::queue<SCConvPlayer *>();
     this->cutsenes = std::queue<SCShot *>();
     this->fly_mission = std::queue<SCStrike *>();
-    printf("current miss : %d, current_scen %d\n", this->current_miss, this->current_scen);
     if (this->gameFlowParser.game.game[this->current_miss]->efct != nullptr) {
         this->efect = this->gameFlowParser.game.game[this->current_miss]->efct;
     }
 
-    printf("efect size %zd\n", this->efect->size());
     this->runEffect();
     this->createScen();
 }
@@ -645,7 +631,6 @@ void SCGameFlow::loadMiss() {
     this->convs = std::queue<SCConvPlayer *>();
     this->cutsenes = std::queue<SCShot *>();
     this->fly_mission = std::queue<SCStrike *>();
-    printf("current miss : %d, current_scen %d\n", this->current_miss, this->current_scen);
     this->createScen();
 }
 

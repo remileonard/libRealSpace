@@ -16,7 +16,6 @@
 void SCMainMenu::OnContinue(void) { printf("OnContinue\n"); }
 
 void SCMainMenu::OnLoadGame() { 
-    printf("OnLoadGame\n");
     if (this->frequest) {
         delete this->frequest;
         this->frequest = nullptr;

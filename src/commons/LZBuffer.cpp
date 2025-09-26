@@ -162,9 +162,6 @@ uint8_t* LZBuffer::DecodeLZW(const uint8_t* compData, size_t compSize, size_t &u
                 prevEntry = dictionary[code];
                 output.insert(output.end(), prevEntry.begin(), prevEntry.end());
             }
-            if (code >= 256) {
-                printf("LZBuffer::DecodeLZWNoStop: code >= 256, code[%d]\n", code);
-            }
             continue;
         }
         

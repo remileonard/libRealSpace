@@ -127,7 +127,7 @@ void ConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
     this->bgLayers   = &bg->layers;
     this->bgPalettes = &bg->palettes;
     this->face      = nullptr;
-    printf("ConvID: %d WIDEPLAN : LOCATION: '%s'\n", this->conversationID, location);
+
     conv->MoveForward(8);
     while (conv->PeekByte() == 0x0) {
         conv->MoveForward(1);
@@ -171,25 +171,17 @@ void ConvFrame::parse_CLOSEUP(ByteStream *conv) {
     this->textColor            = color;
     const char *pszExt         = "normal";
     this->facePaletteID = ConvAssets.GetFacePaletteID(const_cast<char *>(pszExt));
-
-    printf(
-        "ConvID: %d CLOSEUP: WHO: '%8s' WHERE: '%8s'     WHAT: '%s' (%2X) pos %2X  face expression: '%d'\n",
-        this->conversationID, speakerName, setName, this->text, color, pos, this->face_expression
-    );
 }
 void ConvFrame::parse_CLOSEUP_CONTINUATION(ByteStream *conv) {
     int next_frame_offset = SetSentenceFromConv(conv,0x0);
     conv->MoveForward(next_frame_offset);
-    printf(
-        "ConvID: %d MORETEX:                                       WHAT: '%s'\n", this->conversationID, this->text
-    );
 }
 void ConvFrame::parse_YESNOCHOICE_BRANCH1(ByteStream *conv, SCConvPlayer *player) {
     this->mode = ConvFrame::CONV_CONTRACT_CHOICE;
     // Looks like first byte is the offset to skip if the answer is no.
     uint8_t noOffset  = conv->ReadByte();
     uint8_t yesOffset = conv->ReadByte();
-    printf("Offsets: %d %d\n", noOffset, yesOffset);
+
     SCZone *zone = new SCZone();
     zone->label  = new std::string("yes");
     zone->quad   = new std::vector<Point2D *>();
@@ -232,9 +224,7 @@ void ConvFrame::parse_YESNOCHOICE_BRANCH2(ByteStream *conv) {
 void ConvFrame::parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv) {
     char *participantName   = (char *)conv->GetPosition();
     CharFigure *participant = ConvAssets.GetFigure(participantName);
-    
 
-    printf("ConvID: %d WIDEPLAN ADD PARTICIPANT: '%s'\n", this->conversationID, conv->GetPosition());
     conv->MoveForward(8);
     participant->x = conv->ReadUShortBE();
     participant->y = conv->ReadUShortBE();
@@ -258,7 +248,6 @@ void ConvFrame::parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv) {
     int next_frame_offset = this->SetSentenceFromConv(conv, 0xE);
     
     conv->MoveForward(next_frame_offset);
-    printf("ConvID: %d WIDEPLAN PARTICIPANT TALKING: who: '%s' WHAT '%s'\n", this->conversationID, who, this->text);
     CharFigure *participant = ConvAssets.GetFigure(who);
     this->participants.push_back(participant);
 }
@@ -267,7 +256,7 @@ void ConvFrame::parse_SHOW_TEXT(ByteStream *conv) {
     int8_t color      = conv->ReadByte();
     int next_frame_offset = this->SetSentenceFromConv(conv, 0);
     this->textColor = color;
-    printf("ConvID: %d Show Text: '%s' \n", this->conversationID, this->text);
+
     conv->MoveForward(next_frame_offset);
     conv->PeekByte();
 }
@@ -281,7 +270,7 @@ void ConvFrame::parse_CHOOSE_WINGMAN(ByteStream *conv, SCConvPlayer *player) {
 
     this->participants.clear();
     this->mode = ConvFrame::CONV_WINGMAN_CHOICE;
-    printf("ConvID: %d Open pilot selection screen with current BG.\n", this->conversationID);
+
     CharFigure *entry = ConvAssets.GetFigure(const_cast<char*>("red1"));
     this->participants.push_back(entry);
     std::vector<std::string> airwing = {"billy2", "gwen2", "lyle2", "miguel2", "tex3"};
@@ -317,7 +306,6 @@ void ConvFrame::parse_CHOOSE_WINGMAN(ByteStream *conv, SCConvPlayer *player) {
 void SCConvPlayer::focus(void) { IActivity::focus(); }
 
 void SCConvPlayer::clicked(void *none, uint8_t id) {
-    printf("clicked on %d\n", id);
     if (id != 1 && id != 2) {
         this->current_frame->SetExpired(true);
         return;
@@ -354,7 +342,6 @@ void SCConvPlayer::clicked(void *none, uint8_t id) {
     this->current_frame->SetExpired(true);
 }
 void SCConvPlayer::selectWingMan(void *none, uint8_t id) {
-    printf("clicked on %d\n", id);
     std::unordered_map<uint8_t, std::string> wingman_map = {
         {0,"LYLE"},
         {1,"MIGUEL"},
@@ -479,7 +466,6 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
     }
     case YESNOCHOICE_BRANCH1: // Choice Offsets are question
     {
-        printf("ConvID: %d CHOICE YES/NO : %d\n", this->conversationID, type);
         tmp_frame->parse_YESNOCHOICE_BRANCH1(&conv, this);
         tmp_frame->face = this->conversation_frames.back()->face;
         tmp_frame->textColor = this->conversation_frames.back()->textColor;
@@ -492,7 +478,6 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
     {
 
         // tmp_frame->mode = ConvFrame::CONV_CONTRACT_CHOICE;
-        printf("ConvID: %d CHOICE YES/NO : %d\n", this->conversationID, type);
         // Looks like first byte is the offset to skip if the answer is no.
         tmp_frame->parse_YESNOCHOICE_BRANCH2(&conv);
         tmp_frame->do_not_add = true;
@@ -523,7 +508,6 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
         topOffset = conv.ReadByte();
         first_palette = conv.ReadByte();
         this->parseConv(tmp_frame);
-        printf("ConvID: %d Unknown usage Flag 0xE: (0x%2X 0x%2X) \n", this->conversationID, topOffset, first_palette);
         break;
     }
     case CHOOSE_WINGMAN: // Wingman selection trigger
@@ -532,7 +516,6 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
         break;
     }
     default:
-        printf("ConvID: %d Unknown opcode: %X.\n", this->conversationID, type);
         tmp_frame->do_not_add = true;
         break;
     }
