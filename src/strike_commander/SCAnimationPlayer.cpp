@@ -98,10 +98,9 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
-                    {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 {
                     { this->mid[0], MID1_IDS::MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
@@ -113,10 +112,9 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
-                    {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 {
                     { this->mid[0], MID1_IDS::MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0}  ,0}
@@ -161,11 +159,10 @@ void SCAnimationPlayer::initMid1() {
             },
             {
                 {
-                    { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 { 
-                    {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 {
                     { this->mid[0], MID1_IDS::F16_MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
@@ -175,10 +172,9 @@ void SCAnimationPlayer::initMid1() {
             {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
-                    {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 {
                     { this->mid[0], MID1_IDS::F16_MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
@@ -220,11 +216,10 @@ void SCAnimationPlayer::initMid1() {
             },
             {
                 {
-                    { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
-                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 { 
-                    {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
+                    { this->mid[0], MID1_IDS::F16_PICS, 1, 0, {0,0}, {0,0}, {0,0} ,0 }
                 },
                 {
                     { this->mid[0], MID1_IDS::MIG29_CHASE_ANIM, 0, 0, {0,-10}, {0,0}, {0,0} ,0 }
@@ -753,7 +748,32 @@ void SCAnimationPlayer::init(){
                 sprite->keep_first_frame = sprt.keep_first_frame;
                 shot->sprites.push_back(sprite);
             }
-
+            for (auto shot_bg: sht.forground) {
+                if (shot_bg.pak == nullptr) {
+                    continue;
+                }
+                MIDGAME_SHOT_BG *bg = new MIDGAME_SHOT_BG();
+                RSImageSet *tmp_img = new RSImageSet();
+                PakArchive *pk = new PakArchive();
+                PakEntry *pe = shot_bg.pak->GetEntry(shot_bg.shape_id);
+                pk->InitFromRAM("toto", pe->data, pe->size);
+                tmp_img->InitFromPakArchive(pk,0);
+                if (tmp_img->GetNumImages() == 0) {
+                    delete tmp_img;
+                    tmp_img = new RSImageSet();
+                    tmp_img->InitFromPakEntry(pe);
+                }
+                bg->palette = shot_bg.pal_id;
+                bg->image = tmp_img;
+                if (tmp_img->palettes.size()>0) {
+                    bg->pal = tmp_img->palettes[0];
+                }
+                bg->shapeid = shot_bg.sub_shape_id;
+                bg->position_start = shot_bg.start;
+                bg->position_end = shot_bg.end;
+                bg->velocity = shot_bg.velocity;
+                shot->foreground.push_back(bg);
+            }
             shot->nbframe = sht.nbframe;
             shot->music = sht.music;
             if (sht.sound != nullptr) {
@@ -854,7 +874,36 @@ void SCAnimationPlayer::runFrame(void){
         }
         delete texture;
     }
-    
+    for (auto bg : shot->foreground) {
+        if (bg->image->GetNumImages()>0) {
+            RLEShape *shp = bg->image->GetShape(bg->shapeid);
+            FrameBuffer *texture = new FrameBuffer(320, 200);
+            texture->fillWithColor(255);
+            texture->drawShape(shp);
+            fb->blitWithMask(texture->framebuffer, bg->position_start.x, bg->position_start.y, 320, 200,255);
+            if (fpsupdate && (bg->velocity.x != 0 || bg->velocity.y != 0)) {
+                if (bg->position_start.x != bg->position_end.x) {
+                    bg->position_start.x += bg->velocity.x;
+                }  
+                if (bg->velocity.y<0 && bg->position_start.y > bg->position_end.y) {
+                    bg->position_start.y += bg->velocity.y;
+                } else if (bg->velocity.y>0 && bg->position_start.y < bg->position_end.y) {
+                    bg->position_start.y += bg->velocity.y;
+                }
+            }
+            if (bg->palette != 0) {
+                ByteStream paletteReader;
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+                this->palette.ReadPatch(&paletteReader);
+                VGA.setPalette(&this->palette);
+            }
+            if (bg->pal != nullptr) {
+                this->palette.CopyFromOtherPalette(bg->pal->GetColorPalette());
+                VGA.setPalette(&this->palette);
+            }
+            delete texture;
+        }
+    }
     if (!pause) {
         fps_counter++;
         fps+=fpsupdate;

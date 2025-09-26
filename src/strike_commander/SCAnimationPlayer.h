@@ -49,6 +49,7 @@ typedef struct MIDGAME_SOUND {
 typedef struct MIDGAME_SHOT {
     std::vector<MIDGAME_SHOT_BG *>background;
     std::vector<MIDGAME_SHOT_SPRITE *>sprites;
+    std::vector<MIDGAME_SHOT_BG *>foreground;
     int nbframe{0};
     int music{255};
     MIDGAME_SOUND *sound{nullptr};
