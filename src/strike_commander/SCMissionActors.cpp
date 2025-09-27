@@ -633,6 +633,33 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
     }
     return false;
 }
+bool SCMissionActors::protectSelf() {
+    if (this->attacker != nullptr) {
+        if (this->attacker->actor_name == "PLAYER") {
+            return false;
+        }
+        if (this->attacker->plane != nullptr) {
+            for (auto weap: this->attacker->plane->weaps_object) {
+                if (weap->target == this) {
+                    // Check if this actor is in the friendlies list
+                    bool is_friendly = false;
+                    for (auto friendly : this->mission->friendlies) {
+                        if (friendly == this) {
+                            is_friendly = true;
+                            break;
+                        }
+                    }
+
+                    // If this is a friendly actor, attempt to evade the incoming weapon
+                    if (is_friendly) {
+                        weap->target = nullptr; // Disengage the weapon from this actor
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+}
 /**
  * @brief Activates the target actor with the specified ID.
  *

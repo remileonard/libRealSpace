@@ -72,7 +72,7 @@ typedef struct MIDGAME_DATA {
 
 
 class SCAnimationPlayer: public IActivity {
-private:
+protected:
     AssetManager &Assets = AssetManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
     GameEngine *Game = &GameEngine::instance();
@@ -90,15 +90,16 @@ private:
     int fps_timer{0};
     int current_music{255};
     bool pause{false};
+    bool auto_stop{true};
     void initMid1();
     VGAPalette original_palette;
 public:
     SCAnimationPlayer();
     ~SCAnimationPlayer();
-    void init();
-    void runFrame(void);
-    void renderMenu();
-    void renderUI(void);
+    virtual void init();
+    virtual void runFrame(void);
+    virtual void renderMenu() {};
+    virtual void renderUI(void) {};
 };
 
 #endif /* defined(__libRealSpace__SCAnimationPlayer__) */

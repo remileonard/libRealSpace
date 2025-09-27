@@ -1352,7 +1352,9 @@ void SCStrike::runFrame(void) {
                     Renderer.renderBBox(position+actor->attack_pos_offset, bb->min, bb->max);
                 } else {
                     actor->plane->Render();
-                    actor->plane->RenderSimulatedObject();
+                    if (actor->plane->alive) {
+                        actor->plane->RenderSimulatedObject();
+                    }
                 }
                 if (actor->plane->object->alive == false) {
                     actor->plane->RenderSmoke();

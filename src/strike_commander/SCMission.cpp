@@ -522,6 +522,7 @@ void SCMission::update() {
             }
         }
         
+        ai_actor->protectSelf();
         switch (ai_actor->current_command) {
             case OP_SET_OBJ_UNKNOWN:
                 ai_actor->current_command_executed = false;

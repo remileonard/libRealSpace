@@ -14,6 +14,7 @@
 #include "DebugGameFlow.h"
 #include "DebugObjectViewer.h"
 #include "DebugControllerActivity.h"
+#include "DebugAnimationPlayer.h"
 
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
@@ -335,7 +336,7 @@ void DebugGame::testMidGames() {
         ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
         RSFontManager &FontManager = RSFontManager::getInstance();
         std::vector<std::string> cdTreFiles = {
-            "TOBIGTRE.TRE",
+            "BIGTRE.TRE",
             "LILTRE.TRE"
         };
         Assets.ReadISOImage("./SC.DAT");
@@ -360,7 +361,7 @@ void DebugGame::testMidGames() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
         FontManager.init();
-        SCAnimationPlayer* main = new SCAnimationPlayer();
+        DebugAnimationPlayer* main = new DebugAnimationPlayer();
         main->init();
         GameEngine *Game = &GameEngine::instance();
         Game->addActivity(main);
