@@ -44,6 +44,9 @@ public:
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
     int retarget_cooldown{0};
+    int timer{0};
+    int wait_timer{0};
+    virtual bool wait(int seconds);
     virtual bool execute();
     virtual bool takeOff(uint8_t arg); 
     virtual bool land(uint8_t arg);

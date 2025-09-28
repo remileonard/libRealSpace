@@ -524,8 +524,8 @@ void SCMission::update() {
         
         ai_actor->protectSelf();
         switch (ai_actor->current_command) {
-            case OP_SET_OBJ_UNKNOWN:
-                ai_actor->current_command_executed = false;
+            case OP_SET_WAIT_FOR_SECONDS:
+                ai_actor->current_command_executed = ai_actor->wait(ai_actor->current_command_arg);
             break;
             case OP_SET_OBJ_TAKE_OFF:
                 ai_actor->current_command_executed = ai_actor->takeOff(ai_actor->current_command_arg);

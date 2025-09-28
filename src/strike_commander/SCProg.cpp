@@ -161,9 +161,9 @@ void SCProg::execute() {
                         }
                     }
                 break;
-                case OP_SET_OBJ_UNKNOWN:
-                    this->actor->current_command = OP_SET_OBJ_UNKNOWN;
-                    this->actor->current_command_executed = false;
+                case OP_SET_WAIT_FOR_SECONDS:
+                    this->actor->current_command = OP_SET_WAIT_FOR_SECONDS;
+                    this->actor->current_command_executed = this->actor->wait(prog.arg);
                     this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_SET_OBJ_TAKE_OFF:

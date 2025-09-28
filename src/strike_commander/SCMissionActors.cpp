@@ -3,9 +3,21 @@
 #include <cstdlib>
 #include <ctime>
 
-bool SCMissionActors::execute() {
-    return true;
+bool SCMissionActors::wait(int seconds) { 
+    if (this->wait_timer == 0) {
+        this->wait_timer = seconds * this->plane->tps;
+    }
+    if (this->wait_timer > 0) {
+        this->wait_timer--;
+    }
+    if (this->wait_timer <= 0) {
+        this->wait_timer = -1;
+        return true;
+    }
+    return false;
 }
+
+bool SCMissionActors::execute() { return true; }
 /**
  * SCMissionActors::takeOff
  *
@@ -659,6 +671,7 @@ bool SCMissionActors::protectSelf() {
             }
         }
     }
+    return false;
 }
 /**
  * @brief Activates the target actor with the specified ID.
@@ -724,10 +737,16 @@ int SCMissionActors::getDistanceToTarget(uint8_t arg) {
         position = {this->plane->x, this->plane->y, this->plane->z};
     }
     Vector3D diff;
-    if (this->mission->actors[arg]->plane == nullptr) {
-        diff = this->mission->actors[arg]->object->position - position;
-    } else {
-        diff = this->mission->actors[arg]->plane->position - position;
+    for (auto actor: this->mission->actors) {
+        if (actor->actor_id == arg) {
+            if (actor->plane == nullptr) {
+                diff = actor->object->position - position;
+            } else {
+                Vector3D target_pos = {actor->plane->x, actor->plane->y, actor->plane->z};
+                diff = target_pos - position;
+            }
+            break;
+        }
     }
     return (int) diff.Length()/1000;
 }
