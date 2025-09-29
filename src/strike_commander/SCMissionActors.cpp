@@ -3,9 +3,11 @@
 #include <cstdlib>
 #include <ctime>
 
-bool SCMissionActors::wait(int seconds) { 
-    if (this->wait_timer == 0) {
-        this->wait_timer = seconds * this->plane->tps;
+bool SCMissionActors::wait(int seconds) {
+    if (this->current_command != prog_op::OP_SET_WAIT_FOR_SECONDS) {
+        if (this->wait_timer == 0) {
+            this->wait_timer = seconds * this->plane->tps;
+        }
     }
     if (this->wait_timer > 0) {
         this->wait_timer--;
@@ -85,7 +87,7 @@ bool SCMissionActors::flyToWaypoint(uint8_t arg) {
             Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
             Vector3D diff = wp->position - position;
             float dist = diff.Length();
-            if (dist < 3000.0f) {
+            if (dist < 5000.0f) {
                 return true;
             }
         }

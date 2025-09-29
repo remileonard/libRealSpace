@@ -131,6 +131,7 @@ void SCProg::execute() {
                     if (!this->actor->current_command_executed) {
                         jump_to = prog.arg;
                         exec = false;
+                        this->actor->current_command = prog_op::OP_NOOP;
                     }
                 break;
                 case OP_IF_TARGET_IN_AREA:
@@ -162,8 +163,8 @@ void SCProg::execute() {
                     }
                 break;
                 case OP_SET_WAIT_FOR_SECONDS:
-                    this->actor->current_command = OP_SET_WAIT_FOR_SECONDS;
                     this->actor->current_command_executed = this->actor->wait(prog.arg);
+                    this->actor->current_command = OP_SET_WAIT_FOR_SECONDS;
                     this->actor->current_command_arg = prog.arg;
                 break;
                 case OP_SET_OBJ_TAKE_OFF:
