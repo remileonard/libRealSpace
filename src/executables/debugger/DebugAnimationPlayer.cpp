@@ -1,4 +1,5 @@
 #include "DebugAnimationPlayer.h"
+#include "DebugUtils.h"
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
@@ -13,6 +14,17 @@ void DebugAnimationPlayer::renderMenu() {
     ImGui::Text("Animation Player frame: %d, fps: %d, shot: %d", this->fps_counter, this->fps, this->shot_counter);
 }
 void DebugAnimationPlayer::renderUI() {
+    static std::vector<GLuint> s_PrevFrameGLTex;
+    static std::vector<GLuint> s_CurrentFrameGLTex;
+    if (!s_PrevFrameGLTex.empty()) {
+        for (GLuint id : s_PrevFrameGLTex) {
+            glDeleteTextures(1, &id);
+        }
+        s_PrevFrameGLTex.clear();
+    }
+    // Préparer la liste pour cette frame
+    s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); // s_CurrentFrameGLTex devient vide
+
     if (ImGui::BeginTabBar("Animations")) {
         if (ImGui::BeginTabItem("MidGames Data")) {
             if (ImGui::Button("Previous Shot")) {
@@ -99,6 +111,20 @@ void DebugAnimationPlayer::renderUI() {
                                 }
                             }
                         }
+                        if (bg->image != nullptr) {
+                            ImGui::Text("Image has %d images", bg->image->GetNumImages());
+                            if (this->fps_counter < shot->nbframe) {
+                                int frame_to_show = this->fps_counter % bg->image->GetNumImages();
+                                ImGui::Text("Showing frame %d", frame_to_show);
+                                GLuint glTex = renderShape(bg->image->GetShape(frame_to_show), &this->palette);
+                                s_CurrentFrameGLTex.push_back(glTex); // Garder la texture pour la supprimer plus tard
+                                ImGui::Image((void*)(uintptr_t)glTex, ImVec2(320,200));
+                            } else {
+                                ImGui::Text("No frame to show at current fps counter");
+                            }
+                        } else {
+                            ImGui::Text("No image associated");
+                        }
                         ImGui::TreePop();
                     }   
                     
@@ -132,6 +158,19 @@ void DebugAnimationPlayer::renderUI() {
                                     ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", c, sprt->pal->GetColorPalette()->colors[c].r, sprt->pal->GetColorPalette()->colors[c].g, sprt->pal->GetColorPalette()->colors[c].b);
                                 }
                             }
+                        }
+                        if (sprt->image != nullptr) {
+                            if (this->fps_counter < shot->nbframe) {
+                                int frame_to_show = this->fps_counter % sprt->image->GetNumImages();
+                                ImGui::Text("Showing frame %d", frame_to_show);
+                                GLuint glTex = renderShape(sprt->image->GetShape(frame_to_show), sprt->pal != nullptr ? sprt->pal->GetColorPalette() : &this->palette);
+                                s_CurrentFrameGLTex.push_back(glTex); // Garder la texture pour la supprimer plus tard
+                                ImGui::Image((void*)(uintptr_t)glTex, ImVec2(320,200));
+                            } else {
+                                ImGui::Text("No frame to show at current fps counter");
+                            }
+                        } else {
+                            ImGui::Text("No image associated");
                         }
                         ImGui::TreePop();
                     }
@@ -236,6 +275,8 @@ void DebugAnimationPlayer::renderUI() {
             
             ImGui::EndTabItem();
         }
+        this->midgameChoser();
+        ImGui::Separator();
         ImGui::EndTabBar();
     }
 }
@@ -250,9 +291,19 @@ void DebugAnimationPlayer::midgameChoser() {
     }
     if (this->current_mid != nullptr) {
         ImGui::Text("Archive: %s, NumEntries: %d", this->current_mid->GetName(), this->current_mid->GetNumEntries());
-        for (int i = 0; i < this->current_mid->GetNumEntries(); i++) {
-            PakEntry *entry = this->current_mid->GetEntry(i);
-            ImGui::Text("Entry %d: Type :%d, Size: %zu bytes", i, entry->type, entry->size);
+        if (ImGui::BeginCombo("Entries", "Select an entry")) {
+            for (int i = 0; i < this->current_mid->GetNumEntries(); i++) {
+                PakEntry *entry = this->current_mid->GetEntry(i);
+                if (ImGui::Selectable(
+                    ("Entry " + std::to_string(i)+ " " + std::to_string(entry->type)).c_str(),
+                    entry == this->current_entry
+                )) {
+                    // do something when selected
+                    this->current_entry = entry;
+                }
+            }
+            ImGui::EndCombo();
         }
+
     }
 }

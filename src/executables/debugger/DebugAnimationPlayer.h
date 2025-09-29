@@ -4,6 +4,7 @@
 class DebugAnimationPlayer: public SCAnimationPlayer {
 private:
     PakArchive *current_mid{nullptr};
+    PakEntry *current_entry{nullptr};
 public:
     DebugAnimationPlayer();
     ~DebugAnimationPlayer();
