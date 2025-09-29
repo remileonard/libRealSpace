@@ -79,6 +79,9 @@ void DebugGame::loadSC() {
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
         
         RSFontManager &FontManager = RSFontManager::getInstance();
+        SCMouse::getInstance().init();
+        RSMixer::getInstance().init();
+        RSSound::getInstance().init();
         FontManager.init();
         ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
         // Load assets needed for Conversations (char and background)
@@ -139,7 +142,8 @@ void DebugGame::loadSCCD() {
         Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
-        
+        SCMouse::getInstance().init();
+        RSMixer::getInstance().init();
         FontManager.init();
         loader->setProgress(60.0f);
         // Load assets needed for Conversations (char and background)
@@ -205,9 +209,10 @@ void DebugGame::testMissionSC() {
         Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
-        
+        SCMouse::getInstance().init();
         FontManager.init();
         RSSound::getInstance().init();
+        RSMixer::getInstance().init();
         //Add MainMenu activity on the game stack.
         loader->setProgress(100.0f);
         DebugStrike * main = new DebugStrike();
@@ -254,11 +259,12 @@ void DebugGame::loadTO() {
         Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
-        
+        SCMouse::getInstance().init();
         FontManager.init();
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
         RSSound::getInstance().init();
+        RSMixer::getInstance().init();
         DebugGameFlow* main = new DebugGameFlow();
         SCState &GameState = SCState::getInstance();
         GameState.Reset();
@@ -310,6 +316,9 @@ void DebugGame::testObjects() {
         Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
+        SCMouse::getInstance().init();
+        RSMixer::getInstance().init();
+        RSSound::getInstance().init();
         FontManager.init();
         DebugObjectViewer* main = new DebugObjectViewer();
         main->init();
@@ -361,6 +370,9 @@ void DebugGame::testMidGames() {
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV2.PAK";
         FontManager.init();
+        SCMouse::getInstance().init();
+        RSMixer::getInstance().init();
+        RSSound::getInstance().init();
         DebugAnimationPlayer* main = new DebugAnimationPlayer();
         main->init();
         GameEngine *Game = &GameEngine::instance();

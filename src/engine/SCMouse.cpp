@@ -24,7 +24,10 @@ void SCMouse::init(void){
     
     AssetManager &asset = AssetManager::instance();
     TreEntry* cursorShape   = asset.GetEntryByName(CURSOR_SHAPE_PATH);
-    
+    if (!cursorShape) {
+        this->visible = false;
+        return;
+    }
     PakArchive cursors ;
     cursors.InitFromRAM("MOUSE.SHP",cursorShape->data,cursorShape->size);
     
