@@ -201,23 +201,58 @@ void DebugAnimationPlayer::renderUI() {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Editor")) {
-            if (ImGui::BeginCombo("MID Archive", this->current_mid ? this->current_mid->GetName() : "None")) {
-                for (auto midarchive: this->mid) {
-                    if (ImGui::Selectable(midarchive->GetName(), midarchive == this->current_mid)) {
-                        this->current_mid = midarchive;
-                    }
-                }
-                ImGui::EndCombo();
+            if (ImGui::Button("New Shot")) {
+                
             }
-            if (this->current_mid != nullptr) {
-                ImGui::Text("Archive: %s, NumEntries: %d", this->current_mid->GetName(), this->current_mid->GetNumEntries());
-                for (int i = 0; i < this->current_mid->GetNumEntries(); i++) {
-                    PakEntry *entry = this->current_mid->GetEntry(i);
-                    ImGui::Text("Entry %d: Type :%d, Size: %zu bytes", i, entry->type, entry->size);
-                }
+            ImGui::SameLine();
+            if (ImGui::Button("Save Shot")) {
+                
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Delete Shot")) {
+                
+            }
+            if (ImGui::Button("Add Background")) {
+                
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Add Sprite")) {
+                
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Add Foreground")) {
+                
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Add Character")) {
+
+            }
+            if (ImGui::Button("Add Sound")) {
+                
+            }ImGui::SameLine();
+            if (ImGui::Button("Add Text")) {
+
+            }
+            
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
+    }
+}
+void DebugAnimationPlayer::midgameChoser() {
+    if (ImGui::BeginCombo("MID Archive", this->current_mid ? this->current_mid->GetName() : "None")) {
+        for (auto midarchive: this->mid) {
+            if (ImGui::Selectable(midarchive->GetName(), midarchive == this->current_mid)) {
+                this->current_mid = midarchive;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (this->current_mid != nullptr) {
+        ImGui::Text("Archive: %s, NumEntries: %d", this->current_mid->GetName(), this->current_mid->GetNumEntries());
+        for (int i = 0; i < this->current_mid->GetNumEntries(); i++) {
+            PakEntry *entry = this->current_mid->GetEntry(i);
+            ImGui::Text("Entry %d: Type :%d, Size: %zu bytes", i, entry->type, entry->size);
+        }
     }
 }

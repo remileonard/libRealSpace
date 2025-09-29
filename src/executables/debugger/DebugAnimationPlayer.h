@@ -9,4 +9,5 @@ public:
     ~DebugAnimationPlayer();
     void renderMenu() override;
     void renderUI(void) override;
+    void midgameChoser();
 };

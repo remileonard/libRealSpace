@@ -4,6 +4,8 @@ DebugEmptyActivity::DebugEmptyActivity() {}
 
 DebugEmptyActivity::~DebugEmptyActivity() {}
 
+void DebugEmptyActivity::init(void) {}
+
 void DebugEmptyActivity::runFrame(void) {
     
 }
