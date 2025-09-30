@@ -10,6 +10,7 @@
 #define __libRealSpace__SCAnimationPlayer__
 
 typedef struct MIDGAME_SHOT_BG {
+    PakArchive *pak;
     RSImageSet *image;
     uint8_t palette;
     RSPalette *pal;
@@ -17,6 +18,7 @@ typedef struct MIDGAME_SHOT_BG {
     Point2D position_end;
     Point2D velocity;
     int shapeid;
+    int pak_entry_id;
 } MIDGAME_SHOT_BG;
 
 typedef struct MIDGAME_SHAPE_DATA {
@@ -31,6 +33,8 @@ typedef struct MIDGAME_SHAPE_DATA {
 } MIDGAME_SHAPE_DATA;
 
 typedef struct MIDGAME_SHOT_SPRITE {
+    PakArchive *pak;
+    int pak_entry_id;
     RSImageSet *image;
     RSPalette *pal;
     uint8_t palette{0};
@@ -103,3 +107,4 @@ public:
 };
 
 #endif /* defined(__libRealSpace__SCAnimationPlayer__) */
+

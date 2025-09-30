@@ -710,6 +710,7 @@ void SCAnimationPlayer::init(){
                 MIDGAME_SHOT_BG *bg = new MIDGAME_SHOT_BG();
                 RSImageSet *tmp_img = new RSImageSet();
                 PakArchive *pk = new PakArchive();
+                
                 PakEntry *pe = shot_bg.pak->GetEntry(shot_bg.shape_id);
                 pk->InitFromRAM("toto", pe->data, pe->size);
                 tmp_img->InitFromPakArchive(pk,0);
@@ -718,6 +719,8 @@ void SCAnimationPlayer::init(){
                     tmp_img = new RSImageSet();
                     tmp_img->InitFromPakEntry(pe);
                 }
+                bg->pak = shot_bg.pak;
+                bg->pak_entry_id = shot_bg.shape_id;
                 bg->palette = shot_bg.pal_id;
                 bg->image = tmp_img;
                 if (tmp_img->palettes.size()>0) {
@@ -761,6 +764,8 @@ void SCAnimationPlayer::init(){
                     tmp_img = new RSImageSet();
                     tmp_img->InitFromPakEntry(pe);
                 }
+                bg->pak = shot_bg.pak;
+                bg->pak_entry_id = shot_bg.shape_id;
                 bg->palette = shot_bg.pal_id;
                 bg->image = tmp_img;
                 if (tmp_img->palettes.size()>0) {
