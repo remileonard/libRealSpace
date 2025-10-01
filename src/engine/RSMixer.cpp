@@ -38,6 +38,8 @@ RSMixer::RSMixer() {
 }
 
 void RSMixer::init() {
+    if (this->has_been_initialized) return;
+    this->has_been_initialized = true;
     this->initted = Mix_Init(MIX_INIT_MID);
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0) {
         printf("Erreur d'initialisation audio: %s\n", Mix_GetError());

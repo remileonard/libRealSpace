@@ -13,6 +13,7 @@
 
 class RSMixer {
     int initted;
+    bool has_been_initialized{false};
     bool isplaying;
     uint32_t current_music{UINT32_MAX};
     int channel{0};

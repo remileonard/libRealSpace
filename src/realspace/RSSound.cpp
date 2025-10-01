@@ -2,6 +2,8 @@
 #include <string>
 
 void RSSound::init() {
+    if (initialized) return;
+    initialized = true;
     TreEntry *tre = Assets.GetEntryByName(Assets.intel_root_path + "SPEECH.PAK");
     if (tre != nullptr) {
         PakArchive *pak = new PakArchive();

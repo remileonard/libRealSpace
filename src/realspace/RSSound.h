@@ -18,7 +18,7 @@ class RSSound {
 private:
     AssetManager &Assets = AssetManager::instance();
     inline static std::unique_ptr<RSSound> s_instance{};
-    
+    bool initialized{false};
 public:
     std::unordered_map<uint8_t, InGameVoice *> inGameVoices;
     std::vector<MemSound *> sounds;
