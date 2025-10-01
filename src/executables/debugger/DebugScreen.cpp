@@ -135,27 +135,35 @@ void DebugScreen::refresh(void){
             if (debugGameInstance != nullptr) {
                 if (ImGui::BeginMenu("File")) {
                     if (ImGui::MenuItem("Strike Commander Floppy")) {
+                        this->show_ui = true;
                         debugGameInstance->loadSC();
                     }
                     if (ImGui::MenuItem("Strike Commander CD")) {
+                        this->show_ui = true;
                         debugGameInstance->loadSCCD();
                     }
                     if (ImGui::MenuItem("Tactical Operations")) {
+                        this->show_ui = true;
                         debugGameInstance->loadTO();   
                     }
                     if (ImGui::MenuItem("Pacific Strike")) {
+                        this->show_ui = true;
                         debugGameInstance->loadPacific();   
                     }
                     if (ImGui::MenuItem("Test mission SC")) {
+                        this->show_ui = true;
                         debugGameInstance->testMissionSC();
                     }
                     if (ImGui::MenuItem("Test Objects")) {
+                        this->show_ui = true;
                         debugGameInstance->testObjects();
                     }
                     if (ImGui::MenuItem("Test Inputs")) {
+                        this->show_ui = true;
                         debugGameInstance->testController();
                     }
                     if (ImGui::MenuItem("Test MidGames")) {
+                        this->show_ui = true;
                         debugGameInstance->testMidGames();
                     }
                     if (VGA != nullptr) {

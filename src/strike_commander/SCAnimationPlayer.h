@@ -93,7 +93,7 @@ protected:
     int fps{1};
     int fps_timer{0};
     int current_music{255};
-    bool pause{false};
+    
     bool auto_stop{true};
     void initMid1();
     VGAPalette original_palette;
@@ -104,6 +104,7 @@ public:
     virtual void runFrame(void);
     virtual void renderMenu() {};
     virtual void renderUI(void) {};
+    bool pause{false};
 };
 
 #endif /* defined(__libRealSpace__SCAnimationPlayer__) */

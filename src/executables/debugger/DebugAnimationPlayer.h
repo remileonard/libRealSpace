@@ -5,7 +5,7 @@ class DebugAnimationPlayer: public SCAnimationPlayer {
 private:
     PakArchive *current_mid{nullptr};
     PakEntry *current_entry{nullptr};
-    int current_entry_index{0};
+    int current_entry_index{-1};
     MIDGAME_SHOT_BG* p_bg_editor{nullptr};
     MIDGAME_SHOT_SPRITE* p_sprite_editor{nullptr};
     MIDGAME_SHOT_BG* p_foreground_editor{nullptr};

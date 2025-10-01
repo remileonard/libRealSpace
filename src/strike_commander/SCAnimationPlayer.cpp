@@ -861,6 +861,9 @@ void SCAnimationPlayer::runFrame(void){
         }
     }
     for (auto bg : shot->background) {
+        if (bg->image == nullptr) {
+            continue;
+        }
         if (bg->image->GetNumImages()>0) {
             RLEShape *shp = bg->image->GetShape(bg->shapeid);
             FrameBuffer *texture = new FrameBuffer(320, 200);
@@ -882,6 +885,9 @@ void SCAnimationPlayer::runFrame(void){
         }
     }
     for (auto sprt: shot->sprites) {
+        if (sprt->image == nullptr) {
+            continue;
+        }
         FrameBuffer *texture = new FrameBuffer(320, 200);
         texture->fillWithColor(255);
         if (sprt->keep_first_frame) {
@@ -895,6 +901,9 @@ void SCAnimationPlayer::runFrame(void){
         delete texture;
     }
     for (auto bg : shot->foreground) {
+        if (bg->image == nullptr) {
+            continue;
+        }
         if (bg->image->GetNumImages()>0) {
             RLEShape *shp = bg->image->GetShape(bg->shapeid);
             FrameBuffer *texture = new FrameBuffer(320, 200);

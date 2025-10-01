@@ -375,6 +375,7 @@ void DebugGame::testMidGames() {
         RSSound::getInstance().init();
         DebugAnimationPlayer* main = new DebugAnimationPlayer();
         main->init();
+        main->pause = true;
         GameEngine *Game = &GameEngine::instance();
         Game->addActivity(main);
     });
