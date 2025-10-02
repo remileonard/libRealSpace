@@ -49,7 +49,7 @@ bool IFFSaxLexer::InitFromRAM(
     this->stream = new ByteStream();
     this->stream->Set(this->data);
     Parse(events);
-    return false;
+    return true;
 }
 
 void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> events) {

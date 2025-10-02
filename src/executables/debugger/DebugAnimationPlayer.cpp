@@ -53,6 +53,24 @@ void DebugAnimationPlayer::renderMenu() {
     static int miss_selected = 0;
     if (ImGui::BeginMenu("MidGames Animations")) {
         ImGui::MenuItem("Edit Animation", NULL, &show_editor);
+        if (ImGui::MenuItem("Load", nullptr, false)) {
+            SCAnimationArchive archive;
+            std::vector<MIDGAME_SHOT*> shots;
+            if (archive.LoadFromFile("edited_animation.iff", shots)) {
+                this->midgames_shots[1] = shots;
+                printf("Animation loaded from edited_animation.iff\n");
+            } else {
+                printf("Failed to load animation\n");
+            }
+        }
+        if (ImGui::MenuItem("Save", nullptr, false)) {
+            SCAnimationArchive archive;
+            if (archive.SaveToFile("edited_animation.iff", this->midgames_shots[1])) {
+                printf("Animation saved to edited_animation.iff\n");
+            } else {
+                printf("Failed to save animation\n");
+            }
+        }
         ImGui::EndMenu();
     }
     ImGui::Text("Animation Player frame: %d, fps: %d, shot: %d", this->fps_counter, this->fps, this->shot_counter);

@@ -38,6 +38,7 @@
     #include "RSNavMap.h"
     #include "RSWorld.h"
     #include "RSMission.h"
+    #include "SCAnimationArchive.h"
     
     // Music Stuff
     #include "RSMusic.h"
