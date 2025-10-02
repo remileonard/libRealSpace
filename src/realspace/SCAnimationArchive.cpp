@@ -60,10 +60,9 @@ void SCAnimationArchive::WriteAnimation(IFFWriter& writer, const std::vector<MID
 
 void SCAnimationArchive::WriteShot(IFFWriter& writer, const MIDGAME_SHOT* shot) {
     writer.StartChunk("SHOT");
-    
     // Propriétés du shot
     writer.StartChunk("SHTP");
-    writer.WriteUint16(shot->nbframe);
+    writer.WriteInt32(shot->nbframe);
     writer.WriteUint8(shot->music);
     writer.WriteUint16(shot->sound_time_code);
     writer.EndChunk();
@@ -99,6 +98,15 @@ void SCAnimationArchive::WriteBackground(IFFWriter& writer, const MIDGAME_SHOT_B
     
     // Nom de l'archive pak
     std::string archiveName = bg->pak->GetName();
+    AssetManager& Assets = AssetManager::getInstance();
+    for (auto treRef: Assets.treEntries) {
+        if (treRef.first.length() >= archiveName.length() &&
+            treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
+            // archiveName is a suffix of treRef.first
+            archiveName = treRef.first;
+            break;
+        }
+    }
     writer.WriteUint16(archiveName.length());
     writer.WriteString(archiveName.c_str(), archiveName.length());
     
@@ -126,7 +134,7 @@ void SCAnimationArchive::WriteSprites(IFFWriter& writer, const std::vector<MIDGA
 }
 
 void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRITE* sprite) {
-    writer.StartChunk("SPR_");
+    writer.StartChunk("SPRI");
     
     // Pour les sprites, nous devons déterminer l'archive d'origine
     // Ce sera probablement stocké dans une propriété liée à l'image
@@ -202,7 +210,7 @@ void SCAnimationArchive::HandleSHOT(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
     
     std::unordered_map<std::string, std::function<void(uint8_t*, size_t)>> events;
-    events["SHTP"] = std::bind(&SCAnimationArchive::HandleANIM, this, std::placeholders::_1, std::placeholders::_2);
+    events["SHTP"] = std::bind(&SCAnimationArchive::HandleSHTP, this, std::placeholders::_1, std::placeholders::_2);
     events["BGND"] = std::bind(&SCAnimationArchive::HandleBGND, this, std::placeholders::_1, std::placeholders::_2);
     events["SPRT"] = std::bind(&SCAnimationArchive::HandleSPRT, this, std::placeholders::_1, std::placeholders::_2);
     events["FGND"] = std::bind(&SCAnimationArchive::HandleFGND, this, std::placeholders::_1, std::placeholders::_2);
@@ -218,7 +226,7 @@ void SCAnimationArchive::HandleSHOT(uint8_t* data, size_t size) {
 void SCAnimationArchive::HandleSHTP(uint8_t* data, size_t size) {
     if (currentShot) {
         ByteStream stream(data);
-        currentShot->nbframe = stream.ReadUShort();
+        currentShot->nbframe = stream.ReadInt32LE();
         currentShot->music = stream.ReadByte();
         currentShot->sound_time_code = stream.ReadUShort();
     }

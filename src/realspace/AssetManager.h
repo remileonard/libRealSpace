@@ -67,7 +67,7 @@ private:
     bool isIsoImage{false};
     std::string *basePath;
     std::unordered_map<std::string, FileData*> cacheFileData;
-    std::unordered_map<std::string, TreEntry *> treEntries;
+    
     std::unordered_map<std::string, FileEntry> fileContents;
     bool ExtractPrimaryVolumeDescriptor(std::ifstream &isoFile, PrimaryVolumeDescriptor &pvd);
     bool ExtractFileListFromRootDirectory(std::ifstream &isoFile, const PrimaryVolumeDescriptor &pvd);
@@ -77,7 +77,7 @@ private:
     std::mutex progressMutex;
 
 public:
-
+    std::unordered_map<std::string, TreEntry *> treEntries;
     enum TreID {TRE_GAMEFLOW, TRE_OBJECTS, TRE_MISC, TRE_SOUND, TRE_MISSIONS,TRE_TEXTURES } ;
     std::string conv_pak_filename;
     std::string option_filename;
