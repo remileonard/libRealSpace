@@ -134,16 +134,28 @@ void SCAnimationArchive::WriteSprites(IFFWriter& writer, const std::vector<MIDGA
 }
 
 void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRITE* sprite) {
+    if (sprite->pak == nullptr) {
+        return;
+    }
     writer.StartChunk("SPRI");
     
     // Pour les sprites, nous devons déterminer l'archive d'origine
     // Ce sera probablement stocké dans une propriété liée à l'image
-    std::string archiveName = "UNKNOWN"; // À remplacer par la vraie valeur
+    std::string archiveName = std::string(sprite->pak->GetName())+".PAK";
+    AssetManager& Assets = AssetManager::getInstance();
+    for (auto treRef: Assets.treEntries) {
+        if (treRef.first.length() >= archiveName.length() &&
+            treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
+            // archiveName is a suffix of treRef.first
+            archiveName = treRef.first;
+            break;
+        }
+    } 
     writer.WriteUint16(archiveName.length());
     writer.WriteString(archiveName.c_str(), archiveName.length());
     
-    // ID d'entrée à déterminer
-    writer.WriteUint16(0);
+    writer.WriteUint16(sprite->pak_entry_id);
+    writer.WriteUint16(sprite->shapeid);
     writer.WriteUint16(sprite->palette);
     
     // Positions et vélocité
@@ -313,7 +325,9 @@ void SCAnimationArchive::HandleSPR(uint8_t* data, size_t size) {
         // Trouver ou charger l'archive
         PakArchive* pak = FindOrLoadPakArchive(archiveName);
         
-        uint16_t pak_entry_id = stream.ReadUShort();
+        
+        sprite->pak_entry_id = stream.ReadUShort(); 
+        sprite->shapeid = stream.ReadUShort();
         sprite->palette = stream.ReadUShort();
         
         // Lire les positions et la vélocité
@@ -325,20 +339,26 @@ void SCAnimationArchive::HandleSPR(uint8_t* data, size_t size) {
         sprite->velocity.y = stream.ReadShort();
         sprite->keep_first_frame = stream.ReadByte();
         
-        // Charger l'image
-        if (pak != nullptr) {
-            PakEntry* entry = pak->GetEntry(pak_entry_id);
+        if (sprite->pak != nullptr) {
+            PakEntry* entry = sprite->pak->GetEntry(sprite->pak_entry_id);
             if (entry != nullptr) {
                 RSImageSet* tmp_img = new RSImageSet();
-                tmp_img->InitFromPakEntry(entry);
-                sprite->image = tmp_img;
+                PakArchive* pk = new PakArchive();
+                pk->InitFromRAM("temp", entry->data, entry->size);
+                tmp_img->InitFromPakArchive(pk, 0);
                 
+                if (tmp_img->GetNumImages() == 0) {
+                    delete tmp_img;
+                    tmp_img = new RSImageSet();
+                    tmp_img->InitFromPakEntry(entry);
+                }
+                
+                sprite->image = tmp_img;
                 if (tmp_img->palettes.size() > 0) {
                     sprite->pal = tmp_img->palettes[0];
                 }
             }
         }
-        
         currentShot->sprites.push_back(sprite);
     }
 }

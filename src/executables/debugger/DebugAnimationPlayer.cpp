@@ -772,14 +772,62 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
 }
 
 void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
+    static std::vector<GLuint> s_PrevFrameGLTex;
+    static std::vector<GLuint> s_CurrentFrameGLTex;
+    // Détruire les textures de la frame précédente (elles ont été rendues)
+    if (!s_PrevFrameGLTex.empty()) {
+        for (GLuint id : s_PrevFrameGLTex) {
+            glDeleteTextures(1, &id);
+        }
+        s_PrevFrameGLTex.clear();
+    }
+    // Préparer la liste pour cette frame
+    s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); // s_CurrentFrameGLTex devient vide
     if (!sprite) return;
-    
+        if (sprite->pak == &this->optShps) {
+        ImGui::Text("Formes dans l'archive OPTSHPS");
+    } else if (sprite->pak == &this->midgames) {
+        ImGui::Text("Formes dans l'archive MIDGAME_SHPS");
+    } else {
+        for (auto &midarchive: this->mid) {
+            if (sprite->pak == midarchive) {
+                ImGui::Text("Formes dans l'archive %s", midarchive->GetName());
+                break;
+            }
+        }
+    }
+    if (this->current_mid == nullptr) {
+        this->current_mid = sprite->pak;
+    } else {
+        sprite->pak = this->current_mid;
+    }
+    if (this->current_entry_index == -1) {
+        this->current_entry_index = sprite->pak_entry_id;
+    } else {
+        sprite->pak_entry_id = this->current_entry_index;
+    }
+    this->current_entry_index = sprite->pak_entry_id;
+    sprite->shapeid = this->current_entry_index;
+    this->midgameChoser();
     // ID de forme
     int shapeid = sprite->shapeid;
     if (ImGui::InputInt("ID de forme", &shapeid)) {
         sprite->shapeid = shapeid;
     }
-    
+    if (ImGui::Button("Charger l'image")) {
+        if (sprite->image) {
+            delete sprite->image;
+            sprite->image = nullptr;
+        }
+        sprite->image = loadImage(sprite->pak, sprite->pak_entry_id);
+        if (sprite->image->palettes.size() > 0) {
+            sprite->pal = sprite->image->palettes[0];
+        } else {
+            if (sprite->pal) {
+                sprite->pal = nullptr;
+            }
+        }
+    }
     // ID de palette
     int palette_id = sprite->palette;
     if (ImGui::InputInt("ID de palette", &palette_id)) {
@@ -836,6 +884,7 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
         if (preview_frame >= 0 && preview_frame < sprite->image->GetNumImages()) {
             GLuint glTex = renderShape(sprite->image->GetShape(preview_frame), sprite->pal ? sprite->pal->GetColorPalette() : &this->palette);
             ImGui::Image((void*)(uintptr_t)glTex, ImVec2(320, 200));
+            s_CurrentFrameGLTex.push_back(glTex);
         }
     } else {
         ImGui::Text("Aucune image associée");

@@ -54,6 +54,7 @@ typedef struct MIDGAME_SHOT_SPRITE {
 typedef struct MIDGAME_SOUND {
     uint8_t *data;
     size_t size;
+    
 } MIDGAME_SOUND;
 
 typedef struct MIDGAME_SHOT {

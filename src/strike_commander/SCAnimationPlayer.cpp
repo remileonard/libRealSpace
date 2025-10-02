@@ -739,6 +739,9 @@ void SCAnimationPlayer::init(){
                 MIDGAME_SHOT_SPRITE *sprite = new MIDGAME_SHOT_SPRITE();
                 RSImageSet *tmp_img = new RSImageSet();
                 tmp_img->InitFromPakEntry(sprt.pak->GetEntry(sprt.shape_id));
+                sprite->pak = sprt.pak;
+                sprite->pak_entry_id = sprt.shape_id;
+                sprite->shapeid = sprt.shape_id;
                 sprite->image = tmp_img;
                 if (tmp_img->palettes.size()>0) {
                     sprite->pal = tmp_img->palettes[0];
