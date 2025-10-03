@@ -18,6 +18,7 @@
 typedef struct MIDGAME_SHOT_BG {
     PakArchive *pak;
     RSImageSet *image;
+    PakArchive *pak_palette{nullptr};
     uint8_t palette;
     RSPalette *pal;
     Point2D position_start;
@@ -43,6 +44,7 @@ typedef struct MIDGAME_SHOT_SPRITE {
     int pak_entry_id;
     RSImageSet *image;
     RSPalette *pal;
+    PakArchive *pak_palette{nullptr};
     uint8_t palette{0};
     Point2D position_start;
     Point2D position_end;

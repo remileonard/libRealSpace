@@ -256,6 +256,12 @@ void DebugAnimationPlayer::midgameChoser() {
         if (ImGui::BeginCombo("Entries", this->current_entry_index>=0 ? ("Entry " + std::to_string(this->current_entry_index)).c_str() : "None")) {
             for (int i = 0; i < this->current_mid->GetNumEntries(); i++) {
                 PakEntry* entry = this->current_mid->GetEntry(i);
+                if (entry == nullptr) {
+                    continue;
+                }
+                if (entry->size == 0) {
+                    continue;
+                }
                 if (ImGui::Selectable(
                     ("Entry " + std::to_string(i)).c_str(),
                     i == this->current_entry_index
@@ -266,7 +272,44 @@ void DebugAnimationPlayer::midgameChoser() {
             }
             ImGui::EndCombo();
         }
-
+    }
+}
+void DebugAnimationPlayer::midgamePaletteChoser() {
+    if (ImGui::BeginCombo("MID Palette", this->current_palette_mid ? this->current_palette_mid->GetName() : "None")) {
+        if (ImGui::Selectable("OptPal", this->current_palette_mid == &this->optPals)) {
+            this->current_palette_mid = &this->optPals;
+        }
+        if (ImGui::Selectable("MidGames", this->current_palette_mid == &this->midgames)) {
+            this->current_palette_mid = &this->midgames;
+        }
+        for (auto midarchive: this->mid) {
+            if (ImGui::Selectable(midarchive->GetName(), midarchive == this->current_palette_mid)) {
+                this->current_palette_mid = midarchive;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (this->current_palette_mid != nullptr) {
+        ImGui::Text("Archive: %s, NumEntries: %d", this->current_palette_mid->GetName(), this->current_palette_mid->GetNumEntries());
+        if (ImGui::BeginCombo("Palettes", this->current_palette_entry_index>=0 ? ("Pal " + std::to_string(this->current_palette_entry_index)).c_str() : "None")) {
+            for (int i = 0; i < this->current_palette_mid->GetNumEntries(); i++) {
+                PakEntry* entry = this->current_palette_mid->GetEntry(i);
+                if (entry == nullptr) {
+                    continue;
+                }
+                if (entry->size == 0) {
+                    continue;
+                }
+                if (ImGui::Selectable(
+                    ("Entry " + std::to_string(i)).c_str(),
+                    i == this->current_palette_entry_index
+                )) {
+                    // do something when selected
+                    this->current_palette_entry_index = i;
+                }
+            }
+            ImGui::EndCombo();
+        }
     }
 }
 
@@ -465,6 +508,8 @@ void DebugAnimationPlayer::showEditor() {
             this->p_sprite_editor = newSprite;  // Sélectionner le nouveau sprite pour édition
             this->p_bg_editor = nullptr;
             this->p_foreground_editor = nullptr;
+            this->current_palette_mid = nullptr;
+            this->current_palette_entry_index = -1;
         }
         ImGui::PopID();
 
@@ -515,6 +560,8 @@ void DebugAnimationPlayer::showEditor() {
                         this->p_foreground_editor = nullptr;
                         this->current_mid = nullptr;
                         this->current_entry_index = -1;
+                        this->current_palette_mid = nullptr;
+                        this->current_palette_entry_index = -1;
                     }
                 }
                 yOffset += elementHeight + elementSpacing;
@@ -546,6 +593,8 @@ void DebugAnimationPlayer::showEditor() {
             this->p_foreground_editor = newFg;  // Sélectionner le nouveau fg pour édition
             this->p_bg_editor = nullptr;
             this->p_sprite_editor = nullptr;
+            this->current_palette_mid = nullptr;
+            this->current_palette_entry_index = -1;
         }
         ImGui::PopID();
         
@@ -591,6 +640,8 @@ void DebugAnimationPlayer::showEditor() {
                         this->p_sprite_editor = nullptr;
                         this->current_mid = nullptr;
                         this->current_entry_index = -1;
+                        this->current_palette_mid = nullptr;
+                        this->current_palette_entry_index = -1;
                         this->p_foreground_editor = bg;
                     }
                 }
@@ -675,15 +726,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     this->midgameChoser();
     int shapeid = bg->pak_entry_id;
     if (ImGui::InputInt("ID de forme", &shapeid)) {
-        bg->pak_entry_id = shapeid;
-    }
-    
-    // ID de palette
-    int palette_id = bg->palette;
-    if (ImGui::InputInt("ID de palette", &palette_id)) {
-        if (palette_id >= 0 && palette_id <= 255) {
-            bg->palette = static_cast<uint8_t>(palette_id);
-        }
+        this->current_entry_index = shapeid;
     }
     if (ImGui::Button("Charger l'image")) {
         if (bg->image) {
@@ -699,6 +742,29 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
             }
         }
     }
+    // ID de palette
+    if (bg->pak_palette == nullptr) {
+        bg->pak_palette = &this->optPals;
+    }
+    if (this->current_palette_mid == nullptr) {
+        this->current_palette_mid = bg->pak_palette;
+    } else {
+        bg->pak_palette = this->current_palette_mid;
+    }
+    if (this->current_palette_entry_index == -1) {
+        this->current_palette_entry_index = bg->palette;
+    } else {
+        bg->palette = this->current_palette_entry_index;
+    }
+    this->current_palette_entry_index = bg->palette;
+    int palette_id = bg->palette;
+    midgamePaletteChoser();
+    if (ImGui::InputInt("ID de palette", &palette_id)) {
+        if (palette_id >= 0 && palette_id <= 255) {
+            this->current_palette_entry_index = static_cast<uint8_t>(palette_id);
+        }
+    }
+    
     // Position de départ
     ImGui::Text("Position de départ");
     int start_x = bg->position_start.x;

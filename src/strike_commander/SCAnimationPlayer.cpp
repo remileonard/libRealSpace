@@ -830,7 +830,14 @@ void SCAnimationPlayer::runFrame(void){
     for (auto bg : shot->background) {
          if (bg->palette != 0) {
             ByteStream paletteReader;
-            paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+            if (bg->pak_palette == nullptr) {
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+            } else {
+                if (bg->palette >= bg->pak_palette->GetNumEntries()) {
+                    continue;
+                }
+                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data);
+            }
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
         }
@@ -842,7 +849,15 @@ void SCAnimationPlayer::runFrame(void){
     for (auto bg: shot->foreground) {
          if (bg->palette != 0) {
             ByteStream paletteReader;
-            paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+            if (bg->pak_palette == nullptr) {
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+            } else {
+                if (bg->palette >= bg->pak_palette->GetNumEntries()) {
+                    continue;
+                }
+                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data);
+            }
+            
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
         }
@@ -854,7 +869,15 @@ void SCAnimationPlayer::runFrame(void){
     for (auto sprt: shot->sprites) {
          if (sprt->palette != 0) {
             ByteStream paletteReader;
-            paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data);
+            if (sprt->pak_palette == nullptr) {
+                paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data);
+            } else {
+                if (sprt->palette >= sprt->pak_palette->GetNumEntries()) {
+                    continue;
+                }
+                paletteReader.Set(sprt->pak_palette->GetEntry(sprt->palette)->data);
+            }
+            
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
         }

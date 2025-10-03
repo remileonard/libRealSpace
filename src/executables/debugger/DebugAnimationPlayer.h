@@ -5,6 +5,8 @@ class DebugAnimationPlayer: public SCAnimationPlayer {
 private:
     PakArchive *current_mid{nullptr};
     PakEntry *current_entry{nullptr};
+    PakArchive *current_palette_mid{nullptr};
+    int current_palette_entry_index{-1};
     int current_entry_index{-1};
     MIDGAME_SHOT_BG* p_bg_editor{nullptr};
     MIDGAME_SHOT_SPRITE* p_sprite_editor{nullptr};
@@ -15,6 +17,7 @@ public:
     void renderMenu() override;
     void renderUI(void) override;
     void midgameChoser();
+    void midgamePaletteChoser();
     void showEditor();
     void editMidGameShotBG(MIDGAME_SHOT_BG* bg);
     void editMidGameShotSprite(MIDGAME_SHOT_SPRITE* sprite);
