@@ -136,14 +136,17 @@ void DebugScreen::refresh(void){
                 if (ImGui::BeginMenu("File")) {
                     if (ImGui::MenuItem("Strike Commander Floppy")) {
                         this->show_ui = true;
+                        this->show_mouse = false;
                         debugGameInstance->loadSC();
                     }
                     if (ImGui::MenuItem("Strike Commander CD")) {
                         this->show_ui = true;
+                        this->show_mouse = false;
                         debugGameInstance->loadSCCD();
                     }
                     if (ImGui::MenuItem("Tactical Operations")) {
                         this->show_ui = true;
+                        this->show_mouse = false;
                         debugGameInstance->loadTO();   
                     }
                     if (ImGui::MenuItem("Pacific Strike")) {
@@ -152,18 +155,22 @@ void DebugScreen::refresh(void){
                     }
                     if (ImGui::MenuItem("Test mission SC")) {
                         this->show_ui = true;
+                        this->show_mouse = false;
                         debugGameInstance->testMissionSC();
                     }
                     if (ImGui::MenuItem("Test Objects")) {
                         this->show_ui = true;
+                        this->show_mouse = true;
                         debugGameInstance->testObjects();
                     }
                     if (ImGui::MenuItem("Test Inputs")) {
                         this->show_ui = true;
+                        this->show_mouse = true;
                         debugGameInstance->testController();
                     }
-                    if (ImGui::MenuItem("Test MidGames")) {
+                    if (ImGui::MenuItem("MidGames Editor")) {
                         this->show_ui = true;
+                        this->show_mouse = true;
                         debugGameInstance->testMidGames();
                     }
                     if (VGA != nullptr) {
@@ -173,6 +180,9 @@ void DebugScreen::refresh(void){
                     }
                     if (ImGui::MenuItem("Toggle UI", nullptr, this->show_ui)) {
                         this->show_ui = !this->show_ui;
+                    }
+                    if (ImGui::MenuItem("Toggle Mouse", nullptr, this->show_mouse)) {
+                        this->show_mouse = !this->show_mouse;
                     }
                     if (ImGui::MenuItem("Exit")) {
                         exit(0);
@@ -195,19 +205,21 @@ void DebugScreen::refresh(void){
             width = winsize.x; // If no game instance, use full width
         }
         ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
-        const bool gameChildFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_None);
-        const bool gameChildHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        if (gameChildHovered) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-        } else {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+        if (!show_mouse) {
+            const bool gameChildFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_None);
+            const bool gameChildHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+            if (gameChildHovered) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            } else {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+            }
+            if (gameChildFocused) {
+                EventManager::getInstance().enableImGuiKeyboardCapture(false);
+            } else {
+                EventManager::getInstance().enableImGuiKeyboardCapture(true);
+            }
+            s_gameChildFocusedPrev = gameChildFocused;
         }
-        if (gameChildFocused) {
-            EventManager::getInstance().enableImGuiKeyboardCapture(false);
-        } else {
-            EventManager::getInstance().enableImGuiKeyboardCapture(true);
-        }
-        s_gameChildFocusedPrev = gameChildFocused;
         ImVec2 avail_size = ImGui::GetContentRegionAvail();
         ImGui::Image((void*)(intptr_t)this->screen_texture, avail_size, {0, 1}, {1, 0});
         ImGui::EndChild();

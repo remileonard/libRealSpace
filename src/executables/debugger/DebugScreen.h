@@ -29,6 +29,7 @@ class DebugScreen: public RSScreen{
 private:
     GLuint screen_texture;
     bool show_ui{false};
+    bool show_mouse{true};
 public:
     
     DebugScreen();

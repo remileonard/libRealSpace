@@ -6,7 +6,12 @@
 bool SCMissionActors::wait(int seconds) {
     if (this->current_command != prog_op::OP_SET_WAIT_FOR_SECONDS) {
         if (this->wait_timer == 0) {
-            this->wait_timer = seconds * this->plane->tps;
+            if (this->plane != nullptr && this->plane->tps > 0) {
+                this->wait_timer = seconds * this->plane->tps;
+            } else {
+                this->wait_timer = seconds * 60;
+            }
+                
         }
     }
     if (this->wait_timer > 0) {
