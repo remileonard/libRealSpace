@@ -373,6 +373,7 @@ void DebugGame::testMidGames() {
         SCMouse::getInstance().init();
         RSMixer::getInstance().init();
         RSSound::getInstance().init();
+        ConvAssetManager::getInstance().init();
         DebugAnimationPlayer* main = new DebugAnimationPlayer();
         main->init();
         main->pause = true;

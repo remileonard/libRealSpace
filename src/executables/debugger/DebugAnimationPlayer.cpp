@@ -119,6 +119,9 @@ void DebugAnimationPlayer::renderUI() {
             if (ImGui::Button(pause ? "Resume" : "Pause")) {
                 this->pause = !this->pause;
             }
+            if (ImGui::Button("stop music")) {
+                this->Mixer.stopMusic();
+            }
             ImGui::SameLine();
             if (ImGui::Button("Next Frame")) {
                 this->fps++;
@@ -262,11 +265,17 @@ void DebugAnimationPlayer::midgameChoser() {
                 if (entry->size == 0) {
                     continue;
                 }
+                int16_t *shortP  = (int16_t *)entry->data;
+                int16_t offset = *shortP;
+                shortP = (int16_t *)(entry->data + 2);
+                int16_t numColors =*shortP;
+                if (numColors+offset == 256) {
+                    continue;
+                }
                 if (ImGui::Selectable(
                     ("Entry " + std::to_string(i)).c_str(),
                     i == this->current_entry_index
                 )) {
-                    // do something when selected
                     this->current_entry_index = i;
                 }
             }
@@ -300,11 +309,17 @@ void DebugAnimationPlayer::midgamePaletteChoser() {
                 if (entry->size == 0) {
                     continue;
                 }
+                int16_t *shortP  = (int16_t *)entry->data;
+                int16_t offset = *shortP;
+                shortP = (int16_t *)(entry->data + 2);
+                int16_t numColors =*shortP;
+                if (numColors+offset <= 0 || numColors+offset > 256) {
+                    continue;
+                }
                 if (ImGui::Selectable(
-                    ("Entry " + std::to_string(i)).c_str(),
+                    ("Pal " + std::to_string(i)).c_str(),
                     i == this->current_palette_entry_index
                 )) {
-                    // do something when selected
                     this->current_palette_entry_index = i;
                 }
             }
@@ -366,6 +381,14 @@ void DebugAnimationPlayer::showEditor() {
             shotHeight += shot->background.size() * (elementHeight + elementSpacing);
         }
         
+        // Hauteur section sprites
+        shotHeight += sectionHeaderHeight; // En-tête "Character:"
+        if (shot->characters.empty()) {
+            shotHeight += emptyMessageHeight; // "Aucun character"
+        } else {
+            shotHeight += shot->characters.size() * (elementHeight + elementSpacing);
+        }
+
         // Hauteur section sprites
         shotHeight += sectionHeaderHeight; // En-tête "Sprites:"
         if (shot->sprites.empty()) {
@@ -476,6 +499,8 @@ void DebugAnimationPlayer::showEditor() {
                         this->p_bg_editor = bg;
                         this->p_sprite_editor = nullptr;
                         this->p_foreground_editor = nullptr;
+                        this->p_character_editor = nullptr;
+                        this->p_shot_editor = nullptr;
                         this->current_mid = nullptr;
                         this->current_entry_index = -1;
                     }
@@ -483,7 +508,88 @@ void DebugAnimationPlayer::showEditor() {
                 yOffset += elementHeight + elementSpacing;
             }
         }
-        
+        // En-tête pour les characters
+        drawList->AddText(
+            ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
+            IM_COL32(200, 200, 200, 255), 
+            "Characters:");
+
+        // Bouton d'ajout pour les sprites
+        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize("Characters:").x + 5, shotPos.y + yOffset - 2));
+        ImGui::PushID(static_cast<int>(shotIndex) * 100 + 1);
+        if (ImGui::SmallButton("+")) {
+            MIDGAME_SHOT_CHARACTER *newChara = new MIDGAME_SHOT_CHARACTER();
+
+            newChara->position_start = {0, 0};  // Centre de l'écran par défaut
+            newChara->position_end = {0, 0};
+            newChara->velocity = {0, 0};
+            
+            shot->characters.push_back(newChara);
+            this->p_character_editor = newChara;
+            this->p_sprite_editor = nullptr;
+            this->p_bg_editor = nullptr;
+            this->p_foreground_editor = nullptr;
+            this->p_character_editor = nullptr;
+            this->p_shot_editor = nullptr;
+            this->current_palette_mid = nullptr;
+            this->current_palette_entry_index = -1;
+        }
+        ImGui::PopID();
+
+        yOffset += sectionHeaderHeight;
+
+        // Dessiner les sprites
+        if (shot->characters.empty()) {
+            drawList->AddText(
+                ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), 
+                IM_COL32(180, 180, 180, 255), 
+                "Aucun character");
+            yOffset += emptyMessageHeight;
+        } else {
+            for (size_t spriteIndex = 0; spriteIndex < shot->characters.size(); spriteIndex++) {
+                MIDGAME_SHOT_CHARACTER* sprite = shot->characters[spriteIndex];
+                ImVec2 elementPos = ImVec2(shotPos.x + textPadding, shotPos.y + yOffset);
+                
+                // S'assurer que l'élément rentre dans la largeur du shot
+                float elementWidth = shotWidth - (textPadding * 2);
+                
+                drawList->AddRectFilled(
+                    elementPos, 
+                    ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
+                    IM_COL32(180, 60, 120, 255), 3.0f);
+                
+                std::string spriteLabel = "Character "+std::to_string(spriteIndex + 1) + " (" + std::to_string(sprite->image ? sprite->image->GetNumImages() : 0) + " img)";
+                drawList->AddText(
+                    ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
+                    IM_COL32(255, 255, 255, 255), 
+                    spriteLabel.c_str());
+                
+                // Info de position en plus petit
+                char posInfo[48];
+                sprintf(posInfo, "(%d,%d)→(%d,%d)", sprite->position_start.x, sprite->position_start.y, 
+                    sprite->position_end.x, sprite->position_end.y);
+                drawList->AddText(
+                    ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight/2), 
+                    IM_COL32(220, 220, 220, 255), 
+                    posInfo);
+                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight))) {
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                        this->p_bg_editor = nullptr;
+                        this->p_character_editor = sprite;
+                        this->p_sprite_editor = nullptr;
+                        this->p_foreground_editor = nullptr;
+                        this->p_character_editor = nullptr;
+                        this->p_shot_editor = nullptr;
+                        this->current_mid = nullptr;
+                        this->current_entry_index = -1;
+                        this->current_palette_mid = nullptr;
+                        this->current_palette_entry_index = -1;
+                    }
+                }
+                yOffset += elementHeight + elementSpacing;
+            }
+        }
+
         // En-tête pour les sprites
         drawList->AddText(
             ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
@@ -508,6 +614,8 @@ void DebugAnimationPlayer::showEditor() {
             this->p_sprite_editor = newSprite;  // Sélectionner le nouveau sprite pour édition
             this->p_bg_editor = nullptr;
             this->p_foreground_editor = nullptr;
+            this->p_character_editor = nullptr;
+            this->p_shot_editor = nullptr;
             this->current_palette_mid = nullptr;
             this->current_palette_entry_index = -1;
         }
@@ -535,15 +643,11 @@ void DebugAnimationPlayer::showEditor() {
                     ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
                     IM_COL32(180, 120, 60, 255), 3.0f);
                 
-                // Limiter le texte pour qu'il tienne dans la boîte
-                char spriteLabel[48];
-                sprintf(spriteLabel, "Sprite %zu (%d img)", 
-                    spriteIndex + 1, 
-                    sprite->image ? sprite->image->GetNumImages() : 0);
+                std::string spriteLabel = "Sprite "+std::to_string(spriteIndex + 1) + " (" + std::to_string(sprite->image ? sprite->image->GetNumImages() : 0) + " img)";
                 drawList->AddText(
                     ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
                     IM_COL32(255, 255, 255, 255), 
-                    spriteLabel);
+                    spriteLabel.c_str());
                 
                 // Info de position en plus petit
                 char posInfo[48];
@@ -558,6 +662,8 @@ void DebugAnimationPlayer::showEditor() {
                         this->p_bg_editor = nullptr;
                         this->p_sprite_editor = sprite;
                         this->p_foreground_editor = nullptr;
+                        this->p_character_editor = nullptr;
+                        this->p_shot_editor = nullptr;
                         this->current_mid = nullptr;
                         this->current_entry_index = -1;
                         this->current_palette_mid = nullptr;
@@ -593,6 +699,8 @@ void DebugAnimationPlayer::showEditor() {
             this->p_foreground_editor = newFg;  // Sélectionner le nouveau fg pour édition
             this->p_bg_editor = nullptr;
             this->p_sprite_editor = nullptr;
+            this->p_character_editor = nullptr;
+            this->p_shot_editor = nullptr;
             this->current_palette_mid = nullptr;
             this->current_palette_entry_index = -1;
         }
@@ -638,6 +746,8 @@ void DebugAnimationPlayer::showEditor() {
                     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                         this->p_bg_editor = nullptr;
                         this->p_sprite_editor = nullptr;
+                        this->p_character_editor = nullptr;
+                        this->p_shot_editor = nullptr;
                         this->current_mid = nullptr;
                         this->current_entry_index = -1;
                         this->current_palette_mid = nullptr;
@@ -656,6 +766,15 @@ void DebugAnimationPlayer::showEditor() {
         
         if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding*3)/2, 20))) {
             this->shot_counter = shotIndex;
+            this->p_shot_editor = shot;
+            this->p_bg_editor = nullptr;
+            this->p_sprite_editor = nullptr;
+            this->p_foreground_editor = nullptr;
+            this->p_character_editor = nullptr;
+            this->current_mid = nullptr;
+            this->current_entry_index = -1;
+            this->current_palette_mid = nullptr;
+            this->current_palette_entry_index = -1;
         }
         ImGui::SameLine(0, textPadding);
         if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding*3)/2, 20))) {
@@ -679,11 +798,125 @@ void DebugAnimationPlayer::showEditor() {
         editMidGameShotSprite(this->p_sprite_editor);
     } else if (this->p_foreground_editor != nullptr) {
         editMidGameShotBG(this->p_foreground_editor);
+    } else if (this->p_character_editor != nullptr) {
+        editMidGameShotCharacter(this->p_character_editor);
+    } else if (this->p_shot_editor != nullptr) {
+        editMidGameShot(this->p_shot_editor);
     } else {
         ImGui::Text("Sélectionnez un élément à éditer");
     }
 }
+void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *chara) {
+    static std::vector<GLuint> s_PrevFrameGLTex;
+    static std::vector<GLuint> s_CurrentFrameGLTex;
+    // Détruire les textures de la frame précédente (elles ont été rendues)
+    if (!s_PrevFrameGLTex.empty()) {
+        for (GLuint id : s_PrevFrameGLTex) {
+            glDeleteTextures(1, &id);
+        }
+        s_PrevFrameGLTex.clear();
+    }
+    // Préparer la liste pour cette frame
+    s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); // s_CurrentFrameGLTex devient vide
 
+    if (!chara) return;
+    // ID de forme
+
+    if (ImGui::BeginCombo("Character", chara->character_name.empty() ? "None" : chara->character_name.c_str())) {
+        for (const auto& [name, image] : ConvAssetManager::getInstance().faces) {
+            if (ImGui::Selectable(name.c_str(), chara->character_name == name)) {
+                chara->character_name = name;
+                chara->image = image->appearances;
+                chara->cloth_id = 0;
+                chara->expression_id = 0;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (chara->image) {
+        ImGui::Text("NumImages: %d", chara->image->GetNumImages());
+    } else {
+        ImGui::Text("No image loaded");
+    }
+    ImGui::Separator();
+    ImGui::Text("Reglages des paramètres du character");
+    int head_id = chara->head_id;
+    if (ImGui::InputInt("ID head", &head_id)) {
+        if (head_id < 0) head_id = 0;
+        chara->head_id = head_id;
+    }
+    int cloth_id = chara->cloth_id;
+    if (ImGui::InputInt("ID Vetements", &cloth_id)) {
+        if (cloth_id < 0) cloth_id = 0;
+        chara->cloth_id = cloth_id;
+    }
+    int expression_id = chara->expression_id;
+    if (ImGui::InputInt("ID Expression", &expression_id)) {
+        if (expression_id < 0) expression_id = 0;
+        chara->expression_id = expression_id;
+    }
+    ImGui::Separator();
+    ImGui::Text("Preview du character");
+    if (chara->image) {
+        // Rendu de l'image
+        int imgIndex = 0;
+        if (chara->expression_id >= 0 && chara->expression_id < chara->image->GetNumImages()) {
+            imgIndex = chara->expression_id;
+        }
+        FrameBuffer* testFb = new FrameBuffer(200, 200);
+        testFb->fillWithColor(255);
+        testFb->drawShape(chara->image->GetShape(1));
+        GLuint glTex = renderFrameBuffer(testFb, &this->palette);
+        s_CurrentFrameGLTex.push_back(glTex); // Garder la trace pour la déstruction plus tard
+        ImGui::Image((void*)(intptr_t)glTex, ImVec2(100, 100));
+    } else {
+        ImGui::Text("Aucune image chargée");
+    }
+    // Position de départ
+    ImGui::Text("Position de départ");
+    int start_x = chara->position_start.x;
+    int start_y = chara->position_start.y;
+    if (ImGui::InputInt("X##start", &start_x) || ImGui::InputInt("Y##start", &start_y)) {
+        chara->position_start.x = start_x;
+        chara->position_start.y = start_y;
+    }
+    
+    // Position finale
+    ImGui::Text("Position finale");
+    int end_x = chara->position_end.x;
+    int end_y = chara->position_end.y;
+    if (ImGui::InputInt("X##end", &end_x) || ImGui::InputInt("Y##end", &end_y)) {
+        chara->position_end.x = end_x;
+        chara->position_end.y = end_y;
+    }
+    
+    // Vitesse
+    ImGui::Text("Vitesse");
+    int velocity_x = chara->velocity.x;
+    int velocity_y = chara->velocity.y;
+    if (ImGui::InputInt("X##velocity", &velocity_x) || ImGui::InputInt("Y##velocity", &velocity_y)) {
+        chara->velocity.x = velocity_x;
+        chara->velocity.y = velocity_y;
+    }
+    
+    
+}
+void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
+    if (!shot) return;
+    ImGui::Text("Édition du shot (%d frames)", shot->nbframe);
+    int nbframe = shot->nbframe;
+    if (ImGui::InputInt("Nombre de frames", &nbframe)) {
+        if (nbframe < 1) nbframe = 1;
+        shot->nbframe = nbframe;
+    }
+    ImGui::Separator();
+    ImGui::Text("Music");
+    int music_id = shot->music;
+    if (ImGui::InputInt("ID Musique", &music_id)) {
+        if (music_id < -1) music_id = -1;
+        shot->music = music_id;
+    }
+}
 void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     static std::vector<GLuint> s_PrevFrameGLTex;
     static std::vector<GLuint> s_CurrentFrameGLTex;
@@ -764,7 +997,9 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
             this->current_palette_entry_index = static_cast<uint8_t>(palette_id);
         }
     }
-    
+    if (ImGui::Checkbox("Use external palette", &bg->use_external_palette)) {
+        bg->use_external_palette = bg->use_external_palette ? 1 : 0;
+    }
     // Position de départ
     ImGui::Text("Position de départ");
     int start_x = bg->position_start.x;
@@ -894,14 +1129,30 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
             }
         }
     }
-    // ID de palette
+    if (sprite->pak_palette == nullptr) {
+        sprite->pak_palette = &this->optPals;
+    }
+    if (this->current_palette_mid == nullptr) {
+        this->current_palette_mid = sprite->pak_palette;
+    } else {
+        sprite->pak_palette = this->current_palette_mid;
+    }
+    if (this->current_palette_entry_index == -1) {
+        this->current_palette_entry_index = sprite->palette;
+    } else {
+        sprite->palette = this->current_palette_entry_index;
+    }
+    this->current_palette_entry_index = sprite->palette;
     int palette_id = sprite->palette;
+    midgamePaletteChoser();
     if (ImGui::InputInt("ID de palette", &palette_id)) {
         if (palette_id >= 0 && palette_id <= 255) {
-            sprite->palette = static_cast<uint8_t>(palette_id);
+            this->current_palette_entry_index = static_cast<uint8_t>(palette_id);
         }
     }
-    
+    if (ImGui::Checkbox("Use external palette", &sprite->use_external_palette)) {
+        sprite->use_external_palette = sprite->use_external_palette ? 1 : 0;
+    }
     // Option de conserver la première frame
     bool keep_first = sprite->keep_first_frame != 0;
     if (ImGui::Checkbox("Conserver la première frame", &keep_first)) {

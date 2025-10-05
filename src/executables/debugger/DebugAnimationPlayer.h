@@ -11,6 +11,8 @@ private:
     MIDGAME_SHOT_BG* p_bg_editor{nullptr};
     MIDGAME_SHOT_SPRITE* p_sprite_editor{nullptr};
     MIDGAME_SHOT_BG* p_foreground_editor{nullptr};
+    MIDGAME_SHOT_CHARACTER* p_character_editor{nullptr};
+    MIDGAME_SHOT* p_shot_editor{nullptr};
 public:
     DebugAnimationPlayer();
     ~DebugAnimationPlayer();
@@ -21,4 +23,6 @@ public:
     void showEditor();
     void editMidGameShotBG(MIDGAME_SHOT_BG* bg);
     void editMidGameShotSprite(MIDGAME_SHOT_SPRITE* sprite);
+    void editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER* character);
+    void editMidGameShot(MIDGAME_SHOT *shot);
 };

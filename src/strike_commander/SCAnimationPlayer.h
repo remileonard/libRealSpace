@@ -15,10 +15,13 @@ protected:
     AssetManager &Assets = AssetManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
     GameEngine *Game = &GameEngine::instance();
+    ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
     RSVGA &VGA = RSVGA::getInstance();
     PakArchive midgames;
     PakArchive optShps;
     PakArchive optPals;
+    PakArchive convShps;
+    PakArchive convPals;
     std::unordered_map<uint8_t, MIDGAME_DATA> midgames_data;
     std::vector<PakArchive*> mid;
     std::vector<PakArchive*> midvoc;

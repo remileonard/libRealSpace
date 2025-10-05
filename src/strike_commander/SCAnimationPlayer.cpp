@@ -61,7 +61,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, OptionShapeID::SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,-32}, {0,-1} ,0},
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,-32}, {0,-1} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,151}, {0,119}, {0,-1} ,0 },
-                    { &this->optShps, OptionShapeID::MOUTAINS_BG, 0, 0, {0,16}, {0,-16}, {0,-1} ,0 },
+                    { &this->optShps, OptionShapeID::MOUTAINS_BG, 0, 24, {0,16}, {0,-16}, {0,-1} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,183}, {0,119}, {0,-2} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,186}, {0,90}, {0,-3} ,0 }
                 },
@@ -78,7 +78,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -141,7 +141,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -333,7 +333,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -351,7 +351,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -368,7 +368,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -445,7 +445,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -546,7 +546,7 @@ void SCAnimationPlayer::initMid1() {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-32}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 1, 0, {0,119}, {0,0}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,0}, {0,0} ,0 }
                 },
@@ -562,7 +562,7 @@ void SCAnimationPlayer::initMid1() {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,-29}, {0,0}, {0,1} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,-19}, {0,10}, {0,1} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,-16}, {0,0}, {0,1} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,-16}, {0,0}, {0,1} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 2, 0, {0,119}, {0,160}, {0,3} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_BACKGROUNDS, 3, 0, {0,90}, {0,160}, {0,3} ,0 },
                     { this->mid[0], MID1_IDS::PILOT_LOOKING_AROUND, 7, 0, {0,36}, {0,80}, {0,3} ,0 }
@@ -579,7 +579,7 @@ void SCAnimationPlayer::initMid1() {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -593,7 +593,7 @@ void SCAnimationPlayer::initMid1() {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -609,7 +609,7 @@ void SCAnimationPlayer::initMid1() {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,10}, {0,10}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,0}, {0,0}, {0,0} ,0 },
                 },
                 { 
                     {nullptr, 0,0,0,{0,0},{0,0},{0,0} ,0}
@@ -623,7 +623,7 @@ void SCAnimationPlayer::initMid1() {
                 {
                     { &this->optShps, SKY, 0, OPTPALS_PAK_SKY_PALETTE_PATCH_ID, {0,0}, {0,0}, {0,0} ,0 },
                     { &this->midgames, MIDGAMES_IDS::INTRO_CLOUDS_1, 0, 0, {0,0}, {0,10}, {0,0} ,0 },
-                    { &this->optShps, MOUTAINS_BG, 0, 0, {0,0}, {0,0}, {0,0} ,0 },
+                    { &this->optShps, MOUTAINS_BG, 0, 24, {0,0}, {0,0}, {0,0} ,0 },
                     { this->mid[0], MID1_IDS::TITLE_SCREEN_ANIM_2, 11, 0, {0,16}, {0,0}, {0,0} ,0 }
                 },
                 { 
@@ -839,11 +839,9 @@ void SCAnimationPlayer::runFrame(void){
                 paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data);
             }
             this->palette.ReadPatch(&paletteReader);
-            VGA.setPalette(&this->palette);
         }
-        if (bg->pal != nullptr) {
+        if (bg->pal != nullptr && !bg->use_external_palette) {
             this->palette.CopyFromOtherPalette(bg->pal->GetColorPalette());
-            VGA.setPalette(&this->palette);
         }
     }
     for (auto bg: shot->foreground) {
@@ -859,11 +857,9 @@ void SCAnimationPlayer::runFrame(void){
             }
             
             this->palette.ReadPatch(&paletteReader);
-            VGA.setPalette(&this->palette);
         }
-        if (bg->pal != nullptr) {
+        if (bg->pal != nullptr && !bg->use_external_palette) {
             this->palette.CopyFromOtherPalette(bg->pal->GetColorPalette());
-            VGA.setPalette(&this->palette);
         }
     }
     for (auto sprt: shot->sprites) {
@@ -877,15 +873,15 @@ void SCAnimationPlayer::runFrame(void){
                 }
                 paletteReader.Set(sprt->pak_palette->GetEntry(sprt->palette)->data);
             }
-            
             this->palette.ReadPatch(&paletteReader);
-            VGA.setPalette(&this->palette);
         }
-        if (sprt->pal != nullptr) {
+        if (sprt->pal != nullptr && !sprt->use_external_palette) {
             this->palette.CopyFromOtherPalette(sprt->pal->GetColorPalette());
-            VGA.setPalette(&this->palette);
         }
     }
+    
+    
+    VGA.setPalette(&this->palette);
     for (auto bg : shot->background) {
         if (bg->image == nullptr) {
             continue;
@@ -907,6 +903,25 @@ void SCAnimationPlayer::runFrame(void){
                 }
             }
            
+            delete texture;
+        }
+    }
+    for (auto chara: shot->characters) {
+        if (chara->image == nullptr) {
+            continue;
+        }
+        if (chara->image->GetNumImages()>0) {
+            RLEShape *shp = chara->image->GetShape(1);
+            FrameBuffer *texture = new FrameBuffer(320, 200);
+            texture->fillWithColor(255);
+            texture->drawShape(shp);
+            shp = chara->image->GetShape(chara->head_id);
+            texture->drawShape(shp);
+            shp = chara->image->GetShape(chara->cloth_id);
+            texture->drawShape(shp);
+            shp = chara->image->GetShape(chara->expression_id);
+            texture->drawShape(shp);
+            fb->blitWithMask(texture->framebuffer, chara->position_start.x, chara->position_start.y, 320, 200,255);
             delete texture;
         }
     }

@@ -26,7 +26,23 @@ typedef struct MIDGAME_SHOT_BG {
     Point2D velocity;
     int shapeid;
     int pak_entry_id;
+    bool use_external_palette{false};
 } MIDGAME_SHOT_BG;
+
+typedef struct MIDGAME_SHOT_CHARACTER {
+    std::string character_name;
+    std::string background_name;
+    Point2D position_start;
+    Point2D position_end;
+    Point2D velocity;
+    RSImageSet *image;
+    RSPalette *pal;
+    uint8_t palette;
+    uint8_t cloth_id;
+    uint8_t head_id;
+    uint8_t expression_id;
+    bool talking{false};
+} MIDGAME_SHOT_CHARACTER;
 
 typedef struct MIDGAME_SHAPE_DATA {
     PakArchive *pak;
@@ -51,6 +67,7 @@ typedef struct MIDGAME_SHOT_SPRITE {
     Point2D velocity;
     int shapeid;
     uint8_t keep_first_frame;
+    bool use_external_palette{false};
 } MIDGAME_SHOT_SPRITE;
 
 typedef struct MIDGAME_SOUND {
@@ -63,6 +80,7 @@ typedef struct MIDGAME_SHOT {
     std::vector<MIDGAME_SHOT_BG *>background;
     std::vector<MIDGAME_SHOT_SPRITE *>sprites;
     std::vector<MIDGAME_SHOT_BG *>foreground;
+    std::vector<MIDGAME_SHOT_CHARACTER *>characters;
     int nbframe{0};
     int music{255};
     MIDGAME_SOUND *sound{nullptr};
