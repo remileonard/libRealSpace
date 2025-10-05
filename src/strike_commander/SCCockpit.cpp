@@ -1071,7 +1071,7 @@ void SCCockpit::Render(int face) {
             if (this->target != this->player) {
                 this->RenderTargetWithCam();
             }
-            if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+            if (this->player_plane->weaps_load.size() > 0 && this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
                 switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
                 case ID_20MM:
                     this->RenderTargetingReticle();
@@ -1261,28 +1261,32 @@ void SCCockpit::RenderHUD() {
     };
     int weapons_count = 0;
     bool in_range = false;
-    if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
-        int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
-        for (auto weap : this->player_plane->weaps_load) {
-            if (weap != nullptr && weap->objct->wdat->weapon_id == weapon_id) {
-                weapons_count += weap->nb_weap;
-            }
-        }
-        if (this->target != nullptr) {
-            uint32_t weap_range = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
-            Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
-            float distance = dist_to_target.Length();
-            if (distance <= weap_range) {
-                in_range = true;
-            }
-        }
-        if (weapon_names.find(weapon_id) != weapon_names.end()) {
-            txt = weapon_names[weapon_id];
-        } else {
-            txt = "UNKNOWN";
-        }
-    } else {
+    if (this->player_plane->weaps_load.size() == 0) {
         txt = "NO WEAP";
+    } else {
+        if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+            int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
+            for (auto weap : this->player_plane->weaps_load) {
+                if (weap != nullptr && weap->objct->wdat->weapon_id == weapon_id) {
+                    weapons_count += weap->nb_weap;
+                }
+            }
+            if (this->target != nullptr) {
+                uint32_t weap_range = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
+                Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
+                float distance = dist_to_target.Length();
+                if (distance <= weap_range) {
+                    in_range = true;
+                }
+            }
+            if (weapon_names.find(weapon_id) != weapon_names.end()) {
+                txt = weapon_names[weapon_id];
+            } else {
+                txt = "UNKNOWN";
+            }
+        } else {
+            txt = "NO WEAP";
+        }
     }
     hud->printText(this->font, &weapons_text, const_cast<char *>(txt.c_str()), 0, 0, (uint32_t)txt.length(), 2, 2);
     Point2D center = {hud->width / 2, hud->height / 2};

@@ -57,7 +57,9 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
     while (read < this->size) {
         std::vector<uint8_t> bname = this->stream->ReadBytes(4);
         read += 4;
-        if (read >= this->size) break;
+        if (read >= this->size) {
+            break;
+        };
         std::string chunk_stype;
         chunk_stype.assign(bname.begin(), bname.end());
 
@@ -75,8 +77,8 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                 free(chunk_data);
             } else {
                 printf("%s not handled\n", chunk_stype.c_str());
-                std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size);
-                read += (chunk_size);
+                std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size + size_offset);
+                read += (chunk_size+ size_offset );
             }
         } else {
             size_t chunk_size = this->stream->ReadUInt32BE();
