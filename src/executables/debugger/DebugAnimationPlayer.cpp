@@ -329,7 +329,6 @@ void DebugAnimationPlayer::midgamePaletteChoser() {
 }
 
 void DebugAnimationPlayer::showEditor() {
-    
     ImGui::Text("Éditeur de Shots - Timeline");
 
     if (this->midgames_shots[1].empty()) {
@@ -351,446 +350,245 @@ void DebugAnimationPlayer::showEditor() {
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
-    ImVec2 canvasSize = ImVec2(ImGui::GetWindowWidth() - 20, timelineHeight);
+    ImVec2 canvasSize(ImGui::GetWindowWidth() - 20, timelineHeight);
 
-    // Dessiner le fond de la timeline
-    drawList->AddRectFilled(canvasPos, 
-                        ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), 
-                        IM_COL32(40, 40, 50, 255));
+    drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), IM_COL32(40, 40, 50, 255));
 
-
-    // Zone scrollable pour la timeline
     ImGui::BeginChild("TimelineScroll", ImVec2(0, timelineHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    
+
     ImVec2 timelinePos = ImGui::GetCursorScreenPos();
     float xOffset = 10.0f;
 
     drawList->PushClipRect(canvasPos, ImVec2(canvasPos.x + canvasSize.x - 15, canvasPos.y + canvasSize.y - 15), true);
-    // Dessiner chaque shot
-    for (size_t shotIndex = 0; shotIndex < this->midgames_shots[1].size(); shotIndex++) {
-        MIDGAME_SHOT* shot = this->midgames_shots[1][shotIndex];
-        
-        // Calcul précis de la hauteur nécessaire pour ce shot
-        float shotHeight = shotTitleHeight; // Commencer avec la hauteur du titre
-        
-        // Hauteur section backgrounds
-        shotHeight += sectionHeaderHeight; // En-tête "Backgrounds:"
-        if (shot->background.empty()) {
-            shotHeight += emptyMessageHeight; // "Aucun background"
-        } else {
-            shotHeight += shot->background.size() * (elementHeight + elementSpacing);
-        }
-        
-        // Hauteur section sprites
-        shotHeight += sectionHeaderHeight; // En-tête "Character:"
-        if (shot->characters.empty()) {
-            shotHeight += emptyMessageHeight; // "Aucun character"
-        } else {
-            shotHeight += shot->characters.size() * (elementHeight + elementSpacing);
-        }
 
-        // Hauteur section sprites
-        shotHeight += sectionHeaderHeight; // En-tête "Sprites:"
-        if (shot->sprites.empty()) {
-            shotHeight += emptyMessageHeight; // "Aucun sprite"
-        } else {
-            shotHeight += shot->sprites.size() * (elementHeight + elementSpacing);
-        }
-        
-        // Hauteur section foregrounds
-        shotHeight += sectionHeaderHeight;
-        if (shot->foreground.empty()) {
-            shotHeight += emptyMessageHeight;
-        } else {
-            shotHeight += shot->foreground.size() * (elementHeight + elementSpacing);
-        }
-        
-        // Espace pour les boutons
-        shotHeight += buttonAreaHeight;
-        
-        // Position du shot actuel
-        ImVec2 shotPos = ImVec2(timelinePos.x + xOffset, timelinePos.y + 5.0f);
-        
-        // Bordure et fond du shot
-        ImU32 shotColor = (shotIndex == this->shot_counter) ? 
-                        IM_COL32(80, 140, 200, 255) : IM_COL32(70, 70, 80, 255);
-        drawList->AddRectFilled(
-            shotPos, 
-            ImVec2(shotPos.x + shotWidth, shotPos.y + shotHeight), 
-            shotColor, 4.0f);
-        
+    auto sectionHeight = [&](size_t count) {
+        return sectionHeaderHeight + (count ? count * (elementHeight + elementSpacing) : emptyMessageHeight);
+    };
+    auto formatPos = [&](auto* element) {
+        char buffer[48];
+        sprintf(buffer, "(%d,%d)→(%d,%d)", element->position_start.x, element->position_start.y, element->position_end.x, element->position_end.y);
+        return std::string(buffer);
+    };
+    auto resetSelection = [&]() {
+        this->current_mid = nullptr;
+        this->current_entry_index = -1;
+        this->current_palette_mid = nullptr;
+        this->current_palette_entry_index = -1;
+    };
+    auto selectEditor = [&](MIDGAME_SHOT_BG* bg, MIDGAME_SHOT_SPRITE* sprite, MIDGAME_SHOT_BG* fg, MIDGAME_SHOT_CHARACTER* character, MIDGAME_SHOT* shotPtr) {
+        this->p_bg_editor = bg;
+        this->p_sprite_editor = sprite;
+        this->p_foreground_editor = fg;
+        this->p_character_editor = character;
+        this->p_shot_editor = shotPtr;
+        resetSelection();
+    };
+
+    for (size_t shotIndex = 0; shotIndex < this->midgames_shots[1].size(); ++shotIndex) {
+        MIDGAME_SHOT* shot = this->midgames_shots[1][shotIndex];
+        float shotHeight = shotTitleHeight + buttonAreaHeight;
+        shotHeight += sectionHeight(shot->background.size());
+        shotHeight += sectionHeight(shot->characters.size());
+        shotHeight += sectionHeight(shot->sprites.size());
+        shotHeight += sectionHeight(shot->foreground.size());
+
+        ImVec2 shotPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
+        ImU32 shotColor = (shotIndex == this->shot_counter) ? IM_COL32(80, 140, 200, 255) : IM_COL32(70, 70, 80, 255);
+        drawList->AddRectFilled(shotPos, ImVec2(shotPos.x + shotWidth, shotPos.y + shotHeight), shotColor, 4.0f);
+
         float yOffset = 8.0f;
-        // Titre du shot
         char shotTitle[64];
         sprintf(shotTitle, "Shot %zu (%d frames)", shotIndex + 1, shot->nbframe);
-        drawList->AddText(
-            ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
-            IM_COL32(255, 255, 255, 255), 
-            shotTitle);
-        
+        drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), IM_COL32(255, 255, 255, 255), shotTitle);
         yOffset += shotTitleHeight;
-        
-        // En-tête pour les backgrounds
-        drawList->AddText(
-            ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
-            IM_COL32(200, 200, 200, 255), 
-            "Backgrounds:");
-        
-        // Bouton d'ajout pour les backgrounds
-        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize("Backgrounds:").x + 5, shotPos.y + yOffset - 2));
-        ImGui::PushID(static_cast<int>(shotIndex) * 100);
-        if (ImGui::SmallButton("+")) {
-            // Ajouter un nouveau background
-            MIDGAME_SHOT_BG* newBg = new MIDGAME_SHOT_BG();
-            newBg->pak = &this->optShps;
-            newBg->pak_entry_id = 0;
-            newBg->palette = 0;
-            newBg->shapeid = 0;
-            newBg->position_start = {160, 100};  // Centre de l'écran par défaut
-            newBg->position_end = {160, 100};
-            newBg->velocity = {0, 0};
-            newBg->image = nullptr;
-            newBg->pal = nullptr;
-            shot->background.push_back(newBg);
-            this->p_bg_editor = newBg;  // Sélectionner le nouveau bg pour édition
-        }
-        ImGui::PopID();
 
-        yOffset += sectionHeaderHeight;
-        
-        // Dessiner les backgrounds
-        if (shot->background.empty()) {
-            drawList->AddText(
-                ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), 
-                IM_COL32(180, 180, 180, 255), 
-                "Aucun background");
-            yOffset += emptyMessageHeight;
-        } else {
-            for (size_t bgIndex = 0; bgIndex < shot->background.size(); bgIndex++) {
-                MIDGAME_SHOT_BG* bg = shot->background[bgIndex];
-                ImVec2 elementPos = ImVec2(shotPos.x + textPadding, shotPos.y + yOffset);
-                
-                // S'assurer que l'élément rentre dans la largeur du shot
-                float elementWidth = shotWidth - (textPadding * 2);
-                
-                drawList->AddRectFilled(
-                    elementPos, 
-                    ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
-                    IM_COL32(60, 120, 180, 255), 3.0f);
-                
-                // Label pour le background - vérifie qu'il ne déborde pas
-                char bgLabel[32];
-                sprintf(bgLabel, "BG %zu (Shape %d)", bgIndex + 1, bg->pak_entry_id);
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
-                    IM_COL32(255, 255, 255, 255), 
-                    bgLabel);
-                
-                // Info de position - en plus petit et tronqué au besoin
-                char posInfo[48];
-                sprintf(posInfo, "(%d,%d)→(%d,%d)", bg->position_start.x, bg->position_start.y, 
-                    bg->position_end.x, bg->position_end.y);
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight/2), 
-                    IM_COL32(220, 220, 220, 255), 
-                    posInfo);
-                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight))) {
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        this->p_bg_editor = bg;
-                        this->p_sprite_editor = nullptr;
-                        this->p_foreground_editor = nullptr;
-                        this->p_character_editor = nullptr;
-                        this->p_shot_editor = nullptr;
-                        this->current_mid = nullptr;
-                        this->current_entry_index = -1;
-                    }
+        auto drawSection = [&](const char* title,
+                               const char* emptyLabel,
+                               auto& elements,
+                               ImU32 color,
+                               int idOffset,
+                               auto&& addElement,
+                               auto&& buildLabel,
+                               auto&& onSelect) {
+            drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), IM_COL32(200, 200, 200, 255), title);
+            ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize(title).x + 5, shotPos.y + yOffset - 2));
+            ImGui::PushID(static_cast<int>(shotIndex) * 100 + idOffset);
+            if (ImGui::SmallButton("+")) {
+                addElement();
+            }
+            ImGui::PopID();
+            yOffset += sectionHeaderHeight;
+
+            if (elements.empty()) {
+                drawList->AddText(ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), IM_COL32(180, 180, 180, 255), emptyLabel);
+                yOffset += emptyMessageHeight;
+                return;
+            }
+
+            float elementWidth = shotWidth - (textPadding * 2);
+            for (size_t elementIndex = 0; elementIndex < elements.size(); ++elementIndex) {
+                auto* element = elements[elementIndex];
+                ImVec2 elementPos(shotPos.x + textPadding, shotPos.y + yOffset);
+
+                drawList->AddRectFilled(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), color, 3.0f);
+                std::string label = buildLabel(element, elementIndex);
+                drawList->AddText(ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), IM_COL32(255, 255, 255, 255), label.c_str());
+                std::string posInfo = formatPos(element);
+                drawList->AddText(ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight / 2), IM_COL32(220, 220, 220, 255), posInfo.c_str());
+
+                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight)) &&
+                    ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    onSelect(element);
                 }
+
                 yOffset += elementHeight + elementSpacing;
             }
-        }
-        // En-tête pour les characters
-        drawList->AddText(
-            ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
-            IM_COL32(200, 200, 200, 255), 
-            "Characters:");
+        };
 
-        // Bouton d'ajout pour les sprites
-        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize("Characters:").x + 5, shotPos.y + yOffset - 2));
-        ImGui::PushID(static_cast<int>(shotIndex) * 100 + 1);
-        if (ImGui::SmallButton("+")) {
-            MIDGAME_SHOT_CHARACTER *newChara = new MIDGAME_SHOT_CHARACTER();
+        drawSection(
+            "Backgrounds:",
+            "Aucun background",
+            shot->background,
+            IM_COL32(60, 120, 180, 255),
+            0,
+            [&]() {
+                MIDGAME_SHOT_BG* newBg = new MIDGAME_SHOT_BG();
+                newBg->pak = &this->optShps;
+                newBg->pak_entry_id = 0;
+                newBg->pak_palette = &this->optPals;
+                newBg->palette = 0;
+                newBg->shapeid = 0;
+                newBg->position_start = {160, 100};
+                newBg->position_end = {160, 100};
+                newBg->velocity = {0, 0};
+                newBg->image = nullptr;
+                newBg->pal = nullptr;
+                newBg->use_external_palette = 0;
+                shot->background.push_back(newBg);
+                selectEditor(newBg, nullptr, nullptr, nullptr, nullptr);
+            },
+            [&](MIDGAME_SHOT_BG* bg, size_t index) {
+                char buffer[32];
+                sprintf(buffer, "BG %zu (Shape %d)", index + 1, bg->pak_entry_id);
+                return std::string(buffer);
+            },
+            [&](MIDGAME_SHOT_BG* bg) {
+                selectEditor(bg, nullptr, nullptr, nullptr, nullptr);
+            });
 
-            newChara->position_start = {0, 0};  // Centre de l'écran par défaut
-            newChara->position_end = {0, 0};
-            newChara->velocity = {0, 0};
-            
-            shot->characters.push_back(newChara);
-            this->p_character_editor = newChara;
-            this->p_sprite_editor = nullptr;
-            this->p_bg_editor = nullptr;
-            this->p_foreground_editor = nullptr;
-            this->p_character_editor = nullptr;
-            this->p_shot_editor = nullptr;
-            this->current_palette_mid = nullptr;
-            this->current_palette_entry_index = -1;
-        }
-        ImGui::PopID();
-
-        yOffset += sectionHeaderHeight;
-
-        // Dessiner les sprites
-        if (shot->characters.empty()) {
-            drawList->AddText(
-                ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), 
-                IM_COL32(180, 180, 180, 255), 
-                "Aucun character");
-            yOffset += emptyMessageHeight;
-        } else {
-            for (size_t spriteIndex = 0; spriteIndex < shot->characters.size(); spriteIndex++) {
-                MIDGAME_SHOT_CHARACTER* sprite = shot->characters[spriteIndex];
-                ImVec2 elementPos = ImVec2(shotPos.x + textPadding, shotPos.y + yOffset);
-                
-                // S'assurer que l'élément rentre dans la largeur du shot
-                float elementWidth = shotWidth - (textPadding * 2);
-                
-                drawList->AddRectFilled(
-                    elementPos, 
-                    ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
-                    IM_COL32(180, 60, 120, 255), 3.0f);
-                
-                std::string spriteLabel = "Character "+std::to_string(spriteIndex + 1) + " (" + std::to_string(sprite->image ? sprite->image->GetNumImages() : 0) + " img)";
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
-                    IM_COL32(255, 255, 255, 255), 
-                    spriteLabel.c_str());
-                
-                // Info de position en plus petit
-                char posInfo[48];
-                sprintf(posInfo, "(%d,%d)→(%d,%d)", sprite->position_start.x, sprite->position_start.y, 
-                    sprite->position_end.x, sprite->position_end.y);
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight/2), 
-                    IM_COL32(220, 220, 220, 255), 
-                    posInfo);
-                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight))) {
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        this->p_bg_editor = nullptr;
-                        this->p_character_editor = sprite;
-                        this->p_sprite_editor = nullptr;
-                        this->p_foreground_editor = nullptr;
-                        this->p_character_editor = nullptr;
-                        this->p_shot_editor = nullptr;
-                        this->current_mid = nullptr;
-                        this->current_entry_index = -1;
-                        this->current_palette_mid = nullptr;
-                        this->current_palette_entry_index = -1;
-                    }
+        drawSection(
+            "Characters:",
+            "Aucun character",
+            shot->characters,
+            IM_COL32(180, 60, 120, 255),
+            1,
+            [&]() {
+                MIDGAME_SHOT_CHARACTER* newChara = new MIDGAME_SHOT_CHARACTER();
+                newChara->position_start = {0, 0};
+                newChara->position_end = {0, 0};
+                newChara->velocity = {0, 0};
+                newChara->image = nullptr;
+                newChara->cloth_id = 0;
+                newChara->expression_id = 0;
+                newChara->head_id = 0;
+                newChara->character_name.clear();
+                shot->characters.push_back(newChara);
+                selectEditor(nullptr, nullptr, nullptr, newChara, nullptr);
+            },
+            [&](MIDGAME_SHOT_CHARACTER* character, size_t index) {
+                int count = character->image ? character->image->GetNumImages() : 0;
+                std::string label = "Character " + std::to_string(index + 1) + " (" + std::to_string(count) + " img)";
+                if (!character->character_name.empty()) {
+                    label += " - " + character->character_name;
                 }
-                yOffset += elementHeight + elementSpacing;
-            }
-        }
+                return label;
+            },
+            [&](MIDGAME_SHOT_CHARACTER* character) {
+                selectEditor(nullptr, nullptr, nullptr, character, nullptr);
+            });
 
-        // En-tête pour les sprites
-        drawList->AddText(
-            ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
-            IM_COL32(200, 200, 200, 255), 
-            "Sprites:");
+        drawSection(
+            "Sprites:",
+            "Aucun sprite",
+            shot->sprites,
+            IM_COL32(180, 120, 60, 255),
+            2,
+            [&]() {
+                MIDGAME_SHOT_SPRITE* newSprite = new MIDGAME_SHOT_SPRITE();
+                newSprite->shapeid = 0;
+                newSprite->palette = 0;
+                newSprite->pak_entry_id = 0;
+                newSprite->pak = &this->optShps;
+                newSprite->pak_palette = &this->optPals;
+                newSprite->position_start = {160, 100};
+                newSprite->position_end = {160, 100};
+                newSprite->velocity = {0, 0};
+                newSprite->keep_first_frame = 0;
+                newSprite->image = nullptr;
+                newSprite->pal = nullptr;
+                newSprite->use_external_palette = 0;
+                shot->sprites.push_back(newSprite);
+                selectEditor(nullptr, newSprite, nullptr, nullptr, nullptr);
+            },
+            [&](MIDGAME_SHOT_SPRITE* sprite, size_t index) {
+                int count = sprite->image ? sprite->image->GetNumImages() : 0;
+                return "Sprite " + std::to_string(index + 1) + " (" + std::to_string(count) + " img)";
+            },
+            [&](MIDGAME_SHOT_SPRITE* sprite) {
+                selectEditor(nullptr, sprite, nullptr, nullptr, nullptr);
+            });
 
-        // Bouton d'ajout pour les sprites
-        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize("Sprites:").x + 5, shotPos.y + yOffset - 2));
-        ImGui::PushID(static_cast<int>(shotIndex) * 100 + 1);
-        if (ImGui::SmallButton("+")) {
-            // Ajouter un nouveau sprite
-            MIDGAME_SHOT_SPRITE* newSprite = new MIDGAME_SHOT_SPRITE();
-            newSprite->shapeid = 0;
-            newSprite->palette = 0;
-            newSprite->position_start = {160, 100};  // Centre de l'écran par défaut
-            newSprite->position_end = {160, 100};
-            newSprite->velocity = {0, 0};
-            newSprite->keep_first_frame = 0;
-            newSprite->image = nullptr;
-            newSprite->pal = nullptr;
-            shot->sprites.push_back(newSprite);
-            this->p_sprite_editor = newSprite;  // Sélectionner le nouveau sprite pour édition
-            this->p_bg_editor = nullptr;
-            this->p_foreground_editor = nullptr;
-            this->p_character_editor = nullptr;
-            this->p_shot_editor = nullptr;
-            this->current_palette_mid = nullptr;
-            this->current_palette_entry_index = -1;
-        }
-        ImGui::PopID();
+        drawSection(
+            "Foregrounds:",
+            "Pas de foreground",
+            shot->foreground,
+            IM_COL32(220, 120, 180, 255),
+            3,
+            [&]() {
+                MIDGAME_SHOT_BG* newFg = new MIDGAME_SHOT_BG();
+                newFg->pak = &this->optShps;
+                newFg->pak_entry_id = 0;
+                newFg->pak_palette = &this->optPals;
+                newFg->palette = 0;
+                newFg->shapeid = 0;
+                newFg->position_start = {160, 100};
+                newFg->position_end = {160, 100};
+                newFg->velocity = {0, 0};
+                newFg->image = nullptr;
+                newFg->pal = nullptr;
+                newFg->use_external_palette = 0;
+                shot->foreground.push_back(newFg);
+                selectEditor(nullptr, nullptr, newFg, nullptr, nullptr);
+            },
+            [&](MIDGAME_SHOT_BG* fg, size_t index) {
+                char buffer[32];
+                sprintf(buffer, "FG %zu (Shape %d)", index + 1, fg->pak_entry_id);
+                return std::string(buffer);
+            },
+            [&](MIDGAME_SHOT_BG* fg) {
+                selectEditor(nullptr, nullptr, fg, nullptr, nullptr);
+            });
 
-        yOffset += sectionHeaderHeight;
-        
-        // Dessiner les sprites
-        if (shot->sprites.empty()) {
-            drawList->AddText(
-                ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), 
-                IM_COL32(180, 180, 180, 255), 
-                "Aucun sprite");
-            yOffset += emptyMessageHeight;
-        } else {
-            for (size_t spriteIndex = 0; spriteIndex < shot->sprites.size(); spriteIndex++) {
-                MIDGAME_SHOT_SPRITE* sprite = shot->sprites[spriteIndex];
-                ImVec2 elementPos = ImVec2(shotPos.x + textPadding, shotPos.y + yOffset);
-                
-                // S'assurer que l'élément rentre dans la largeur du shot
-                float elementWidth = shotWidth - (textPadding * 2);
-                
-                drawList->AddRectFilled(
-                    elementPos, 
-                    ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
-                    IM_COL32(180, 120, 60, 255), 3.0f);
-                
-                std::string spriteLabel = "Sprite "+std::to_string(spriteIndex + 1) + " (" + std::to_string(sprite->image ? sprite->image->GetNumImages() : 0) + " img)";
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
-                    IM_COL32(255, 255, 255, 255), 
-                    spriteLabel.c_str());
-                
-                // Info de position en plus petit
-                char posInfo[48];
-                sprintf(posInfo, "(%d,%d)→(%d,%d)", sprite->position_start.x, sprite->position_start.y, 
-                    sprite->position_end.x, sprite->position_end.y);
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight/2), 
-                    IM_COL32(220, 220, 220, 255), 
-                    posInfo);
-                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight))) {
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        this->p_bg_editor = nullptr;
-                        this->p_sprite_editor = sprite;
-                        this->p_foreground_editor = nullptr;
-                        this->p_character_editor = nullptr;
-                        this->p_shot_editor = nullptr;
-                        this->current_mid = nullptr;
-                        this->current_entry_index = -1;
-                        this->current_palette_mid = nullptr;
-                        this->current_palette_entry_index = -1;
-                    }
-                }
-                yOffset += elementHeight + elementSpacing;
-            }
-        }
-        
-        // Section des foregrounds
-        drawList->AddText(
-            ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
-            IM_COL32(200, 200, 200, 255), 
-            "Foregrounds:");
-        
-        // Bouton d'ajout pour les foregrounds
-        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize("Foregrounds:").x + 5, shotPos.y + yOffset - 2));
-        ImGui::PushID(static_cast<int>(shotIndex) * 100 + 2);
-        if (ImGui::SmallButton("+")) {
-            // Ajouter un nouveau foreground
-            MIDGAME_SHOT_BG* newFg = new MIDGAME_SHOT_BG();
-            newFg->pak = &this->optShps;
-            newFg->pak_entry_id = 0;
-            newFg->palette = 0;
-            newFg->shapeid = 0;
-            newFg->position_start = {160, 100};  // Centre de l'écran par défaut
-            newFg->position_end = {160, 100};
-            newFg->velocity = {0, 0};
-            newFg->image = nullptr;
-            newFg->pal = nullptr;
-            shot->foreground.push_back(newFg);
-            this->p_foreground_editor = newFg;  // Sélectionner le nouveau fg pour édition
-            this->p_bg_editor = nullptr;
-            this->p_sprite_editor = nullptr;
-            this->p_character_editor = nullptr;
-            this->p_shot_editor = nullptr;
-            this->current_palette_mid = nullptr;
-            this->current_palette_entry_index = -1;
-        }
-        ImGui::PopID();
-        
-        yOffset += sectionHeaderHeight;
-        if (shot->foreground.empty()) {
-            drawList->AddText(
-                ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), 
-                IM_COL32(180, 180, 180, 255), 
-                "Pas de foreground");
-            yOffset += emptyMessageHeight;
-        } else {
-            for (size_t bgIndex = 0; bgIndex < shot->foreground.size(); bgIndex++) {
-                MIDGAME_SHOT_BG* bg = shot->foreground[bgIndex];
-                ImVec2 elementPos = ImVec2(shotPos.x + textPadding, shotPos.y + yOffset);
-                
-                // S'assurer que l'élément rentre dans la largeur du shot
-                float elementWidth = shotWidth - (textPadding * 2);
-                
-                drawList->AddRectFilled(
-                    elementPos, 
-                    ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
-                    IM_COL32(220, 120, 180, 255), 3.0f);
-                
-                // Label pour le background - vérifie qu'il ne déborde pas
-                char bgLabel[32];
-                sprintf(bgLabel, "FG %zu (Shape %d)", bgIndex + 1, bg->pak_entry_id);
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
-                    IM_COL32(255, 255, 255, 255), 
-                    bgLabel);
-                
-                // Info de position - en plus petit et tronqué au besoin
-                char posInfo[48];
-                sprintf(posInfo, "(%d,%d)→(%d,%d)", bg->position_start.x, bg->position_start.y, 
-                    bg->position_end.x, bg->position_end.y);
-                drawList->AddText(
-                    ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight/2), 
-                    IM_COL32(220, 220, 220, 255), 
-                    posInfo);
-                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight))) {
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        this->p_bg_editor = nullptr;
-                        this->p_sprite_editor = nullptr;
-                        this->p_character_editor = nullptr;
-                        this->p_shot_editor = nullptr;
-                        this->current_mid = nullptr;
-                        this->current_entry_index = -1;
-                        this->current_palette_mid = nullptr;
-                        this->current_palette_entry_index = -1;
-                        this->p_foreground_editor = bg;
-                    }
-                }
-                yOffset += elementHeight + elementSpacing;
-            }
-        }   
-        
-        // Ajouter des boutons interactifs sous chaque shot
-        // S'assurer qu'ils sont positionnés correctement
         ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding, shotPos.y + shotHeight - buttonAreaHeight + 5.0f));
         ImGui::PushID(static_cast<int>(shotIndex));
-        
-        if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding*3)/2, 20))) {
-            this->shot_counter = shotIndex;
-            this->p_shot_editor = shot;
-            this->p_bg_editor = nullptr;
-            this->p_sprite_editor = nullptr;
-            this->p_foreground_editor = nullptr;
-            this->p_character_editor = nullptr;
-            this->current_mid = nullptr;
-            this->current_entry_index = -1;
-            this->current_palette_mid = nullptr;
-            this->current_palette_entry_index = -1;
+        if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding * 3) / 2, 20))) {
+            this->shot_counter = static_cast<int>(shotIndex);
+            selectEditor(nullptr, nullptr, nullptr, nullptr, shot);
         }
         ImGui::SameLine(0, textPadding);
-        if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding*3)/2, 20))) {
-            this->shot_counter = shotIndex;
+        if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding * 3) / 2, 20))) {
+            this->shot_counter = static_cast<int>(shotIndex);
             this->fps_counter = 0;
             this->pause = false;
         }
         ImGui::PopID();
-        
-        // Passer au shot suivant
+
         xOffset += shotWidth + shotSpacing;
     }
+
     drawList->PopClipRect();
     ImGui::EndChild();
 
-    // Légende
     ImGui::Separator();
     if (this->p_bg_editor != nullptr) {
         editMidGameShotBG(this->p_bg_editor);
