@@ -82,6 +82,45 @@ void SCAnimationArchive::WriteShot(IFFWriter& writer, const MIDGAME_SHOT* shot) 
         WriteForegrounds(writer, shot->foreground);
     }
     
+    // Personnages
+    if (!shot->characters.empty()) {
+        WriteCharacters(writer, shot->characters);
+    }
+    
+    writer.EndChunk();
+}
+
+// Ajouter cette nouvelle fonction pour écrire les personnages
+void SCAnimationArchive::WriteCharacters(IFFWriter& writer, const std::vector<MIDGAME_SHOT_CHARACTER*>& characters) {
+    writer.StartChunk("CHAR");
+    for (const MIDGAME_SHOT_CHARACTER* character : characters) {
+        writer.StartChunk("CHRC");
+        
+        // Écriture du nom du personnage
+        writer.WriteUint16(character->character_name.length());
+        writer.WriteString(character->character_name.c_str(), character->character_name.length());
+        
+        // Écriture du nom du fond
+        writer.WriteUint16(character->background_name.length());
+        writer.WriteString(character->background_name.c_str(), character->background_name.length());
+        
+        // Positions et vélocité
+        writer.WriteInt16(character->position_start.x);
+        writer.WriteInt16(character->position_start.y);
+        writer.WriteInt16(character->position_end.x);
+        writer.WriteInt16(character->position_end.y);
+        writer.WriteInt16(character->velocity.x);
+        writer.WriteInt16(character->velocity.y);
+        
+        // IDs des éléments du personnage
+        writer.WriteUint8(character->palette);
+        writer.WriteUint8(character->cloth_id);
+        writer.WriteUint8(character->head_id);
+        writer.WriteUint8(character->expression_id);
+        writer.WriteUint8(character->talking ? 1 : 0);
+        
+        writer.EndChunk();
+    }
     writer.EndChunk();
 }
 
@@ -96,20 +135,40 @@ void SCAnimationArchive::WriteBackgrounds(IFFWriter& writer, const std::vector<M
 void SCAnimationArchive::WriteBackground(IFFWriter& writer, const MIDGAME_SHOT_BG* bg) {
     writer.StartChunk("BKGD");
     
-    // Nom de l'archive pak
-    std::string archiveName = bg->pak->GetName();
     AssetManager& Assets = AssetManager::getInstance();
-    for (auto treRef: Assets.treEntries) {
-        if (treRef.first.length() >= archiveName.length() &&
-            treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
-            // archiveName is a suffix of treRef.first
-            archiveName = treRef.first;
-            break;
+
+    std::string archiveName = bg->pak->GetName();
+    if (archiveName.length() > 0) {
+        if (archiveName.length() < 4 || archiveName.compare(archiveName.length() - 4, 4, ".PAK") != 0) {
+            archiveName += ".PAK";
+        }
+        for (auto treRef: Assets.treEntries) {
+            if (treRef.first.length() >= archiveName.length() &&
+                treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
+                archiveName = treRef.first;
+                break;
+            }
         }
     }
+
+    std::string paletteArchiveName = bg->pak_palette ? bg->pak_palette->GetName() : "";
+    if (paletteArchiveName.length() > 0) {    
+        if (paletteArchiveName.length() < 4 || paletteArchiveName.compare(paletteArchiveName.length() - 4, 4, ".PAK") != 0) {
+            paletteArchiveName += ".PAK";
+        }
+        for (auto treRef: Assets.treEntries) {
+            if (treRef.first.length() >= paletteArchiveName.length() &&
+                treRef.first.compare(treRef.first.length() - paletteArchiveName.length(), paletteArchiveName.length(), paletteArchiveName) == 0) {
+                paletteArchiveName = treRef.first;
+                break;
+            }
+        }
+    }
+    
     writer.WriteUint16(archiveName.length());
     writer.WriteString(archiveName.c_str(), archiveName.length());
-    
+    writer.WriteUint16(paletteArchiveName.length());
+    writer.WriteString(paletteArchiveName.c_str(), paletteArchiveName.length());
     writer.WriteUint16(bg->pak_entry_id);
     writer.WriteUint16(bg->palette);
     writer.WriteUint16(bg->shapeid);
@@ -138,10 +197,15 @@ void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRIT
         return;
     }
     writer.StartChunk("SPRI");
+    std::string archiveName = sprite->pak->GetName();
+    if (archiveName.length() < 4 || archiveName.compare(archiveName.length() - 4, 4, ".PAK") != 0) {
+        archiveName += ".PAK";
+    }
     
-    // Pour les sprites, nous devons déterminer l'archive d'origine
-    // Ce sera probablement stocké dans une propriété liée à l'image
-    std::string archiveName = std::string(sprite->pak->GetName())+".PAK";
+    std::string paletteArchiveName = sprite->pak_palette ? sprite->pak_palette->GetName() : "";
+    if (paletteArchiveName.length() < 4 || paletteArchiveName.compare(paletteArchiveName.length() - 4, 4, ".PAK") != 0) {
+        paletteArchiveName += ".PAK";
+    }
     AssetManager& Assets = AssetManager::getInstance();
     for (auto treRef: Assets.treEntries) {
         if (treRef.first.length() >= archiveName.length() &&
@@ -150,15 +214,27 @@ void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRIT
             archiveName = treRef.first;
             break;
         }
-    } 
+    }
+    if (paletteArchiveName.length() > 0) {    
+        for (auto treRef: Assets.treEntries) {
+            if (treRef.first.length() >= paletteArchiveName.length() &&
+                treRef.first.compare(treRef.first.length() - paletteArchiveName.length(), paletteArchiveName.length(), paletteArchiveName) == 0) {
+                paletteArchiveName = treRef.first;
+                break;
+            }
+        }
+    }
     writer.WriteUint16(archiveName.length());
     writer.WriteString(archiveName.c_str(), archiveName.length());
     
+    writer.WriteUint16(paletteArchiveName.length());
+    writer.WriteString(paletteArchiveName.c_str(), paletteArchiveName.length());
+
     writer.WriteUint16(sprite->pak_entry_id);
     writer.WriteUint16(sprite->shapeid);
     writer.WriteUint16(sprite->palette);
-    
-    // Positions et vélocité
+    writer.WriteUint8(sprite->use_external_palette ? 1 : 0);
+
     writer.WriteInt16(sprite->position_start.x);
     writer.WriteInt16(sprite->position_start.y);
     writer.WriteInt16(sprite->position_end.x);
@@ -175,14 +251,40 @@ void SCAnimationArchive::WriteForegrounds(IFFWriter& writer, const std::vector<M
     for (const MIDGAME_SHOT_BG* fg : foregrounds) {
         writer.StartChunk("FRGD");
         
-        // Nom de l'archive pak
         std::string archiveName = fg->pak->GetName();
+        if (archiveName.length() < 4 || archiveName.compare(archiveName.length() - 4, 4, ".PAK") != 0) {
+            archiveName += ".PAK";
+        }
+        
+        std::string paletteArchiveName = fg->pak_palette ? fg->pak_palette->GetName() : "";
+        if (paletteArchiveName.length() < 4 || paletteArchiveName.compare(paletteArchiveName.length() - 4, 4, ".PAK") != 0) {
+            paletteArchiveName += ".PAK";
+        }
+        AssetManager& Assets = AssetManager::getInstance();
+        for (auto treRef: Assets.treEntries) {
+            if (treRef.first.length() >= archiveName.length() &&
+                treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
+                archiveName = treRef.first;
+                break;
+            }
+        }
+        if (paletteArchiveName.length() > 0) {    
+            for (auto treRef: Assets.treEntries) {
+                if (treRef.first.length() >= paletteArchiveName.length() &&
+                    treRef.first.compare(treRef.first.length() - paletteArchiveName.length(), paletteArchiveName.length(), paletteArchiveName) == 0) {
+                    paletteArchiveName = treRef.first;
+                    break;
+                }
+            }
+        }
         writer.WriteUint16(archiveName.length());
         writer.WriteString(archiveName.c_str(), archiveName.length());
-        
+        writer.WriteUint16(paletteArchiveName.length());
+        writer.WriteString(paletteArchiveName.c_str(), paletteArchiveName.length());
         writer.WriteUint16(fg->pak_entry_id);
         writer.WriteUint16(fg->palette);
         writer.WriteUint16(fg->shapeid);
+        writer.WriteUint8(fg->use_external_palette ? 1 : 0);
         
         // Positions et vélocité
         writer.WriteInt16(fg->position_start.x);
@@ -215,6 +317,7 @@ void SCAnimationArchive::HandleANIM(uint8_t* data, size_t size) {
     lexer.InitFromRAM(data, size, events);
 }
 
+// Mettre à jour HandleSHOT pour inclure les gestionnaires de personnages
 void SCAnimationArchive::HandleSHOT(uint8_t* data, size_t size) {
     // Créer un nouveau shot
     currentShot = new MIDGAME_SHOT();
@@ -227,12 +330,60 @@ void SCAnimationArchive::HandleSHOT(uint8_t* data, size_t size) {
     events["SPRT"] = std::bind(&SCAnimationArchive::HandleSPRT, this, std::placeholders::_1, std::placeholders::_2);
     events["FGND"] = std::bind(&SCAnimationArchive::HandleFGND, this, std::placeholders::_1, std::placeholders::_2);
     events["SOND"] = std::bind(&SCAnimationArchive::HandleSOND, this, std::placeholders::_1, std::placeholders::_2);
+    events["CHAR"] = std::bind(&SCAnimationArchive::HandleCHAR, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, events);
     
     // Ajouter le shot à la liste
     shots->push_back(currentShot);
     currentShot = nullptr;
+}
+
+// Ajouter ces nouvelles fonctions pour lire les personnages
+void SCAnimationArchive::HandleCHAR(uint8_t* data, size_t size) {
+    IFFSaxLexer lexer;
+    
+    std::unordered_map<std::string, std::function<void(uint8_t*, size_t)>> events;
+    events["CHRC"] = std::bind(&SCAnimationArchive::HandleCHRC, this, std::placeholders::_1, std::placeholders::_2);
+    
+    lexer.InitFromRAM(data, size, events);
+}
+
+void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
+    if (currentShot) {
+        ByteStream stream(data);
+        
+        MIDGAME_SHOT_CHARACTER* character = new MIDGAME_SHOT_CHARACTER();
+        
+        // Lecture du nom du personnage
+        uint16_t charNameLength = stream.ReadUShort();
+        character->character_name = stream.ReadString(charNameLength);
+        
+        // Lecture du nom du fond
+        uint16_t bgNameLength = stream.ReadUShort();
+        character->background_name = stream.ReadString(bgNameLength);
+        
+        // Lecture des positions et vélocité
+        character->position_start.x = stream.ReadShort();
+        character->position_start.y = stream.ReadShort();
+        character->position_end.x = stream.ReadShort();
+        character->position_end.y = stream.ReadShort();
+        character->velocity.x = stream.ReadShort();
+        character->velocity.y = stream.ReadShort();
+        
+        // Lecture des IDs des éléments du personnage
+        character->palette = stream.ReadByte();
+        character->cloth_id = stream.ReadByte();
+        character->head_id = stream.ReadByte();
+        character->expression_id = stream.ReadByte();
+        character->talking = stream.ReadByte() != 0;
+        
+        // Chargement des images du personnage
+        // Cette partie dépend de comment vous stockez/chargez les images des personnages
+        // et peut nécessiter une logique spécifique selon votre système de ressources
+        
+        currentShot->characters.push_back(character);
+    }
 }
 
 void SCAnimationArchive::HandleSHTP(uint8_t* data, size_t size) {
@@ -246,10 +397,8 @@ void SCAnimationArchive::HandleSHTP(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleBGND(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
-    
     std::unordered_map<std::string, std::function<void(uint8_t*, size_t)>> events;
     events["BKGD"] = std::bind(&SCAnimationArchive::HandleBKGD, this, std::placeholders::_1, std::placeholders::_2);
-    
     lexer.InitFromRAM(data, size, events);
 }
 
@@ -262,9 +411,21 @@ void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
         // Lire le nom de l'archive
         uint16_t nameLength = stream.ReadUShort();
         std::string archiveName = stream.ReadString(nameLength);
-        
-        // Trouver ou charger l'archive
         bg->pak = FindOrLoadPakArchive(archiveName);
+        
+        nameLength = stream.ReadUShort();
+        if (nameLength > 0) {
+            std::string paletteArchiveName = stream.ReadString(nameLength);
+            // Trouver ou charger l'archive
+            
+            if (!paletteArchiveName.empty()) {
+                bg->pak_palette = FindOrLoadPakArchive(paletteArchiveName);
+            } else {
+                bg->pak_palette = nullptr;
+            }
+        } else {
+            bg->pak_palette = nullptr;
+        }
         
         bg->pak_entry_id = stream.ReadUShort();
         bg->palette = stream.ReadUShort();
@@ -299,7 +460,6 @@ void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
                 }
             }
         }
-        
         currentShot->background.push_back(bg);
     }
 }
@@ -308,11 +468,11 @@ void SCAnimationArchive::HandleSPRT(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
     
     std::unordered_map<std::string, std::function<void(uint8_t*, size_t)>> events;
-    events["SPRI"] = std::bind(&SCAnimationArchive::HandleSPR, this, std::placeholders::_1, std::placeholders::_2);
+    events["SPRI"] = std::bind(&SCAnimationArchive::HandleSPRI, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, events);
 }
 
-void SCAnimationArchive::HandleSPR(uint8_t* data, size_t size) {
+void SCAnimationArchive::HandleSPRI(uint8_t* data, size_t size) {
     if (currentShot) {
         ByteStream stream(data);
         
@@ -322,15 +482,25 @@ void SCAnimationArchive::HandleSPR(uint8_t* data, size_t size) {
         uint16_t nameLength = stream.ReadUShort();
         std::string archiveName = stream.ReadString(nameLength);
         
-        // Trouver ou charger l'archive
-        PakArchive* pak = FindOrLoadPakArchive(archiveName);
+        sprite->pak = FindOrLoadPakArchive(archiveName);
         
+        uint16_t palNameLength = stream.ReadUShort();
+        if (palNameLength > 0) {
+            std::string paletteArchiveName = stream.ReadString(palNameLength);
+            if (!paletteArchiveName.empty()) {
+                sprite->pak_palette = FindOrLoadPakArchive(paletteArchiveName);
+            } else {
+                sprite->pak_palette = nullptr;
+            }
+        } else {
+            sprite->pak_palette = nullptr;
+        }
         
         sprite->pak_entry_id = stream.ReadUShort(); 
         sprite->shapeid = stream.ReadUShort();
         sprite->palette = stream.ReadUShort();
+        sprite->use_external_palette = stream.ReadByte() != 0;
         
-        // Lire les positions et la vélocité
         sprite->position_start.x = stream.ReadShort();
         sprite->position_start.y = stream.ReadShort();
         sprite->position_end.x = stream.ReadShort();
@@ -338,7 +508,6 @@ void SCAnimationArchive::HandleSPR(uint8_t* data, size_t size) {
         sprite->velocity.x = stream.ReadShort();
         sprite->velocity.y = stream.ReadShort();
         sprite->keep_first_frame = stream.ReadByte();
-        
         if (sprite->pak != nullptr) {
             PakEntry* entry = sprite->pak->GetEntry(sprite->pak_entry_id);
             if (entry != nullptr) {
@@ -367,7 +536,7 @@ void SCAnimationArchive::HandleFGND(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
     
     std::unordered_map<std::string, std::function<void(uint8_t*, size_t)>> events;
-    events["VERS"] = std::bind(&SCAnimationArchive::HandleFRGD, this, std::placeholders::_1, std::placeholders::_2);
+    events["FRGD"] = std::bind(&SCAnimationArchive::HandleFRGD, this, std::placeholders::_1, std::placeholders::_2);
     
     
     lexer.InitFromRAM(data, size, events);
@@ -382,13 +551,24 @@ void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
         // Lire le nom de l'archive
         uint16_t nameLength = stream.ReadUShort();
         std::string archiveName = stream.ReadString(nameLength);
-        
-        // Trouver ou charger l'archive
         fg->pak = FindOrLoadPakArchive(archiveName);
+        // Lire le nom de l'archive de palette
+        uint16_t palNameLength = stream.ReadUShort();
+        if (palNameLength > 0) {
+            std::string paletteArchiveName = stream.ReadString(palNameLength);
+            if (!paletteArchiveName.empty()) {
+                fg->pak_palette = FindOrLoadPakArchive(paletteArchiveName);
+            } else {
+                fg->pak_palette = nullptr;
+            }
+        } else {
+            fg->pak_palette = nullptr;
+        }
         
         fg->pak_entry_id = stream.ReadUShort();
         fg->palette = stream.ReadUShort();
         fg->shapeid = stream.ReadUShort();
+        fg->use_external_palette = stream.ReadByte() != 0;
         
         // Lire les positions et la vélocité
         fg->position_start.x = stream.ReadShort();

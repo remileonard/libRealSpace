@@ -144,17 +144,19 @@ private:
     void WriteSound(IFFWriter& writer, const MIDGAME_SOUND* sound);
 
     // Handler pour l'IFFSaxLexer
-    void HandleChunks(uint8_t* data, size_t size);
     void HandleANIM(uint8_t* data, size_t size);
     void HandleSHOT(uint8_t* data, size_t size);
     void HandleSHTP(uint8_t* data, size_t size);
     void HandleBGND(uint8_t* data, size_t size);
     void HandleBKGD(uint8_t* data, size_t size);
     void HandleSPRT(uint8_t* data, size_t size);
-    void HandleSPR(uint8_t* data, size_t size);
+    void HandleSPRI(uint8_t* data, size_t size);
     void HandleFGND(uint8_t* data, size_t size);
     void HandleFRGD(uint8_t* data, size_t size);
     void HandleSOND(uint8_t* data, size_t size);
+    void WriteCharacters(IFFWriter& writer, const std::vector<MIDGAME_SHOT_CHARACTER*>& characters);
+    void HandleCHAR(uint8_t* data, size_t size);
+    void HandleCHRC(uint8_t* data, size_t size);
 
     // Utilitaires
     PakArchive* FindOrLoadPakArchive(const std::string& name);
