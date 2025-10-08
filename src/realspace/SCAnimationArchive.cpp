@@ -172,7 +172,7 @@ void SCAnimationArchive::WriteBackground(IFFWriter& writer, const MIDGAME_SHOT_B
     writer.WriteUint16(bg->pak_entry_id);
     writer.WriteUint16(bg->palette);
     writer.WriteUint16(bg->shapeid);
-    
+    writer.WriteInt8(bg->use_external_palette ? 1 : 0);
     // Positions et vélocité
     writer.WriteInt16(bg->position_start.x);
     writer.WriteInt16(bg->position_start.y);
@@ -430,7 +430,7 @@ void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
         bg->pak_entry_id = stream.ReadUShort();
         bg->palette = stream.ReadUShort();
         bg->shapeid = stream.ReadUShort();
-        
+        bg->use_external_palette = stream.ReadByte() != 0;
         // Lire les positions et la vélocité
         bg->position_start.x = stream.ReadShort();
         bg->position_start.y = stream.ReadShort();
