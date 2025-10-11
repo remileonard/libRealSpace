@@ -937,14 +937,40 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMP(uint8_t *data, size_t size) {
         pic_data = lzbuffer.DecodeLZW(src+2,size-14,csize);
         src = pic_data;
     } else if (src[0]=='P' && src[1]=='+'){
-        uint8_t *pic_data = new uint8_t[width * height];
-        for (size_t i = 0; i < width * height; i++) {
-            pic_data[i] = i%256;
+        PKWareDecompressor pkware;
+        size_t remain = size - ((src+2) - data);
+        size_t byte_read = 0;
+        uint8_t *temp_data = pkware.DecompressPKWare(src+2,remain,csize);
+        
+        // Doubler chaque ligne
+        size_t source_height = csize / width;
+        size_t new_size = width * source_height * 2;
+        size_t real_size = width * height;
+        pic_data = (uint8_t*)malloc(width * height);
+        size_t line = 0;
+        for (line = 0; line < source_height; line++) {
+            size_t src_offset = line * width;
+            size_t dst_offset = line * width * 2;
+            
+            // Copier la ligne deux fois
+            memcpy(pic_data + dst_offset, temp_data + src_offset, width);
+            memcpy(pic_data + dst_offset + width, temp_data + src_offset, width);
         }
+        if (line*2 < height) {
+            // Si la hauteur cible est plus grande, remplir le reste avec des zéros
+            memset(pic_data + line*2 * width, 0, (height - line*2) * width);
+        }
+        free(temp_data);
+        csize = real_size;
         src = pic_data;
     }
     
-    image->UpdateContent(src);
+    if (csize == width * height || pic_data == nullptr) {
+        image->UpdateContent(src);
+    } else {
+        image->UpdateContent(src, csize);
+    }
+    
     AddImage(image);
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
@@ -986,12 +1012,42 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
         image->height = height;
         AddImage(image);
     }  else if (src[0]=='P' && src[1]=='+'){
-        image->Create(name, width, height, 0);
-        uint8_t *pic_data = new uint8_t[width * height];
-        for (size_t i = 0; i < width * height; i++) {
-            pic_data[i] = i%256;
+        stream.ReadByte();
+        stream.ReadByte();
+        size_t next_frame_offset = 0;
+        uint8_t *frame_data = nullptr;
+        frame_data = (uint8_t*)malloc(width * height);
+        size_t remaind_bytes = size - 16;
+        uint8_t *frame_src = src+16;
+        while (remaind_bytes > 0) {
+            uint8_t next_frame_offset = stream.ReadShort();
+            PKWareDecompressor pkware;
+            size_t remain = size - ((src+2) - data);
+            size_t byte_read = 0;
+            uint8_t *temp_data = pkware.DecompressPKWare(src+2,remain,csize);
+            
+            // Doubler chaque ligne
+            size_t source_height = csize / width;
+            size_t new_size = width * source_height * 2;
+            size_t real_size = width * height;
+            pic_data = (uint8_t*)malloc(width * height);
+            size_t line = 0;
+            for (line = 0; line < source_height; line++) {
+                size_t src_offset = line * width;
+                size_t dst_offset = line * width * 2;
+                
+                // Copier la ligne deux fois
+                memcpy(pic_data + dst_offset, temp_data + src_offset, width);
+                memcpy(pic_data + dst_offset + width, temp_data + src_offset, width);
+            }
+            if (line*2 < height) {
+                // Si la hauteur cible est plus grande, remplir le reste avec des zéros
+                memset(pic_data + line*2 * width, 0, (height - line*2) * width);
+            }
+            free(temp_data);
         }
-        src = pic_data;
+        
+        
     } else {
         image->Create(name, width, height*nbframe, 0);
         image->nbframes = nbframe;

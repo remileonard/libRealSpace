@@ -10,6 +10,10 @@
 void RSMusic::init() {
     PakArchive *pak = new PakArchive();
     TreEntry *entry = assetManager.GetEntryByName("..\\..\\DATA\\MIDGAMES\\AMUSIC.PAK");
+    if (entry == NULL) {
+        printf("RSMusic::init: Could not find ..\\..\\DATA\\MIDGAMES\\AMUSIC.PAK\n");
+        return;
+    }
     pak->InitFromRAM("..\\..\\DATA\\MIDGAMES\\AMUSIC.PAK", entry->data, entry->size);
 
     for (size_t i = 0; i < pak->GetNumEntries(); i++) {
@@ -86,4 +90,12 @@ void RSMusic::SwitchBank(uint8_t bank) {
     }
     this->bank = bank;
 }
-MemMusic *RSMusic::GetMusic(uint32_t index) { return musics[bank][index]; }
+MemMusic *RSMusic::GetMusic(uint32_t index) { 
+    if (musics.find(bank) == musics.end()) {
+        return NULL;
+    }
+    if (index >= musics[bank].size()) {
+        return NULL;
+    }
+    return musics[bank][index]; 
+}

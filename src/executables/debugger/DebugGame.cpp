@@ -387,10 +387,11 @@ void DebugGame::loadPacific() {
     // Load all TREs and PAKs
     
     std::vector<std::string> cdTreFiles = {
-        "PACIFIC.DAT",
+        "PACIFIC.DAT"
     };
     Assets.init(cdTreFiles);
-    
+    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+    RSMixer::getInstance().init();
     FontManager.init();
 
     SCObjectViewer* main = new SCObjectViewer();

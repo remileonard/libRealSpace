@@ -17,7 +17,9 @@ add_subdirectory(src/executables/debugger)
 add_subdirectory(src/strike_commander)
 add_subdirectory(src/engine)
 add_subdirectory(src/realspace)
+add_subdirectory(src/commons/pklib)
 add_subdirectory(src/commons)
+
 
 # Configuration du package CPack
 set(CPACK_GENERATOR "ZIP")

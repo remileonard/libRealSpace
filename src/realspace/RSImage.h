@@ -39,6 +39,7 @@ public:
     
     void Create(const char name[8],uint32_t width,uint32_t height, uint32_t flags);
     void UpdateContent(uint8_t* data);
+    void UpdateContent(uint8_t* src, size_t csize) ;
     void SetPalette(VGAPalette* palette);
     void ClearContent(void);
     void GetNextFrame();

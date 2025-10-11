@@ -1,0 +1,4 @@
+file(GLOB LIBRARY_SOURCES "*.c")
+file(GLOB LIBRARY_HEADERS "*.h")
+
+add_library(pklib STATIC ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})

@@ -15,6 +15,7 @@
 #include "../commons/Maths.h"
 #include "../commons/Matrix.h"
 #include "../commons/Quaternion.h"
+#include "../commons/PKWareDecompressor.h"
 #include "RSImage.h"
 
 #include "TreArchive.h"

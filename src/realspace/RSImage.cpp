@@ -40,6 +40,11 @@ void RSImage::UpdateContent(uint8_t* src) {
     memcpy(this->data,src, width * height);
     this->dirty = true;
 }
+void RSImage::UpdateContent(uint8_t* src, size_t csize) {
+    this->data = (uint8_t*)realloc(this->data, csize);
+    memcpy(this->data,src, csize);
+    this->dirty = true;
+}
 
 
 void RSImage::SyncTexture(void){

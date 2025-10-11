@@ -101,6 +101,10 @@ void RSMixer::playMusic(uint32_t index, int loop) {
     if (shuttingDown) return;
     Mix_ADLMIDI_setCustomBankFile("./assets/STRIKE.wopl");
     MemMusic *mus = this->music->GetMusic(index);
+    if (mus == nullptr) {
+        printf("No music found for index %d in bank %d\n", index, this->music->bank);
+        return;
+    }
     SDL_RWops *rw = SDL_RWFromConstMem(mus->data, (int) mus->size);
     Mix_Music *music = Mix_LoadMUSType_RW(rw, MUS_ADLMIDI, 1);
     if (!music) {

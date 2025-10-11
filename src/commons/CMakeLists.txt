@@ -9,3 +9,6 @@ target_include_directories(commons PUBLIC ${OPENGL_INCLUDE_DIR})
 target_link_libraries(commons PRIVATE $<IF:$<TARGET_EXISTS:SDL2_mixer_ext::SDL2_mixer_ext>,SDL2_mixer_ext::SDL2_mixer_ext,SDL2_mixer_ext::SDL2_mixer_ext_Static>)
 target_include_directories(commons PUBLIC ${LIBRARY_INCLUDES})
 target_link_libraries(commons PUBLIC ${LIBRARY_LINKS})
+
+target_link_libraries(commons PUBLIC pklib)
+target_include_directories(commons PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
