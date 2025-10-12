@@ -1016,17 +1016,16 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
         stream.ReadByte();
         size_t next_frame_offset = 0;
         uint8_t *frame_data = nullptr;
-        frame_data = (uint8_t*)malloc(width * height);
+        frame_data = (uint8_t*)malloc(width * height * nbframe);
         size_t remaind_bytes = size - 16;
-        uint8_t *frame_src = src+16;
+        int current_frame_index = 0;
         while (remaind_bytes > 0) {
-            uint8_t next_frame_offset = stream.ReadShort();
+            uint16_t next_frame_offset = stream.ReadShort();
             PKWareDecompressor pkware;
             size_t remain = size - ((src+2) - data);
+            std::vector<uint8_t> picture_pkware = stream.ReadBytes(next_frame_offset);
             size_t byte_read = 0;
-            uint8_t *temp_data = pkware.DecompressPKWare(src+2,remain,csize);
-            
-            // Doubler chaque ligne
+            uint8_t *temp_data = pkware.DecompressPKWare(picture_pkware.data(),next_frame_offset,csize);
             size_t source_height = csize / width;
             size_t new_size = width * source_height * 2;
             size_t real_size = width * height;
@@ -1044,9 +1043,25 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
                 // Si la hauteur cible est plus grande, remplir le reste avec des zéros
                 memset(pic_data + line*2 * width, 0, (height - line*2) * width);
             }
+            memcpy(frame_data + current_frame_index * width * height, pic_data, width * height);
             free(temp_data);
+            char a = stream.ReadByte();
+            char b = stream.ReadByte();
+            remaind_bytes -= (next_frame_offset + 4);
+            if (a == 'P' && b == '+') {
+                current_frame_index++;
+            } else {
+                // On a atteint la fin des frames
+                remaind_bytes = 0;
+            }
         }
-        
+        image->Create(name, width, height*nbframe, 0);
+        image->nbframes = nbframe;
+        image->UpdateContent(frame_data);
+        image->width = width;
+        image->height = height;
+        AddImage(image);
+        free(frame_data);
         
     } else {
         image->Create(name, width, height*nbframe, 0);
