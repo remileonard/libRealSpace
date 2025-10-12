@@ -393,8 +393,8 @@ void DebugGame::loadPacific() {
     Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
     RSMixer::getInstance().init();
     FontManager.init();
-
-    SCObjectViewer* main = new SCObjectViewer();
+    SCRenderer::getInstance().init(1200,800);
+    DebugObjectViewer* main = new DebugObjectViewer();
     main->init();
     this->addActivity(main);
 }

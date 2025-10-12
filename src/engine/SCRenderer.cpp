@@ -779,6 +779,9 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
             if (triangle->flags[2] == 1) {
                 twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
             }
+            if (triangle->flags[2] != 0) {
+                twoSided = true;
+            }
             glBindTexture(GL_TEXTURE_2D, texture->id);
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_TRIANGLES);
@@ -829,7 +832,6 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
             if (triangle->property == 9) {
                 alpha = 0.0f;
             }
-
             glBindTexture(GL_TEXTURE_2D, texture->id);
            
             Triangle *tri = new Triangle();
@@ -837,10 +839,8 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
             tri->ids[1] = triangle->ids[1];
             tri->ids[2] = triangle->ids[2];
 
-            
-            if (triangle->flags[2] == 1) {
-                twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
-            }
+            twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
+        
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
@@ -940,7 +940,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
                 continue;
             }
             Quads *triangle = object->quads[triangleID];
-            bool twoSided = false;
+            bool twoSided = true;
             if (triangle->property != RSEntity::SC_TRANSPARENT)
                 continue;
             Triangle *tri = new Triangle();
@@ -1065,10 +1065,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
             tri->ids[0] = triangle->ids[0];
             tri->ids[1] = triangle->ids[1];
             tri->ids[2] = triangle->ids[2];
-            bool twoSided = false;
-            if (triangle->flags[2] == 1) {
-                twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
-            }
+            bool twoSided = true;
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
