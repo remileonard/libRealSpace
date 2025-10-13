@@ -699,275 +699,8 @@ void SCRenderer::drawModelWithChilds(
         glPopMatrix();
     }
 }
-void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
-    if (!initialized)
-        return;
-
-    if (object->vertices.size() == 0)
-        return;
-
-    if (lodLevel >= object->NumLods()) {
-        printf("Unable to render this Level Of Details (out of range): Max level is  %zu %zu\n",
-               (object->NumLods() - 1), lodLevel);
-        return;
-    }
-    
-    for (auto img: object->images) {
-        if (img->nbframes > 1) {
-            img->GetNextFrame();
-        }
-    }
-    
-    float ambientLamber = 0.4f;
-
+void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {
     Lod *lod = &object->lods[lodLevel];
-    std::vector<Vector3D> vertexNormals;
-    ComputeVertexNormalsForLOD(object, lodLevel, camera.getPosition(), vertexNormals);
-
-    // Prépare les matrices pour faire l’éclairage en espace œil
-    float MV[16];
-    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
-    const float* V = camera.getViewMatrix()->ToGL();
-    Vector3D lightWorld{light.x, light.y, light.z};
-    Vector3D lightEye = TransformPointCM(V, lightWorld);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CW);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.1f);
-    // Texture pass
-    if (lodLevel == 0) {
-        glEnable(GL_TEXTURE_2D);
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-        glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_ADD);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
-        for (int i = 0; i < object->NumUVs(); i++) {
-
-            uvxyEntry *textInfo = &object->uvs[i];
-
-            // Seems we have a textureID that we don't have :( !
-            if (textInfo->textureID >= object->images.size())
-                continue;
-
-            RSImage *image = object->images[textInfo->textureID];
-
-            Texture *texture = image->GetTexture();
-            Triangle *triangle = &object->triangles[textInfo->triangleID];
-            float alpha = 1.0f;
-            int colored = 0;
-            bool twoSided = false;
-            if (triangle->property == 6) {
-                alpha = 0.0f;
-            }
-            if (triangle->property == 7) {
-                alpha = 1.0f;
-                colored = 1;
-            }
-            if (triangle->property == 8) {
-                alpha = 1.0f;
-                colored = 1;
-            }
-            if (triangle->property == 9) {
-                alpha = 0.0f;
-            }
-            
-            if (triangle->flags[2] == 1) {
-                twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
-            }
-            glBindTexture(GL_TEXTURE_2D, texture->id);
-            if (twoSided) glDisable(GL_CULL_FACE);
-            glBegin(GL_TRIANGLES);
-            for (int j = 0; j < 3; j++) {
-                Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D nLocal = vertexNormals[triangle->ids[j]];
-
-                float lambertianFactor = twoSided
-                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
-                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
-
-                const Texel *texel = palette.GetRGBColor(triangle->color-1);
-                if (colored) {
-                    glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                              texel->b / 255.0f * lambertianFactor, alpha);
-                } else {
-                    glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, alpha);
-                }
-                glTexCoord2f(textInfo->uvs[j].u / (float)texture->width, textInfo->uvs[j].v / (float)texture->height);
-                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
-            }
-            glEnd();
-            if (twoSided) glEnable(GL_CULL_FACE);
-        }
-
-        for (auto quv: object->qmapuvs) {
-            if (quv->textureID >= object->images.size())
-                continue;
-
-            RSImage *image = object->images[quv->textureID];
-
-            Texture *texture = image->GetTexture();
-            Quads *triangle = object->quads[quv->triangleID];
-            float alpha = 1.0f;
-            int colored = 0;
-            bool twoSided = true;
-            if (triangle->property == 6) {
-                alpha = 0.0f;
-            }
-            if (triangle->property == 7) {
-                alpha = 1.0f;
-                colored = 1;
-            }
-            if (triangle->property == 8) {
-                alpha = 1.0f;
-                colored = 1;
-            }
-            if (triangle->property == 9) {
-                alpha = 0.0f;
-            }
-
-            glBindTexture(GL_TEXTURE_2D, texture->id);
-           
-            Triangle *tri = new Triangle();
-            tri->ids[0] = triangle->ids[0];
-            tri->ids[1] = triangle->ids[1];
-            tri->ids[2] = triangle->ids[2];
-
-            if (twoSided) glDisable(GL_CULL_FACE);
-            glBegin(GL_QUADS);
-            for (int j = 0; j < 4; j++) {
-                Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D nLocal = vertexNormals[triangle->ids[j]];
-
-                float lambertianFactor = twoSided
-                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
-                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
-
-                const Texel *texel = palette.GetRGBColor(triangle->color-1);
-                if (colored) {
-                    glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                              texel->b / 255.0f * lambertianFactor, alpha);
-                } else {
-                    glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, alpha);
-                }
-                glTexCoord2f(quv->uvs[j].u / (float)texture->width, quv->uvs[j].v / (float)texture->height);
-                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
-            }
-            glEnd();
-            if (twoSided) glEnable(GL_CULL_FACE);
-        }
-        glDisable(GL_BLEND);
-        glDisable(GL_TEXTURE_2D);
-    }
-
-    // Pass 3: Let's draw the transparent stuff render RSEntity::SC_TRANSPARENT)
-    
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-#ifndef _WIN32
-    glBlendEquation(GL_ADD);
-#else
-    typedef void(APIENTRY * PFNGLBLENDEQUATIONPROC)(GLenum mode);
-    PFNGLBLENDEQUATIONPROC glBlendEquation = NULL;
-    glBlendEquation = (PFNGLBLENDEQUATIONPROC)wglGetProcAddress("glBlendEquation");
-    glBlendEquation(GL_FUNC_ADD);
-#endif
-    for (int i = 0; i < lod->numTriangles; i++) {
-        uint16_t triangleID = lod->triangleIDs[i];
-        if (object->attrs.size() > 0) {
-            if (object->attrs[triangleID] == nullptr) {
-                continue;
-            }
-            if (object->attrs[triangleID]->type == 'Q') {
-                continue;
-            }
-            if (object->attrs[triangleID]->type == 'L') {
-                continue;
-            }
-            triangleID = object->attrs[triangleID]->id;
-        }
-        if (triangleID >= object->triangles.size()) {
-            continue;
-        }
-        Triangle *triangle = &object->triangles[triangleID];
-        bool twoSided = false;
-        if (triangle->property != RSEntity::SC_TRANSPARENT)
-            continue;
-        if (triangle->flags[2] == 1) {
-            twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
-        }
-        if (twoSided) glDisable(GL_CULL_FACE);
-        glBegin(GL_TRIANGLES);
-        for (int j = 0; j < 3; j++) {
-            Vector3D vLocal = object->vertices[triangle->ids[j]];
-            Vector3D nLocal = vertexNormals[triangle->ids[j]];
-
-            float lambertianFactor = twoSided
-                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
-                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
-
-            const Texel *texel = palette.GetRGBColor(triangle->color-1);
-            glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                      texel->b / 255.0f * lambertianFactor, texel->a);
-
-            glVertex3f(vLocal.x, vLocal.y, vLocal.z);
-        }
-        glEnd();
-        if (twoSided) glEnable(GL_CULL_FACE);
-    }
-
-    if (object->quads.size() > 0) {
-        for (int i = 0; i < lod->numTriangles; i++) {
-            uint16_t triangleID = lod->triangleIDs[i];
-            if (object->attrs.size() > 0) {
-                if (object->attrs[triangleID]->type == 'T') {
-                    continue;
-                }
-                if (object->attrs[triangleID]->type == 'L') {
-                    continue;
-                }
-                triangleID = object->attrs[triangleID]->id;
-            }
-            if (triangleID >= object->triangles.size()) {
-                continue;
-            }
-            Quads *triangle = object->quads[triangleID];
-            bool twoSided = true;
-            if (triangle->property != RSEntity::SC_TRANSPARENT)
-                continue;
-            Triangle *tri = new Triangle();
-            tri->ids[0] = triangle->ids[0];
-            tri->ids[1] = triangle->ids[1];
-            tri->ids[2] = triangle->ids[2];
-    
-            if (twoSided) glDisable(GL_CULL_FACE);
-            glBegin(GL_QUADS);
-            for (int j = 0; j < 4; j++) {
-                Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D nLocal = vertexNormals[triangle->ids[j]];
-
-                float lambertianFactor = twoSided
-                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
-                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
-
-                const Texel *texel = palette.GetRGBColor(triangle->color-1);
-                glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                          texel->b / 255.0f * lambertianFactor, texel->a);
-
-                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
-            }
-            glEnd();
-            if (twoSided) glEnable(GL_CULL_FACE);
-        }    
-    }
-    
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Pass 1, draw color
@@ -1083,6 +816,286 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
         }
     }
     glDisable(GL_BLEND);
+}
+void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {
+    // Texture pass
+    if (lodLevel == 0) {
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+        glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_ADD);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        for (int i = 0; i < object->NumUVs(); i++) {
+
+            uvxyEntry *textInfo = &object->uvs[i];
+
+            // Seems we have a textureID that we don't have :( !
+            if (textInfo->textureID >= object->images.size())
+                continue;
+
+            RSImage *image = object->images[textInfo->textureID];
+
+            Texture *texture = image->GetTexture();
+            Triangle *triangle = &object->triangles[textInfo->triangleID];
+            float alpha = 1.0f;
+            int colored = 0;
+            bool twoSided = false;
+            if (triangle->property == 6) {
+                alpha = 0.0f;
+            }
+            if (triangle->property == 7) {
+                alpha = 1.0f;
+                colored = 1;
+            }
+            if (triangle->property == 8) {
+                alpha = 1.0f;
+                colored = 1;
+            }
+            if (triangle->property == 9) {
+                alpha = 0.0f;
+            }
+            
+            if (triangle->flags[2] == 1) {
+                twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
+            }
+            glBindTexture(GL_TEXTURE_2D, texture->id);
+            if (twoSided) glDisable(GL_CULL_FACE);
+            glBegin(GL_TRIANGLES);
+            for (int j = 0; j < 3; j++) {
+                Vector3D vLocal = object->vertices[triangle->ids[j]];
+                Vector3D nLocal = vertexNormals[triangle->ids[j]];
+
+                float lambertianFactor = twoSided
+                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
+                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
+
+                const Texel *texel = palette.GetRGBColor(triangle->color-1);
+                if (colored) {
+                    glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
+                              texel->b / 255.0f * lambertianFactor, alpha);
+                } else {
+                    glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, alpha);
+                }
+                glTexCoord2f(textInfo->uvs[j].u / (float)texture->width, textInfo->uvs[j].v / (float)texture->height);
+                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
+            }
+            glEnd();
+            if (twoSided) glEnable(GL_CULL_FACE);
+        }
+
+        for (auto quv: object->qmapuvs) {
+            if (quv->textureID >= object->images.size())
+                continue;
+
+            RSImage *image = object->images[quv->textureID];
+
+            Texture *texture = image->GetTexture();
+            Quads *triangle = object->quads[quv->triangleID];
+            float alpha = 1.0f;
+            int colored = 0;
+            bool twoSided = true;
+            if (triangle->property == 6) {
+                alpha = 0.0f;
+            }
+            if (triangle->property == 7) {
+                alpha = 1.0f;
+                colored = 1;
+            }
+            if (triangle->property == 8) {
+                alpha = 1.0f;
+                colored = 1;
+            }
+            if (triangle->property == 9) {
+                alpha = 0.0f;
+            }
+
+            glBindTexture(GL_TEXTURE_2D, texture->id);
+
+            Triangle *tri = new Triangle();
+            tri->ids[0] = triangle->ids[0];
+            tri->ids[1] = triangle->ids[1];
+            tri->ids[2] = triangle->ids[2];
+
+            if (twoSided) glDisable(GL_CULL_FACE);
+            glBegin(GL_QUADS);
+            for (int j = 0; j < 4; j++) {
+                Vector3D vLocal = object->vertices[triangle->ids[j]];
+                Vector3D nLocal = vertexNormals[triangle->ids[j]];
+
+                float lambertianFactor = twoSided
+                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
+                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
+
+                const Texel *texel = palette.GetRGBColor(triangle->color-1);
+                if (colored) {
+                    glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
+                              texel->b / 255.0f * lambertianFactor, alpha);
+                } else {
+                    glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, alpha);
+                }
+                glTexCoord2f(quv->uvs[j].u / (float)texture->width, quv->uvs[j].v / (float)texture->height);
+                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
+            }
+            glEnd();
+            if (twoSided) glEnable(GL_CULL_FACE);
+        }
+        glDisable(GL_BLEND);
+        glDisable(GL_TEXTURE_2D);
+    }
+}
+void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {
+    // Pass 3: Let's draw the transparent stuff render RSEntity::SC_TRANSPARENT)
+    Lod *lod = &object->lods[lodLevel];
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+#ifndef _WIN32
+    glBlendEquation(GL_ADD);
+#else
+    typedef void(APIENTRY * PFNGLBLENDEQUATIONPROC)(GLenum mode);
+    PFNGLBLENDEQUATIONPROC glBlendEquation = NULL;
+    glBlendEquation = (PFNGLBLENDEQUATIONPROC)wglGetProcAddress("glBlendEquation");
+    glBlendEquation(GL_FUNC_ADD);
+#endif
+    for (int i = 0; i < lod->numTriangles; i++) {
+        uint16_t triangleID = lod->triangleIDs[i];
+        if (object->attrs.size() > 0) {
+            if (object->attrs[triangleID] == nullptr) {
+                continue;
+            }
+            if (object->attrs[triangleID]->type == 'Q') {
+                continue;
+            }
+            if (object->attrs[triangleID]->type == 'L') {
+                continue;
+            }
+            triangleID = object->attrs[triangleID]->id;
+        }
+        if (triangleID >= object->triangles.size()) {
+            continue;
+        }
+        Triangle *triangle = &object->triangles[triangleID];
+        bool twoSided = false;
+        if (triangle->property != RSEntity::SC_TRANSPARENT)
+            continue;
+        if (triangle->flags[2] == 1) {
+            twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
+        }
+        if (twoSided) glDisable(GL_CULL_FACE);
+        glBegin(GL_TRIANGLES);
+        for (int j = 0; j < 3; j++) {
+            Vector3D vLocal = object->vertices[triangle->ids[j]];
+            Vector3D nLocal = vertexNormals[triangle->ids[j]];
+
+            float lambertianFactor = twoSided
+                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
+                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
+
+            const Texel *texel = palette.GetRGBColor(triangle->color-1);
+            glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
+                      texel->b / 255.0f * lambertianFactor, texel->a);
+
+            glVertex3f(vLocal.x, vLocal.y, vLocal.z);
+        }
+        glEnd();
+        if (twoSided) glEnable(GL_CULL_FACE);
+    }
+
+    if (object->quads.size() > 0) {
+        for (int i = 0; i < lod->numTriangles; i++) {
+            uint16_t triangleID = lod->triangleIDs[i];
+            if (object->attrs.size() > 0) {
+                if (object->attrs[triangleID]->type == 'T') {
+                    continue;
+                }
+                if (object->attrs[triangleID]->type == 'L') {
+                    continue;
+                }
+                triangleID = object->attrs[triangleID]->id;
+            }
+            if (triangleID >= object->triangles.size()) {
+                continue;
+            }
+            Quads *triangle = object->quads[triangleID];
+            bool twoSided = true;
+            if (triangle->property != RSEntity::SC_TRANSPARENT)
+                continue;
+            Triangle *tri = new Triangle();
+            tri->ids[0] = triangle->ids[0];
+            tri->ids[1] = triangle->ids[1];
+            tri->ids[2] = triangle->ids[2];
+    
+            if (twoSided) glDisable(GL_CULL_FACE);
+            glBegin(GL_QUADS);
+            for (int j = 0; j < 4; j++) {
+                Vector3D vLocal = object->vertices[triangle->ids[j]];
+                Vector3D nLocal = vertexNormals[triangle->ids[j]];
+
+                float lambertianFactor = twoSided
+                ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
+                : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
+
+                const Texel *texel = palette.GetRGBColor(triangle->color-1);
+                glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
+                          texel->b / 255.0f * lambertianFactor, texel->a);
+
+                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
+            }
+            glEnd();
+            if (twoSided) glEnable(GL_CULL_FACE);
+        }    
+    }
+    
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+}
+void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
+    if (!initialized)
+        return;
+
+    if (object->vertices.size() == 0)
+        return;
+
+    if (lodLevel >= object->NumLods()) {
+        printf("Unable to render this Level Of Details (out of range): Max level is  %zu %zu\n",
+               (object->NumLods() - 1), lodLevel);
+        return;
+    }
+    
+    for (auto img: object->images) {
+        if (img->nbframes > 1) {
+            img->GetNextFrame();
+        }
+    }
+    
+    float ambientLamber = 0.4f;
+
+    Lod *lod = &object->lods[lodLevel];
+    std::vector<Vector3D> vertexNormals;
+    ComputeVertexNormalsForLOD(object, lodLevel, camera.getPosition(), vertexNormals);
+
+    // Prépare les matrices pour faire l’éclairage en espace œil
+    float MV[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
+    const float* V = camera.getViewMatrix()->ToGL();
+    Vector3D lightWorld{light.x, light.y, light.z};
+    Vector3D lightEye = TransformPointCM(V, lightWorld);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.1f);
+    
+
+    drawModelColorPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    
+    drawModelTexturePass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    
+    drawModelTransparentPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
