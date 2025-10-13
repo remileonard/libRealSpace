@@ -190,19 +190,7 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
     if (!subPAK.IsReady()) {
 
         // Sometimes the image is not in a PAK but as raw data.
-        if (shapeEntry->size == 0) {
-            printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
-            s = RLEShape::GetEmptyShape();
-        } else {
-            printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
-            RSImageSet *set = new RSImageSet();
-            set->InitFromRam(shapeEntry->data, shapeEntry->size);
-            s = set->GetShape(0);
-            if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
-                Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
-                s->SetPosition(&pos);
-            }
-        }
+        return;
     } else {
         s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
         if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
@@ -281,6 +269,7 @@ void ConvAssetManager::parseBCKS_BACK(uint8_t *data, size_t size) {
     handlers["DATA"] = std::bind(&ConvAssetManager::parseBCKS_BACK_DATA, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
+    
     this->backgrounds[this->tmp_conv_bg->name] = this->tmp_conv_bg;
 
 }
@@ -289,6 +278,12 @@ void ConvAssetManager::parseBCKS_BACK_INFO(uint8_t *data, size_t size) {
 }
 void ConvAssetManager::parseBCKS_BACK_DATA(uint8_t *data, size_t size) {
     size_t numLayers = size / 5; // A layer entry is 5 bytes wide
+    if (numLayers == 1) {
+        printf("Warning: Background %8s has only 1 layer.\n", this->tmp_conv_bg->name.c_str());
+    }
+    if (this->tmp_conv_bg->name == "ms_fpov5") {
+        printf("Debug\n");
+    }
     for (size_t layerID = 0; layerID < numLayers; layerID++)
         ParseBGLayer(data, layerID, tmp_conv_bg);
 }

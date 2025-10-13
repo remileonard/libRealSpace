@@ -83,6 +83,7 @@ void PakArchive::Parse(void){
                 printf("Warning: PKWare decompression size mismatch: expected %d, got %zu\n", check_uncompressed_size, decompressedSize);
             }
             entry->data = decompressed;
+            uint16_t *check_size_ptr = (uint16_t *)(entry->data);
             entry->size = decompressedSize;
             entry->type = 0; // Reset type to 0 after decompression.
         } else if (entry->type == 96 && entry->size <= 4) {
@@ -136,6 +137,10 @@ void PakArchive::InitFromRAM(const char* name,uint8_t* data, size_t size){
         uint8_t *uncompressed_data = lz.DecodeLZW(data+6, size-6, csize);
         data = uncompressed_data;
         size = csize;        
+    }
+    if (data[3] == 0x00 && data[4] == 0x08) {
+        uint16_t size_check = *(uint16_t *)data;
+        size = size_check;
     }
 
     strcpy(this->path,name);
