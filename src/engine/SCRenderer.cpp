@@ -724,14 +724,10 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
         Triangle *triangle = &object->triangles[triangleID];
         if (triangle->property == RSEntity::SC_TRANSPARENT)
             continue;
+        float alpha = 1.0f;
         if (triangle->property == 6) {
             continue;
-        }
-        if (triangle->property == 7) {
-            continue;
-        }
-        if (triangle->property == 8) {
-            continue;
+            
         }
         if (triangle->property == 9) {
             continue;
@@ -752,7 +748,7 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
 
             const Texel *texel = palette.GetRGBColor(triangle->color);
             glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                      texel->b / 255.0f * lambertianFactor, texel->a);
+                      texel->b / 255.0f * lambertianFactor, alpha);
 
             glVertex3f(vLocal.x, vLocal.y, vLocal.z);
         }
@@ -778,17 +774,14 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
     
             if (triangle->property == RSEntity::SC_TRANSPARENT)
                 continue;
+            float alpha = 1.0f;
             if (triangle->property == 6) {
                 continue;
-            }
-            if (triangle->property == 7) {
-                continue;
-            }
-            if (triangle->property == 8) {
-                continue;
+                
             }
             if (triangle->property == 9) {
                 continue;
+                
             }
             Triangle *tri = new Triangle();
             tri->ids[0] = triangle->ids[0];
@@ -807,7 +800,7 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
 
                 const Texel *texel = palette.GetRGBColor(triangle->color-1);
                 glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                          texel->b / 255.0f * lambertianFactor, texel->a);
+                          texel->b / 255.0f * lambertianFactor, alpha);
 
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
@@ -820,9 +813,6 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
 void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {
     // Texture pass
     if (lodLevel == 0) {
-        glEnable(GL_TEXTURE_2D);
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-        glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_ADD);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
         for (int i = 0; i < object->NumUVs(); i++) {
@@ -838,18 +828,9 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             Texture *texture = image->GetTexture();
             Triangle *triangle = &object->triangles[textInfo->triangleID];
             float alpha = 1.0f;
-            int colored = 0;
             bool twoSided = false;
             if (triangle->property == 6) {
                 alpha = 0.0f;
-            }
-            if (triangle->property == 7) {
-                alpha = 1.0f;
-                colored = 1;
-            }
-            if (triangle->property == 8) {
-                alpha = 1.0f;
-                colored = 1;
             }
             if (triangle->property == 9) {
                 alpha = 0.0f;
@@ -858,7 +839,17 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             if (triangle->flags[2] == 1) {
                 twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
             }
+            glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, texture->id);
+            glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            if (alpha == 0.0f) {
+                glDepthFunc(GL_LESS);
+                glDepthMask(GL_TRUE);
+            } else {
+                glDepthFunc(GL_EQUAL);
+                glDepthMask(GL_FALSE);
+            }
+            
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_TRIANGLES);
             for (int j = 0; j < 3; j++) {
@@ -870,16 +861,16 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
                 : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
 
                 const Texel *texel = palette.GetRGBColor(triangle->color-1);
-                if (colored) {
-                    glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                              texel->b / 255.0f * lambertianFactor, alpha);
-                } else {
-                    glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, alpha);
-                }
+                
+                glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, 1.0f);
+                
                 glTexCoord2f(textInfo->uvs[j].u / (float)texture->width, textInfo->uvs[j].v / (float)texture->height);
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
             glEnd();
+            glDepthFunc(GL_LESS);
+            glDepthMask(GL_TRUE);
+            glDisable(GL_TEXTURE_2D);
             if (twoSided) glEnable(GL_CULL_FACE);
         }
 
@@ -892,24 +883,25 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             Texture *texture = image->GetTexture();
             Quads *triangle = object->quads[quv->triangleID];
             float alpha = 1.0f;
-            int colored = 0;
             bool twoSided = true;
             if (triangle->property == 6) {
                 alpha = 0.0f;
-            }
-            if (triangle->property == 7) {
-                alpha = 1.0f;
-                colored = 1;
-            }
-            if (triangle->property == 8) {
-                alpha = 1.0f;
-                colored = 1;
             }
             if (triangle->property == 9) {
                 alpha = 0.0f;
             }
 
+            glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, texture->id);
+            glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            
+            if (alpha == 0.0f) {
+                glDepthFunc(GL_LESS);
+                glDepthMask(GL_TRUE);
+            } else {
+                glDepthFunc(GL_EQUAL);
+                glDepthMask(GL_FALSE);
+            }
 
             Triangle *tri = new Triangle();
             tri->ids[0] = triangle->ids[0];
@@ -927,20 +919,16 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
                 : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
 
                 const Texel *texel = palette.GetRGBColor(triangle->color-1);
-                if (colored) {
-                    glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
-                              texel->b / 255.0f * lambertianFactor, alpha);
-                } else {
-                    glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, alpha);
-                }
-                glTexCoord2f(quv->uvs[j].u / (float)texture->width, quv->uvs[j].v / (float)texture->height);
+                glColor4f(lambertianFactor, lambertianFactor, lambertianFactor, 1.0f);                glTexCoord2f(quv->uvs[j].u / (float)texture->width, quv->uvs[j].v / (float)texture->height);
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
             glEnd();
+            glDepthFunc(GL_LESS);
+            glDepthMask(GL_TRUE);
+            glDisable(GL_TEXTURE_2D);
             if (twoSided) glEnable(GL_CULL_FACE);
         }
         glDisable(GL_BLEND);
-        glDisable(GL_TEXTURE_2D);
     }
 }
 void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {
@@ -1091,7 +1079,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     
 
     drawModelColorPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
-    
+
     drawModelTexturePass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
     
     drawModelTransparentPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
