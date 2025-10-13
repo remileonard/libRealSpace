@@ -109,6 +109,7 @@ bool isNextFrameIsConv(uint8_t type) {
         case YESNOCHOICE_BRANCH2:
         case CHOOSE_WINGMAN:
         case 0xE0:
+        case 0xFF:
             return true;
         default:
             return false;
@@ -558,7 +559,17 @@ void SCConvPlayer::SetID(int32_t id) {
         return;
     }
     topOffset = CONV_TOP_BAR_HEIGHT + 1;
-    SetArchive(convPak.GetEntry(id));
+    PakEntry *entry = convPak.GetEntry(id);
+    if (entry->data[5] == 0x06 && entry->data[4] == 0x00) {
+        PKWareDecompressor decompressor;
+        uint8_t *compressed = entry->data + 4;
+        size_t compressedSize = entry->size - 4;
+        size_t decompressedSize = 0;
+        uint8_t *decompressed = decompressor.DecompressPKWare (compressed, compressedSize, decompressedSize);
+        entry->data = decompressed;
+        entry->size = decompressedSize;
+    }
+    SetArchive(entry);
 }
 
 void SCConvPlayer::init() {

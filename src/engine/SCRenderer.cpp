@@ -336,13 +336,10 @@ void SCRenderer::init(int width, int height) {
     this->counter = 0;
 
     RSPalette palette;
-    FileData *f = assets.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
-        palette.initFromFileRam(entries->data, entries->size);
-    } else {
-        palette.initFromFileData(f);
-    }
+    
+    TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    palette.initFromFileRam(entries->data, entries->size);
+    
     this->palette = *palette.GetColorPalette();
 
     this->width = width;

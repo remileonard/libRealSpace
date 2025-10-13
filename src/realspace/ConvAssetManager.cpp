@@ -190,11 +190,19 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
     if (!subPAK.IsReady()) {
 
         // Sometimes the image is not in a PAK but as raw data.
-        printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
-
-        // Using an empty shape for now...
-        *s = *RLEShape::GetEmptyShape();
-        return;
+        if (shapeEntry->size == 0) {
+            printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
+            s = RLEShape::GetEmptyShape();
+        } else {
+            printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
+            RSImageSet *set = new RSImageSet();
+            set->InitFromRam(shapeEntry->data, shapeEntry->size);
+            s = set->GetShape(0);
+            if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
+                Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
+                s->SetPosition(&pos);
+            }
+        }
     } else {
         s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
         if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
