@@ -23,24 +23,7 @@ RSImageSet* loadImage(PakArchive *pak, int entry_id) {
     }
     return imgset;
 }
-void displayPalette(VGAPalette *palette) {
-    for (int i = 0; i < 256; i++) {
-        if (i % 12 == 0 && i != 0) {
-            ImGui::NewLine();
-        } else if (i != 0) {
-            ImGui::SameLine();
-        }
-        ImGui::ColorButton(("##" + std::to_string(i)).c_str(), ImVec4(
-            palette->colors[i].r / 255.0f,
-            palette->colors[i].g / 255.0f,
-            palette->colors[i].b / 255.0f,
-            1.0f
-        ), ImGuiColorEditFlags_NoTooltip, ImVec2(20,20));
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Color %d: R:%d G:%d B:%d", i, palette->colors[i].r, palette->colors[i].g, palette->colors[i].b);
-        }
-    }
-}
+
 DebugAnimationPlayer::DebugAnimationPlayer(): SCAnimationPlayer() {
     this->auto_stop = false;
 }

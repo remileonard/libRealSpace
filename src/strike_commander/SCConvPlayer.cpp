@@ -109,7 +109,6 @@ bool isNextFrameIsConv(uint8_t type) {
         case YESNOCHOICE_BRANCH2:
         case CHOOSE_WINGMAN:
         case 0xE0:
-        case 0xFF:
             return true;
         default:
             return false;
@@ -370,9 +369,15 @@ int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
         decalage = 2;
     }
     if (!isNextFrameIsConv((uint8_t) sentence_end[0])) {
+        std::string test = std::string(sentence_end);
         sound_offset = (int) strlen((char *)sentence) + decalage;
-        this->sound_file_name = new std::string(sentence);
-        sentence = sentence_end;
+        uint8_t t = test.c_str()[0];
+        if (t != 255) {
+            this->sound_file_name = new std::string(sentence);
+            sentence = sentence_end;
+        } else {
+            sound_offset = 4;
+        }
     }
     std::string *text = new std::string(sentence);
     if (text->find("$N") != std::string::npos) {
@@ -895,7 +900,7 @@ void SCConvPlayer::runFrame(void) {
 
             paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
             this->palette.ReadPatch(&paletteReader);
-
+            VGA.setPalette(&this->palette);
             int32_t pos = 0;
 
             if (this->current_frame->mode == ConvFrame::CONV_CLOSEUP) {

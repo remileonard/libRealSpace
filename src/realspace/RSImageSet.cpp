@@ -177,7 +177,7 @@ void RSImageSet::InitFromPakArchive(PakArchive *entry, uint8_t data_offset) {
 
 
 RLEShape *RSImageSet::GetShape(size_t index) { 
-    if (index > this->shapes.size()) {
+    if (index > this->shapes.size()-1) {
         if (this->shapes.size() == 0) {
             return RLEShape::GetEmptyShape();
         }

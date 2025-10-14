@@ -76,10 +76,20 @@ void SCZone::draw(void) {
     if (fpsupdate) {
         this->fps = (SDL_GetTicks() / 10);
     }
+    
     if (this->sprite != nullptr) {
-        VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->img->sequence[0]));
+        RLEShape *spr_shape = this->sprite->img->GetShape(this->sprite->img->sequence[0]);
+        Point2D spr_pos = {0,0};
+        if (spr_shape->leftDist < 0) {
+            spr_pos = {-spr_shape->leftDist, -spr_shape->topDist};
+        }
+        
+        spr_shape->SetPosition(&spr_pos);
+        VGA.getFrameBuffer()->drawShape(spr_shape);
         if (this->sprite->img->GetNumImages() > 1 && this->sprite->frames != nullptr) {
-            VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->frames->at(this->sprite->frameCounter)));
+            RLEShape *spr_frame = this->sprite->img->GetShape(this->sprite->frames->at(this->sprite->frameCounter));
+            spr_frame->SetPosition(&spr_pos);
+            VGA.getFrameBuffer()->drawShape(spr_frame);
             this->sprite->frameCounter =
                 (this->sprite->frameCounter + fpsupdate) % static_cast<uint8_t>(this->sprite->frames->size());
 
@@ -89,11 +99,14 @@ void SCZone::draw(void) {
             if (this->sprite->frameCounter >= this->sprite->img->sequence.size()) {
                 this->sprite->frameCounter = 1;
             }
-            VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]));
+            RLEShape *spr_frame = this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]);
+            spr_frame->SetPosition(&spr_pos);
+            VGA.getFrameBuffer()->drawShape(spr_frame);
             this->sprite->frameCounter += fpsupdate;
         } else if (this->sprite->img->sequence.size() > 1 && this->sprite->frames == nullptr &&
                     this->sprite->cliked == true && this->sprite->frameCounter < this->sprite->img->sequence.size()) {
-            VGA.getFrameBuffer()->drawShape(this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]));
+            RLEShape *spr_frame = this->sprite->img->GetShape(this->sprite->img->sequence[this->sprite->frameCounter]);
+            VGA.getFrameBuffer()->drawShape(spr_frame);
             if (this->sprite->active == true) {
                 this->sprite->frameCounter += fpsupdate;
                 if (this->sprite->frameCounter >= this->sprite->img->sequence.size()-1) {

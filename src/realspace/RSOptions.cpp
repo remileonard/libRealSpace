@@ -211,6 +211,9 @@ void RSOption::parseOPTS_SCEN_FORE_SEQU(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_RECT(uint8_t *data, size_t size) {
+    if (size != 8) {
+        return;
+    }
     OPTION_RECT *zone = new OPTION_RECT();
     ByteStream *reader = new ByteStream(data);
     zone->X1 = reader->ReadUShort();

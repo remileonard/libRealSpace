@@ -138,10 +138,6 @@ void PakArchive::InitFromRAM(const char* name,uint8_t* data, size_t size){
         data = uncompressed_data;
         size = csize;        
     }
-    if (data[3] == 0x00 && data[4] == 0x08) {
-        uint16_t size_check = *(uint16_t *)data;
-        size = size_check;
-    }
 
     strcpy(this->path,name);
     

@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
+#include "DebugUtils.h"
 
 void DebugConvPlayer::CheckFrameExpired(void) {
     if (this->paused == true) {
@@ -141,6 +142,11 @@ void DebugConvPlayer::renderUI() {
                     ImGui::TreePop();
                 }
             }
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Screen")) {
+            ImGui::Text("Screen Palette");
+            displayPalette(VGA.getPalette());
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

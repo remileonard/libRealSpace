@@ -11,4 +11,5 @@ public:
 
     void renderMenu() override;
     void renderUI() override;
+    void pauseToggle() { this->paused = !this->paused; };
 };

@@ -32,10 +32,6 @@ private:
     ByteStream stream;
     size_t size;
 
-    int16_t leftDist;
-    int16_t topDist;
-    int16_t rightDist;
-    int16_t botDist;
     uint8_t colorOffset;
 
     void ReadFragment(RLEFragment *frag);
@@ -48,6 +44,12 @@ public:
     Point2D position;
     Point2D buffer_size{320, 200};
     uint8_t *data;
+
+    int16_t leftDist;
+    int16_t topDist;
+    int16_t rightDist;
+    int16_t botDist;
+
     RLEShape();
     ~RLEShape();
 

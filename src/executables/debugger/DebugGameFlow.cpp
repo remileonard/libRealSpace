@@ -310,7 +310,13 @@ void DebugGameFlow::renderMissionInfos() {
         ImGui::Text("Miss has efct");
         if (ImGui::TreeNodeEx("Miss Efect", tflag)) {
             for (auto effect : *this->gameFlowParser.game.game[this->current_miss]->efct) {
-                ImGui::Text("OPC: %s\tVAL: %03d", game_flow_op_name[GameFlowOpCode(effect->opcode)].c_str(), effect->value);
+                if (game_flow_op_name.find(GameFlowOpCode(effect->opcode)) == game_flow_op_name.end()) {
+                    ImGui::Text("OPC: %03d\tVAL: %03d", effect->opcode, effect->value);
+                    
+                } else {
+                    ImGui::Text("OPC: %03d\tVAL: %03d", effect->opcode, effect->value);
+                }
+                
             }
             ImGui::TreePop();
         }
@@ -320,7 +326,9 @@ void DebugGameFlow::renderMissionInfos() {
         if (ImGui::TreeNodeEx("Zones", tflag)) {
             for (auto zone : *this->zones) {
                 if (ImGui::TreeNodeEx((void *)(intptr_t)zone->id, tflag, "Zone %d", zone->id)) {
-                    ImGui::Text("%s", zone->label->c_str());
+                    if (zone->label != nullptr) {
+                        ImGui::Text("%s", zone->label->c_str());
+                    }
                     animatedSprites *sprite = zone->sprite;
                     if (sprite == nullptr) {
                         ImGui::Text("No sprite");
@@ -407,9 +415,13 @@ void DebugGameFlow::renderMissionInfos() {
                         for (auto sprt : this->sceneOpts->foreground->sprites) {
                             ImGui::Text("Sprite %d", sprt.second->sprite.SHP_ID);
                             RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(0);
+                            
                             if (shp != nullptr) {
+                                if (shp->GetWidth() <= 2) {
+                                    shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(1);
+                                }
                                 ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
-                                if (shp->GetWidth() > 0 && shp->GetHeight() > 0) {
+                                if (shp->GetWidth() > 1 && shp->GetHeight() > 1) {
                                     FrameBuffer *fb = new FrameBuffer(320, 200);
                                     fb->clear();
                                     fb->drawShape(shp);

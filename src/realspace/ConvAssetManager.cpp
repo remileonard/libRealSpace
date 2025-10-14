@@ -166,38 +166,49 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
         shapeArchive = &this->optShps;
         paletteArchive = &this->optPals;
     }
-
-    // Debug Display
-    /*
-        printf("\n%8s layer %lu :",back->name,layerID);
-        for (size_t x=0; x < 5 ; x++) {
-            printf("%3d ",*(data + 5 * layerID+x));
-        }
-    */
-
-    /*
-    // The pack features some duplicate entries.
-    while(convShapeArchive.GetEntry(shapeID)->size == 0)
-        shapeID--;
-    */
+    if (type == 0x00 && shapeID == 3) {
+        printf("Debug\n");
+    }
 
     RLEShape *s = new RLEShape();
 
     PakEntry *shapeEntry = shapeArchive->GetEntry(shapeID);
     PakArchive subPAK;
-    subPAK.InitFromRAM("", shapeEntry->data, shapeEntry->size);
-
-    if (!subPAK.IsReady()) {
-
-        // Sometimes the image is not in a PAK but as raw data.
-        return;
+    if (shapeEntry->size == 0) {
+        s = RLEShape::GetEmptyShape();
     } else {
-        s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
-        if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
-            Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
-            s->SetPosition(&pos);
+        subPAK.InitFromRAM("", shapeEntry->data, shapeEntry->size);
+        if (!subPAK.IsReady()) {
+            uint16_t shape_chunk_size = *(uint16_t *)(shapeEntry->data);
+            subPAK.InitFromRAM("", shapeEntry->data, shape_chunk_size);
+            if (!subPAK.IsReady()) {
+                printf("ConvAssetManager: Cannot find shape ID %d for background '%s', returning dummy shape instead.\n", shapeID, back->name.c_str());
+                s = RLEShape::GetEmptyShape();
+            } else {
+                /*
+                TreEntry shap;
+                shap.data = shapeEntry->data;
+                shap.size = shapeEntry->size;
+                RSImageSet* set = new RSImageSet();
+                set->InitFromTreEntry(&shap);
+                delete set;
+                */
+                s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
+                if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
+                    Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
+                    s->SetPosition(&pos);
+                }
+                
+            }
+        } else {
+            s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
+            if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
+                Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
+                s->SetPosition(&pos);
+            }
         }
     }
+    
 
     back->layers.push_back(s);
     back->palettes.push_back(paletteArchive->GetEntry(paletteID)->data);

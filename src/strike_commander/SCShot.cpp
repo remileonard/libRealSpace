@@ -70,6 +70,9 @@ void SCShot::init() {
  * @throws None
  */
 void SCShot::SetShotId(uint8_t shotid) {
+    if (this->optionParser.estb.find(shotid) == this->optionParser.estb.end()) {
+        return;
+    }
     for (auto s : this->optionParser.estb[shotid]->images) {
         shotBackground *bg = new shotBackground();
         bg->img = this->getShape(s->OptshapeID);
