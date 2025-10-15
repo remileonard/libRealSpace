@@ -2,14 +2,14 @@
 #include "../../strike_commander/precomp.h"
 
 class DebugStrike : public SCStrike {
-private:
-    void radar();
-    void simInfo();
-    void simConfig();
-    void loadPlane();
-    void showActorDetails(SCMissionActors* actor);
-    void showOffCamera();
-    void showTextures();
+protected:
+    virtual void radar();
+    virtual void simInfo();
+    virtual void simConfig();
+    virtual void loadPlane();
+    virtual void showActorDetails(SCMissionActors* actor);
+    virtual void showOffCamera();
+    virtual void showTextures();
     enum class DebugEntityMode {
         None,
         Actor,
@@ -28,8 +28,8 @@ public:
     DebugStrike();
     ~DebugStrike();
     void init() override;
-    void setMission(std::string mission_name);
-    void renderMenu() override;
-    void renderUI() override;
-    void renderWorkingRegisters();
+    virtual void setMission(std::string mission_name);
+    virtual void renderMenu() override;
+    virtual void renderUI() override;
+    virtual void renderWorkingRegisters();
 };

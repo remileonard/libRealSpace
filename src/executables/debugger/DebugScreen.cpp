@@ -153,9 +153,13 @@ void DebugScreen::refresh(void){
                         this->show_ui = true;
                         debugGameInstance->loadPacific();   
                     }
-                    if (ImGui::MenuItem("Pacific Strike Conversation")) {
+                    if (ImGui::MenuItem("Pacific Strike GamePlay")) {
                         this->show_ui = true;
                         debugGameInstance->loadPacificConv();   
+                    }
+                    if (ImGui::MenuItem("Pacific Strike Mission")) {
+                        this->show_ui = true;
+                        debugGameInstance->loadPacificMISN();   
                     }
                     if (ImGui::MenuItem("Test mission SC")) {
                         this->show_ui = true;

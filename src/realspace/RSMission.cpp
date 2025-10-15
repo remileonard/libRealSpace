@@ -256,6 +256,9 @@ void RSMission::parseMISN_MSGS(uint8_t *data, size_t size) {
 void RSMission::parseMISN_FLAG(uint8_t *data, size_t size) {
     ByteStream stream(data);
     this->mission_data.flags.clear();
+    if (size < 2) {
+        return;
+    }
     stream.ReadByte(); // skip first byte
     size_t read = 1;
     this->mission_data.flags.push_back(0);

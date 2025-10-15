@@ -76,30 +76,33 @@ void SCCockpit::init() {
         palette.initFromFileData(f);
     }
     this->palette         = *palette.GetColorPalette();
-    cockpit               = new RSCockpit();
+    cockpit = nullptr;
     TreEntry *cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F16-CKPT.IFF");
-    cockpit->InitFromRam(cockpit_def->data, cockpit_def->size);
-
-    TreEntry *hud_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\HUD.IFF");
-    hud               = new RSHud();
-    hud->InitFromRam(hud_def->data, hud_def->size);
-    for (int i = 0; i < 36; i++) {
-        HudLine line;
-        line.start.x = 0;
-        line.start.y = 0 + i * 20;
-        line.end.x   = 70;
-        line.end.y   = 0 + i * 20;
-        horizon.push_back(line);
+    if (cockpit_def != nullptr) {
+        cockpit = new RSCockpit();
+        cockpit->InitFromRam(cockpit_def->data, cockpit_def->size);
+        TreEntry *hud_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\HUD.IFF");
+        hud               = new RSHud();
+        hud->InitFromRam(hud_def->data, hud_def->size);
+        for (int i = 0; i < 36; i++) {
+            HudLine line;
+            line.start.x = 0;
+            line.start.y = 0 + i * 20;
+            line.end.x   = 70;
+            line.end.y   = 0 + i * 20;
+            horizon.push_back(line);
+        }
+        hud_framebuffer       = new FrameBuffer(96, 93);
+        mfd_right_framebuffer = new FrameBuffer(115, 95);
+        mfd_left_framebuffer  = new FrameBuffer(115, 95);
+        raws_framebuffer      = new FrameBuffer(36, 32);
+        target_framebuffer    = new FrameBuffer(320, 200);
+        alti_framebuffer      = new FrameBuffer(33, 29);
+        speed_framebuffer     = new FrameBuffer(36, 29);
+        this->font            = FontManager.GetFont("..\\..\\DATA\\FONTS\\SHUDFONT.SHP");
+        this->big_font        = FontManager.GetFont("..\\..\\DATA\\FONTS\\HUDFONT.SHP");    
     }
-    hud_framebuffer       = new FrameBuffer(96, 93);
-    mfd_right_framebuffer = new FrameBuffer(115, 95);
-    mfd_left_framebuffer  = new FrameBuffer(115, 95);
-    raws_framebuffer      = new FrameBuffer(36, 32);
-    target_framebuffer    = new FrameBuffer(320, 200);
-    alti_framebuffer      = new FrameBuffer(33, 29);
-    speed_framebuffer     = new FrameBuffer(36, 29);
-    this->font            = FontManager.GetFont("..\\..\\DATA\\FONTS\\SHUDFONT.SHP");
-    this->big_font        = FontManager.GetFont("..\\..\\DATA\\FONTS\\HUDFONT.SHP");
+    
 }
 /**
  * SCCockpit::RenderAltitude
@@ -1053,6 +1056,9 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
  * in 3D.
  */
 void SCCockpit::Render(int face) {
+    if (cockpit == nullptr) {
+        return;
+    }
     FrameBuffer *fb {nullptr};
     bool upscale = false;
     if (face >= 0) {
@@ -1215,6 +1221,9 @@ void SCCockpit::Update() {
 
 void SCCockpit::RenderHUD() {
     FrameBuffer *hud = this->hud_framebuffer;
+    if (hud == nullptr) {
+        return;
+    }
     hud->fillWithColor(255);
     this->RenderHudHorizonLinesSmall({46, 44}, hud);
     this->RenderAltitude({72, 24}, hud);

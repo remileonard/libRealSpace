@@ -33,6 +33,8 @@ size_t RSMapTextureSet::GetNumImages(void){
 }
 
 RSImage* RSMapTextureSet::GetImageById(size_t index){
+    if (index >= images.size())
+        return nullptr;
     return images[index];
 }
 

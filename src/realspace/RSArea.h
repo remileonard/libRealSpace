@@ -87,7 +87,8 @@ public:
     ~RSArea();
     
     void InitFromPAKFileName(const char* pakFilename);
-    
+    void InitFromZipFileName(std::string zipFilename);
+    void InitFromRam(const char *pakFilename, uint8_t *data, size_t size);
     inline AreaBlock* GetAreaBlockByID(int lod,int blockID){
         if (blockID < 0 || blockID >= BLOCKS_PER_MAP) {
             return nullptr;

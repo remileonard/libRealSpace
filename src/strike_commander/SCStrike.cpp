@@ -17,6 +17,9 @@
 #define AUTOPILOTE_TIMEOUT 1000
 #define AUTOPILOTE_SPEED 4
 void SCStrike::renderVirtualCockpit() {
+    if (this->cockpit->cockpit == nullptr) {
+        return;
+    }
     static std::vector<Texture *> s_PrevFrameGLTex;
     static std::vector<Texture *> s_CurrentFrameGLTex;
 

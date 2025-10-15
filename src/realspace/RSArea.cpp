@@ -345,8 +345,26 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
 
     // Check the PAK has 5 entries
     FileData *fileData = assetsManager.GetFileData(pakFilename);
+    if (fileData == nullptr) {
+        printf("Error: Cannot find area file %s\n", pakFilename);
+        return;
+    }
+    this->InitFromRam(pakFilename, fileData->data, fileData->size);
+}
+void RSArea::InitFromZipFileName(std::string zipFilename) {
+    TreEntry *treEntry = assetsManager.GetEntryByName(zipFilename);
+    PKWareDecompressor decompressor;
+    if (treEntry == nullptr) {
+        printf("Error: Cannot find area file %s in TRE\n", zipFilename.c_str());
+        return;
+    }
+    size_t uncompSize = 0;
+    uint8_t *data = decompressor.DecompressPKWare(treEntry->data, treEntry->size, uncompSize);
+    this->InitFromRam(zipFilename.c_str(), data, uncompSize);
+}
+void RSArea::InitFromRam(const char *pakFilename, uint8_t *data, size_t size) {
     this->archive = new PakArchive();
-    this->archive->InitFromRAM(pakFilename, fileData->data, fileData->size);
+    this->archive->InitFromRAM(pakFilename, data, size);
     this->objects.clear();
     this->objects.shrink_to_fit();
 
@@ -407,7 +425,6 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
 
     ParseHeightMap();
 }
-
 float RSArea::getGroundLevel(int BLOC, float x, float y) {
     if (BLOC < 0 || BLOC >= BLOCKS_PER_MAP)
         return 0;
