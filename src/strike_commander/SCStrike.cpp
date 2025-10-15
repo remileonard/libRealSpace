@@ -932,7 +932,7 @@ RSEntity * SCStrike::loadWeapon(std::string name) {
     RSEntity *objct = new RSEntity();
     TreEntry *entry = Assets.GetEntryByName(tmpname);
     if (entry != nullptr) {
-        objct->InitFromRAM(entry->data, entry->size);
+        objct->InitFromRAM(entry->data, entry->size, tmpname);
         return objct;
     }
     return nullptr;

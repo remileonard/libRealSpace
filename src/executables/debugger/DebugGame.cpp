@@ -489,7 +489,7 @@ void DebugGame::loadPacificMISN() {
     }
     main->init();
     main->setMission("CRLS-M1.IFF");
-    this->addActivity(main);
+    this->addActivity(static_cast<IActivity*>(static_cast<DebugStrike*>(main)));
 }
 
 void DebugGame::run() {

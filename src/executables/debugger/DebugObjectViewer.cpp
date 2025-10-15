@@ -139,7 +139,7 @@ void DebugObjectViewer::renderMenu() {
                         if (ImGui::Selectable(entry->name, false)) {
                             printf("load object");
                             RSEntity *obj = new RSEntity();
-                            obj->InitFromRAM(entry->data, entry->size);
+                            obj->InitFromRAM(entry->data, entry->size, entry->name);
                             objs.showCases[0].entity = obj;
                             objs.showCases[0].filename = std::string(entry->name);
                             currentObject = 0; 
@@ -179,7 +179,7 @@ void DebugObjectViewer::renderUI() {
                         if (ImGui::Selectable(entry->name, false)) {
                             printf("load object");
                             RSEntity *obj = new RSEntity();
-                            obj->InitFromRAM(entry->data, entry->size);
+                            obj->InitFromRAM(entry->data, entry->size, entry->name);
                             objs.showCases[0].entity = obj;
                             objs.showCases[0].filename = std::string(entry->name);
                             currentObject = 0; 

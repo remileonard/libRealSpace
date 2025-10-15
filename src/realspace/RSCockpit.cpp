@@ -134,7 +134,7 @@ void RSCockpit::parseREAL_OBJS(uint8_t* data, size_t size) {
     std::string name = reader->ReadString(size);
     TreEntry* entry = this->asset_manager->GetEntryByName(this->asset_manager->object_root_path + name + ".IFF");
     REAL.OBJS = new RSEntity();
-    REAL.OBJS->InitFromRAM(entry->data, entry->size);
+    REAL.OBJS->InitFromRAM(entry->data, entry->size, this->asset_manager->object_root_path + name + ".IFF");
 }
 void RSCockpit::parseCHUD(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;

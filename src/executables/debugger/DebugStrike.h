@@ -10,14 +10,8 @@ protected:
     virtual void showActorDetails(SCMissionActors* actor);
     virtual void showOffCamera();
     virtual void showTextures();
-    enum class DebugEntityMode {
-        None,
-        Actor,
-        Scene,
-        Area,
-        Spot,
-        Entity
-    };
+    virtual void renderMissionLoadingDialog(bool &show_mission);
+    enum class DebugEntityMode { None, Actor, Scene, Area, Spot, Entity };
     DebugEntityMode debug_entity_mode{DebugEntityMode::Actor};
     RSEntity* debug_entity{nullptr};
     MISN_SCEN* debug_scene{nullptr};

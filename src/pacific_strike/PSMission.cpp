@@ -72,7 +72,11 @@ void PSMission::loadMission() {
                 actor->actor_name = cast->actor;
                 actor->actor_id = part->id;
                 actor->object = part;
-                actor->health = part->entity->health;
+                if (part->entity == nullptr) {
+                    actor->health = 50;
+                } else {
+                    actor->health = part->entity->health;
+                }
                 actor->profile = this->LoadProfile(cast->actor);
                 actor->mission = this;
                 if (actor->object->on_is_activated != 255) {
@@ -96,7 +100,7 @@ void PSMission::loadMission() {
                     }
                 }
                 
-                if (actor->profile != nullptr && actor->profile->ai.isAI && actor->object->entity->jdyn != nullptr && cast->actor != "PLAYER") {
+                if (actor->profile != nullptr && actor->profile->ai.isAI && actor->object->entity != nullptr && actor->object->entity->jdyn != nullptr && cast->actor != "PLAYER") {
                     if (actor->profile->ai.goal.size() > 0) {
                         actor->pilot = new SCPilot();
                         actor->pilot->actor = actor;

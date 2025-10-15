@@ -300,7 +300,7 @@ RSEntity * SCMission::LoadEntity(std::string name) {
     RSEntity *objct = new RSEntity();
     TreEntry *entry = Assets.GetEntryByName((char *)tmpname.c_str());
     if (entry != nullptr) {
-        objct->InitFromRAM(entry->data, entry->size);
+        objct->InitFromRAM(entry->data, entry->size, tmpname);
         return objct;
     }
     return nullptr;

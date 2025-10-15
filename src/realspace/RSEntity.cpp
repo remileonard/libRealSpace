@@ -23,8 +23,8 @@ RSEntity::~RSEntity() {
     }
 }
 
-void RSEntity::InitFromRAM(uint8_t *data, size_t size) {
-
+void RSEntity::InitFromRAM(uint8_t *data, size_t size, std::string name) {
+    this->name = name;
     IFFSaxLexer lexer;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["REAL"] = std::bind(&RSEntity::parseREAL, this, std::placeholders::_1, std::placeholders::_2);
@@ -487,7 +487,7 @@ void RSEntity::parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size) {
     TreEntry *entry = assetsManager.GetEntryByName(swpn_data->weapon_name);
     if (entry != nullptr) {
         RSEntity *objct = new RSEntity();
-        objct->InitFromRAM(entry->data, entry->size);
+        objct->InitFromRAM(entry->data, entry->size, swpn_data->weapon_name);
         swpn_data->weapon_entity = objct;
     } else {
         swpn_data->weapon_entity = nullptr;
@@ -509,7 +509,7 @@ void RSEntity::parseREAL_OBJT_JETP_EXPL(uint8_t *data, size_t size) {
     expl->objct = new RSEntity();
     TreEntry *entry = assetsManager.GetEntryByName(tmpname);
     if (entry != nullptr) {
-        expl->objct->InitFromRAM(entry->data, entry->size);
+        expl->objct->InitFromRAM(entry->data, entry->size, tmpname);
     }
     this->explos = expl;
 }
@@ -521,8 +521,11 @@ void RSEntity::parseREAL_OBJT_JETP_DEST(uint8_t *data, size_t size) {
     this->destroyed_object_name = assetsManager.object_root_path + tmpname + ".IFF";
     RSEntity *objct = new RSEntity();
     TreEntry *entry = assetsManager.GetEntryByName(this->destroyed_object_name);
+    if (this->destroyed_object_name == name) {
+        entry = nullptr;
+    }
     if (entry != nullptr) { 
-        objct->InitFromRAM(entry->data, entry->size);
+        objct->InitFromRAM(entry->data, entry->size, this->destroyed_object_name);
         this->destroyed_object = objct;
     } else {
         this->destroyed_object = nullptr;
@@ -552,7 +555,7 @@ void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
         
         TreEntry *entry = assetsManager.GetEntryByName(chld->name);
         if (entry != nullptr) {
-            objct->InitFromRAM(entry->data, entry->size);
+            objct->InitFromRAM(entry->data, entry->size, chld->name);
             chld->objct = objct;
             this->chld.push_back(chld);
         }
@@ -705,7 +708,7 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_WPNS(uint8_t *data, size_t size) {
         RSEntity *objct = new RSEntity();
         TreEntry *entry = assetsManager.GetEntryByName(tmpname);
         if (entry != nullptr) {
-            objct->InitFromRAM(entry->data, entry->size);
+            objct->InitFromRAM(entry->data, entry->size, tmpname);
             htps->objct = objct;
         }
         this->weaps.push_back(htps);
