@@ -586,7 +586,7 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
                 break;
                 case 'g':
                 {
-                    int8_t area_to_defend = this->mission->getAreaID({this->plane->x, this->plane->y, this->plane->z});
+                    uint8_t area_to_defend = this->mission->getAreaID({this->plane->x, this->plane->y, this->plane->z});
                     this->override_progs.clear();
                     this->override_progs.push_back({prog_op::OP_SET_OBJ_DEFEND_AREA, area_to_defend});
                     this->setMessage(1);
@@ -605,7 +605,7 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
                         }
                         if (obeying) {
                             this->override_progs.clear();
-                            this->override_progs.push_back({prog_op::OP_SET_OBJ_DESTROY_TARGET, (int8_t) sender->target->actor_id});
+                            this->override_progs.push_back({prog_op::OP_SET_OBJ_DESTROY_TARGET, sender->target->actor_id});
                             this->setMessage(1);
                         } else {
                             this->setMessage(0);
@@ -631,7 +631,7 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
                 case 'k':
                     if (sender != nullptr) {
                         this->override_progs.clear();
-                        this->override_progs.push_back({prog_op::OP_SET_OBJ_DEFEND_TARGET, (int8_t) sender->actor_id});
+                        this->override_progs.push_back({prog_op::OP_SET_OBJ_DEFEND_TARGET, sender->actor_id});
                         this->setMessage(1);
                     }
                 break;

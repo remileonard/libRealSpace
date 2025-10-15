@@ -41,7 +41,9 @@ void PSMission::loadMission() {
 
     Renderer.InvalidateAABBCache();           // ou InvalidateAABBCache(oldArea);
     Renderer.PrecomputeAABBs(this->area, 0, 1);  // optionnel: pré-calc LOD 0-1
-
+    for (int i=0; i<256; i++) {
+        this->mission->mission_data.flags.push_back(0);
+    }
     for (auto &area_entity: this->area->objects) {
         area_entity.entity = LoadEntity(area_entity.name);
     }
@@ -264,5 +266,5 @@ void PSMission::loadMission() {
     }
 }
 void PSMission::update() {
-    
+    SCMission::update();
 }

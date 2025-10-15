@@ -1221,6 +1221,14 @@ void SCStrike::runFrame(void) {
         this->setCameraRLR();
         break;
     case View::TARGET: {
+        if (this->target == nullptr) {
+            this->camera_mode = View::FRONT;
+            break;
+        }
+        if (this->target->object == nullptr) {
+            this->camera_mode = View::FRONT;
+            break;
+        }
         setCameraLookat(this->target->object->position);
     }
     break;

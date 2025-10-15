@@ -247,9 +247,9 @@ RLEShape *RLEShape::GetEmptyShape(void) {
 
     static uint8_t data[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    static RLEShape shape;
+    RLEShape * shape;
+    shape = new RLEShape();
+    shape->init(data, 9);
 
-    shape.init(data, 9);
-
-    return &shape;
+    return shape;
 }

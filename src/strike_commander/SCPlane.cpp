@@ -1184,6 +1184,9 @@ void SCPlane::RenderSmoke() {
         }
         id_anim = anim_map[id_map];
         int frame = 0;
+        if (id_anim < 0 || id_anim >= this->smoke_set->smoke_textures.size()) {
+            continue;
+        }
         if (this->smoke_set->smoke_textures[id_anim].size() > 0) {
             if (this->anim_ticks % frames_per_tick == 0) {
                 this->smoke_anim_counters[cpt] = (this->smoke_anim_counters[cpt]+1) % (this->smoke_set->smoke_textures[id_anim].size());
