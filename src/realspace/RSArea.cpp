@@ -16,7 +16,11 @@ RSArea::RSArea() {
 }
 RSArea::~RSArea() {
     //delete archive;
-
+    for (auto overlay : objectOverlay) {
+        delete[] overlay.vertices;
+        overlay.vertices = nullptr;
+        overlay.nbTriangles = 0;
+    }
     while (!textures.empty()) {
         RSMapTextureSet *set = textures.back();
         textures.pop_back();

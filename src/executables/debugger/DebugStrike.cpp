@@ -34,7 +34,10 @@ DebugStrike::DebugStrike() : SCStrike() {}
 
 DebugStrike::~DebugStrike() {}
 
-void DebugStrike::setMission(std::string mission_name) { SCStrike::setMission(mission_name.c_str()); }
+void DebugStrike::setMission(std::string mission_name) { 
+    target = nullptr;
+    SCStrike::setMission(mission_name.c_str()); 
+}
 
 void DebugStrike::init() { SCStrike::init(); }
 void DebugStrike::showOffCamera() {
