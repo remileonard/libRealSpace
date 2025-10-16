@@ -236,6 +236,7 @@ public:
     SWPN_DATA *swpn_data{nullptr};
     RSEntity *destroyed_object{nullptr};
     std::string destroyed_object_name;
+    std::string cockpit_name;
     bool gravity{false};
     float wing_area{0};
     JDYN *jdyn{nullptr};
@@ -313,6 +314,7 @@ private:
     void parseREAL_OBJT_JETP_SIGN(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_TRGT(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_CTRL(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_CKPT(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_TOFF(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size);

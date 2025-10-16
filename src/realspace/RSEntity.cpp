@@ -401,7 +401,8 @@ void RSEntity::parseREAL_OBJT_JETP(uint8_t *data, size_t size) {
         std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DAMG"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-
+    handlers["CKPT"] =
+        std::bind(&RSEntity::parseREAL_OBJT_JETP_CKPT, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_ORNT(uint8_t *data, size_t size) {
@@ -467,6 +468,7 @@ void RSEntity::parseREAL_OBJT_SWPN(uint8_t *data, size_t size) {
         std::bind(&RSEntity::parseREAL_OBJT_SWPN_DATA, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ALGN"] =
         std::bind(&RSEntity::parseREAL_OBJT_SWPN_ALGN, this, std::placeholders::_1, std::placeholders::_2);
+        
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_SWPN_DYNM(uint8_t *data, size_t size) {}
@@ -588,6 +590,15 @@ void RSEntity::parseREAL_OBJT_JETP_TRGT(uint8_t *data, size_t size) {
     this->target_type = data[0];
 }
 void RSEntity::parseREAL_OBJT_JETP_CTRL(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_CKPT(uint8_t *data, size_t size) {
+    
+    ByteStream bs(data);
+    std::string str1 = bs.ReadString(10);
+    std::string str2 = bs.ReadString(8);
+    std::string str3 = bs.ReadString(8);
+    std::transform(str3.begin(), str3.end(), str3.begin(), ::toupper);
+    this->cockpit_name = str3;
+}
 void RSEntity::parseREAL_OBJT_JETP_TOFF(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size) {

@@ -131,12 +131,14 @@ void SCNavMap::checkKeyboard(void) {
  */
 void SCNavMap::init(){
     RSPalette palette;
-    FileData *f = Assets.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    if (entries != nullptr) {
         palette.initFromFileRam(entries->data, entries->size);
     } else {
-        palette.initFromFileData(f);
+        FileData *f = Assets.GetFileData("PALETTE.IFF");
+        if (f != nullptr) {
+            palette.initFromFileData(f);    
+        }
     }
     this->palette = *palette.GetColorPalette();
     for (uint8_t i=0; i<255; i++) {

@@ -476,6 +476,7 @@ void DebugGame::loadPacificMISN() {
     RSMixer::getInstance().init();
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
+    SCMouse::getInstance().init();
     ConvAssetManager::getInstance().init();
     DebugPacificStrikeMISN* main = new DebugPacificStrikeMISN();
     SCState &GameState = SCState::getInstance();

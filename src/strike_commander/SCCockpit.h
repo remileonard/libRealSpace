@@ -41,8 +41,8 @@ private:
     
 public:
     VGAPalette palette;
-    RSCockpit* cockpit;
-    RSHud* hud;
+    RSCockpit* cockpit{nullptr};
+    RSHud* hud{nullptr};
     FrameBuffer *hud_framebuffer{nullptr};
     FrameBuffer *mfd_right_framebuffer{nullptr};
     FrameBuffer *mfd_left_framebuffer{nullptr};

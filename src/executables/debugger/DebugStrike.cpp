@@ -223,6 +223,7 @@ void DebugStrike::loadPlane() {
         this->current_mission->player->plane = this->player_plane;
 
         this->cockpit->player_plane = this->player_plane;
+        this->cockpit->init();
     }
     ImGui::Text("Plane name: %s", plane_name.c_str());
     ImGui::Text("Envergure: %.2f", envergure);
