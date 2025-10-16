@@ -110,7 +110,7 @@ void RSArea::ParseTriFile(PakEntry *entry) {
         read += 2;
         stream.MoveForward(2);
         read += 4;
-        AoVPoints *vertices = new AoVPoints[numvertice];
+        AoVPoints* vertices = new AoVPoints[numvertice];
         overTheMapIsTheRunway.lx = 0;
         overTheMapIsTheRunway.ly = 0;
         overTheMapIsTheRunway.hx = 0;
@@ -122,6 +122,7 @@ void RSArea::ParseTriFile(PakEntry *entry) {
             v->u0 = stream.ReadByte();
             v->u1 = stream.ReadByte();
             v->u2 = stream.ReadByte();
+            read += 3;
             coo = stream.ReadInt24LE();
             read += 4;
             v->x = coo * (int)(BLOCK_COORD_SCALE);
@@ -176,7 +177,10 @@ void RSArea::ParseTriFile(PakEntry *entry) {
             overTheMapIsTheRunway.trianles[overTheMapIsTheRunway.nbTriangles++] = aot;
         }
         // TODO figure out what is the remaining data is used for.
-        stream.MoveForward(entry->size - read);
+        //stream.MoveForward(entry->size - read);
+        if (read != entry->size) {
+            printf("Warning: TRI file read mismatch: %zu != %zu\n", read, entry->size);
+        }
         objectOverlay.push_back(overTheMapIsTheRunway);
     }
 }
