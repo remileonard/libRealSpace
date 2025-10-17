@@ -38,7 +38,7 @@ void SCStrike::renderVirtualCockpit() {
     this->cockpit->RenderHUD();
 
     Vector3D cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f, this->player_plane->elevationf/10.0f, -this->player_plane->twist/10.0f};
-    Vector3D cockpit_ajustement = { 0.0f,-3.0f,0.0f};
+    Vector3D cockpit_ajustement = { 0.0f,-(float) this->eye_y,0.0f};
     
     Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
     
@@ -1320,7 +1320,7 @@ void SCStrike::runFrame(void) {
     } break;
     }
 
-    Renderer.bindCameraProjectionAndView(0.45f);
+    Renderer.bindCameraProjectionAndView(verticalOffset);
     Renderer.renderWorldSolid(area, BLOCK_LOD_MAX, 400);
 
     if (this->show_bbox) {

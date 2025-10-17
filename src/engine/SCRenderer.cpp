@@ -1691,7 +1691,6 @@ void SCRenderer::getRenderToTexture() {
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 800, 600, 0);
 }
 void SCRenderer::initRenderCameraView(){ 
-    const float verticalOffset = 0.45f;
     Matrix *projectionMatrix = camera.getProjectionMatrix();
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

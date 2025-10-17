@@ -157,6 +157,7 @@ protected:
     SCState &GameState = SCState::getInstance();
     void renderVirtualCockpit();
 public:
+    float verticalOffset{0.45f};
     /**
      * @brief Constructor
      */

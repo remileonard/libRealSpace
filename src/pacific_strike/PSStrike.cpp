@@ -81,6 +81,10 @@ void PSStrike::setMission(char const *missionName) {
     Mixer.stopMusic();
     Mixer.switchBank(2);
     Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
+    verticalOffset = 0.0f;
+    SCStrike::verticalOffset = 0.0f;
+    SCRenderer::instance().verticalOffset = verticalOffset;
+    SCRenderer::instance().initRenderCameraView();
 }
 PSStrike::PSStrike() {}
 
