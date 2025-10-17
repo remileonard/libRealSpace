@@ -1211,6 +1211,20 @@ void DebugStrike::renderMenu() {
         if (ImGui::TreeNode("Area overlay")) {
             for (auto overlay : this->current_mission->area->objectOverlay) {
                 ImGui::Text("Overlay nbtrianbles %d", overlay.nbTriangles);
+                ImGui::Text("Overlay nbvertices %d", overlay.verticesVec.size());
+                for (auto vertex : overlay.verticesVec) {
+                    ImGui::Text("Overlay vertex x %d y %d z %d", vertex.x, vertex.y, vertex.z);
+                }
+                for (int i=0; i < overlay.verticesVec.size(); i++) {
+                    ImGui::Text("Overlay vertices [%d] (%d, %d, %d)",i, overlay.vertices[i].x, overlay.vertices[i].y, overlay.vertices[i].z);
+                }
+                for (int i=0; i < overlay.nbTriangles; i++) {
+                    ImGui::Text("Overlay triangle [%d] vertices:%d, %d, %d",i, 
+                        overlay.trianles[i].verticesIdx[0],
+                        overlay.trianles[i].verticesIdx[1],
+                        overlay.trianles[i].verticesIdx[2]
+                    );
+                }
             }
             ImGui::TreePop();
         }

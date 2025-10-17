@@ -108,7 +108,11 @@ void RSArea::ParseTriFile(PakEntry *entry) {
         read += 2;
         int nbpoly = stream.ReadShort();
         read += 2;
-        stream.MoveForward(2);
+        int nbquads = stream.ReadShort();
+        if (nbquads != 1) {
+            stream.MoveForward(2);
+            read += 2;
+        }
         read += 4;
         AoVPoints* vertices = new AoVPoints[numvertice];
         overTheMapIsTheRunway.lx = 0;
@@ -141,6 +145,7 @@ void RSArea::ParseTriFile(PakEntry *entry) {
             overTheMapIsTheRunway.ly = v->z < overTheMapIsTheRunway.ly ? v->z : overTheMapIsTheRunway.ly;
             overTheMapIsTheRunway.hx = v->x > overTheMapIsTheRunway.hx ? v->x : overTheMapIsTheRunway.hx;
             overTheMapIsTheRunway.hy = v->z > overTheMapIsTheRunway.hy ? v->z : overTheMapIsTheRunway.hy;
+            overTheMapIsTheRunway.verticesVec.push_back(*v);
         }
         overTheMapIsTheRunway.vertices = vertices;
 
@@ -156,12 +161,24 @@ void RSArea::ParseTriFile(PakEntry *entry) {
 
             aot.u7 = stream.ReadByte();
             aot.verticesIdx[0] = stream.ReadByte();
+            if (aot.verticesIdx[0] >= numvertice) {
+                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
+                aot.verticesIdx[0] = 0;
+            }
             read += 2;
             aot.u8 = stream.ReadByte();
             aot.verticesIdx[1] = stream.ReadByte();
+            if (aot.verticesIdx[1] >= numvertice) {
+                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
+                aot.verticesIdx[1] = 0;
+            }
             read += 2;
             aot.u9 = stream.ReadByte();
             aot.verticesIdx[2] = stream.ReadByte();
+            if (aot.verticesIdx[2] >= numvertice) {
+                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
+                aot.verticesIdx[2] = 0;
+            }
             read += 2;
 
             aot.u2 = stream.ReadByte();

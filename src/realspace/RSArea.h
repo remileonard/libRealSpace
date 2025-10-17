@@ -55,6 +55,7 @@ struct AoVPoints {
 };
 struct AreaOverlay {
     AoVPoints* vertices;
+    std::vector<AoVPoints> verticesVec;
     AreaOverlayTriangles trianles[400];
     int lx, ly, hx, hy;
     int nbTriangles;

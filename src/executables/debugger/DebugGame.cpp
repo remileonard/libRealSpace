@@ -489,7 +489,7 @@ void DebugGame::loadPacificMISN() {
         GameState.requierd_flags[i] = false;
     }
     main->init();
-    main->setMission("CRLS-M1.IFF");
+    main->setMission("PRLH-M1.IFF");
     this->addActivity(static_cast<IActivity*>(static_cast<DebugStrike*>(main)));
 }
 
