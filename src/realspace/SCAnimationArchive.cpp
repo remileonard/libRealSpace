@@ -358,7 +358,8 @@ void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
         // Lecture du nom du personnage
         uint16_t charNameLength = stream.ReadUShort();
         character->character_name = stream.ReadString(charNameLength);
-        
+        ConvAssetManager& ConvAssets = ConvAssetManager::getInstance();
+        character->image = ConvAssets.GetCharFace(character->character_name)->appearances;
         // Lecture du nom du fond
         uint16_t bgNameLength = stream.ReadUShort();
         character->background_name = stream.ReadString(bgNameLength);

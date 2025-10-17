@@ -619,6 +619,24 @@ void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *char
     } else {
         ImGui::Text("No image loaded");
     }
+    if (ImGui::BeginCombo("Palette", std::to_string(chara->palette).c_str())) {
+        for (int i=0; i < ConvAssetManager::getInstance().convPals.GetNumEntries(); i++) {
+            PakEntry* entry = ConvAssetManager::getInstance().convPals.GetEntry(i);
+            if (entry == nullptr) {
+                continue;
+            }
+            if (entry->size == 0) {
+                continue;
+            }
+            if (ImGui::Selectable(
+                ("Pal " + std::to_string(i)).c_str(),
+                i == chara->palette
+            )) {
+                chara->palette = i;
+            }
+        }
+        ImGui::EndCombo();
+    }
     ImGui::Separator();
     ImGui::Text("Reglages des paramètres du character");
     int head_id = chara->head_id;

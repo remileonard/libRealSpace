@@ -11,6 +11,7 @@
 #include "SCMidGamesEnum.h"
 
 
+#ifdef OLD_CODE
 void SCAnimationPlayer::initMid1() {
     MIDGAME_DATA mid1Data = {
         {
@@ -638,6 +639,12 @@ void SCAnimationPlayer::initMid1() {
     };
     this->midgames_data[1] = mid1Data;
 }
+#endif
+void SCAnimationPlayer::initMid1(){
+    SCAnimationArchive archive;
+    archive.LoadFromFile("MID_1.IFF", this->midgames_shots[1]);
+}
+
 
 SCAnimationPlayer::SCAnimationPlayer() { this->fps_timer = SDL_GetTicks() / 10; }
 
@@ -696,7 +703,7 @@ void SCAnimationPlayer::init(){
         Assets.optpals_filename
     );
     this->optPals.InitFromRAM("OPTPALS.PAK", optPalettesEntry->data, optPalettesEntry->size);
-
+    
     this->initMid1();
     
     for (auto mid_data: this->midgames_data) {
@@ -863,7 +870,7 @@ void SCAnimationPlayer::runFrame(void){
         }
     }
     for (auto sprt: shot->sprites) {
-         if (sprt->palette != 0) {
+        if (sprt->palette != 0) {
             ByteStream paletteReader;
             if (sprt->pak_palette == nullptr) {
                 paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data);
@@ -877,6 +884,21 @@ void SCAnimationPlayer::runFrame(void){
         }
         if (sprt->pal != nullptr && !sprt->use_external_palette) {
             this->palette.CopyFromOtherPalette(sprt->pal->GetColorPalette());
+        }
+    }
+    for (auto chara: shot->characters) {
+        if (chara->palette != 0) {
+            ByteStream paletteReader;
+            PakEntry *palEntry = nullptr;
+            palEntry = ConvAssetManager::getInstance().convPals.GetEntry(chara->palette);
+            if (palEntry == nullptr) {
+                continue;
+            }
+            if (palEntry->size == 0) {
+                continue;
+            }
+            paletteReader.Set(palEntry->data);
+            this->palette.ReadPatch(&paletteReader);
         }
     }
     
@@ -902,7 +924,6 @@ void SCAnimationPlayer::runFrame(void){
                     bg->position_start.y += bg->velocity.y;
                 }
             }
-           
             delete texture;
         }
     }

@@ -51,8 +51,7 @@ class ConvAssetManager {
 private:
     void BuildDB(void);
 
-    PakArchive convShps;
-    PakArchive convPals;
+
     PakArchive optShps;
     PakArchive optPals;
     ConvBackGround *tmp_conv_bg{nullptr};
@@ -80,7 +79,8 @@ public:
     std::unordered_map<std::string, FacePalette *> facePalettes;
     std::unordered_map<std::string, ConvBackGround *> backgrounds;
     std::unordered_map<std::string, CharFigure *> figures;
-
+    PakArchive convShps;
+    PakArchive convPals;
     static ConvAssetManager& getInstance() {
         if (!ConvAssetManager::hasInstance()) {
             ConvAssetManager::setInstance(std::make_unique<ConvAssetManager>());
