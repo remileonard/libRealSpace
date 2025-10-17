@@ -49,8 +49,14 @@ void RSMapTextureSet::Parse(PakArchive* archive){
         
         PakEntry* entry = archive->GetEntry(i);
         
-        if (entry->size == 0)
+        if (entry->size == 0) {
+            RSImage *image = new RSImage();
+            image->Create("EMPTY_TEXTURE",1,1, 1);
+            uint8_t emptyPixel = 0;
+            image->UpdateContent(&emptyPixel);
+            images.push_back(image);
             continue;
+        }
         
         ByteStream stream(entry->data);
         
