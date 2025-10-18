@@ -827,6 +827,11 @@ void SCConvPlayer::runFrame(void) {
         VGA.setPalette(&this->palette);
         for (size_t i = 0; i < this->current_frame->bgLayers->size(); i++) {
             RLEShape *shape = (*this->current_frame->bgLayers)[i];
+
+            if (shape->leftDist < 0) {
+                Point2D pos = {-shape->leftDist, -shape->topDist};
+                shape->SetPosition(&pos);
+            }
             VGA.getFrameBuffer()->drawShape(shape);
         }
     }

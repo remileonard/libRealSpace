@@ -62,6 +62,12 @@ void RSNavMap::parseNMAP_SHAP(uint8_t *data, size_t size) {
         size = csize;
         this->background = new RLEShape();
         this->background->init(data+8,0);
+    } if (data[0] == 'w'&& data[1] == 'i' && data[2] == 'l' && data[3] == 'd') {
+        this->background = new RLEShape();
+        uint8_t *shape_data;
+        shape_data = (uint8_t *)malloc(size);
+        memcpy(shape_data, data + 16, size);
+        this->background->init(shape_data, 0);
     } else {
         this->background = new RLEShape();
         uint8_t *shape_data;
