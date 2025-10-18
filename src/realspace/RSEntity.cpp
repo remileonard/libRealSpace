@@ -963,6 +963,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMP(uint8_t *data, size_t size) {
         free(temp_data);
         csize = real_size;
         src = pic_data;
+        image->flags = 1;
     }
     
     if (csize == width * height || pic_data == nullptr) {
@@ -1054,6 +1055,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
                 // On a atteint la fin des frames
                 remaind_bytes = 0;
             }
+            image->flags = 1;
         }
         image->Create(name, width, height*nbframe, 0);
         image->nbframes = nbframe;

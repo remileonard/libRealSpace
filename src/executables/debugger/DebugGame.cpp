@@ -15,6 +15,7 @@
 #include "DebugObjectViewer.h"
 #include "DebugControllerActivity.h"
 #include "DebugAnimationPlayer.h"
+#include "DebugConvPlayer.h"
 
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
@@ -393,9 +394,34 @@ void DebugGame::loadPacific() {
     Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
     RSMixer::getInstance().init();
     FontManager.init();
-    SCRenderer::getInstance().init(1200,800);
+    SCRenderer::getInstance().init(1280,800);
     DebugObjectViewer* main = new DebugObjectViewer();
     main->init();
+    this->addActivity(main);
+}
+
+void DebugGame::loadPacificConv() {
+    Assets.SetBase("./assets");
+    // Load all TREs and PAKs
+    
+    std::vector<std::string> cdTreFiles = {
+        "PACIFIC.DAT"
+    };
+    Assets.init(cdTreFiles);
+    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+    Assets.conv_pak_filename = "..\\..\\DATA\\GAMEFLOW\\CONVSHPS.PAK";
+    Assets.conv_pal_filename = "..\\..\\DATA\\GAMEFLOW\\CONVPALS.PAK";
+    Assets.conv_data_filename = "..\\..\\DATA\\GAMEFLOW\\CONVDATA.IFF";
+    Assets.convpak_filename = "..\\..\\DATA\\GAMEFLOW\\CONV.PAK";
+    Assets.optshps_filename = "..\\..\\DATA\\GAMEFLOW\\OPTSHPS.PAK";
+    Assets.optpals_filename = "..\\..\\DATA\\GAMEFLOW\\OPTPALS.PAK";
+    RSMixer::getInstance().init();
+    FontManager.init();
+    SCRenderer::getInstance().init(1280,800);
+    ConvAssetManager::getInstance().init();
+    DebugConvPlayer* main = new DebugConvPlayer();
+    main->init();
+    main->SetID(2);
     this->addActivity(main);
 }
 

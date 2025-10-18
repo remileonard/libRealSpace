@@ -7,6 +7,7 @@
 //
 
 #include "PakArchive.h"
+#include "../commons/PKWareDecompressor.h"
 #include <errno.h>
 
 PakArchive::PakArchive() :
@@ -53,8 +54,12 @@ void PakArchive::Parse(void){
     for( ; i < numEntries-1 ; i ++){
         PakEntry* entry = entries[i];
         entry->size = entries[i+1]->data - entry->data;
+        if (entry->size < 0) {
+            entry->size = 0;
+        }
     }
     
+
     PakEntry* entry = entries[i];
     entry->size = (this->data + this->size) - entries[i]->data;
 
@@ -66,6 +71,25 @@ void PakArchive::Parse(void){
             entry->data = dt;
             entry->size = csize;
             entry->type = 0; // Reset type to 0 after decompression.
+        }
+        if (entry->type == 96 && entry->size > 4) {
+            PKWareDecompressor decompressor;
+            uint16_t check_uncompressed_size = *(uint16_t *)(entry->data);
+            uint8_t *compressed = entry->data + 4;
+            size_t compressedSize = entry->size - 4;
+            size_t decompressedSize = 0;
+            uint8_t *decompressed = decompressor.DecompressPKWare (compressed, compressedSize, decompressedSize);
+            if (decompressedSize != (size_t)check_uncompressed_size) {
+                printf("Warning: PKWare decompression size mismatch: expected %d, got %zu\n", check_uncompressed_size, decompressedSize);
+            }
+            entry->data = decompressed;
+            entry->size = decompressedSize;
+            entry->type = 0; // Reset type to 0 after decompression.
+        } else if (entry->type == 96 && entry->size <= 4) {
+            // This is likely an error case where the entry is marked as PKWare compressed but has no data.
+            entry->data = nullptr;
+            entry->size = 0;
+            entry->type = PakEntry::EMPTY; // Mark as empty to avoid processing.
         }
     }   
     
