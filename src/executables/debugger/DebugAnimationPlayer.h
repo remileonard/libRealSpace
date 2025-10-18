@@ -6,6 +6,7 @@ private:
     PakArchive *current_mid{nullptr};
     PakEntry *current_entry{nullptr};
     PakArchive *current_palette_mid{nullptr};
+    PakArchive *current_midvoc{nullptr};
     int current_palette_entry_index{-1};
     int current_entry_index{-1};
     MIDGAME_SHOT_BG* p_bg_editor{nullptr};
@@ -25,4 +26,5 @@ public:
     void editMidGameShotSprite(MIDGAME_SHOT_SPRITE* sprite);
     void editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER* character);
     void editMidGameShot(MIDGAME_SHOT *shot);
+    void midvocChooser();
 };
