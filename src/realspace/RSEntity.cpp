@@ -1241,12 +1241,15 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
     }
     
     RSPalette palette;
-    FileData *f = assetsManager.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)assetsManager.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    
+    TreEntry *entries = (TreEntry *)assetsManager.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    if (entries != nullptr) {
         palette.initFromFileRam(entries->data, entries->size);
     } else {
-        palette.initFromFileData(f);
+        FileData *f = assetsManager.GetFileData("PALETTE.IFF");
+        if (f != nullptr) {
+            palette.initFromFileData(f);
+        }
     }
 
     for (auto img : img_set->shapes) {

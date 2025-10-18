@@ -187,12 +187,15 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     bluePrint.init(file8.GetEntry(0)->data, file8.GetEntry(0)->size);
 
     RSPalette palette;
-    FileData *f = Assets.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    
+    if (entries != nullptr) {
         palette.initFromFileRam(entries->data, entries->size);
     } else {
-        palette.initFromFileData(f);
+        FileData *f = Assets.GetFileData("PALETTE.IFF");
+        if (f != nullptr) {
+            palette.initFromFileData(f);
+        }
     }
     this->palette = *palette.GetColorPalette();
 }

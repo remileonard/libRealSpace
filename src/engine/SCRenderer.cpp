@@ -349,7 +349,7 @@ void SCRenderer::init(int width, int height) {
     // glClearDepth(1.0f);								// Depth Buffer Setup
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
-    camera.setPersective(45.0f, this->width / (float)this->height, 3.8f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
+    camera.setPersective(45.0f, this->width / (float)this->height, 1.5f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
 
     light.SetWithCoo(300, 300, 300);
 
