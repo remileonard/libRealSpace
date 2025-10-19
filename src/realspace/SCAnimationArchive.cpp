@@ -87,6 +87,25 @@ void SCAnimationArchive::WriteShot(IFFWriter& writer, const MIDGAME_SHOT* shot) 
         WriteCharacters(writer, shot->characters);
     }
     
+    if (shot->sound_pak != nullptr && shot->sound_pak_entry_id >= 0) {
+        writer.StartChunk("SOND");
+        std::string archiveName = shot->sound_pak->GetName();
+        if (archiveName.length() < 4 || archiveName.compare(archiveName.length() - 4, 4, ".PAK") != 0) {
+            archiveName += ".PAK";
+        }
+        AssetManager& Assets = AssetManager::getInstance();
+        for (auto treRef: Assets.treEntries) {
+            if (treRef.first.length() >= archiveName.length() &&
+                treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
+                archiveName = treRef.first;
+                break;
+            }
+        }
+        writer.WriteUint16(archiveName.length());
+        writer.WriteString(archiveName.c_str(), archiveName.length());
+        writer.WriteUint16(shot->sound_pak_entry_id);
+        writer.EndChunk();
+    }
     writer.EndChunk();
 }
 
@@ -301,9 +320,7 @@ void SCAnimationArchive::WriteForegrounds(IFFWriter& writer, const std::vector<M
 
 void SCAnimationArchive::WriteSound(IFFWriter& writer, const MIDGAME_SOUND* sound) {
     writer.StartChunk("SOND");
-    if (sound != nullptr && sound->data != nullptr) {
-        writer.WriteData(sound->data, sound->size);
-    }
+    
     writer.EndChunk();
 }
 

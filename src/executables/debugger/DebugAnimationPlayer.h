@@ -19,6 +19,7 @@ private:
     PakArchive *current_midvoc{nullptr};
     int current_palette_entry_index{-1};
     int current_entry_index{-1};
+    int current_midvoc_entry_index{-1};
     MIDGAME_SHOT_BG* p_bg_editor{nullptr};
     MIDGAME_SHOT_SPRITE* p_sprite_editor{nullptr};
     MIDGAME_SHOT_BG* p_foreground_editor{nullptr};

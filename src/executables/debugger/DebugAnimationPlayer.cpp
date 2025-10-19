@@ -354,7 +354,7 @@ std::string DebugAnimationPlayer::formatElementPosition(int startX, int startY, 
 
 void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float& xOffset, float timelineHeight, 
                                                   ImVec2 timelinePos, float insertButtonWidth, bool isBeforeShot) {
-    ImVec2 insertButtonPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
+    ImVec2 insertButtonPos(timelinePos.x + xOffset, timelinePos.y - 35.0f);
     ImGui::SetCursorScreenPos(ImVec2(insertButtonPos.x, insertButtonPos.y + timelineHeight / 2 - 15));
     
     int buttonId = isBeforeShot ? 1000 + static_cast<int>(shotIndex) : 2000 + static_cast<int>(shotIndex);
@@ -368,6 +368,152 @@ void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float& xOffs
         selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot);
     }
     
+    ImGui::PopID();
+    insertButtonPos = {timelinePos.x + xOffset, timelinePos.y + 5.0f};
+    ImGui::SetCursorScreenPos(ImVec2(insertButtonPos.x, insertButtonPos.y + timelineHeight / 2 - 15));
+    
+    buttonId = isBeforeShot ? 4000 + static_cast<int>(shotIndex) : 3000 + static_cast<int>(shotIndex);
+    ImGui::PushID(buttonId);
+    
+    if (ImGui::Button("D", ImVec2(insertButtonWidth, 30))) {
+        MIDGAME_SHOT* shot = this->midgames_shots[1][shotIndex];
+        MIDGAME_SHOT* newShot = new MIDGAME_SHOT();
+        // Copy the basic shot properties
+        newShot->nbframe = shot->nbframe;
+        newShot->music = shot->music;
+        newShot->sound = shot->sound;  // Note: this is a shallow copy
+        newShot->sound_time_code = shot->sound_time_code;
+
+        // Copy backgrounds
+        for (auto* bg : shot->background) {
+            MIDGAME_SHOT_BG* newBg = new MIDGAME_SHOT_BG();
+            newBg->pak = bg->pak;
+            newBg->pak_entry_id = bg->pak_entry_id;
+            newBg->pak_palette = bg->pak_palette;
+            newBg->palette = bg->palette;
+            newBg->shapeid = bg->shapeid;
+            newBg->position_start = bg->position_start;
+            newBg->position_end = bg->position_end;
+            newBg->velocity = bg->velocity;
+            newBg->use_external_palette = bg->use_external_palette;
+            
+            // Load image
+            if (bg->image) {
+                newBg->image = loadImage(bg->pak, bg->pak_entry_id);
+                if (bg->pal && newBg->image) {
+                    newBg->pal = newBg->image->palettes.size() > 0 ? newBg->image->palettes[0] : nullptr;
+                }
+            } else {
+                newBg->image = nullptr;
+                newBg->pal = nullptr;
+            }
+            
+            newShot->background.push_back(newBg);
+        }
+
+        // Copy sprites
+        for (auto* sprite : shot->sprites) {
+            MIDGAME_SHOT_SPRITE* newSprite = new MIDGAME_SHOT_SPRITE();
+            newSprite->pak = sprite->pak;
+            newSprite->pak_entry_id = sprite->pak_entry_id;
+            newSprite->pak_palette = sprite->pak_palette;
+            newSprite->palette = sprite->palette;
+            newSprite->shapeid = sprite->shapeid;
+            newSprite->position_start = sprite->position_start;
+            newSprite->position_end = sprite->position_end;
+            newSprite->velocity = sprite->velocity;
+            newSprite->keep_first_frame = sprite->keep_first_frame;
+            newSprite->use_external_palette = sprite->use_external_palette;
+            
+            // Load image
+            if (sprite->image) {
+                newSprite->image = loadImage(sprite->pak, sprite->pak_entry_id);
+                if (sprite->pal && newSprite->image) {
+                    newSprite->pal = newSprite->image->palettes.size() > 0 ? newSprite->image->palettes[0] : nullptr;
+                }
+            } else {
+                newSprite->image = nullptr;
+                newSprite->pal = nullptr;
+            }
+            
+            newShot->sprites.push_back(newSprite);
+        }
+
+        // Copy foregrounds
+        for (auto* fg : shot->foreground) {
+            MIDGAME_SHOT_BG* newFg = new MIDGAME_SHOT_BG();
+            newFg->pak = fg->pak;
+            newFg->pak_entry_id = fg->pak_entry_id;
+            newFg->pak_palette = fg->pak_palette;
+            newFg->palette = fg->palette;
+            newFg->shapeid = fg->shapeid;
+            newFg->position_start = fg->position_start;
+            newFg->position_end = fg->position_end;
+            newFg->velocity = fg->velocity;
+            newFg->use_external_palette = fg->use_external_palette;
+            
+            // Load image
+            if (fg->image) {
+                newFg->image = loadImage(fg->pak, fg->pak_entry_id);
+                if (fg->pal && newFg->image) {
+                    newFg->pal = newFg->image->palettes.size() > 0 ? newFg->image->palettes[0] : nullptr;
+                }
+            } else {
+                newFg->image = nullptr;
+                newFg->pal = nullptr;
+            }
+            
+            newShot->foreground.push_back(newFg);
+        }
+
+        // Copy characters
+        for (auto* character : shot->characters) {
+            MIDGAME_SHOT_CHARACTER* newChar = new MIDGAME_SHOT_CHARACTER();
+            newChar->position_start = character->position_start;
+            newChar->position_end = character->position_end;
+            newChar->velocity = character->velocity;
+            newChar->cloth_id = character->cloth_id;
+            newChar->expression_id = character->expression_id;
+            newChar->head_id = character->head_id;
+            newChar->character_name = character->character_name;
+            newChar->palette = character->palette;
+            
+            // Share the image pointer since characters use ConvAssetManager
+            newChar->image = character->image;
+            
+            newShot->characters.push_back(newChar);
+        }
+        size_t insertPos = isBeforeShot ? shotIndex : shotIndex + 1;
+        this->midgames_shots[1].insert(this->midgames_shots[1].begin() + insertPos, newShot);
+        this->shot_counter = static_cast<int>(insertPos);
+        selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot);
+    }
+    
+    ImGui::PopID();
+
+    insertButtonPos = {timelinePos.x + xOffset, timelinePos.y + 40.0f};
+    ImGui::SetCursorScreenPos(ImVec2(insertButtonPos.x, insertButtonPos.y + timelineHeight / 2 - 15));
+    buttonId = isBeforeShot ? 5000 + static_cast<int>(shotIndex) : 6000 + static_cast<int>(shotIndex);
+    ImGui::PushID(buttonId);
+    if (ImGui::Button(">", ImVec2(insertButtonWidth, 30))) {
+        if (shotIndex + 1 < this->midgames_shots[1].size()) {
+            // Swap this shot with the next one
+            std::swap(this->midgames_shots[1][shotIndex], this->midgames_shots[1][shotIndex + 1]);
+            
+            // Update shot_counter if needed to keep track of the same shot
+            if (this->shot_counter == static_cast<int>(shotIndex)) {
+                this->shot_counter = static_cast<int>(shotIndex + 1);
+            } else if (this->shot_counter == static_cast<int>(shotIndex + 1)) {
+                this->shot_counter = static_cast<int>(shotIndex);
+            }
+            
+            // Update editing state if needed
+            MIDGAME_SHOT* currentShot = this->midgames_shots[1][shotIndex + 1];
+            if (this->p_shot_editor == currentShot) {
+                selectEditorElement(nullptr, nullptr, nullptr, nullptr, currentShot);
+            }
+        }
+    }
     ImGui::PopID();
     xOffset += insertButtonWidth + 5.0f;
 }
@@ -769,18 +915,17 @@ void DebugAnimationPlayer::showEditor() {
         ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding, 
                                          shotPos.y + shotHeight - buttonAreaHeight + 5.0f));
         ImGui::PushID(static_cast<int>(shotIndex));
-        if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding * 3) / 2, 20))) {
+        if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
             this->shot_counter = static_cast<int>(shotIndex);
             selectEditorElement(nullptr, nullptr, nullptr, nullptr, shot);
         }
         ImGui::SameLine(0, textPadding);
-        if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding * 3) / 2, 20))) {
+        if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
             this->shot_counter = static_cast<int>(shotIndex);
             this->fps_counter = 0;
             this->pause = false;
         }
         ImGui::SameLine(0, textPadding);
-        
         if (ImGui::Button("X", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
             deleteShotAtIndex(shotIndex);
         }
@@ -938,10 +1083,49 @@ void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
     }
     ImGui::Separator();
     ImGui::Text("Music");
-    int music_id = shot->music;
+    static int music_id = shot->music;
     if (ImGui::InputInt("ID Musique", &music_id)) {
         if (music_id < -1) music_id = -1;
         shot->music = music_id;
+    }
+    ImGui::Separator();
+    ImGui::Text("Sound Effects");
+    if (this->current_midvoc == nullptr) {
+        this->current_midvoc = shot->sound_pak;
+    } else {
+        shot->sound_pak = this->current_midvoc;
+    }
+    if (this->current_midvoc_entry_index == -1) {
+        this->current_midvoc_entry_index = shot->sound_pak_entry_id;
+    } else {
+        shot->sound_pak_entry_id = this->current_midvoc_entry_index;
+    }
+    this->midvocChooser();
+    if (ImGui::Button("Ajouter un effet sonore")) {
+        PakEntry* soundEntry = shot->sound_pak->GetEntry(shot->sound_pak_entry_id);
+        if (soundEntry == nullptr || soundEntry->size == 0) {
+            ImGui::OpenPopup("ErrorSoundEffect");
+        } else {
+            shot->sound = new MIDGAME_SOUND();
+            shot->sound->data = soundEntry->data;
+            shot->sound->size = soundEntry->size;
+        }
+    }
+    if (ImGui::Button("Supprimer l'effet sonore")) {
+        shot->sound->data = nullptr;
+        shot->sound->size = 0;
+        shot->sound = nullptr;
+        shot->sound_pak = nullptr;
+        shot->sound_pak_entry_id = -1;
+    }
+    if (ImGui::Button("Play Sound Effect")) {
+        if (shot->sound == nullptr) {
+            ImGui::OpenPopup("ErrorSoundEffect");
+        } else {
+            if (shot->sound->data && shot->sound->size > 0) {
+                RSMixer::getInstance().playSoundVoc(shot->sound->data, shot->sound->size);
+            }
+        }
     }
 }
 void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
@@ -1251,30 +1435,42 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
 }
 
 void DebugAnimationPlayer::midvocChooser() {
-    std::vector<std::string> midvocNames = {
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC1.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC2.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC5.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC12.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC15.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC20.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC33.PAK",
-        "..\\..\\DATA\\MIDGAMES\\MIDVOC34.PAK",
-    };
-    if (ImGui::BeginCombo("MIDVOC Archive", this->current_midvoc->GetName())) {
-        for (auto &midvocarchive: midvocNames) {
+    if (ImGui::BeginCombo("MIDVOC Archive", this->current_midvoc != nullptr ? this->current_midvoc->GetName(): "None")) {
+        for (auto &midvocarchive: this->midvoc) {
             if (ImGui::Selectable(
-                midvocarchive.c_str(),
-                midvocarchive == this->current_midvoc->GetName()
+                midvocarchive->GetName(),
+                midvocarchive == this->current_midvoc
             )) {
-                TreEntry* entry = this->Assets.GetEntryByName(midvocarchive.c_str());
-                if (entry) {
-                    PakArchive* pak = new PakArchive();
-                    pak->InitFromRAM(midvocarchive.c_str(), entry->data, entry->size);
-                    this->current_midvoc = pak;
-                }
+                this->current_midvoc = midvocarchive;
             }
         }
         ImGui::EndCombo();
+    }
+    if (this->current_midvoc != nullptr) {
+        ImGui::Text("Num Entries: %d", this->current_midvoc->GetNumEntries());
+        if (ImGui::InputInt("Entry Index", &this->current_midvoc_entry_index)) {
+            if (this->current_midvoc_entry_index < 0) {
+                this->current_midvoc_entry_index = 0;
+            }
+            if (this->current_midvoc_entry_index >= this->current_midvoc->GetNumEntries()) {
+                this->current_midvoc_entry_index = this->current_midvoc->GetNumEntries() - 1;
+            }
+        }
+        if (ImGui::BeginCombo("Sound Pak", this->current_midvoc_entry_index >= 0 && this->current_midvoc_entry_index < this->current_midvoc->GetNumEntries() ? 
+            std::to_string(this->current_midvoc_entry_index).c_str() : "None")) {
+            for (int i = 0; i < this->current_midvoc->GetNumEntries(); i++) {
+                PakEntry* entry = this->current_midvoc->GetEntry(i);
+                if (entry == nullptr) {
+                    continue;
+                }
+                if (ImGui::Selectable(
+                    std::to_string(i).c_str(),
+                    i == this->current_midvoc_entry_index
+                )) {
+                    this->current_midvoc_entry_index = i;
+                }
+            }
+            ImGui::EndCombo();
+        }
     }
 }
