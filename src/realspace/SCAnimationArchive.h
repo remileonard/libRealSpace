@@ -143,8 +143,7 @@ private:
     void WriteSprites(IFFWriter& writer, const std::vector<MIDGAME_SHOT_SPRITE*>& sprites);
     void WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRITE* sprite);
     void WriteForegrounds(IFFWriter& writer, const std::vector<MIDGAME_SHOT_BG*>& foregrounds);
-    void WriteSound(IFFWriter& writer, const MIDGAME_SOUND* sound);
-
+    
     // Handler pour l'IFFSaxLexer
     void HandleANIM(uint8_t* data, size_t size);
     void HandleSHOT(uint8_t* data, size_t size);

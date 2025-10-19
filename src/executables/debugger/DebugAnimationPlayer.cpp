@@ -40,6 +40,9 @@ void DebugAnimationPlayer::renderMenu() {
             SCAnimationArchive archive;
             std::vector<MIDGAME_SHOT*> shots;
             if (archive.LoadFromFile("edited_animation.iff", shots)) {
+                this->shot_counter = 0;
+                this->fps_counter = 0;
+                this->fps = 1;
                 this->midgames_shots[1] = shots;
                 printf("Animation loaded from edited_animation.iff\n");
             } else {
@@ -1102,21 +1105,27 @@ void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
     }
     this->midvocChooser();
     if (ImGui::Button("Ajouter un effet sonore")) {
-        PakEntry* soundEntry = shot->sound_pak->GetEntry(shot->sound_pak_entry_id);
-        if (soundEntry == nullptr || soundEntry->size == 0) {
-            ImGui::OpenPopup("ErrorSoundEffect");
-        } else {
-            shot->sound = new MIDGAME_SOUND();
-            shot->sound->data = soundEntry->data;
-            shot->sound->size = soundEntry->size;
+        if (shot->sound_pak != nullptr) {   
+            PakEntry* soundEntry = shot->sound_pak->GetEntry(shot->sound_pak_entry_id);
+            if (soundEntry == nullptr || soundEntry->size == 0) {
+                ImGui::OpenPopup("ErrorSoundEffect");
+            } else {
+                shot->sound = new MIDGAME_SOUND();
+                shot->sound->data = soundEntry->data;
+                shot->sound->size = soundEntry->size;
+            }
         }
     }
     if (ImGui::Button("Supprimer l'effet sonore")) {
-        shot->sound->data = nullptr;
-        shot->sound->size = 0;
-        shot->sound = nullptr;
-        shot->sound_pak = nullptr;
-        shot->sound_pak_entry_id = -1;
+        if (shot->sound != nullptr) {
+            shot->sound->data = nullptr;
+            shot->sound->size = 0;
+            shot->sound = nullptr;
+            shot->sound_pak = nullptr;
+            shot->sound_pak_entry_id = -1;
+            delete shot->sound;
+            shot->sound = nullptr;
+        }
     }
     if (ImGui::Button("Play Sound Effect")) {
         if (shot->sound == nullptr) {

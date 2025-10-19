@@ -691,7 +691,7 @@ void SCAnimationPlayer::init(){
                 continue;
             }
             PakArchive *arch = new PakArchive();
-            arch->InitFromRAM(midgames_files[i].c_str(), entry->data, entry->size);
+            arch->InitFromRAM(file_path.c_str(), entry->data, entry->size);
             this->midvoc.push_back(arch);
         }
     }

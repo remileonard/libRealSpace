@@ -318,12 +318,6 @@ void SCAnimationArchive::WriteForegrounds(IFFWriter& writer, const std::vector<M
     writer.EndChunk();
 }
 
-void SCAnimationArchive::WriteSound(IFFWriter& writer, const MIDGAME_SOUND* sound) {
-    writer.StartChunk("SOND");
-    
-    writer.EndChunk();
-}
-
 void SCAnimationArchive::HandleANIM(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
     
@@ -379,7 +373,8 @@ void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
         character->image = ConvAssets.GetCharFace(character->character_name)->appearances;
         // Lecture du nom du fond
         uint16_t bgNameLength = stream.ReadUShort();
-        character->background_name = stream.ReadString(bgNameLength);
+        if (bgNameLength > 0)
+            character->background_name = stream.ReadString(bgNameLength);
         
         // Lecture des positions et vélocité
         character->position_start.x = stream.ReadShort();
@@ -623,13 +618,22 @@ void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
 }
 
 void SCAnimationArchive::HandleSOND(uint8_t* data, size_t size) {
-    if (currentShot && size > 0) {
-        MIDGAME_SOUND* sound = new MIDGAME_SOUND();
-        sound->size = size;
-        sound->data = new uint8_t[size];
-        memcpy(sound->data, data, size);
+    if (currentShot) {
+        ByteStream stream(data);
         
-        currentShot->sound = sound;
+        uint16_t nameLength = stream.ReadUShort();
+        std::string archiveName = stream.ReadString(nameLength);
+        currentShot->sound_pak = FindOrLoadPakArchive(archiveName);
+        currentShot->sound_pak_entry_id = stream.ReadUShort();
+        
+        if (currentShot->sound_pak != nullptr) {
+            PakEntry* soundEntry = currentShot->sound_pak->GetEntry(currentShot->sound_pak_entry_id);
+            if (soundEntry != nullptr) {
+                currentShot->sound = new MIDGAME_SOUND();
+                currentShot->sound->data = soundEntry->data;
+                currentShot->sound->size = soundEntry->size;
+            }
+        }
     }
 }
 
