@@ -142,7 +142,9 @@ void DebugAnimationPlayer::renderUI() {
                     MIDGAME_SHOT_BG *bg = shot->background[i];
                     if (ImGui::TreeNode(("Background " + std::to_string(i+1)).c_str())) {
                         ImGui::Text("Background %d:", i+1);
-                        ImGui::Text("ShapeID: %d",bg->shapeid);
+                        ImGui::Text("PAK Archive: %s",bg->pak != nullptr ? bg->pak->GetName() : "None");
+                        ImGui::Text("Entry ID: %d",bg->pak_entry_id);
+                        ImGui::Text("Sub frame id: %d",bg->shapeid);
                         ImGui::Text("Pos Start: (%d,%d)",bg->position_start.x, bg->position_start.y);
                         ImGui::Text("Pos End: (%d,%d)", bg->position_end.x, bg->position_end.y);
                         ImGui::Text("Velocity: (%d,%d)",bg->velocity.x, bg->velocity.y);
@@ -311,16 +313,355 @@ void DebugAnimationPlayer::midgamePaletteChoser() {
     }
 }
 
+void DebugAnimationPlayer::resetEditorSelection() {
+    this->current_mid = nullptr;
+    this->current_entry_index = -1;
+    this->current_palette_mid = nullptr;
+    this->current_palette_entry_index = -1;
+}
+
+void DebugAnimationPlayer::selectEditorElement(MIDGAME_SHOT_BG* bg, MIDGAME_SHOT_SPRITE* sprite, 
+                                               MIDGAME_SHOT_BG* fg, MIDGAME_SHOT_CHARACTER* character, 
+                                               MIDGAME_SHOT* shotPtr) {
+    this->p_bg_editor = bg;
+    this->p_sprite_editor = sprite;
+    this->p_foreground_editor = fg;
+    this->p_character_editor = character;
+    this->p_shot_editor = shotPtr;
+    resetEditorSelection();
+}
+
+MIDGAME_SHOT* DebugAnimationPlayer::createEmptyShot() {
+    MIDGAME_SHOT* newShot = new MIDGAME_SHOT();
+    newShot->nbframe = 30;
+    newShot->music = -1;
+    newShot->sound = nullptr;
+    newShot->sound_time_code = 0;
+    return newShot;
+}
+
+float DebugAnimationPlayer::calculateSectionHeight(size_t elementCount, float sectionHeaderHeight, 
+                                                   float elementHeight, float elementSpacing, 
+                                                   float emptyMessageHeight) {
+    return sectionHeaderHeight + (elementCount ? elementCount * (elementHeight + elementSpacing) : emptyMessageHeight);
+}
+
+std::string DebugAnimationPlayer::formatElementPosition(int startX, int startY, int endX, int endY) {
+    char buffer[48];
+    sprintf(buffer, "(%d,%d)→(%d,%d)", startX, startY, endX, endY);
+    return std::string(buffer);
+}
+
+void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float& xOffset, float timelineHeight, 
+                                                  ImVec2 timelinePos, float insertButtonWidth, bool isBeforeShot) {
+    ImVec2 insertButtonPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
+    ImGui::SetCursorScreenPos(ImVec2(insertButtonPos.x, insertButtonPos.y + timelineHeight / 2 - 15));
+    
+    int buttonId = isBeforeShot ? 1000 + static_cast<int>(shotIndex) : 2000 + static_cast<int>(shotIndex);
+    ImGui::PushID(buttonId);
+    
+    if (ImGui::Button("+", ImVec2(insertButtonWidth, 30))) {
+        MIDGAME_SHOT* newShot = createEmptyShot();
+        size_t insertPos = isBeforeShot ? shotIndex : shotIndex + 1;
+        this->midgames_shots[1].insert(this->midgames_shots[1].begin() + insertPos, newShot);
+        this->shot_counter = static_cast<int>(insertPos);
+        selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot);
+    }
+    
+    ImGui::PopID();
+    xOffset += insertButtonWidth + 5.0f;
+}
+
+void DebugAnimationPlayer::deleteShotAtIndex(size_t shotIndex) {
+    if (this->midgames_shots[1].size() <= 1) {
+        return;
+    }
+
+    MIDGAME_SHOT* shotToDelete = this->midgames_shots[1][shotIndex];
+    
+    // Libérer les backgrounds
+    for (auto* bg : shotToDelete->background) {
+        if (bg->image) delete bg->image;
+        if (bg->pal) delete bg->pal;
+        delete bg;
+    }
+    
+    // Libérer les sprites
+    for (auto* sprite : shotToDelete->sprites) {
+        if (sprite->image) delete sprite->image;
+        if (sprite->pal) delete sprite->pal;
+        delete sprite;
+    }
+    
+    // Libérer les foregrounds
+    for (auto* fg : shotToDelete->foreground) {
+        if (fg->image) delete fg->image;
+        if (fg->pal) delete fg->pal;
+        delete fg;
+    }
+    
+    // Libérer les characters
+    for (auto* character : shotToDelete->characters) {
+        if (character->image) character->image = nullptr;
+        delete character;
+    }
+    
+    delete shotToDelete;
+    
+    this->midgames_shots[1].erase(this->midgames_shots[1].begin() + shotIndex);
+    
+    if (this->shot_counter >= static_cast<int>(shotIndex)) {
+        this->shot_counter = (std::max)(0, this->shot_counter - 1);
+    }
+    
+    if (this->p_shot_editor == shotToDelete) {
+        resetEditorSelection();
+        this->p_shot_editor = nullptr;
+        this->p_bg_editor = nullptr;
+        this->p_sprite_editor = nullptr;
+        this->p_foreground_editor = nullptr;
+        this->p_character_editor = nullptr;
+    }
+}
+
+void DebugAnimationPlayer::addNewBackground(MIDGAME_SHOT* shot) {
+    MIDGAME_SHOT_BG* newBg = new MIDGAME_SHOT_BG();
+    newBg->pak = &this->optShps;
+    newBg->pak_entry_id = 0;
+    newBg->pak_palette = &this->optPals;
+    newBg->palette = 0;
+    newBg->shapeid = 0;
+    newBg->position_start = {0, 0};
+    newBg->position_end = {0, 0};
+    newBg->velocity = {0, 0};
+    newBg->image = nullptr;
+    newBg->pal = nullptr;
+    newBg->use_external_palette = 0;
+    shot->background.push_back(newBg);
+    selectEditorElement(newBg, nullptr, nullptr, nullptr, nullptr);
+}
+
+void DebugAnimationPlayer::addNewCharacter(MIDGAME_SHOT* shot) {
+    MIDGAME_SHOT_CHARACTER* newChara = new MIDGAME_SHOT_CHARACTER();
+    newChara->position_start = {0, 0};
+    newChara->position_end = {0, 0};
+    newChara->velocity = {0, 0};
+    newChara->image = nullptr;
+    newChara->cloth_id = 0;
+    newChara->expression_id = 0;
+    newChara->head_id = 0;
+    newChara->character_name.clear();
+    shot->characters.push_back(newChara);
+    selectEditorElement(nullptr, nullptr, nullptr, newChara, nullptr);
+}
+
+void DebugAnimationPlayer::addNewSprite(MIDGAME_SHOT* shot) {
+    MIDGAME_SHOT_SPRITE* newSprite = new MIDGAME_SHOT_SPRITE();
+    newSprite->shapeid = 0;
+    newSprite->palette = 0;
+    newSprite->pak_entry_id = 0;
+    newSprite->pak = &this->optShps;
+    newSprite->pak_palette = &this->optPals;
+    newSprite->position_start = {160, 100};
+    newSprite->position_end = {160, 100};
+    newSprite->velocity = {0, 0};
+    newSprite->keep_first_frame = 0;
+    newSprite->image = nullptr;
+    newSprite->pal = nullptr;
+    newSprite->use_external_palette = 0;
+    shot->sprites.push_back(newSprite);
+    selectEditorElement(nullptr, newSprite, nullptr, nullptr, nullptr);
+}
+
+void DebugAnimationPlayer::addNewForeground(MIDGAME_SHOT* shot) {
+    MIDGAME_SHOT_BG* newFg = new MIDGAME_SHOT_BG();
+    newFg->pak = &this->optShps;
+    newFg->pak_entry_id = 0;
+    newFg->pak_palette = &this->optPals;
+    newFg->palette = 0;
+    newFg->shapeid = 0;
+    newFg->position_start = {160, 100};
+    newFg->position_end = {160, 100};
+    newFg->velocity = {0, 0};
+    newFg->image = nullptr;
+    newFg->pal = nullptr;
+    newFg->use_external_palette = 0;
+    shot->foreground.push_back(newFg);
+    selectEditorElement(nullptr, nullptr, newFg, nullptr, nullptr);
+}
+
+std::string DebugAnimationPlayer::buildBackgroundLabel(MIDGAME_SHOT_BG* bg, size_t index) {
+    std::string pak_name = bg->pak ? bg->pak->GetName() : "None";
+    std::string filename = pak_name;
+    size_t lastSlash = pak_name.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        filename = pak_name.substr(lastSlash + 1);
+    }
+    return "BG: "+filename + ":" + std::to_string(bg->pak_entry_id);
+}
+
+std::string DebugAnimationPlayer::buildCharacterLabel(MIDGAME_SHOT_CHARACTER* character, size_t index) {
+    int count = character->image ? character->image->GetNumImages() : 0;
+    std::string label = "CHR: ";
+    if (!character->character_name.empty()) {
+        label += " - " + character->character_name;
+    }
+    return label;
+}
+
+std::string DebugAnimationPlayer::buildSpriteLabel(MIDGAME_SHOT_SPRITE* bg, size_t index) {
+    std::string pak_name = bg->pak ? bg->pak->GetName() : "None";
+    std::string filename = pak_name;
+    size_t lastSlash = pak_name.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        filename = pak_name.substr(lastSlash + 1);
+    }
+    return "SP: "+filename + ":" + std::to_string(bg->pak_entry_id);
+}
+
+std::string DebugAnimationPlayer::buildForegroundLabel(MIDGAME_SHOT_BG* bg, size_t index) {
+    std::string pak_name = bg->pak ? bg->pak->GetName() : "None";
+    std::string filename = pak_name;
+    size_t lastSlash = pak_name.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        filename = pak_name.substr(lastSlash + 1);
+    }
+    return "FG: "+filename + ":" + std::to_string(bg->pak_entry_id);
+}
+
+void DebugAnimationPlayer::drawShotSection(
+    const char* title,
+    const char* emptyLabel,
+    ImU32 color,
+    int idOffset,
+    size_t shotIndex,
+    ImVec2 shotPos,
+    float& yOffset,
+    const std::vector<ShotSectionElement>& elements,
+    const std::function<void()>& addElement,
+    const std::function<void(void*)>& onSelect,
+    float shotWidth,
+    float textPadding,
+    float sectionHeaderHeight,
+    float emptyMessageHeight,
+    float elementHeight,
+    float elementSpacing
+) {
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    
+    // En-tête de section avec bouton +
+    drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
+                     IM_COL32(200, 200, 200, 255), title);
+    ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize(title).x + 5, 
+                                     shotPos.y + yOffset - 2));
+    ImGui::PushID(static_cast<int>(shotIndex) * 100 + idOffset);
+    if (ImGui::SmallButton("+")) {
+        addElement();
+    }
+    ImGui::PopID();
+    yOffset += sectionHeaderHeight;
+
+    if (elements.empty()) {
+        drawList->AddText(ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), 
+                         IM_COL32(180, 180, 180, 255), emptyLabel);
+        yOffset += emptyMessageHeight;
+        return;
+    }
+
+    float elementWidth = shotWidth - (textPadding * 2);
+    for (size_t elementIndex = 0; elementIndex < elements.size(); ++elementIndex) {
+        const auto& element = elements[elementIndex];
+        ImVec2 elementPos(shotPos.x + textPadding, shotPos.y + yOffset);
+
+        drawList->AddRectFilled(elementPos, 
+                               ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), 
+                               color, 3.0f);
+        
+        drawList->AddText(ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), 
+                         IM_COL32(255, 255, 255, 255), element.label.c_str());
+        
+        std::string posInfo = formatElementPosition(
+            static_cast<int>(element.positionStart.x), static_cast<int>(element.positionStart.y),
+            static_cast<int>(element.positionEnd.x), static_cast<int>(element.positionEnd.y)
+        );
+        drawList->AddText(ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight / 2), 
+                         IM_COL32(220, 220, 220, 255), posInfo.c_str());
+
+        if (ImGui::IsMouseHoveringRect(elementPos, 
+            ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight)) &&
+            ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            onSelect(element.elementPtr);
+        }
+
+        yOffset += elementHeight + elementSpacing;
+    }
+}
+
+std::vector<ShotSectionElement> DebugAnimationPlayer::buildBackgroundElements(MIDGAME_SHOT* shot) {
+    std::vector<ShotSectionElement> elements;
+    for (size_t i = 0; i < shot->background.size(); ++i) {
+        auto* bg = shot->background[i];
+        elements.push_back({
+            buildBackgroundLabel(bg, i),
+            ImVec2(static_cast<float>(bg->position_start.x), static_cast<float>(bg->position_start.y)),
+            ImVec2(static_cast<float>(bg->position_end.x), static_cast<float>(bg->position_end.y)),
+            bg
+        });
+    }
+    return elements;
+}
+
+std::vector<ShotSectionElement> DebugAnimationPlayer::buildCharacterElements(MIDGAME_SHOT* shot) {
+    std::vector<ShotSectionElement> elements;
+    for (size_t i = 0; i < shot->characters.size(); ++i) {
+        auto* character = shot->characters[i];
+        elements.push_back({
+            buildCharacterLabel(character, i),
+            ImVec2(static_cast<float>(character->position_start.x), static_cast<float>(character->position_start.y)),
+            ImVec2(static_cast<float>(character->position_end.x), static_cast<float>(character->position_end.y)),
+            character
+        });
+    }
+    return elements;
+}
+
+std::vector<ShotSectionElement> DebugAnimationPlayer::buildSpriteElements(MIDGAME_SHOT* shot) {
+    std::vector<ShotSectionElement> elements;
+    for (size_t i = 0; i < shot->sprites.size(); ++i) {
+        auto* sprite = shot->sprites[i];
+        elements.push_back({
+            buildSpriteLabel(sprite, i),
+            ImVec2(static_cast<float>(sprite->position_start.x), static_cast<float>(sprite->position_start.y)),
+            ImVec2(static_cast<float>(sprite->position_end.x), static_cast<float>(sprite->position_end.y)),
+            sprite
+        });
+    }
+    return elements;
+}
+
+std::vector<ShotSectionElement> DebugAnimationPlayer::buildForegroundElements(MIDGAME_SHOT* shot) {
+    std::vector<ShotSectionElement> elements;
+    for (size_t i = 0; i < shot->foreground.size(); ++i) {
+        auto* fg = shot->foreground[i];
+        elements.push_back({
+            buildForegroundLabel(fg, i),
+            ImVec2(static_cast<float>(fg->position_start.x), static_cast<float>(fg->position_start.y)),
+            ImVec2(static_cast<float>(fg->position_end.x), static_cast<float>(fg->position_end.y)),
+            fg
+        });
+    }
+    return elements;
+}
+
 void DebugAnimationPlayer::showEditor() {
     ImGui::Text("Éditeur de Shots - Timeline");
 
     if (this->midgames_shots[1].empty()) {
         ImGui::Text("Aucun shot disponible dans l'animation actuelle.");
-        ImGui::End();
         return;
     }
 
-    const float shotWidth = 150.0f;
+    const float shotWidth = 180.0f;
     const float elementHeight = 40.0f;
     const float timelineHeight = 350.0f;
     const float shotSpacing = 15.0f;
@@ -330,259 +671,107 @@ void DebugAnimationPlayer::showEditor() {
     const float buttonAreaHeight = 30.0f;
     const float textPadding = 5.0f;
     const float shotTitleHeight = 25.0f;
-    const float insertButtonWidth = 30.0f; // Largeur du bouton d'insertion
+    const float insertButtonWidth = 30.0f;
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
     ImVec2 canvasSize(ImGui::GetWindowWidth() - 20, timelineHeight);
 
-    drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), IM_COL32(40, 40, 50, 255));
+    drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), 
+                           IM_COL32(40, 40, 50, 255));
 
-    ImGui::BeginChild("TimelineScroll", ImVec2(0, timelineHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::BeginChild("TimelineScroll", ImVec2(0, timelineHeight), true, 
+                     ImGuiWindowFlags_HorizontalScrollbar);
 
     ImVec2 timelinePos = ImGui::GetCursorScreenPos();
     float xOffset = 10.0f;
 
-    drawList->PushClipRect(canvasPos, ImVec2(canvasPos.x + canvasSize.x - 15, canvasPos.y + canvasSize.y - 15), true);
-
-    auto sectionHeight = [&](size_t count) {
-        return sectionHeaderHeight + (count ? count * (elementHeight + elementSpacing) : emptyMessageHeight);
-    };
-    auto formatPos = [&](auto* element) {
-        char buffer[48];
-        sprintf(buffer, "(%d,%d)→(%d,%d)", element->position_start.x, element->position_start.y, element->position_end.x, element->position_end.y);
-        return std::string(buffer);
-    };
-    auto resetSelection = [&]() {
-        this->current_mid = nullptr;
-        this->current_entry_index = -1;
-        this->current_palette_mid = nullptr;
-        this->current_palette_entry_index = -1;
-    };
-    auto selectEditor = [&](MIDGAME_SHOT_BG* bg, MIDGAME_SHOT_SPRITE* sprite, MIDGAME_SHOT_BG* fg, MIDGAME_SHOT_CHARACTER* character, MIDGAME_SHOT* shotPtr) {
-        this->p_bg_editor = bg;
-        this->p_sprite_editor = sprite;
-        this->p_foreground_editor = fg;
-        this->p_character_editor = character;
-        this->p_shot_editor = shotPtr;
-        resetSelection();
-    };
-
-    // Fonction pour créer un nouveau shot vide
-    auto createNewShot = [&]() {
-        MIDGAME_SHOT* newShot = new MIDGAME_SHOT();
-        newShot->nbframe = 30; // Valeur par défaut
-        newShot->music = -1;
-        newShot->sound = nullptr;
-        newShot->sound_time_code = 0;
-        return newShot;
-    };
+    drawList->PushClipRect(canvasPos, 
+                          ImVec2(canvasPos.x + canvasSize.x - 15, canvasPos.y + canvasSize.y - 15), 
+                          true);
 
     for (size_t shotIndex = 0; shotIndex < this->midgames_shots[1].size(); ++shotIndex) {
         MIDGAME_SHOT* shot = this->midgames_shots[1][shotIndex];
         
-        // Bouton d'insertion AVANT le shot
         if (shotIndex == 0) {
-            ImVec2 insertButtonPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
-            ImGui::SetCursorScreenPos(ImVec2(insertButtonPos.x, insertButtonPos.y + timelineHeight / 2 - 15));
-            ImGui::PushID(1000 + static_cast<int>(shotIndex));
-            if (ImGui::Button("+", ImVec2(insertButtonWidth, 30))) {
-                MIDGAME_SHOT* newShot = createNewShot();
-                this->midgames_shots[1].insert(this->midgames_shots[1].begin(), newShot);
-                this->shot_counter = 0;
-                selectEditor(nullptr, nullptr, nullptr, nullptr, newShot);
-            }
-            ImGui::PopID();
-            xOffset += insertButtonWidth + 5.0f;
+            renderInsertShotButton(shotIndex, xOffset, timelineHeight, timelinePos, 
+                                  insertButtonWidth, true);
         }
 
         float shotHeight = shotTitleHeight + buttonAreaHeight;
-        shotHeight += sectionHeight(shot->background.size());
-        shotHeight += sectionHeight(shot->characters.size());
-        shotHeight += sectionHeight(shot->sprites.size());
-        shotHeight += sectionHeight(shot->foreground.size());
+        shotHeight += calculateSectionHeight(shot->background.size(), sectionHeaderHeight, 
+                                            elementHeight, elementSpacing, emptyMessageHeight);
+        shotHeight += calculateSectionHeight(shot->characters.size(), sectionHeaderHeight, 
+                                            elementHeight, elementSpacing, emptyMessageHeight);
+        shotHeight += calculateSectionHeight(shot->sprites.size(), sectionHeaderHeight, 
+                                            elementHeight, elementSpacing, emptyMessageHeight);
+        shotHeight += calculateSectionHeight(shot->foreground.size(), sectionHeaderHeight, 
+                                            elementHeight, elementSpacing, emptyMessageHeight);
 
         ImVec2 shotPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
         
-        ImU32 shotColor = (shotIndex == this->shot_counter) ? IM_COL32(80, 140, 200, 255) : IM_COL32(70, 70, 80, 255);
-        drawList->AddRectFilled(shotPos, ImVec2(shotPos.x + shotWidth, shotPos.y + shotHeight), shotColor, 4.0f);
+        ImU32 shotColor = (shotIndex == this->shot_counter) ? 
+                         IM_COL32(80, 140, 200, 255) : IM_COL32(70, 70, 80, 255);
+        drawList->AddRectFilled(shotPos, ImVec2(shotPos.x + shotWidth, shotPos.y + shotHeight), 
+                               shotColor, 4.0f);
 
         float yOffset = 8.0f;
         char shotTitle[64];
         sprintf(shotTitle, "Shot %zu (%d frames)", shotIndex + 1, shot->nbframe);
-        drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), IM_COL32(255, 255, 255, 255), shotTitle);
+        drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), 
+                         IM_COL32(255, 255, 255, 255), shotTitle);
         yOffset += shotTitleHeight;
 
-        auto drawSection = [&](const char* title,
-                               const char* emptyLabel,
-                               auto& elements,
-                               ImU32 color,
-                               int idOffset,
-                               auto&& addElement,
-                               auto&& buildLabel,
-                               auto&& onSelect) {
-            drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), IM_COL32(200, 200, 200, 255), title);
-            ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding + ImGui::CalcTextSize(title).x + 5, shotPos.y + yOffset - 2));
-            ImGui::PushID(static_cast<int>(shotIndex) * 100 + idOffset);
-            if (ImGui::SmallButton("+")) {
-                addElement();
-            }
-            ImGui::PopID();
-            yOffset += sectionHeaderHeight;
+        // Backgrounds
+        auto bgElements = buildBackgroundElements(shot);
+        drawShotSection(
+            "Backgrounds:", "Aucun background", IM_COL32(60, 120, 180, 255), 0, 
+            shotIndex, shotPos, yOffset, bgElements,
+            [&]() { addNewBackground(shot); },
+            [&](void* ptr) { selectEditorElement(static_cast<MIDGAME_SHOT_BG*>(ptr), nullptr, nullptr, nullptr, nullptr); },
+            shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, 
+            elementHeight, elementSpacing
+        );
 
-            if (elements.empty()) {
-                drawList->AddText(ImVec2(shotPos.x + textPadding * 2, shotPos.y + yOffset), IM_COL32(180, 180, 180, 255), emptyLabel);
-                yOffset += emptyMessageHeight;
-                return;
-            }
+        // Characters
+        auto characterElements = buildCharacterElements(shot);
+        drawShotSection(
+            "Characters:", "Aucun character", IM_COL32(180, 60, 120, 255), 1, 
+            shotIndex, shotPos, yOffset, characterElements,
+            [&]() { addNewCharacter(shot); },
+            [&](void* ptr) { selectEditorElement(nullptr, nullptr, nullptr, static_cast<MIDGAME_SHOT_CHARACTER*>(ptr), nullptr); },
+            shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, 
+            elementHeight, elementSpacing
+        );
 
-            float elementWidth = shotWidth - (textPadding * 2);
-            for (size_t elementIndex = 0; elementIndex < elements.size(); ++elementIndex) {
-                auto* element = elements[elementIndex];
-                ImVec2 elementPos(shotPos.x + textPadding, shotPos.y + yOffset);
+        // Sprites
+        auto spriteElements = buildSpriteElements(shot);
+        drawShotSection(
+            "Sprites:", "Aucun sprite", IM_COL32(180, 120, 60, 255), 2, 
+            shotIndex, shotPos, yOffset, spriteElements,
+            [&]() { addNewSprite(shot); },
+            [&](void* ptr) { selectEditorElement(nullptr, static_cast<MIDGAME_SHOT_SPRITE*>(ptr), nullptr, nullptr, nullptr); },
+            shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, 
+            elementHeight, elementSpacing
+        );
 
-                drawList->AddRectFilled(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight), color, 3.0f);
-                std::string label = buildLabel(element, elementIndex);
-                drawList->AddText(ImVec2(elementPos.x + textPadding, elementPos.y + textPadding), IM_COL32(255, 255, 255, 255), label.c_str());
-                std::string posInfo = formatPos(element);
-                drawList->AddText(ImVec2(elementPos.x + textPadding, elementPos.y + elementHeight / 2), IM_COL32(220, 220, 220, 255), posInfo.c_str());
+        // Foregrounds
+        auto foregroundElements = buildForegroundElements(shot);
+        drawShotSection(
+            "Foregrounds:", "Pas de foreground", IM_COL32(220, 120, 180, 255), 3, 
+            shotIndex, shotPos, yOffset, foregroundElements,
+            [&]() { addNewForeground(shot); },
+            [&](void* ptr) { selectEditorElement(nullptr, nullptr, static_cast<MIDGAME_SHOT_BG*>(ptr), nullptr, nullptr); },
+            shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, 
+            elementHeight, elementSpacing
+        );
 
-                if (ImGui::IsMouseHoveringRect(elementPos, ImVec2(elementPos.x + elementWidth, elementPos.y + elementHeight)) &&
-                    ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    onSelect(element);
-                }
-
-                yOffset += elementHeight + elementSpacing;
-            }
-        };
-
-        drawSection(
-            "Backgrounds:",
-            "Aucun background",
-            shot->background,
-            IM_COL32(60, 120, 180, 255),
-            0,
-            [&]() {
-                MIDGAME_SHOT_BG* newBg = new MIDGAME_SHOT_BG();
-                newBg->pak = &this->optShps;
-                newBg->pak_entry_id = 0;
-                newBg->pak_palette = &this->optPals;
-                newBg->palette = 0;
-                newBg->shapeid = 0;
-                newBg->position_start = {160, 100};
-                newBg->position_end = {160, 100};
-                newBg->velocity = {0, 0};
-                newBg->image = nullptr;
-                newBg->pal = nullptr;
-                newBg->use_external_palette = 0;
-                shot->background.push_back(newBg);
-                selectEditor(newBg, nullptr, nullptr, nullptr, nullptr);
-            },
-            [&](MIDGAME_SHOT_BG* bg, size_t index) {
-                std::string label = "BG " + std::to_string(index + 1) + " (Shape " + std::to_string(bg->shapeid) + ")";
-                return label;
-            },
-            [&](MIDGAME_SHOT_BG* bg) {
-                selectEditor(bg, nullptr, nullptr, nullptr, nullptr);
-            });
-
-        drawSection(
-            "Characters:",
-            "Aucun character",
-            shot->characters,
-            IM_COL32(180, 60, 120, 255),
-            1,
-            [&]() {
-                MIDGAME_SHOT_CHARACTER* newChara = new MIDGAME_SHOT_CHARACTER();
-                newChara->position_start = {0, 0};
-                newChara->position_end = {0, 0};
-                newChara->velocity = {0, 0};
-                newChara->image = nullptr;
-                newChara->cloth_id = 0;
-                newChara->expression_id = 0;
-                newChara->head_id = 0;
-                newChara->character_name.clear();
-                shot->characters.push_back(newChara);
-                selectEditor(nullptr, nullptr, nullptr, newChara, nullptr);
-            },
-            [&](MIDGAME_SHOT_CHARACTER* character, size_t index) {
-                int count = character->image ? character->image->GetNumImages() : 0;
-                std::string label = "Character " + std::to_string(index + 1) + " (" + std::to_string(count) + " img)";
-                if (!character->character_name.empty()) {
-                    label += " - " + character->character_name;
-                }
-                return label;
-            },
-            [&](MIDGAME_SHOT_CHARACTER* character) {
-                selectEditor(nullptr, nullptr, nullptr, character, nullptr);
-            });
-
-        drawSection(
-            "Sprites:",
-            "Aucun sprite",
-            shot->sprites,
-            IM_COL32(180, 120, 60, 255),
-            2,
-            [&]() {
-                MIDGAME_SHOT_SPRITE* newSprite = new MIDGAME_SHOT_SPRITE();
-                newSprite->shapeid = 0;
-                newSprite->palette = 0;
-                newSprite->pak_entry_id = 0;
-                newSprite->pak = &this->optShps;
-                newSprite->pak_palette = &this->optPals;
-                newSprite->position_start = {160, 100};
-                newSprite->position_end = {160, 100};
-                newSprite->velocity = {0, 0};
-                newSprite->keep_first_frame = 0;
-                newSprite->image = nullptr;
-                newSprite->pal = nullptr;
-                newSprite->use_external_palette = 0;
-                shot->sprites.push_back(newSprite);
-                selectEditor(nullptr, newSprite, nullptr, nullptr, nullptr);
-            },
-            [&](MIDGAME_SHOT_SPRITE* sprite, size_t index) {
-                int count = sprite->image ? sprite->image->GetNumImages() : 0;
-                return "Sprite " + std::to_string(index + 1) + " (" + std::to_string(count) + " img)";
-            },
-            [&](MIDGAME_SHOT_SPRITE* sprite) {
-                selectEditor(nullptr, sprite, nullptr, nullptr, nullptr);
-            });
-
-        drawSection(
-            "Foregrounds:",
-            "Pas de foreground",
-            shot->foreground,
-            IM_COL32(220, 120, 180, 255),
-            3,
-            [&]() {
-                MIDGAME_SHOT_BG* newFg = new MIDGAME_SHOT_BG();
-                newFg->pak = &this->optShps;
-                newFg->pak_entry_id = 0;
-                newFg->pak_palette = &this->optPals;
-                newFg->palette = 0;
-                newFg->shapeid = 0;
-                newFg->position_start = {160, 100};
-                newFg->position_end = {160, 100};
-                newFg->velocity = {0, 0};
-                newFg->image = nullptr;
-                newFg->pal = nullptr;
-                newFg->use_external_palette = 0;
-                shot->foreground.push_back(newFg);
-                selectEditor(nullptr, nullptr, newFg, nullptr, nullptr);
-            },
-            [&](MIDGAME_SHOT_BG* fg, size_t index) {
-                std::string label = "FG " + std::to_string(index + 1) + " (Shape " + std::to_string(fg->shapeid) + ")";
-                return label;
-            },
-            [&](MIDGAME_SHOT_BG* fg) {
-                selectEditor(nullptr, nullptr, fg, nullptr, nullptr);
-            });
-
-        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding, shotPos.y + shotHeight - buttonAreaHeight + 5.0f));
+        ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding, 
+                                         shotPos.y + shotHeight - buttonAreaHeight + 5.0f));
         ImGui::PushID(static_cast<int>(shotIndex));
         if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding * 3) / 2, 20))) {
             this->shot_counter = static_cast<int>(shotIndex);
-            selectEditor(nullptr, nullptr, nullptr, nullptr, shot);
+            selectEditorElement(nullptr, nullptr, nullptr, nullptr, shot);
         }
         ImGui::SameLine(0, textPadding);
         if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding * 3) / 2, 20))) {
@@ -592,78 +781,14 @@ void DebugAnimationPlayer::showEditor() {
         }
         ImGui::SameLine(0, textPadding);
         
-        // Bouton Supprimer (1/3 de la largeur)
         if (ImGui::Button("X", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
-            // Confirmer la suppression
-            if (this->midgames_shots[1].size() > 1) {
-                // Libérer la mémoire du shot
-                MIDGAME_SHOT* shotToDelete = this->midgames_shots[1][shotIndex];
-                
-                // Libérer les backgrounds
-                for (auto* bg : shotToDelete->background) {
-                    if (bg->image) delete bg->image;
-                    if (bg->pal) delete bg->pal;
-                    delete bg;
-                }
-                
-                // Libérer les sprites
-                for (auto* sprite : shotToDelete->sprites) {
-                    if (sprite->image) delete sprite->image;
-                    if (sprite->pal) delete sprite->pal;
-                    delete sprite;
-                }
-                
-                // Libérer les foregrounds
-                for (auto* fg : shotToDelete->foreground) {
-                    if (fg->image) delete fg->image;
-                    if (fg->pal) delete fg->pal;
-                    delete fg;
-                }
-                
-                // Libérer les characters
-                for (auto* character : shotToDelete->characters) {
-                    if (character->image) delete character->image;
-                    delete character;
-                }
-                
-                // Libérer le shot lui-même
-                delete shotToDelete;
-                
-                // Retirer le shot du vecteur
-                this->midgames_shots[1].erase(this->midgames_shots[1].begin() + shotIndex);
-                
-                // Ajuster le shot_counter si nécessaire
-                if (this->shot_counter >= static_cast<int>(shotIndex)) {
-                    this->shot_counter = (std::max)(0, this->shot_counter - 1);
-                }
-                
-                // Réinitialiser l'éditeur si on supprime le shot en cours d'édition
-                if (this->p_shot_editor == shotToDelete) {
-                    resetSelection();
-                    this->p_shot_editor = nullptr;
-                    this->p_bg_editor = nullptr;
-                    this->p_sprite_editor = nullptr;
-                    this->p_foreground_editor = nullptr;
-                    this->p_character_editor = nullptr;
-                }
-            }
+            deleteShotAtIndex(shotIndex);
         }
         ImGui::PopID();
 
         xOffset += shotWidth + shotSpacing;
-
-        // Bouton d'insertion APRÈS le shot
-        ImVec2 insertButtonPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
-        ImGui::SetCursorScreenPos(ImVec2(insertButtonPos.x, insertButtonPos.y + timelineHeight / 2 - 15));
-        ImGui::PushID(2000 + static_cast<int>(shotIndex));
-        if (ImGui::Button("+", ImVec2(insertButtonWidth, 30))) {
-            MIDGAME_SHOT* newShot = createNewShot();
-            this->midgames_shots[1].insert(this->midgames_shots[1].begin() + shotIndex + 1, newShot);
-            this->shot_counter = static_cast<int>(shotIndex + 1);
-            selectEditor(nullptr, nullptr, nullptr, nullptr, newShot);
-        }
-        ImGui::PopID();
-        xOffset += insertButtonWidth + 5.0f;
+        renderInsertShotButton(shotIndex, xOffset, timelineHeight, timelinePos, 
+                              insertButtonWidth, false);
     }
 
     drawList->PopClipRect();
@@ -687,6 +812,7 @@ void DebugAnimationPlayer::showEditor() {
 void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *chara) {
     static std::vector<GLuint> s_PrevFrameGLTex;
     static std::vector<GLuint> s_CurrentFrameGLTex;
+    static int palette_id = chara->palette;
     // Détruire les textures de la frame précédente (elles ont été rendues)
     if (!s_PrevFrameGLTex.empty()) {
         for (GLuint id : s_PrevFrameGLTex) {
@@ -730,9 +856,14 @@ void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *char
                 i == chara->palette
             )) {
                 chara->palette = i;
+                palette_id = i;
             }
         }
         ImGui::EndCombo();
+    }
+    
+    if (ImGui::InputInt("ID de forme", &palette_id)) {
+        chara->palette = palette_id;
     }
     ImGui::Separator();
     ImGui::Text("Reglages des paramètres du character");
