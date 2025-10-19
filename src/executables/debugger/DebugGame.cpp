@@ -493,6 +493,25 @@ void DebugGame::loadPacificMISN() {
     this->addActivity(static_cast<IActivity*>(static_cast<DebugStrike*>(main)));
 }
 
+void DebugGame::loadWingsOfGlory() {
+    Assets.SetBase("./assets");
+    // Load all TREs and PAKs
+    
+    std::vector<std::string> cdTreFiles = {
+        "WOGDATA1.TRE",
+        "WOGDATA2.TRE",
+        "WOGDATA3.TRE",
+    };
+    Assets.init(cdTreFiles);
+    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+    RSMixer::getInstance().init();
+    FontManager.init();
+    SCRenderer::getInstance().init(1280,800);
+    DebugObjectViewer* main = new DebugObjectViewer();
+    main->init();
+    this->addActivity(main);
+}
+
 void DebugGame::run() {
     Loader &loader = Loader::instance();
     IActivity *currentActivity;

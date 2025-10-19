@@ -11,19 +11,6 @@ DebugObjectViewer::~DebugObjectViewer() {
     
 }
 void DebugObjectViewer::runFrame()  {
-        checkButtons();
-
-    VGA.activate();
-    VGA.getFrameBuffer()->clear();
-    VGA.setPalette(&this->palette);
-
-    VGA.setPalette(&this->palette);
-
-    // Draw static
-    VGA.getFrameBuffer()->drawShape(&bluePrint);
-
-    VGA.vSync();
-
     /**/
     // Ok now time to draw the model
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -104,19 +91,6 @@ void DebugObjectViewer::runFrame()  {
     glPopMatrix();
     glPopMatrix();
     glDisable(GL_DEPTH_TEST);
-
-    VGA.activate();
-    VGA.getFrameBuffer()->clear();
-    VGA.setPalette(&this->palette);
-
-    VGA.getFrameBuffer()->drawShape(&title);
-
-    drawButtons();
-
-    // Draw Mouse
-    Mouse.draw();
-
-    VGA.vSync();
 }
 void DebugObjectViewer::renderMenu() {
     static bool load_object = false;

@@ -161,6 +161,10 @@ void DebugScreen::refresh(void){
                         this->show_ui = true;
                         debugGameInstance->loadPacificMISN();   
                     }
+                    if (ImGui::MenuItem("Wings of Glory Objects")) {
+                        this->show_ui = true;
+                        debugGameInstance->loadWingsOfGlory();   
+                    }
                     if (ImGui::MenuItem("Test mission SC")) {
                         this->show_ui = true;
                         this->show_mouse = false;

@@ -97,90 +97,111 @@ void SCObjectViewer::ParseAssets(PakArchive *archive) {
     Point2D boardPosition = {4, 155};
 
     // EXIT BUTTON
-    button = new SCButton();
-    Point2D exitDimension = {30, 15};
-    Point2D exitPosition = {boardPosition.x + 268, boardPosition.y + 15};
-    button->initBehavior(std::bind(&SCObjectViewer::OnExit, this), exitPosition, exitDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(14)->data, objButtons.GetEntry(14)->size,
-                                                          &exitPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(15)->data,
-                                                            objButtons.GetEntry(15)->size, &exitPosition);
-    buttons.push_back(button);
-
+    PakEntry *button_pck = nullptr;
+    button_pck = objButtons.GetEntry(14);
+    if (button_pck != nullptr) {
+        button = new SCButton();
+        Point2D exitDimension = {30, 15};
+        Point2D exitPosition = {boardPosition.x + 268, boardPosition.y + 15};
+        button->initBehavior(std::bind(&SCObjectViewer::OnExit, this), exitPosition, exitDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(button_pck->data, button_pck->size,
+                                                            &exitPosition);
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(button_pck->data,
+                                                                button_pck->size, &exitPosition);
+        buttons.push_back(button);
+    }
     Point2D arrowDimension = {15, 15};
 
     // ROT RIGHT OBJ BUTTON
-    button = new SCButton();
+    button_pck = objButtons.GetEntry(12);
+    if (button_pck != nullptr) {
+        button = new SCButton();
+        Point2D rotRightButtonPosition = {boardPosition.x + 232, boardPosition.y + 12};
+        button->initBehavior(std::bind(&SCObjectViewer::OnRotateRight, this), rotRightButtonPosition, arrowDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(12)->data, objButtons.GetEntry(12)->size,
+                                                            &rotRightButtonPosition);
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(13)->data,
+                                                                objButtons.GetEntry(13)->size, &rotRightButtonPosition);
+        buttons.push_back(button);
+    }
 
-    Point2D rotRightButtonPosition = {boardPosition.x + 232, boardPosition.y + 12};
-    button->initBehavior(std::bind(&SCObjectViewer::OnRotateRight, this), rotRightButtonPosition, arrowDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(12)->data, objButtons.GetEntry(12)->size,
-                                                          &rotRightButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(13)->data,
-                                                            objButtons.GetEntry(13)->size, &rotRightButtonPosition);
-    buttons.push_back(button);
-
-    // ROT LEFT OBJ BUTTON
-    button = new SCButton();
-    Point2D rotLeftButtonPosition = {boardPosition.x + 174, boardPosition.y + 12};
-    button->initBehavior(std::bind(&SCObjectViewer::OnRotateLeft, this), rotLeftButtonPosition, arrowDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(10)->data, objButtons.GetEntry(10)->size,
-                                                          &rotLeftButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(11)->data,
-                                                            objButtons.GetEntry(11)->size, &rotLeftButtonPosition);
-    buttons.push_back(button);
-
+    button_pck = objButtons.GetEntry(10);
+    if (button_pck != nullptr) {
+    
+        // ROT LEFT OBJ BUTTON
+        button = new SCButton();
+        Point2D rotLeftButtonPosition = {boardPosition.x + 174, boardPosition.y + 12};
+        button->initBehavior(std::bind(&SCObjectViewer::OnRotateLeft, this), rotLeftButtonPosition, arrowDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(10)->data, objButtons.GetEntry(10)->size,
+                                                            &rotLeftButtonPosition);
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(11)->data,
+                                                                objButtons.GetEntry(11)->size, &rotLeftButtonPosition);
+        buttons.push_back(button);
+    }
     // ROT DOWN OBJ BUTTON
-    button = new SCButton();
-    Point2D rotDownButtonPosition = {boardPosition.x + 198, boardPosition.y + 24};
-    button->initBehavior(std::bind(&SCObjectViewer::OnRotateDown, this), rotDownButtonPosition, arrowDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(8)->data, objButtons.GetEntry(8)->size,
-                                                          &rotDownButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(9)->data, objButtons.GetEntry(9)->size,
+    button_pck = objButtons.GetEntry(8);
+    if (button_pck != nullptr) {
+        button = new SCButton();
+        Point2D rotDownButtonPosition = {boardPosition.x + 198, boardPosition.y + 24};
+        button->initBehavior(std::bind(&SCObjectViewer::OnRotateDown, this), rotDownButtonPosition, arrowDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(8)->data, objButtons.GetEntry(8)->size,
                                                             &rotDownButtonPosition);
-    buttons.push_back(button);
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(9)->data, objButtons.GetEntry(9)->size,
+                                                                &rotDownButtonPosition);
+        buttons.push_back(button);
+    }
 
     // ROT UP OBJ BUTTON
-    button = new SCButton();
-    Point2D rotUpButtonPosition = {boardPosition.x + 198, boardPosition.y + 6};
-    button->initBehavior(std::bind(&SCObjectViewer::OnRotateUp, this), rotUpButtonPosition, arrowDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(6)->data, objButtons.GetEntry(6)->size,
-                                                          &rotUpButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(7)->data, objButtons.GetEntry(7)->size,
+    button_pck = objButtons.GetEntry(6);
+    if (button_pck != nullptr) {
+        button = new SCButton();
+        Point2D rotUpButtonPosition = {boardPosition.x + 198, boardPosition.y + 6};
+        button->initBehavior(std::bind(&SCObjectViewer::OnRotateUp, this), rotUpButtonPosition, arrowDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(6)->data, objButtons.GetEntry(6)->size,
                                                             &rotUpButtonPosition);
-    buttons.push_back(button);
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(7)->data, objButtons.GetEntry(7)->size,
+                                                                &rotUpButtonPosition);
+        buttons.push_back(button);
+    }
 
-    // ZOOM OUT OBJ BUTTON
-    button = new SCButton();
-    Point2D zoomOutButtonPosition = {boardPosition.x + 122, boardPosition.y + 25};
-    button->initBehavior(std::bind(&SCObjectViewer::OnZoomOut, this), zoomOutButtonPosition, arrowDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(4)->data, objButtons.GetEntry(4)->size,
-                                                          &zoomOutButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(5)->data, objButtons.GetEntry(5)->size,
+    button_pck = objButtons.GetEntry(4);
+    if (button_pck != nullptr) {
+        // ZOOM OUT OBJ BUTTON  
+        button = new SCButton();
+        Point2D zoomOutButtonPosition = {boardPosition.x + 122, boardPosition.y + 25};
+        button->initBehavior(std::bind(&SCObjectViewer::OnZoomOut, this), zoomOutButtonPosition, arrowDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(4)->data, objButtons.GetEntry(4)->size,
                                                             &zoomOutButtonPosition);
-    buttons.push_back(button);
-
-    // ZOOM IN OBJ BUTTON
-    button = new SCButton();
-    Point2D zoomInButtonPosition = {boardPosition.x + 121, boardPosition.y + 7};
-    button->initBehavior(std::bind(&SCObjectViewer::OnZoomIn, this), zoomInButtonPosition, arrowDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(2)->data, objButtons.GetEntry(2)->size,
-                                                          &zoomInButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(3)->data, objButtons.GetEntry(3)->size,
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(5)->data, objButtons.GetEntry(5)->size,
+                                                                &zoomOutButtonPosition);
+        buttons.push_back(button);
+    }
+    button_pck = objButtons.GetEntry(2);
+    if (button_pck != nullptr) {
+        // ZOOM IN OBJ BUTTON
+        button = new SCButton();
+        Point2D zoomInButtonPosition = {boardPosition.x + 121, boardPosition.y + 7};
+        button->initBehavior(std::bind(&SCObjectViewer::OnZoomIn, this), zoomInButtonPosition, arrowDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(2)->data, objButtons.GetEntry(2)->size,
                                                             &zoomInButtonPosition);
-    buttons.push_back(button);
-
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(3)->data, objButtons.GetEntry(3)->size,
+                                                                &zoomInButtonPosition);
+        buttons.push_back(button);
+    }
     // NEXT OBJ BUTTON
     Point2D nextDimension = {75, 15};
-    button = new SCButton();
-    Point2D nextButtonPosition = {boardPosition.x + 10, boardPosition.y + 15};
-    button->initBehavior(std::bind(&SCObjectViewer::OnNext, this), nextButtonPosition, nextDimension);
-    button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(0)->data, objButtons.GetEntry(0)->size,
-                                                          &nextButtonPosition);
-    button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(1)->data, objButtons.GetEntry(1)->size,
+    button_pck = objButtons.GetEntry(0);
+    if (button_pck != nullptr) {
+        
+        button = new SCButton();
+        Point2D nextButtonPosition = {boardPosition.x + 10, boardPosition.y + 15};
+        button->initBehavior(std::bind(&SCObjectViewer::OnNext, this), nextButtonPosition, nextDimension);
+        button->appearance[SCButton::APR_UP].InitWithPosition(objButtons.GetEntry(0)->data, objButtons.GetEntry(0)->size,
                                                             &nextButtonPosition);
-    buttons.push_back(button);
-
+        button->appearance[SCButton::APR_DOWN].InitWithPosition(objButtons.GetEntry(1)->data, objButtons.GetEntry(1)->size,
+                                                                &nextButtonPosition);
+        buttons.push_back(button);
+    }
     PakEntry *entry8 = archive->GetEntry(8);
     PakArchive file8;
     file8.InitFromRAM("OBJVIEW.PAK: file 8", entry8->data, entry8->size);
