@@ -134,57 +134,67 @@ void DebugScreen::refresh(void){
         if (ImGui::BeginMenuBar()) {
             if (debugGameInstance != nullptr) {
                 if (ImGui::BeginMenu("File")) {
-                    if (ImGui::MenuItem("Strike Commander Floppy")) {
-                        this->show_ui = true;
-                        this->show_mouse = false;
-                        debugGameInstance->loadSC();
+                    if (ImGui::BeginMenu("Strike Commander")) {
+                        if (ImGui::MenuItem("Strike Commander Floppy")) {
+                            this->show_ui = true;
+                            this->show_mouse = false;
+                            debugGameInstance->loadSC();
+                        }
+                        if (ImGui::MenuItem("Strike Commander CD")) {
+                            this->show_ui = true;
+                            this->show_mouse = false;
+                            debugGameInstance->loadSCCD();
+                        }
+                        if (ImGui::MenuItem("Tactical Operations")) {
+                            this->show_ui = true;
+                            this->show_mouse = false;
+                            debugGameInstance->loadTO();   
+                        }
+                        if (ImGui::MenuItem("Test mission SC")) {
+                            this->show_ui = true;
+                            this->show_mouse = false;
+                            debugGameInstance->testMissionSC();
+                        }
+                        if (ImGui::MenuItem("Test Objects")) {
+                            this->show_ui = true;
+                            this->show_mouse = true;
+                            debugGameInstance->testObjects();
+                        }
+                        if (ImGui::MenuItem("MidGames Editor")) {
+                            this->show_ui = true;
+                            this->show_mouse = true;
+                            debugGameInstance->testMidGames();
+                        }
+                        ImGui::EndMenu();
                     }
-                    if (ImGui::MenuItem("Strike Commander CD")) {
-                        this->show_ui = true;
-                        this->show_mouse = false;
-                        debugGameInstance->loadSCCD();
+                    if (ImGui::BeginMenu("Pacific Strike")) {
+                        if (ImGui::MenuItem("Pacific Strike Objects")) {
+                            this->show_ui = true;
+                            debugGameInstance->loadPacific();   
+                        }
+                        if (ImGui::MenuItem("Pacific Strike GamePlay")) {
+                            this->show_ui = true;
+                            debugGameInstance->loadPacificConv();   
+                        }
+                        if (ImGui::MenuItem("Pacific Strike Mission")) {
+                            this->show_ui = true;
+                            debugGameInstance->loadPacificMISN();   
+                        }
+                        ImGui::EndMenu();
                     }
-                    if (ImGui::MenuItem("Tactical Operations")) {
-                        this->show_ui = true;
-                        this->show_mouse = false;
-                        debugGameInstance->loadTO();   
-                    }
-                    if (ImGui::MenuItem("Pacific Strike Objects")) {
-                        this->show_ui = true;
-                        debugGameInstance->loadPacific();   
-                    }
-                    if (ImGui::MenuItem("Pacific Strike GamePlay")) {
-                        this->show_ui = true;
-                        debugGameInstance->loadPacificConv();   
-                    }
-                    if (ImGui::MenuItem("Pacific Strike Mission")) {
-                        this->show_ui = true;
-                        debugGameInstance->loadPacificMISN();   
-                    }
-                    if (ImGui::MenuItem("Wings of Glory Objects")) {
-                        this->show_ui = true;
-                        debugGameInstance->loadWingsOfGlory();   
-                    }
-                    if (ImGui::MenuItem("Test mission SC")) {
-                        this->show_ui = true;
-                        this->show_mouse = false;
-                        debugGameInstance->testMissionSC();
-                    }
-                    if (ImGui::MenuItem("Test Objects")) {
-                        this->show_ui = true;
-                        this->show_mouse = true;
-                        debugGameInstance->testObjects();
+                    if (ImGui::BeginMenu("Wings of Glory")) {
+                        if (ImGui::MenuItem("Wings of Glory Objects")) {
+                            this->show_ui = true;
+                            debugGameInstance->loadWingsOfGlory();   
+                        }
+                        ImGui::EndMenu();
                     }
                     if (ImGui::MenuItem("Test Inputs")) {
                         this->show_ui = true;
                         this->show_mouse = true;
                         debugGameInstance->testController();
                     }
-                    if (ImGui::MenuItem("MidGames Editor")) {
-                        this->show_ui = true;
-                        this->show_mouse = true;
-                        debugGameInstance->testMidGames();
-                    }
+                    
                     if (VGA != nullptr) {
                         if (ImGui::MenuItem("Toggle upscale", nullptr, VGA->upscale)) {
                             VGA->upscale = !VGA->upscale;

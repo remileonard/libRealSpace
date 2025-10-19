@@ -364,16 +364,18 @@ void SCNavMap::runFrame(void) {
                         );
                     }
                     c = 255;
-                    newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
-                    newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
+                    if (wp->spot->area_id > 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
+                        newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
+                        newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
+                        if (newx>0 && newx<320 && newy>0 && newy<200) {
+                            VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
+                            VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
+                        }
+                        this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
+                    }   
                     
-                    if (newx>0 && newx<320 && newy>0 && newy<200) {
-                        VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
-                        VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
-                    }
-                    this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
                 } else {
-                    if (wp->spot->area_id != 255) {
+                    if (wp->spot->area_id != 255 && wp->spot->area_id > 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
                         newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
                         newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
                         if (used_areas.find(wp->spot->area_id) == used_areas.end()) {
