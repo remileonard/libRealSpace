@@ -321,6 +321,8 @@ void DebugAnimationPlayer::resetEditorSelection() {
     this->current_entry_index = -1;
     this->current_palette_mid = nullptr;
     this->current_palette_entry_index = -1;
+    this->current_midvoc = nullptr;
+    this->current_midvoc_entry_index = -1;
 }
 
 void DebugAnimationPlayer::selectEditorElement(MIDGAME_SHOT_BG* bg, MIDGAME_SHOT_SPRITE* sprite, 
