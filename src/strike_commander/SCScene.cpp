@@ -141,7 +141,7 @@ void SCScene::Render() {
     }
     if (this->rawPalette != nullptr) {
         ByteStream paletteReader;
-        paletteReader.Set((this->rawPalette), 768);
+        paletteReader.Set((this->rawPalette), 772);
         this->palette.ReadPatch(&paletteReader);
     }
 
@@ -153,7 +153,7 @@ void SCScene::Render() {
     }
     if (this->forPalette != nullptr) {
         ByteStream paletteReader;
-        paletteReader.Set((this->forPalette), 768);
+        paletteReader.Set((this->forPalette), 772);
         this->palette.ReadPatch(&paletteReader);
     }
     VGA.setPalette(&this->palette);
@@ -717,7 +717,7 @@ void WeaponLoadoutScene::Render() {
         }
     }
     ByteStream paletteReader;
-    paletteReader.Set((this->rawPalette), 768);
+    paletteReader.Set((this->rawPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.setPalette(&this->palette);
     for (auto layer : this->layers) {
@@ -727,7 +727,7 @@ void WeaponLoadoutScene::Render() {
         }
     }
 
-    paletteReader.Set((this->forPalette), 768);
+    paletteReader.Set((this->forPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.setPalette(&this->palette);
     for (auto ezn : this->extra_zones) {

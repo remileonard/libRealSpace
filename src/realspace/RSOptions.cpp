@@ -182,7 +182,7 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_CLCK(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_QUAD(uint8_t *data, size_t size) {
-    if (size != 16) {
+    if (size < 16) {
         return;
     }
     ByteStream *reader = new ByteStream(data, size);
@@ -230,7 +230,7 @@ void RSOption::parseOPTS_SCEN_FORE_SEQU(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_RECT(uint8_t *data, size_t size) {
-    if (size != 8) {
+    if (size < 8) {
         return;
     }
     OPTION_RECT *zone = new OPTION_RECT();

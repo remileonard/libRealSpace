@@ -129,10 +129,10 @@ void ConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
     this->face      = nullptr;
 
     conv->MoveForward(8);
-    while (conv->PeekByte() == 0x0) {
+    while (conv->PeekByte() == 0x0 && !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())) {
+    while (!isNextFrameIsConv((uint8_t) conv->PeekByte()) && !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
     uint8_t next_type = conv->PeekByte();
@@ -229,7 +229,7 @@ void ConvFrame::parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv) {
     participant->x = conv->ReadUShortBE();
     participant->y = conv->ReadUShortBE();
     this->participants.push_back(participant);
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())) {
+    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())&& !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
     if (conv->PeekByte() == GROUP_SHOT_ADD_CHARCTER) {
@@ -446,6 +446,9 @@ void SCConvPlayer::ReadNextFrame(void) {
 }
 
 void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
+    if (this->conv.GetCurrentPosition() > this->size) {
+        return;
+    }
     uint8_t type = conv.ReadByte();
     switch (type) {
     case GROUP_SHOT: // Group plan
@@ -553,7 +556,7 @@ void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
         this->conversation_frames.shrink_to_fit();
     }
 
-    while (conv.GetPosition() < end) {
+    while (conv.GetPosition() < end && !conv.IsEndOfStream()) {
         ReadNextFrame();
     }
 
@@ -827,7 +830,7 @@ void SCConvPlayer::runFrame(void) {
     if (this->current_frame->bgLayers != nullptr && this->current_frame->bgPalettes != nullptr) {
         for (size_t i = 0; i < this->current_frame->bgLayers->size(); i++) {
             ByteStream paletteReader;
-            paletteReader.Set((*this->current_frame->bgPalettes)[i], 768);
+            paletteReader.Set((*this->current_frame->bgPalettes)[i], 772);
             this->palette.ReadPatch(&paletteReader);
         }
         VGA.setPalette(&this->palette);

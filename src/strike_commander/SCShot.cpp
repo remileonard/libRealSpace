@@ -135,7 +135,7 @@ void SCShot::runFrame(void) {
     int cpt = 0;
     for (auto layer : this->layers) {
         if (cpt < this->palettes.size()) {
-            paletteReader.Set((this->palettes[cpt]), 768);
+            paletteReader.Set((this->palettes[cpt]), 772);
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
         }
@@ -192,7 +192,7 @@ void EndMissionScene::runFrame() {
     Mixer.switchBank(0);
     Mixer.playMusic(27, 1);
     ByteStream paletteReader;
-    paletteReader.Set((this->rawPalette), 768);
+    paletteReader.Set((this->rawPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.activate();
     VGA.getFrameBuffer()->fillWithColor(0);
@@ -256,7 +256,7 @@ void MapShot::SetPoints(std::vector<MAP_POINT *> *points) {
 void MapShot::runFrame(void) {
     checkKeyboard();
     ByteStream paletteReader;
-    paletteReader.Set((this->rawPalette), 768);
+    paletteReader.Set((this->rawPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.activate();
     VGA.getFrameBuffer()->fillWithColor(255);

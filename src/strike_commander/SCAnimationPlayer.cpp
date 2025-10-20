@@ -844,12 +844,12 @@ void SCAnimationPlayer::runFrame(void){
         if (bg->palette != 0) {
             ByteStream paletteReader;
             if (bg->pak_palette == nullptr) {
-                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 768);
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 772);
             } else {
                 if (bg->palette >= bg->pak_palette->GetNumEntries()) {
                     continue;
                 }
-                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data, 768);
+                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data, 772);
             }
             this->palette.ReadPatch(&paletteReader);
         }
@@ -861,12 +861,12 @@ void SCAnimationPlayer::runFrame(void){
         if (bg->palette != 0) {
             ByteStream paletteReader;
             if (bg->pak_palette == nullptr) {
-                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 768);
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 772);
             } else {
                 if (bg->palette >= bg->pak_palette->GetNumEntries()) {
                     continue;
                 }
-                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data, 768);
+                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data, 772);
             }
             
             this->palette.ReadPatch(&paletteReader);
@@ -879,12 +879,12 @@ void SCAnimationPlayer::runFrame(void){
         if (sprt->palette != 0) {
             ByteStream paletteReader;
             if (sprt->pak_palette == nullptr) {
-                paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data, 768);
+                paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data, 772);
             } else {
                 if (sprt->palette >= sprt->pak_palette->GetNumEntries()) {
                     continue;
                 }
-                paletteReader.Set(sprt->pak_palette->GetEntry(sprt->palette)->data, 768);
+                paletteReader.Set(sprt->pak_palette->GetEntry(sprt->palette)->data, 772);
             }
             this->palette.ReadPatch(&paletteReader);
         }
@@ -903,7 +903,7 @@ void SCAnimationPlayer::runFrame(void){
             if (palEntry->size == 0) {
                 continue;
             }
-            paletteReader.Set(palEntry->data, 768);
+            paletteReader.Set(palEntry->data, 772);
             this->palette.ReadPatch(&paletteReader);
         }
     }

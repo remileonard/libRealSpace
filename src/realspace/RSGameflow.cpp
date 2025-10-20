@@ -55,7 +55,7 @@ void RSGameFlow::parseMISS_INFO(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseMISS_EFCT(uint8_t* data, size_t size) {
-	if (size % 2 != 0) {
+	if (size < 2) {
 		return;
 	}
 	this->tmpmiss->efct = new std::vector<EFCT *>();
@@ -102,14 +102,14 @@ void RSGameFlow::parseMISS_SCEN_SPRT(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT_INFO(uint8_t* data, size_t size) {
-	if (size < 4)
+	if (size < 2)
 		return;
 	this->tmpscsp->info.ID = *data++;
 	this->tmpscsp->info.UNKOWN = *data;
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
-	if (size % 2 != 0) {
+	if (size < 2) {
 		return;
 	}
 	this->tmpscsp->efct = new std::vector<EFCT *>();
@@ -122,7 +122,7 @@ void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT_REQU(uint8_t* data, size_t size) {
-	if (size % 2 != 0) {
+	if (size < 2) {
 		return;
 	}
 	this->tmpscsp->requ = new std::vector<REQU *>();
