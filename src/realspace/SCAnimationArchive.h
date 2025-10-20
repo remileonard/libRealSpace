@@ -24,6 +24,7 @@ typedef struct MIDGAME_SHOT_BG {
     Point2D position_start;
     Point2D position_end;
     Point2D velocity;
+    Point2D current_position{0,0};
     int shapeid;
     int pak_entry_id;
     bool use_external_palette{false};
@@ -42,6 +43,7 @@ typedef struct MIDGAME_SHOT_CHARACTER {
     uint8_t head_id;
     uint8_t expression_id;
     bool talking{false};
+    int current_frame{0};
 } MIDGAME_SHOT_CHARACTER;
 
 typedef struct MIDGAME_SHAPE_DATA {
@@ -68,6 +70,8 @@ typedef struct MIDGAME_SHOT_SPRITE {
     int shapeid;
     uint8_t keep_first_frame;
     bool use_external_palette{false};
+    int current_frame{1};
+    bool repeat_animation{false};
 } MIDGAME_SHOT_SPRITE;
 
 typedef struct MIDGAME_SOUND {

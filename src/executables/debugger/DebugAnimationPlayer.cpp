@@ -613,8 +613,8 @@ void DebugAnimationPlayer::addNewSprite(MIDGAME_SHOT* shot) {
     newSprite->pak_entry_id = 0;
     newSprite->pak = &this->optShps;
     newSprite->pak_palette = &this->optPals;
-    newSprite->position_start = {160, 100};
-    newSprite->position_end = {160, 100};
+    newSprite->position_start = {0, 0};
+    newSprite->position_end = {0, 0};
     newSprite->velocity = {0, 0};
     newSprite->keep_first_frame = 0;
     newSprite->image = nullptr;
@@ -631,8 +631,8 @@ void DebugAnimationPlayer::addNewForeground(MIDGAME_SHOT* shot) {
     newFg->pak_palette = &this->optPals;
     newFg->palette = 0;
     newFg->shapeid = 0;
-    newFg->position_start = {160, 100};
-    newFg->position_end = {160, 100};
+    newFg->position_start = {0, 0};
+    newFg->position_end = {0, 0};
     newFg->velocity = {0, 0};
     newFg->image = nullptr;
     newFg->pal = nullptr;

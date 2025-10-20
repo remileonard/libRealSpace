@@ -447,6 +447,7 @@ void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
         // Lire les positions et la vélocité
         bg->position_start.x = stream.ReadShort();
         bg->position_start.y = stream.ReadShort();
+        bg->current_position = {bg->position_start.x, bg->position_start.y};
         bg->position_end.x = stream.ReadShort();
         bg->position_end.y = stream.ReadShort();
         bg->velocity.x = stream.ReadShort();
@@ -586,6 +587,7 @@ void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
         // Lire les positions et la vélocité
         fg->position_start.x = stream.ReadShort();
         fg->position_start.y = stream.ReadShort();
+        fg->current_position = {fg->position_start.x, fg->position_start.y};
         fg->position_end.x = stream.ReadShort();
         fg->position_end.y = stream.ReadShort();
         fg->velocity.x = stream.ReadShort();

@@ -1,250 +1,326 @@
 #!/usr/bin/env python3
-# find_hash_variant.py
-# Usage: prepare a file pairs.txt with lines like:
-# 3E0994FF<TAB>..\..\DATA\TERRAIN\MAP.PAK
-# F04CA7B4<TAB>..\..\DATA\TERRAIN\MAP2.PAK
+"""
+Script pour identifier l'algorithme CRC/Hash utilisé par Wing Commander III
+pour les archives XTRE.
 
-import sys
-import binascii
+Usage: python find_wc3_crc.py
+"""
+
 import struct
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
-# -----------------------------
-# Utils for loading pairs file
-# -----------------------------
-def load_pairs(path: str) -> List[Tuple[int, str]]:
-    pairs = []
-    with open(path, 'r', encoding='utf-8') as f:
-        for ln in f:
-            ln = ln.strip()
-            if not ln or ln.startswith('#'):
-                continue
-            parts = ln.split('\t')
-            if len(parts) < 2:
-                continue
-            try:
-                crc = int(parts[0].strip(), 16)
-            except ValueError:
-                continue
-            name = parts[1]
-            pairs.append((crc & 0xFFFFFFFF, name))
-    return pairs
+# Paires connues : (CRC, chemin de fichier)
+KNOWN_PAIRS = [
+    (0x3E0994FF, r"..\..\DATA\TERRAIN\MAP.PAK"),
+    (0xF04CA7B4, r"..\..\DATA\TERRAIN\MAP2.PAK"),
+]
 
-# -----------------------------
-# Hash function implementations
-# -----------------------------
-# CRC generic bitwise (supports reflected or normal)
-def crc32_bitwise(data: bytes, poly: int, init: int, xor_out: int, reflect: bool) -> int:
-    """Compute a 32-bit CRC bitwise. poly should be the normal (unreflected) poly if reflect=False,
-       or the reflected poly if reflect=True. Returns 32-bit int."""
-    if reflect:
-        crc = init & 0xFFFFFFFF
-        for b in data:
-            crc ^= b
+# ============================================================================
+# Implémentations CRC
+# ============================================================================
+
+def crc32_bitwise(data: bytes, poly: int, init: int, xor_out: int, refin: bool, refout: bool) -> int:
+    """
+    Implémentation CRC32 bit-par-bit configurable.
+    
+    Args:
+        data: Données à hasher
+        poly: Polynôme (normal ou réfléchi selon refin)
+        init: Valeur initiale
+        xor_out: XOR final
+        refin: Réflexion des bits d'entrée
+        refout: Réflexion du résultat avant xor_out
+    """
+    def reflect_byte(val: int) -> int:
+        result = 0
+        for i in range(8):
+            if val & (1 << i):
+                result |= 1 << (7 - i)
+        return result
+    
+    def reflect_32(val: int) -> int:
+        result = 0
+        for i in range(32):
+            if val & (1 << i):
+                result |= 1 << (31 - i)
+        return result
+    
+    crc = init & 0xFFFFFFFF
+    
+    if refin:
+        # Algorithme réfléchi (LSB first)
+        for byte in data:
+            crc ^= byte
             for _ in range(8):
                 if crc & 1:
                     crc = (crc >> 1) ^ poly
                 else:
                     crc >>= 1
-        return crc ^ xor_out
     else:
-        # non-reflected straightforward (process MSB first)
-        crc = init & 0xFFFFFFFF
+        # Algorithme normal (MSB first)
         topbit = 1 << 31
-        mask = 0xFFFFFFFF
-        for b in data:
-            crc ^= (b << 24)
+        for byte in data:
+            crc ^= (byte << 24)
             for _ in range(8):
                 if crc & topbit:
-                    crc = ((crc << 1) ^ poly) & mask
+                    crc = ((crc << 1) ^ poly) & 0xFFFFFFFF
                 else:
-                    crc = (crc << 1) & mask
-        return crc ^ xor_out
+                    crc = (crc << 1) & 0xFFFFFFFF
+    
+    if refout and not refin:
+        crc = reflect_32(crc)
+    
+    return (crc ^ xor_out) & 0xFFFFFFFF
 
-# Adler32 wrapper
-def adler32_wrap(data: bytes) -> int:
-    return binascii.adler32(data) & 0xFFFFFFFF
-
-# FNV-1 and FNV-1a 32-bit
-def fnv1_32(data: bytes) -> int:
-    h = 0x811c9dc5
-    for c in data:
-        h = (h * 0x01000193) & 0xFFFFFFFF
-        h ^= c
-    return h
-
-def fnv1a_32(data: bytes) -> int:
-    h = 0x811c9dc5
-    for c in data:
-        h ^= c
-        h = (h * 0x01000193) & 0xFFFFFFFF
-    return h
-
-# DJB2 32-bit
-def djb2_32(data: bytes) -> int:
-    h = 5381
-    for c in data:
-        h = ((h << 5) + h + c) & 0xFFFFFFFF
-    return h
-
-# stdlib CRC32 (binascii) wrapper (reflected IEEE with init=0, no xor in binascii)
-def crc32_binascii(data: bytes) -> int:
-    return binascii.crc32(data) & 0xFFFFFFFF
-
-# -----------------------------
-# Endianness helper
-# -----------------------------
-def le_swap32(v: int) -> int:
-    return struct.unpack("<I", struct.pack(">I", v))[0]
-
-# -----------------------------
-# Candidate polynomials and parameter sets
-# -----------------------------
-# polynomials: for reflected operation we use reflected representations
-POLYS = {
-    "CRC32-IEEE-reflected": 0xEDB88320,     # reflected poly for IEEE (used with reflect=True)
-    "CRC32C-reflected": 0x82F63B78,         # reflected poly for Castagnoli (CRC32C)
-    # non-reflected polynomials (use reflect=False and non-reflected poly)
-    "CRC32-IEEE": 0x04C11DB7,
-    "CRC32-Koopman": 0x741B8CD7
-}
-
-# parameter combos: (init, xor_out, reflect)
-PARAMS = [
-    (0x00000000, 0x00000000, True),
-    (0xFFFFFFFF, 0xFFFFFFFF, True),
-    (0x00000000, 0xFFFFFFFF, True),
-    (0xFFFFFFFF, 0x00000000, True),
-    (0x00000000, 0x00000000, False),
-    (0xFFFFFFFF, 0xFFFFFFFF, False),
-    (0x00000000, 0xFFFFFFFF, False),
-    (0xFFFFFFFF, 0x00000000, False),
-]
-
-# Candidate hash functions beyond CRC (name -> function returning 32-bit int)
-OTHER_HASHES = {
-    "Adler32": adler32_wrap,
-    "FNV-1 32": fnv1_32,
-    "FNV-1a 32": fnv1a_32,
-    "DJB2 32": djb2_32,
-    "CRC32_binascii": crc32_binascii,  # convenience
-}
-
-# -----------------------------
-# Normalisations to test on each filename
-# -----------------------------
-def gen_normalisations(s: str) -> List[Tuple[str, bytes]]:
-    variants = []
-    # raw exact
-    variants.append(("exact", s.encode('ascii', errors='ignore')))
-    # lower/upper
-    variants.append(("lower", s.lower().encode('ascii', errors='ignore')))
-    variants.append(("upper", s.upper().encode('ascii', errors='ignore')))
-    # slash variants
-    variants.append(("slashes->/", s.replace("\\", "/").encode('ascii', errors='ignore')))
-    variants.append(("slashes->\\\\", s.replace("/", "\\").encode('ascii', errors='ignore')))
-    # without leading ..\..\ prefix if present
-    if s.startswith("..\\..\\"):
-        variants.append(("no ..\\\\..\\\\ prefix", s.split("..\\..\\",1)[1].encode('ascii', errors='ignore')))
-    elif s.startswith("../../"):
-        variants.append(("no ../../ prefix", s.split("../../",1)[1].encode('ascii', errors='ignore')))
-    # with trailing null byte
-    variants.append(("with_null", (s + "\x00").encode('ascii', errors='ignore')))
-    # also test trimming any leading/trailing whitespace
-    variants.append(("strip", s.strip().encode('ascii', errors='ignore')))
-    # possible uppercase extension only
-    if '.' in s:
-        base, ext = s.rsplit('.',1)
-        variants.append(("upper_ext", (base + "." + ext.upper()).encode('ascii', errors='ignore')))
-        variants.append(("lower_ext", (base + "." + ext.lower()).encode('ascii', errors='ignore')))
-    # unique-ify variants (avoid duplicates)
-    seen = set()
-    uniq = []
-    for name, b in variants:
-        key = b
-        if key in seen:
-            continue
-        seen.add(key)
-        uniq.append((name, b))
-    return uniq
-
-# -----------------------------
-# Core search logic
-# -----------------------------
-def search_variants(pairs: List[Tuple[int,str]]):
-    results = []
-    for (target_crc, fname) in pairs:
-        norms = gen_normalisations(fname)
-        found = []
-        # 1) test OTHER_HASHES directly
-        for nname, b in norms:
-            for hname, hfunc in OTHER_HASHES.items():
-                try:
-                    h = hfunc(b) & 0xFFFFFFFF
-                except Exception:
-                    continue
-                if h == target_crc:
-                    found.append((fname, nname, hname, "native", f"0x{h:08X}"))
-                if le_swap32(h) == target_crc:
-                    found.append((fname, nname, hname, "le_swap", f"0x{le_swap32(h):08X}"))
-        # 2) test CRC polynomials + params
-        for poly_name, poly_val in POLYS.items():
-            for init, xor_out, reflect in PARAMS:
-                # decide which implementation parameters to use:
-                # - if poly_name ends with "-reflected" we should call crc32_bitwise with reflect=True and poly_val as reflected poly
-                # - if poly_name is non-reflected we call with reflect=False and the non-reflected poly
-                reflect_flag = reflect
-                # override reflect flag for poly names that explicitly state reflected/non-reflected
-                if poly_name.endswith("-reflected"):
-                    reflect_flag = True
-                if poly_name in ("CRC32-IEEE","CRC32-Koopman"):
-                    reflect_flag = False
-                for nname, b in norms:
-                    try:
-                        h = crc32_bitwise(b, poly_val, init, xor_out, reflect_flag) & 0xFFFFFFFF
-                    except Exception:
-                        continue
-                    if h == target_crc:
-                        found.append((fname, nname, f"{poly_name} init=0x{init:08X} xor=0x{xor_out:08X} refl={reflect_flag}", "native", f"0x{h:08X}"))
-                    if le_swap32(h) == target_crc:
-                        found.append((fname, nname, f"{poly_name} init=0x{init:08X} xor=0x{xor_out:08X} refl={reflect_flag}", "le_swap", f"0x{le_swap32(h):08X}"))
-        results.append((target_crc, fname, found))
-    return results
-
-# -----------------------------
-# Pretty print results
-# -----------------------------
-def print_results(results):
-    any_found = False
-    for target_crc, fname, found in results:
-        print("="*80)
-        print(f"Target CRC: 0x{target_crc:08X}   Filename: {fname}")
-        if not found:
-            print("  No matches found for this pair with tested algorithms/normalisations.")
+def crc32_table(data: bytes, poly: int, init: int, xor_out: int, refin: bool, refout: bool) -> int:
+    """Version optimisée avec table de lookup."""
+    # Générer la table
+    table = []
+    for i in range(256):
+        if refin:
+            crc = i
+            for _ in range(8):
+                if crc & 1:
+                    crc = (crc >> 1) ^ poly
+                else:
+                    crc >>= 1
+            table.append(crc)
         else:
-            any_found = True
-            for f in found:
-                fname_in, norm, algo, reprtype, val = f
-                print(f"  MATCH -> norm: {norm:22} algo: {algo:48} repr: {reprtype:8} value: {val}")
-    if not any_found:
-        print("="*80)
-        print("No matches across all pairs with the tested candidate algos/params.")
+            crc = i << 24
+            for _ in range(8):
+                if crc & 0x80000000:
+                    crc = ((crc << 1) ^ poly) & 0xFFFFFFFF
+                else:
+                    crc = (crc << 1) & 0xFFFFFFFF
+            table.append(crc)
+    
+    # Calculer le CRC
+    crc = init & 0xFFFFFFFF
+    
+    if refin:
+        for byte in data:
+            crc = table[(crc ^ byte) & 0xFF] ^ (crc >> 8)
+    else:
+        for byte in data:
+            crc = table[((crc >> 24) ^ byte) & 0xFF] ^ ((crc << 8) & 0xFFFFFFFF)
+    
+    if refout and not refin:
+        def reflect_32(val: int) -> int:
+            result = 0
+            for i in range(32):
+                if val & (1 << i):
+                    result |= 1 << (31 - i)
+            return result
+        crc = reflect_32(crc)
+    
+    return (crc ^ xor_out) & 0xFFFFFFFF
 
-# -----------------------------
+# ============================================================================
+# Configurations CRC courantes
+# ============================================================================
+
+CRC_CONFIGS = {
+    # Configurations standards
+    "CRC-32 (IEEE 802.3)": (0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, True, True),
+    "CRC-32 (IEEE) reflected poly": (0xEDB88320, 0xFFFFFFFF, 0xFFFFFFFF, True, True),
+    "CRC-32/BZIP2": (0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, False, False),
+    "CRC-32C (Castagnoli)": (0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, True, True),
+    "CRC-32C reflected poly": (0x82F63B78, 0xFFFFFFFF, 0xFFFFFFFF, True, True),
+    "CRC-32/MPEG-2": (0x04C11DB7, 0xFFFFFFFF, 0x00000000, False, False),
+    "CRC-32/POSIX": (0x04C11DB7, 0x00000000, 0xFFFFFFFF, False, False),
+    "CRC-32Q": (0x814141AB, 0x00000000, 0x00000000, False, False),
+    
+    # Variantes Wing Commander (hypothèses basées sur les jeux Origin des années 90)
+    "WC-variant-1": (0x04C11DB7, 0x00000000, 0x00000000, False, False),
+    "WC-variant-2": (0xEDB88320, 0x00000000, 0x00000000, True, False),
+    "WC-variant-3": (0x04C11DB7, 0xFFFFFFFF, 0x00000000, False, False),
+    "WC-variant-4": (0xEDB88320, 0xFFFFFFFF, 0x00000000, True, False),
+    "WC-variant-5": (0x04C11DB7, 0x00000000, 0xFFFFFFFF, False, True),
+    "WC-variant-6": (0xEDB88320, 0x00000000, 0xFFFFFFFF, True, True),
+    
+    # Polynômes moins courants
+    "CRC-32/XFER": (0x000000AF, 0x00000000, 0x00000000, False, False),
+    "CRC-32D": (0xA833982B, 0xFFFFFFFF, 0xFFFFFFFF, True, True),
+}
+
+# ============================================================================
+# Normalisations de chaînes
+# ============================================================================
+
+def generate_string_variants(path: str) -> List[Tuple[str, bytes]]:
+    """Génère toutes les variantes possibles de normalisation de chaîne."""
+    variants = []
+    
+    # 1. Tel quel
+    variants.append(("original", path.encode('ascii', errors='ignore')))
+    
+    # 2. Casse
+    variants.append(("uppercase", path.upper().encode('ascii', errors='ignore')))
+    variants.append(("lowercase", path.lower().encode('ascii', errors='ignore')))
+    
+    # 3. Séparateurs
+    variants.append(("forward_slash", path.replace("\\", "/").encode('ascii', errors='ignore')))
+    variants.append(("double_backslash", path.replace("\\", "\\\\").encode('ascii', errors='ignore')))
+    
+    # 4. Sans préfixe relatif
+    if path.startswith("..\\..\\"):
+        variants.append(("no_prefix", path[6:].encode('ascii', errors='ignore')))
+    elif path.startswith("../../"):
+        variants.append(("no_prefix_fwd", path[6:].encode('ascii', errors='ignore')))
+    
+    # 5. Avec terminateur null
+    variants.append(("null_terminated", (path + "\x00").encode('ascii', errors='ignore')))
+    
+    # 6. Sans espaces
+    variants.append(("no_spaces", path.replace(" ", "").encode('ascii', errors='ignore')))
+    
+    # 7. Juste le nom de fichier (sans chemin)
+    if "\\" in path:
+        filename = path.split("\\")[-1]
+        variants.append(("filename_only", filename.encode('ascii', errors='ignore')))
+    elif "/" in path:
+        filename = path.split("/")[-1]
+        variants.append(("filename_only_fwd", filename.encode('ascii', errors='ignore')))
+    
+    # 8. Extension en majuscules uniquement
+    if "." in path:
+        base, ext = path.rsplit(".", 1)
+        variants.append(("ext_upper", f"{base}.{ext.upper()}".encode('ascii', errors='ignore')))
+    
+    # Dédupliquer
+    seen = set()
+    unique = []
+    for name, data in variants:
+        if data not in seen:
+            seen.add(data)
+            unique.append((name, data))
+    
+    return unique
+
+# ============================================================================
+# Transformations de sortie
+# ============================================================================
+
+def apply_output_transforms(value: int) -> List[Tuple[str, int]]:
+    """Applique différentes transformations sur la valeur de sortie."""
+    transforms = []
+    
+    # 1. Tel quel
+    transforms.append(("native", value))
+    
+    # 2. Byte swap
+    transforms.append(("byte_swap", struct.unpack("<I", struct.pack(">I", value))[0]))
+    
+    # 3. Complément
+    transforms.append(("complement", (~value) & 0xFFFFFFFF))
+    
+    # 4. Byte swap du complément
+    comp = (~value) & 0xFFFFFFFF
+    transforms.append(("byte_swap_complement", struct.unpack("<I", struct.pack(">I", comp))[0]))
+    
+    return transforms
+
+# ============================================================================
+# Recherche exhaustive
+# ============================================================================
+
+def search_crc_algorithm():
+    """Recherche l'algorithme CRC correspondant aux paires connues."""
+    print("=" * 80)
+    print("RECHERCHE DE L'ALGORITHME CRC WING COMMANDER III")
+    print("=" * 80)
+    print()
+    
+    matches = []
+    
+    for config_name, (poly, init, xor_out, refin, refout) in CRC_CONFIGS.items():
+        for target_crc, filepath in KNOWN_PAIRS:
+            variants = generate_string_variants(filepath)
+            
+            for variant_name, data in variants:
+                # Calculer le CRC
+                try:
+                    crc = crc32_bitwise(data, poly, init, xor_out, refin, refout)
+                    
+                    # Tester les transformations de sortie
+                    transforms = apply_output_transforms(crc)
+                    
+                    for transform_name, transformed_crc in transforms:
+                        if transformed_crc == target_crc:
+                            matches.append({
+                                'config': config_name,
+                                'poly': f"0x{poly:08X}",
+                                'init': f"0x{init:08X}",
+                                'xor_out': f"0x{xor_out:08X}",
+                                'refin': refin,
+                                'refout': refout,
+                                'filepath': filepath,
+                                'variant': variant_name,
+                                'transform': transform_name,
+                                'target': f"0x{target_crc:08X}",
+                                'data': data.decode('ascii', errors='replace')
+                            })
+                except Exception as e:
+                    continue
+    
+    # Afficher les résultats
+    if matches:
+        print(f"✓ TROUVÉ {len(matches)} CORRESPONDANCE(S) !\n")
+        
+        for i, match in enumerate(matches, 1):
+            print(f"Match #{i}:")
+            print(f"  Configuration: {match['config']}")
+            print(f"  Polynôme:     {match['poly']}")
+            print(f"  Init:         {match['init']}")
+            print(f"  XOR out:      {match['xor_out']}")
+            print(f"  RefIn:        {match['refin']}")
+            print(f"  RefOut:       {match['refout']}")
+            print(f"  Fichier:      {match['filepath']}")
+            print(f"  Variante:     {match['variant']}")
+            print(f"  Transform:    {match['transform']}")
+            print(f"  Données:      {repr(match['data'])}")
+            print(f"  Target CRC:   {match['target']}")
+            print()
+        
+        # Vérifier si une config marche pour toutes les paires
+        config_counts = {}
+        for match in matches:
+            key = (match['config'], match['variant'], match['transform'])
+            config_counts[key] = config_counts.get(key, 0) + 1
+        
+        complete_matches = [k for k, v in config_counts.items() if v == len(KNOWN_PAIRS)]
+        
+        if complete_matches:
+            print("=" * 80)
+            print("✓✓✓ ALGORITHME IDENTIFIÉ ✓✓✓")
+            print("=" * 80)
+            for config, variant, transform in complete_matches:
+                print(f"\nConfiguration: {config}")
+                print(f"Normalisation: {variant}")
+                print(f"Transformation: {transform}")
+                
+                # Afficher les détails
+                example = next(m for m in matches if m['config'] == config and 
+                             m['variant'] == variant and m['transform'] == transform)
+                print(f"\nParamètres:")
+                print(f"  Polynôme:  {example['poly']}")
+                print(f"  Init:      {example['init']}")
+                print(f"  XOR out:   {example['xor_out']}")
+                print(f"  RefIn:     {example['refin']}")
+                print(f"  RefOut:    {example['refout']}")
+        else:
+            print("⚠ Aucune configuration ne correspond à toutes les paires.")
+            print("  Il faut peut-être plus d'exemples ou tester d'autres variantes.")
+    else:
+        print("✗ Aucune correspondance trouvée avec les configurations testées.")
+        print("\nSuggestions:")
+        print("  1. Vérifier que les valeurs CRC sont correctes")
+        print("  2. Ajouter plus de paires connues")
+        print("  3. Le CRC pourrait utiliser un polynôme personnalisé")
+
+# ============================================================================
 # Main
-# -----------------------------
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python find_hash_variant.py pairs.txt")
-        return
-    pairs_file = sys.argv[1]
-    pairs = load_pairs(pairs_file)
-    if not pairs:
-        print("No valid pairs found in", pairs_file)
-        return
-    print(f"Loaded {len(pairs)} pairs from {pairs_file}")
-    results = search_variants(pairs)
-    print_results(results)
+# ============================================================================
 
 if __name__ == "__main__":
-    main()
+    search_crc_algorithm()
