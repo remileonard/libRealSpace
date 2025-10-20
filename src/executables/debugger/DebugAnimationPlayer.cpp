@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
+#include <nfd.hpp>
 
 RSImageSet *loadImage(PakArchive *pak, int entry_id) {
     if (pak == nullptr || entry_id < 0 || entry_id >= pak->GetNumEntries()) {
@@ -34,24 +35,44 @@ void DebugAnimationPlayer::renderMenu() {
     if (ImGui::BeginMenu("MidGames Animations")) {
         ImGui::MenuItem("Edit Animation", NULL, &show_editor);
         if (ImGui::MenuItem("Load", nullptr, false)) {
-            SCAnimationArchive archive;
-            std::vector<MIDGAME_SHOT *> shots;
-            if (archive.LoadFromFile("edited_animation.iff", shots)) {
-                this->shot_counter = 0;
-                this->fps_counter = 0;
-                this->fps = 1;
-                this->midgames_shots[1] = shots;
-                printf("Animation loaded from edited_animation.iff\n");
+            NFD::UniquePath outPath;
+            nfdfilteritem_t filters[1] = { { "Animation Files", "iff" } };
+            nfdresult_t result = NFD::OpenDialog(outPath, filters, 1);
+            
+            if (result == NFD_OKAY) {
+                SCAnimationArchive archive;
+                std::vector<MIDGAME_SHOT *> shots;
+                if (archive.LoadFromFile(outPath.get(), shots)) {
+                    this->shot_counter = 0;
+                    this->fps_counter = 0;
+                    this->fps = 1;
+                    this->midgames_shots[1] = shots;
+                    printf("Animation loaded from %s\n", outPath.get());
+                } else {
+                    printf("Failed to load animation\n");
+                }
+            } else if (result == NFD_CANCEL) {
+                printf("User cancelled load dialog\n");
             } else {
-                printf("Failed to load animation\n");
+                printf("Error: %s\n", NFD::GetError());
             }
         }
         if (ImGui::MenuItem("Save", nullptr, false)) {
-            SCAnimationArchive archive;
-            if (archive.SaveToFile("edited_animation.iff", this->midgames_shots[1])) {
-                printf("Animation saved to edited_animation.iff\n");
+            NFD::UniquePath savePath;
+            nfdfilteritem_t filters[1] = { { "Animation Files", "iff" } };
+            nfdresult_t result = NFD::SaveDialog(savePath, filters, 1, nullptr, "animation.iff");
+            
+            if (result == NFD_OKAY) {
+                SCAnimationArchive archive;
+                if (archive.SaveToFile(savePath.get(), this->midgames_shots[1])) {
+                    printf("Animation saved to %s\n", savePath.get());
+                } else {
+                    printf("Failed to save animation\n");
+                }
+            } else if (result == NFD_CANCEL) {
+                printf("User cancelled save dialog\n");
             } else {
-                printf("Failed to save animation\n");
+                printf("Error: %s\n", NFD::GetError());
             }
         }
         ImGui::EndMenu();
