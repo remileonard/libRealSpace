@@ -376,7 +376,7 @@ int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
             this->sound_file_name = new std::string(sentence);
             sentence = sentence_end;
         } else {
-            sound_offset = 4;
+            sound_offset = 5;
         }
     }
     std::string *text = new std::string(sentence);
@@ -447,7 +447,6 @@ void SCConvPlayer::ReadNextFrame(void) {
 
 void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
     uint8_t type = conv.ReadByte();
-
     switch (type) {
     case GROUP_SHOT: // Group plan
     {
@@ -491,7 +490,14 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
     }
     case GROUP_SHOT_ADD_CHARCTER: // Add person to GROUP
     {
-        tmp_frame->parse_GROUP_SHOT_ADD_CHARACTER(&conv);
+        if (conv.CurrentByte() == CLOSEUP) {
+            conv.MoveForward(1);
+            tmp_frame->parse_CLOSEUP(&conv);
+        } else {
+            tmp_frame->parse_GROUP_SHOT_ADD_CHARACTER(&conv);
+        }
+            
+
         break;
     }
     case GROUP_SHOT_CHARCTR_TALK: // Make group character talk
@@ -536,7 +542,7 @@ void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
 
     this->size = convPakEntry->size;
 
-    this->conv.Set(convPakEntry->data);
+    this->conv.Set(convPakEntry->data, convPakEntry->size);
     end = convPakEntry->data + convPakEntry->size;
 
     if (this->conversation_frames.size() > 0) {
@@ -821,7 +827,7 @@ void SCConvPlayer::runFrame(void) {
     if (this->current_frame->bgLayers != nullptr && this->current_frame->bgPalettes != nullptr) {
         for (size_t i = 0; i < this->current_frame->bgLayers->size(); i++) {
             ByteStream paletteReader;
-            paletteReader.Set((*this->current_frame->bgPalettes)[i]);
+            paletteReader.Set((*this->current_frame->bgPalettes)[i], 768);
             this->palette.ReadPatch(&paletteReader);
         }
         VGA.setPalette(&this->palette);
@@ -851,7 +857,7 @@ void SCConvPlayer::runFrame(void) {
                 VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
             ByteStream paletteReader;
 
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
+            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
             this->palette.ReadPatch(&paletteReader);
 
             int32_t pos = 0;
@@ -903,7 +909,7 @@ void SCConvPlayer::runFrame(void) {
                 VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
             ByteStream paletteReader;
 
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
+            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
             int32_t pos = 0;
@@ -940,7 +946,7 @@ void SCConvPlayer::runFrame(void) {
 
                 if (i == 0) {
                     ByteStream paletteReader;
-                    paletteReader.Set(convPals.GetEntry(participant->paletteID)->data);
+                    paletteReader.Set(convPals.GetEntry(participant->paletteID)->data, convPals.GetEntry(participant->paletteID)->size);
                     this->palette.ReadPatch(&paletteReader);
                     VGA.setPalette(&this->palette);
                 }
@@ -970,7 +976,7 @@ void SCConvPlayer::runFrame(void) {
             for (size_t i = 0; i < this->current_frame->participants.size(); i++) {
                 CharFigure *participant = this->current_frame->participants[i];
                 ByteStream paletteReader;
-                paletteReader.Set(convPals.GetEntry(participant->paletteID)->data);
+                paletteReader.Set(convPals.GetEntry(participant->paletteID)->data, convPals.GetEntry(participant->paletteID)->size);
                 this->palette.ReadPatch(&paletteReader);
                 VGA.setPalette(&this->palette);
                 RLEShape *s = participant->appearances->GetShape(0);
@@ -990,7 +996,7 @@ void SCConvPlayer::runFrame(void) {
         case ConvFrame::CONV_CONTRACT_CHOICE:
         {
             ByteStream paletteReader;
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
+            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
             int32_t pos = 0;

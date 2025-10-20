@@ -4,6 +4,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
+# Trouver Google Test
+find_package(GTest CONFIG REQUIRED)
+
+# Activer les tests
+enable_testing()
+
 find_package(SDL2 REQUIRED)
 find_package(SDL2_mixer_ext CONFIG REQUIRED)
 find_package(SDL2_ttf CONFIG REQUIRED)
@@ -21,6 +27,8 @@ add_subdirectory(src/realspace)
 add_subdirectory(src/commons/pklib)
 add_subdirectory(src/commons)
 
+# Tests unitaires
+add_subdirectory(tests)
 
 # Configuration du package CPack
 set(CPACK_GENERATOR "ZIP")

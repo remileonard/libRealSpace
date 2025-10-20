@@ -23,7 +23,10 @@ PakArchive::~PakArchive(){
 
 
 void PakArchive::Parse(void){
-    
+    if (this->size < 4){
+        printf("'%s' is not a PAK archive !.\n",this->path);
+        return;
+    }
     uint32_t advertisedSize = stream.ReadUInt32LE();
     
     if (advertisedSize != this->size){
@@ -144,7 +147,7 @@ void PakArchive::InitFromRAM(const char* name,uint8_t* data, size_t size){
     this->data = data;
     this->size = size;
     
-    stream.Set(this->data);
+    stream.Set(this->data, this->size);
     
     ready = false;
     

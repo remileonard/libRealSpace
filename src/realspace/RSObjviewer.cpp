@@ -29,7 +29,7 @@ void RSObjViewer::parseVIEW(uint8_t *data, size_t size) {
 }
 
 void RSObjViewer::parseVIEW_OBJS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
 
     size_t numObjectInList = size / 33;
 

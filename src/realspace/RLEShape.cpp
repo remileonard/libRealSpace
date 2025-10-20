@@ -157,7 +157,7 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
         tmpdata = lzbuffer.DecodeLZW(idata+2, isize-2, csize);
         this->size = csize;
     }
-    stream.Set(tmpdata);
+    stream.Set(tmpdata, this->size);
     
 
     this->rightDist = stream.ReadShort();
@@ -173,8 +173,11 @@ void RLEShape::InitWithPosition(uint8_t *idata, size_t isize, Point2D *position)
 }
 
 bool RLEShape::Expand(uint8_t *dst, size_t *byteRead) {
-
-    this->stream.Set(data);
+    if (this->size == 0) {
+        *byteRead = 0;
+        return false;
+    }
+    this->stream.Set(data, size);
     RLEFragment frag;
 
     ReadFragment(&frag);
@@ -194,7 +197,7 @@ bool RLEShape::Expand(uint8_t *dst, size_t *byteRead) {
 
 bool RLEShape::ExpandWithBox(uint8_t *dst, size_t *byteRead, int bx1, int bx2, int by1, int by2) {
 
-    this->stream.Set(data);
+    this->stream.Set(data, size);
     RLEFragment frag;
 
     ReadFragment(&frag);

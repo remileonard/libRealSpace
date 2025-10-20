@@ -362,7 +362,7 @@ void SCAnimationArchive::HandleCHAR(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_CHARACTER* character = new MIDGAME_SHOT_CHARACTER();
         
@@ -401,7 +401,7 @@ void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleSHTP(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         currentShot->nbframe = stream.ReadInt32LE();
         currentShot->music = stream.ReadByte();
         currentShot->sound_time_code = stream.ReadUShort();
@@ -417,7 +417,7 @@ void SCAnimationArchive::HandleBGND(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_BG* bg = new MIDGAME_SHOT_BG();
         
@@ -488,7 +488,7 @@ void SCAnimationArchive::HandleSPRT(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleSPRI(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_SPRITE* sprite = new MIDGAME_SHOT_SPRITE();
         
@@ -558,7 +558,7 @@ void SCAnimationArchive::HandleFGND(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_BG* fg = new MIDGAME_SHOT_BG();
         
@@ -621,7 +621,7 @@ void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleSOND(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         uint16_t nameLength = stream.ReadUShort();
         std::string archiveName = stream.ReadString(nameLength);

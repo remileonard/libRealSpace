@@ -52,7 +52,7 @@ bool IFFSaxLexer::InitFromRAM(
     this->data = data;
     this->size = size;
     this->stream = new ByteStream();
-    this->stream->Set(this->data);
+    this->stream->Set(this->data, size);
     Parse(events);
     return true;
 }

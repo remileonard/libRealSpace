@@ -92,6 +92,8 @@ void RSOption::parseOPTS_SCEN_BACK(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_BACK_PALT(uint8_t *data, size_t size) {
+    if (size < 2)
+        return;
     PALT *palt = new PALT();
     palt->ID = *data++;
     palt->UNKOWN = *data;
@@ -99,6 +101,8 @@ void RSOption::parseOPTS_SCEN_BACK_PALT(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_BACK_SHAPE(uint8_t *data, size_t size) {
+    if (size < 2)
+        return;
     BACK_SHAP *shps = new BACK_SHAP();
     shps->ID = *data++;
     shps->UNKOWN_1 = *data;
@@ -106,6 +110,8 @@ void RSOption::parseOPTS_SCEN_BACK_SHAPE(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE(uint8_t *data, size_t size) {
+    if (size < 1)
+        return;
     IFFSaxLexer lexer;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     this->tmpfore = new FORE();
@@ -119,6 +125,8 @@ void RSOption::parseOPTS_SCEN_FORE(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_PALT(uint8_t *data, size_t size) {
+    if (size < 2)
+        return;
     PALT *palette = new PALT();
     palette->ID = *data++;
     palette->UNKOWN = *data;
@@ -152,6 +160,8 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_TUNE(uint8_t *data, size_t size) {
+    if (size < 2)
+        return;
     TUNE *tune = new TUNE();
     tune->ID = *data++; 
     tune->UNKOWN = *data;
@@ -159,16 +169,23 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_TUNE(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_SHAP(uint8_t *data, size_t size) {
+    if (size < 4)
+        return;
     this->tmpsprt->sprite.GID = *data++;
     this->tmpsprt->sprite.SHP_ID = *data++;
     this->tmpsprt->sprite.UNKOWN_1 = *data++;
     this->tmpsprt->sprite.UNKOWN_2 = *data;
 }
 
-void RSOption::parseOPTS_SCEN_FORE_SPRT_CLCK(uint8_t *data, size_t size) { this->tmpsprt->CLCK = 1; }
+void RSOption::parseOPTS_SCEN_FORE_SPRT_CLCK(uint8_t *data, size_t size) { 
+    this->tmpsprt->CLCK = 1;
+}
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_QUAD(uint8_t *data, size_t size) {
-    ByteStream *reader = new ByteStream(data);
+    if (size != 16) {
+        return;
+    }
+    ByteStream *reader = new ByteStream(data, size);
     QUAD *quad = new QUAD();
     quad->xa1 = reader->ReadUShort();
     quad->ya1 = reader->ReadUShort();
@@ -192,6 +209,8 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_QUAD(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_INFO(uint8_t *data, size_t size) {
+    if (size < 4)
+        return;
     SPRT_INFO *info = new SPRT_INFO();
     info->ID = *data++;
     info->UNKOWN_1 = *data++;
@@ -215,7 +234,7 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_RECT(uint8_t *data, size_t size) {
         return;
     }
     OPTION_RECT *zone = new OPTION_RECT();
-    ByteStream *reader = new ByteStream(data);
+    ByteStream *reader = new ByteStream(data, size);
     zone->X1 = reader->ReadUShort();
     zone->Y1 = reader->ReadUShort();
     zone->X2 = reader->ReadUShort();
@@ -225,6 +244,8 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_RECT(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_LABL(uint8_t *data, size_t size) {
+    if (size < 1)
+        return;
     char *label = new char[size + 1];
     memcpy(label, data, size);
     label[size] = '\0';
@@ -251,6 +272,8 @@ void RSOption::parseETSB_SHOT(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseETSB_SHOT_INFO(uint8_t *data, size_t size) {
+    if (size < 2)
+        return;
     this->tmpshot->infos.ID = *data++;
     this->tmpshot->infos.UNKOWN = *data;
 }
@@ -266,6 +289,8 @@ void RSOption::parseETSB_SHOT_SHPS(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseETSB_SHOT_SHPS_SHAPE(uint8_t *data, size_t size) {
+    if (size < 6)
+        return;
     SHPS *shps = new SHPS();
     shps->type = 1;
     shps->OptshapeID = *data++;
@@ -278,6 +303,8 @@ void RSOption::parseETSB_SHOT_SHPS_SHAPE(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseETSB_SHOT_SHPS_MOBL(uint8_t *data, size_t size) {
+    if (size < 6)
+        return;
     SHPS *shps = new SHPS();
     shps->type = 2;
     shps->OptshapeID = *data++;
@@ -298,6 +325,8 @@ void RSOption::parseETSB_SHOT_PALS(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseETSB_SHOT_PALS_PALT(uint8_t *data, size_t size) {
+    if (size < 2)
+        return;
     PALT *pal = new PALT();
     pal->ID = *data++;
     pal->UNKOWN = *data;
@@ -321,6 +350,8 @@ void RSOption::parseOPTS_SCEN_EXTR(uint8_t* data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSOption::parseOPTS_SCEN_EXTR_SHAP(uint8_t* data, size_t size) {
+    if (size < 2)
+        return;
     EXTR_SHAP *shap = new EXTR_SHAP();
     shap->EXTR_ID = *data++;
     shap->SHAPE_ID = *data;

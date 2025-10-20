@@ -18,6 +18,7 @@
       ]
     },
     "sdl2-ttf",
-    "nativefiledialog-extended"
+    "nativefiledialog-extended",
+    "gtest"
   ]
 }

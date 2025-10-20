@@ -58,7 +58,10 @@ void RSEntity::CalcBoundingBox(void) {
         
         if (attribute == 'T') {
             for (int j = 0; j < 3; j++) {
-            Point3D vertex = this->vertices[this->triangles[triangle_id].ids[j]];
+                if (triangle_id >= this->triangles.size()) {
+                    continue;
+                }
+                Point3D vertex = this->vertices[this->triangles[triangle_id].ids[j]];
 
                 if (bb.min.x > vertex.x)
                     bb.min.x = vertex.x;
@@ -127,6 +130,9 @@ void RSEntity::calcWingArea(void) {
             }
         }
         if (attribute == 'T') {
+            if (triangle_id >= this->triangles.size()) {
+                continue;
+            }
             Triangle triangle = this->triangles[triangle_id];
             for (auto id : triangle.ids) {
                 if (std::find(wing_ids.begin(), wing_ids.end(), id) != wing_ids.end()) {
@@ -327,7 +333,7 @@ void RSEntity::parseREAL_OBJT_MISS_SMOK(uint8_t *data, size_t size){
 void RSEntity::parseREAL_OBJT_MISS_DAMG(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size){
     WDAT *wdat = new WDAT();
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     wdat->damage = bs.ReadShort();
     wdat->radius = bs.ReadShort();
     wdat->unknown1 = bs.ReadByte();
@@ -354,7 +360,7 @@ void RSEntity::parseREAL_OBJT_MISS_DYNM(uint8_t *data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_MISS_DYNM_MISS(uint8_t *data, size_t size){
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     DYNN_MISS *dynn_miss = new DYNN_MISS();
     bs.ReadByte();
     dynn_miss->turn_degre_per_sec = bs.ReadInt24LE();
@@ -473,7 +479,7 @@ void RSEntity::parseREAL_OBJT_SWPN(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_OBJT_SWPN_DYNM(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     SWPN_DATA *swpn_data = new SWPN_DATA();
     swpn_data->weapons_round = bs.ReadInt32LE();
     swpn_data->detection_range = bs.ReadInt32LE();
@@ -502,7 +508,7 @@ void RSEntity::parseREAL_OBJT_JETP_EXPL(uint8_t *data, size_t size) {
     EXPL *expl = new EXPL();
     
     std::string tmpname;
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     expl->name = bs.ReadString(8);
     tmpname = assetsManager.object_root_path + expl->name + ".IFF";
     expl->x = bs.ReadShort();
@@ -517,7 +523,7 @@ void RSEntity::parseREAL_OBJT_JETP_EXPL(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_OBJT_JETP_DEBR(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_DEST(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     std::string tmpname = bs.ReadString(8);
     std::transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
     this->destroyed_object_name = assetsManager.object_root_path + tmpname + ".IFF";
@@ -539,7 +545,7 @@ void RSEntity::parseREAL_OBJT_JETP_SMOK(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
     size_t nb_child = size /32;
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     for (size_t i = 0; i < nb_child; i++) {
         CHLD *chld = new CHLD();
         
@@ -573,13 +579,15 @@ void RSEntity::parseREAL_OBJT_JETP_DAMG(uint8_t *data, size_t size) {
 
         lexer.InitFromRAM(data, size, handlers);
     } else {
-        ByteStream bs(data);
+        ByteStream bs(data, size);
         this->health = bs.ReadByte();
     }
 }
 void RSEntity::parseREAL_OBJT_JETP_EJEC(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_SIGN(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    if (size < 3)
+        return;
+    ByteStream bs(data, size);
     RADAR_SIGN *radar_signature = new RADAR_SIGN();
     radar_signature->unknown1 = bs.ReadByte();
     radar_signature->unknown2 = bs.ReadByte();  
@@ -587,12 +595,14 @@ void RSEntity::parseREAL_OBJT_JETP_SIGN(uint8_t *data, size_t size) {
     this->radar_signature = radar_signature;
 }
 void RSEntity::parseREAL_OBJT_JETP_TRGT(uint8_t *data, size_t size) {
-    this->target_type = data[0];
+    if (size >= 1)
+        this->target_type = data[0];
 }
 void RSEntity::parseREAL_OBJT_JETP_CTRL(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_CKPT(uint8_t *data, size_t size) {
-    
-    ByteStream bs(data);
+    if (size < 26)
+        return;
+    ByteStream bs(data, size);
     std::string str1 = bs.ReadString(10);
     std::string str2 = bs.ReadString(8);
     std::string str3 = bs.ReadString(8);
@@ -623,7 +633,7 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     if (size == 4) {
         bs.ReadByte();
         this->weight_in_kg = bs.ReadInt24LEByte3();
@@ -632,14 +642,18 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_JETP_DYNM_ORDY(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_DYNM_STBL(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_DYNM_ATMO(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    if (size < 2)
+        return;
+    ByteStream bs(data, size);
     this->drag = bs.ReadUShort();
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_GRAV(uint8_t *data, size_t size) {
     this->gravity = true;
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    if (size < 6)
+        return;
+    ByteStream bs(data, size);
     if (size == 6 || size == 7 || size == 8) {
         bs.ReadByte();
         this->thrust_in_newton = bs.ReadInt24LEByte3();
@@ -655,7 +669,9 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size) {
     
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    if (size < 50)
+        return;
+    ByteStream bs(data, size);
     bs.ReadByte();
     JDYN *dyn = new JDYN();
     
@@ -706,9 +722,11 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_JETP_WEAP_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_WEAP_DCOY(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT_JETP_WEAP_WPNS(uint8_t *data, size_t size) {
+    if (size < 10)
+        return;
     size_t nb_weap = 0;
     nb_weap = size / 10;
-    ByteStream bs(data);  
+    ByteStream bs(data, size);  
 
     for (size_t i = 0; i < nb_weap; i++) {
         WEAPS *htps = new WEAPS();
@@ -726,8 +744,10 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_WPNS(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_OBJT_JETP_WEAP_HPTS(uint8_t *data, size_t size) {
+    if (size < 13)
+        return;
     size_t nb_hpts = size / 13;
-    ByteStream bs(data);
+    ByteStream bs(data, size);
     for (size_t i = 0; i < nb_hpts; i++) {
         HPTS *hpts = new HPTS();
         hpts->id = bs.ReadByte();
@@ -745,7 +765,9 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG(uint8_t *data, size_t size) {
         std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM, this, std::placeholders::_1, std::placeholders::_2);
 }
 void RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM(uint8_t *data, size_t size) {
-    ByteStream bs(data);
+    if (size < 2)
+        return;
+    ByteStream bs(data, size);
 
     this->life = bs.ReadShort();
     size_t nb_sysm = (size - 2) / 18;
@@ -790,7 +812,9 @@ void RSEntity::parseREAL_APPR_POLY(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_APPR_POLY_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_POLY_VERT(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size % 12 != 0)
+        return;
+    ByteStream stream(data, size);
     size_t numVertice = size / 12;
     for (int i = 0; i < numVertice; i++) {
         int32_t coo;
@@ -824,7 +848,9 @@ void RSEntity::parseREAL_APPR_POLY_DETA(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_APPR_POLY_DETA_LVLX(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size < 4)
+        return;
+    ByteStream stream(data, size);
     Lod lod;
 
     lod.numTriangles = static_cast<uint16_t>((size - 4) / 2);
@@ -837,8 +863,10 @@ void RSEntity::parseREAL_APPR_POLY_DETA_LVLX(uint8_t *data, size_t size) {
     AddLod(&lod);
 }
 void RSEntity::parseREAL_APPR_POLY_ATTR(uint8_t *data, size_t size) {
+    if (size % 9 != 0)
+        return;
     size_t num_attr = size / 9;
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     std::unordered_map<char, uint16_t> compteurs = {{'L', 0}, {'T', 0}, {'Q', 0}};
     for (size_t i = 0; i < num_attr; i++) {
         Attr *attr = new Attr();
@@ -873,9 +901,10 @@ void RSEntity::parseREAL_APPR_POLY_TRIS(uint8_t *data, size_t size) {
 }
 
 void RSEntity::parseREAL_APPR_POLY_TRIS_VTRI(uint8_t *data, size_t size) {
-
+    if (size % 8 != 0)
+        return;
     size_t numTriangle = size / 8;
-    ByteStream stream(data);
+    ByteStream stream(data, size);
 
     Triangle triangle;
     for (int i = 0; i < numTriangle; i++) {
@@ -896,9 +925,10 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_VTRI(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_FACE(uint8_t *data, size_t size) {
-
+    if (size % 8 != 0)
+        return;
     size_t numTriangle = size / 8;
-    ByteStream stream(data);
+    ByteStream stream(data, size);
 
     Triangle triangle;
     for (int i = 0; i < numTriangle; i++) {
@@ -930,7 +960,9 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMP(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size < 14)
+        return;
+    ByteStream stream(data, size);
 
     RSImage *image = new RSImage();
 
@@ -989,7 +1021,9 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMP(uint8_t *data, size_t size) {
     AddImage(image);
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size < 14)
+        return;
+    ByteStream stream(data, size);
 
     RSImage *image = new RSImage();
 
@@ -1091,7 +1125,9 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
     
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_UVXY(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size % 8 != 0)
+        return;
+    ByteStream stream(data, size);
 
     size_t numEntries = size / 8;
 
@@ -1114,7 +1150,9 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_UVXY(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_MAPS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size % 16 != 0)
+        return;
+    ByteStream stream(data, size);
 
     size_t numEntries = size / 16;
 
@@ -1155,9 +1193,10 @@ void RSEntity::parseREAL_APPR_POLY_QUAD(uint8_t *data, size_t size) {
 }
 
 void RSEntity::parseREAL_APPR_POLY_QUAD_FACE(uint8_t *data, size_t size) {
-
+    if (size % 10 != 0)
+        return;
     size_t numQuad = size / 10;
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     
     Quads *q;
     for (int i = 0; i < numQuad; i++) {
@@ -1180,7 +1219,9 @@ void RSEntity::parseREAL_APPR_POLY_QUAD_FACE(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_APPR_POLY_QUAD_MAPS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    if (size % 20 != 0)
+        return;
+    ByteStream stream(data, size);
 
     size_t numEntries = size / 20;
 
@@ -1228,6 +1269,8 @@ void RSEntity::parseREAL_APPR_ANIM(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_APPR_ANIM_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_ANIM_SEQU(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
+    if (size < 1)
+        return;
     RSImageSet *img_set = new RSImageSet();
     PakArchive pak;
     uint8_t* data2 = (uint8_t*) malloc(size);

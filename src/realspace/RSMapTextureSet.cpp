@@ -58,7 +58,7 @@ void RSMapTextureSet::Parse(PakArchive* archive){
             continue;
         }
         
-        ByteStream stream(entry->data);
+        ByteStream stream(entry->data, entry->size);
         
         uint16_t width = stream.ReadUShort();
         uint16_t height = stream.ReadUShort();

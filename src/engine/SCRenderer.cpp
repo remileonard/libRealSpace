@@ -1000,6 +1000,9 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
             if (triangleID >= object->triangles.size()) {
                 continue;
             }
+            if (triangleID >= object->quads.size()) {
+                continue;
+            }
             Quads *triangle = object->quads[triangleID];
             bool twoSided = true;
             if (triangle->property != RSEntity::SC_TRANSPARENT)

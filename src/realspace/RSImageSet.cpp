@@ -15,7 +15,7 @@ RSImageSet::~RSImageSet() {}
 void RSImageSet::InitFromPakEntry(PakEntry *entry) {
 
     uint8_t *end = entry->data + entry->size;
-    ByteStream index(entry->data);
+    ByteStream index(entry->data, entry->size);
 
     uint32_t nextImage = index.ReadUInt32LE();
     nextImage = nextImage & 0x00FFFFFF;
@@ -67,7 +67,7 @@ void RSImageSet::InitFromRam(uint8_t *data, size_t size) {
 
 
     uint8_t *end = data + size;
-    ByteStream index(data);
+    ByteStream index(data, size);
 
     uint32_t nextImage = index.ReadUInt32LE();
     nextImage = nextImage & 0x00FFFFFF;
@@ -109,7 +109,7 @@ void RSImageSet::InitFromRam(uint8_t *data, size_t size) {
 void RSImageSet::InitFromTreEntry(TreEntry *entry) {
 
     uint8_t *end = entry->data + entry->size;
-    ByteStream index(entry->data);
+    ByteStream index(entry->data, entry->size);
 
     uint32_t nextImage = index.ReadUInt32LE();
     nextImage = nextImage & 0x00FFFFFF;

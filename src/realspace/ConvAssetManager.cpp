@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "ConvAssetManager.h"
 
 ConvAssetManager::ConvAssetManager() {
     this->conv_file_name = "CONVDATA.IFF";
@@ -143,10 +144,10 @@ uint8_t ConvAssetManager::GetFacePaletteID(std::string name) {
  * returns a dummy shape instead.
  *
  */
-void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGround *back) {
+void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGround *back, size_t size) {
 
     ByteStream dataReader;
-    dataReader.Set(data + 5 * layerID);
+    dataReader.Set(data + 5 * layerID, size);
 
     uint8_t type = dataReader.ReadByte();
     uint8_t shapeID = dataReader.ReadByte();
@@ -288,6 +289,9 @@ void ConvAssetManager::parseBCKS_BACK_INFO(uint8_t *data, size_t size) {
     this->tmp_conv_bg->name = std::string((char *)data, strnlen((char *)data, 8));
 }
 void ConvAssetManager::parseBCKS_BACK_DATA(uint8_t *data, size_t size) {
+    if (size < 5) {
+        return;
+    }
     size_t numLayers = size / 5; // A layer entry is 5 bytes wide
     if (numLayers == 1) {
         printf("Warning: Background %8s has only 1 layer.\n", this->tmp_conv_bg->name.c_str());
@@ -296,7 +300,7 @@ void ConvAssetManager::parseBCKS_BACK_DATA(uint8_t *data, size_t size) {
         printf("Debug\n");
     }
     for (size_t layerID = 0; layerID < numLayers; layerID++)
-        ParseBGLayer(data, layerID, tmp_conv_bg);
+        ParseBGLayer(data, layerID, tmp_conv_bg, size);
 }
 void ConvAssetManager::parseFACE(uint8_t *data, size_t size) {
 
@@ -308,7 +312,10 @@ void ConvAssetManager::parseFACE(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFACE_DATA(uint8_t *data, size_t size) {
-    ByteStream s(data);
+    if (size < 9) {
+        return;
+    }
+    ByteStream s(data, size);
 
     CharFace *tmp_face = new CharFace();
     tmp_face->name = std::string((char *)data, strnlen((char *)data, 8));
@@ -341,7 +348,10 @@ void ConvAssetManager::parseFIGR(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFIGR_DATA(uint8_t *data, size_t size) {
-    ByteStream s(data);
+    if (size < 9) {
+        return;
+    }
+    ByteStream s(data, size);
 
     CharFigure *figr = new CharFigure();
     figr->name = std::string((char *)data, strnlen((char *)data, 8));
@@ -373,7 +383,9 @@ void ConvAssetManager::parsePFIG(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parsePFIG_DATA(uint8_t *data, size_t size) {
-    ByteStream s(data);
+    if (size < 9) {
+        return;
+    }
     std::string figr;
     figr = std::string((char *)data, strnlen((char *)data, 8));
     if (this->figures.find(figr) != this->figures.end()) {
@@ -389,12 +401,18 @@ void ConvAssetManager::parseFCPL(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFCPL_DATA(uint8_t *data, size_t size) {
+    if (size < 9) {
+        return;
+    }
     FacePalette *pal = new FacePalette();
     pal->name = std::string((char *)data, strnlen((char *)data, 8));
     pal->index = *(data + 8);
     this->facePalettes[pal->name] = pal;
 }
 void ConvAssetManager::parseFGPL(uint8_t *data, size_t size) {
+    if (size < 9) {
+        return;
+    }
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;

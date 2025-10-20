@@ -54,12 +54,12 @@ void RSArea::ParseObjects() {
         if (entry->size == 0)
             continue;
         entry = objectFiles.GetEntry(i);
-        ByteStream sizeGetter(entry->data);
+        ByteStream sizeGetter(entry->data, entry->size);
         uint16_t numObjs = sizeGetter.ReadUShort();
 
         for (int j = 0; j < numObjs; j++) {
 
-            ByteStream reader(entry->data + OBJ_ENTRY_NUM_OBJECTS_FIELD + OBJ_ENTRY_SIZE * j);
+            ByteStream reader(entry->data + OBJ_ENTRY_NUM_OBJECTS_FIELD + OBJ_ENTRY_SIZE * j, entry->size-OBJ_ENTRY_NUM_OBJECTS_FIELD - OBJ_ENTRY_SIZE * j);
             MapObject mapObject;
 
             for (int k = 0; k < 8; k++)
@@ -103,7 +103,7 @@ void RSArea::ParseTriFile(PakEntry *entry) {
 
         AreaOverlay overTheMapIsTheRunway;
         size_t read = 0;
-        ByteStream stream(entry->data);
+        ByteStream stream(entry->data, entry->size);
         int numvertice = stream.ReadShort();
         read += 2;
         int nbpoly = stream.ReadShort();
@@ -246,7 +246,7 @@ void RSArea::ParseBlocks(size_t lod, PakEntry *entry, size_t blockDim) {
 
         block->sideSize = static_cast<int32_t>(blockDim);
 
-        ByteStream vertStream(blockEntry->data);
+        ByteStream vertStream(blockEntry->data, blockEntry->size);
         for (size_t vertexID = 0; vertexID < blockDim * blockDim; vertexID++) {
 
             MapVertex *vertex = &block->vertice[vertexID];
@@ -333,7 +333,7 @@ void RSArea::ParseElevations(void) {
 
     entry = archive->GetEntry(6);
 
-    ByteStream stream(entry->data);
+    ByteStream stream(entry->data, entry->size);
 
     for (size_t i = 0; i < BLOCKS_PER_MAP; i++) {
         elevation[i] = stream.ReadUShort();
@@ -538,7 +538,7 @@ void RSArea::parseTERA_BLOX(uint8_t *data, size_t size) {
 void RSArea::parseTERA_BLOX_ELEV(uint8_t *data, size_t size) {
     printf("Content of elevation chunk:\n");
     size_t numEleRecords = size / 46;
-    ByteStream elevStream(data);
+    ByteStream elevStream(data, size);
     for (size_t e = 0; e < numEleRecords; e++) {
 
         uint8_t unknownsElev[20];
@@ -559,7 +559,7 @@ void RSArea::parseTERA_BLOX_ELEV(uint8_t *data, size_t size) {
 }
 
 void RSArea::parseTERA_BLOX_ATRI(uint8_t *data, size_t size) {
-    ByteStream triStream(data);
+    ByteStream triStream(data, size);
 
     char triFileName[13];
     for (int i = 0; i < 13; i++)
@@ -581,7 +581,7 @@ void RSArea::parseTERA_TXML(uint8_t *data, size_t size) {
 void RSArea::parseTERA_TXML_INFO(uint8_t *data, size_t size) {}
 
 void RSArea::parseTERA_TXMS_MAPS(uint8_t *data, size_t size) {
-    ByteStream textureRefStrean(data);
+    ByteStream textureRefStrean(data, size);
     size_t numTexturesSets = size / 12;
     for (size_t i = 0; i < numTexturesSets; i++) {
         uint16_t fastID = textureRefStrean.ReadUShort();

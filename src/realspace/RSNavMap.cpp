@@ -12,7 +12,7 @@ void RSNavMap::parseNMAP(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSNavMap::parseNMAP_MAPS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     std::string name;
     size_t read = 0;
     while (read < size) {

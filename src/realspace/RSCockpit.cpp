@@ -130,7 +130,7 @@ void RSCockpit::parseREAL_INFO(uint8_t* data, size_t size) {
  * @param size The size of the data to parse.
  */
 void RSCockpit::parseREAL_OBJS(uint8_t* data, size_t size) {
-    ByteStream* reader = new ByteStream(data);
+    ByteStream* reader = new ByteStream(data, size);
     std::string name = reader->ReadString(size);
     std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     TreEntry* entry = this->asset_manager->GetEntryByName(this->asset_manager->object_root_path + name + ".IFF");
@@ -144,7 +144,7 @@ void RSCockpit::parseCHUD(uint8_t* data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSCockpit::parseCHUD_FILE(uint8_t* data, size_t size) {
-    ByteStream* reader = new ByteStream(data);
+    ByteStream* reader = new ByteStream(data, size);
     CHUD.FILE = reader->ReadString(size);
 }
 void RSCockpit::parseMONI(uint8_t* data, size_t size) {
