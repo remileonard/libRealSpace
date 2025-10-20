@@ -180,7 +180,7 @@ void RSCockpit::parseMONI_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     // shape 20 byte offset, don't know why
-    this->MONI.SHAP.init(shape_data+offset, 0);
+    this->MONI.SHAP.init(shape_data+offset, size - offset);
 }
 void RSCockpit::parseMONI_DAMG(uint8_t* data, size_t size) {
 	uint8_t *data2;
@@ -370,7 +370,7 @@ void RSCockpit::parseMONI_INST_RAWS_SHAP_ZOOM(uint8_t* data, size_t size) {
 	uint8_t *shape_data;
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
-    this->MONI.INST.RAWS.ZOOM.init(shape_data+offset, size);
+    this->MONI.INST.RAWS.ZOOM.init(shape_data+offset, size - offset);
 }
 void RSCockpit::parseMONI_INST_RAWS_SHAP_NORM(uint8_t* data, size_t size) {
     int offset = 0;
@@ -385,7 +385,7 @@ void RSCockpit::parseMONI_INST_RAWS_SHAP_NORM(uint8_t* data, size_t size) {
         shape_data = (uint8_t*) malloc(size);
         memcpy(shape_data, data, size);
         // shape 20 byte offset, don't know why
-        this->MONI.INST.RAWS.NORM.init(shape_data+offset, 0);
+        this->MONI.INST.RAWS.NORM.init(shape_data+offset, size - offset);
     } else {
         shape_data = (uint8_t*) malloc(size);
         memcpy(shape_data, data, size);

@@ -148,6 +148,11 @@ bool RLEShape::ExpandFragmentWithBox(RLEFragment *frag, uint8_t *dst, int bx1, i
 }
 
 void RLEShape::init(uint8_t *idata, size_t isize) {
+    if (isize == 0) {
+        this->size = 0;
+        this->data = nullptr;
+        return;
+    }
     this->size = isize;
     uint8_t *tmpdata = idata;
     if (idata[0] == 'L' && idata[1] == 'Z') {
