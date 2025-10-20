@@ -16,9 +16,14 @@ bool IFFSaxLexer::InitFromFile(const char *filepath,
     char fullPath[512];
     fullPath[0] = '\0';
 
-    strcat(fullPath, GetBase());
-    strcat(fullPath, filepath);
-
+    // Check if filepath contains directory separators
+    if (strchr(filepath, '/') != NULL || strchr(filepath, '\\') != NULL) {
+        strcat(fullPath, filepath);
+    } else {
+        strcat(fullPath, GetBase());
+        strcat(fullPath, filepath);
+    }
+    
     FILE *file = fopen(fullPath, "r+b");
     printf("IFF SAX:opening %s\n", fullPath);
 
