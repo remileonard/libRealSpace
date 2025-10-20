@@ -100,11 +100,11 @@ std::unordered_map<uint8_t, std::vector<uint8_t>> faces_shape = {
 bool isNextFrameIsConv(uint8_t type) {
     switch (type) {
         case GROUP_SHOT:
-        case GROUP_SHOT_ADD_CHARCTER:
         case GROUP_SHOT_CHARCTR_TALK:
         case CLOSEUP:
         case CLOSEUP_CONTINUATION:
         case SHOW_TEXT:
+        case GROUP_SHOT_ADD_CHARCTER:
         case YESNOCHOICE_BRANCH1:
         case YESNOCHOICE_BRANCH2:
         case CHOOSE_WINGMAN:
@@ -253,7 +253,7 @@ void ConvFrame::parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv) {
 }
 void ConvFrame::parse_SHOW_TEXT(ByteStream *conv) {
     this->mode = ConvFrame::CONV_SHOW_TEXT;
-    int8_t color      = conv->ReadByte();
+    uint8_t color      = conv->ReadByte();
     int next_frame_offset = this->SetSentenceFromConv(conv, 0);
     this->textColor = color;
 
@@ -372,11 +372,11 @@ int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
         std::string test = std::string(sentence_end);
         sound_offset = (int) strlen((char *)sentence) + decalage;
         uint8_t t = test.c_str()[0];
-        if (t != 255) {
+        if (t != 0xFF && t != 0xF4) {
             this->sound_file_name = new std::string(sentence);
             sentence = sentence_end;
         } else {
-            sound_offset = 5;
+            sound_offset = 4;
         }
     }
     std::string *text = new std::string(sentence);
@@ -446,6 +446,7 @@ void SCConvPlayer::ReadNextFrame(void) {
 }
 
 void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
+    static bool yes_no_choice_in_progress = false;
     if (this->conv.GetCurrentPosition() > this->size) {
         return;
     }
@@ -480,15 +481,20 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
         tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
         tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
         tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
+        yes_no_choice_in_progress = true;
         break;
     }
     case YESNOCHOICE_BRANCH2: // Choice offset after first branch
     {
-
+        if (!yes_no_choice_in_progress) {
+            tmp_frame->do_not_add = true;
+            break;
+        }
         // tmp_frame->mode = ConvFrame::CONV_CONTRACT_CHOICE;
         // Looks like first byte is the offset to skip if the answer is no.
         tmp_frame->parse_YESNOCHOICE_BRANCH2(&conv);
         tmp_frame->do_not_add = true;
+        yes_no_choice_in_progress = false;
         break;
     }
     case GROUP_SHOT_ADD_CHARCTER: // Add person to GROUP
@@ -572,8 +578,13 @@ void SCConvPlayer::SetID(int32_t id) {
         Game->log("Cannot load conversation id (max convID is %lu).", convPak.GetNumEntries() - 1);
         return;
     }
+    
     topOffset = CONV_TOP_BAR_HEIGHT + 1;
     PakEntry *entry = convPak.GetEntry(id);
+    if (entry->size == 0) {
+        Game->log("Conversation entry is empty: Unable to load it.\n");
+        return;
+    }
     if (entry->data[5] == 0x06 && entry->data[4] == 0x00) {
         PKWareDecompressor decompressor;
         uint8_t *compressed = entry->data + 4;

@@ -62,6 +62,12 @@ void DebugConvPlayer::renderUI() {
                         ImGui::Text("Face Position: %d", frame->facePosition);
                         ImGui::Text("Face Expression: %d", frame->face_expression);
                         ImGui::Text("Face Palette ID: %d", frame->facePaletteID);
+                        RLEShape *faceShape = frame->face->appearances->GetShape(1);
+                        if (faceShape->GetWidth() == 0 || faceShape->GetHeight() == 0) {
+                            ImGui::Text("Face Shape is empty.");
+                            ImGui::TreePop();
+                            continue;
+                        }
                         FrameBuffer *fb = new FrameBuffer(320, 200);
                         fb->fillWithColor(223);
                         fb->drawShape(frame->face->appearances->GetShape(1));
@@ -88,6 +94,11 @@ void DebugConvPlayer::renderUI() {
                         if (ImGui::TreeNodeEx("Participants", ImGuiTreeNodeFlags_DefaultOpen)) {
                             for (auto part : frame->participants) {
                                 ImGui::Text("Participant: %s", part->name.c_str());
+                                RLEShape *partShape = part->appearances->GetShape(0);
+                                if (partShape->GetWidth() == 0 || partShape->GetHeight()== 0) {
+                                    ImGui::Text("Participant Shape is empty.");
+                                    continue;
+                                }
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
                                 fb->fillWithColor(223);
                                 fb->drawShape(part->appearances->GetShape(0));
@@ -114,6 +125,10 @@ void DebugConvPlayer::renderUI() {
                     if (frame->bgLayers != nullptr && frame->bgLayers->size() > 0) {
                         if (ImGui::TreeNodeEx("Background Layers", ImGuiTreeNodeFlags_DefaultOpen)) {
                             for (auto layer : *frame->bgLayers) {
+                                if (layer->GetWidth() == 0 || layer->GetHeight() == 0) {
+                                    ImGui::Text("Layer Shape is empty.");
+                                    continue;
+                                }
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
                                 fb->fillWithColor(223);
                                 fb->drawShape(layer);
