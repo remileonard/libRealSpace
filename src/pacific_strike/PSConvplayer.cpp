@@ -77,7 +77,7 @@ int PSConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
     if (end_frame_mark[0] == 0xFF && end_frame_mark[0] == 0xFF) {
         
     } else if (end_frame_mark[0] == 0xF4 && end_frame_mark[0] == 0xFF) {
-        
+
     }
     if (text->find("$N") != std::string::npos) {
         text->replace(text->find("$N"), 2, GameState.player_firstname);
@@ -146,7 +146,12 @@ void PSConvPlayer::parseConv(ConvFrame *tmp_frame) {
     switch (type) {
     case 0x00: // Group plan
     {
-        tmp_frame->parse_GROUP_SHOT(&conv);
+        if (conv.CurrentByte() < 0x2E) {
+            conv.MoveForward(1);
+            tmp_frame->do_not_add = true;
+        } else {
+            tmp_frame->parse_GROUP_SHOT(&conv);
+        }
         break;
     }
     case 0x03: // Person talking
