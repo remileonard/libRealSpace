@@ -4,27 +4,96 @@ PSConvFrame::PSConvFrame() {}
 
 PSConvFrame::~PSConvFrame() {}
 
-void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {}
+void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
+    char *location = (char *)conv->GetPosition();
 
-void PSConvFrame::parse_CLOSEUP(ByteStream *conv) {}
+    ConvBackGround *bg = ConvAssets.GetBackGround(location);
 
-void PSConvFrame::parse_CLOSEUP_CONTINUATION(ByteStream *conv) {}
+    this->mode = ConvFrame::CONV_WIDE;
+    this->participants.clear();
+    this->participants.shrink_to_fit();
+    this->bgLayers   = &bg->layers;
+    this->bgPalettes = &bg->palettes;
+    this->face      = nullptr;
 
-void PSConvFrame::parse_YESNOCHOICE_BRANCH1(ByteStream *conv, SCConvPlayer *player) {}
+    conv->MoveForward(8);
+    while (conv->PeekByte() == 0x0 && !conv->IsEndOfStream()) {
+        conv->MoveForward(1);
+    }
+    while (!isNextFrameIsConv((uint8_t) conv->PeekByte()) && !conv->IsEndOfStream()) {
+        conv->MoveForward(1);
+    }
+    uint8_t next_type = conv->PeekByte();
+    if (next_type == 0x0A) {
+        conv->MoveForward(2);
+        this->parse_SHOW_TEXT(conv);
+    } else {
+        conv->MoveForward(1);
+    }
+}
 
-void PSConvFrame::parse_YESNOCHOICE_BRANCH2(ByteStream *conv) {}
+void PSConvFrame::parse_CLOSEUP(ByteStream *conv) {
+    char *speakerName            = (char *)conv->GetPosition();
+    this->face_expression = (uint8_t)*(conv->GetPosition() + 0x09);
+    char *setName                = (char *)conv->GetPosition() + 0xA;
 
-void PSConvFrame::parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv) {}
+    int next_frame_offset = SetSentenceFromConv(conv,0x17);
+    this->participants.clear();
+    this->participants.shrink_to_fit();
+    uint8_t pos               = *(conv->GetPosition() + 0x13);
+    this->facePosition = static_cast<ConvFrame::FacePos>(pos);
 
-void PSConvFrame::parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv) {}
+    this->mode         = ConvFrame::CONV_CLOSEUP;
+    this->face         = ConvAssets.GetCharFace(speakerName);
+    ConvBackGround *bg        = ConvAssets.GetBackGround(setName);
+    this->bgLayers     = &bg->layers;
+    this->bgPalettes   = &bg->palettes;
 
-void PSConvFrame::parse_SHOW_TEXT(ByteStream *conv) {}
+    conv->MoveForward(next_frame_offset);
+    uint8_t color              = conv->ReadByte(); // Color ?
+    this->textColor            = color;
+    const char *pszExt         = "normal";
+    this->facePaletteID = ConvAssets.GetFacePaletteID(const_cast<char *>(pszExt));
+}
 
-void PSConvFrame::parse_UNKNOWN(ByteStream *conv) {}
+void PSConvFrame::parse_SHOW_TEXT(ByteStream *conv) {
+    this->mode = ConvFrame::CONV_SHOW_TEXT;
+    uint8_t color      = conv->ReadByte();
+    int next_frame_offset = this->SetSentenceFromConv(conv, 0);
+    this->textColor = color;
 
-void PSConvFrame::parse_CHOOSE_WINGMAN(ByteStream *conv, SCConvPlayer *player) {}
+    conv->MoveForward(next_frame_offset);
+    conv->PeekByte();
+}
 
-int PSConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) { return 0; }
+int PSConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
+    conv->MoveForward(start_offset);
+    std::string sentence = conv->ReadStringNoSize(conv->GetSize() - conv->GetCurrentPosition());
+    int sound_offset = 0;
+    int decalage = 1;
+    
+    std::string *text = new std::string(sentence);
+    std::vector<uint8_t> end_frame_mark = conv->ReadBytes(4);
+    if (end_frame_mark[0] == 0xFF && end_frame_mark[0] == 0xFF) {
+        
+    } else if (end_frame_mark[0] == 0xF4 && end_frame_mark[0] == 0xFF) {
+        
+    }
+    if (text->find("$N") != std::string::npos) {
+        text->replace(text->find("$N"), 2, GameState.player_firstname);
+    }
+    if (text->find("$S") != std::string::npos) {
+        text->replace(text->find("$S"), 2, GameState.player_name);
+    }
+    if (text->find("$C") != std::string::npos) {
+        text->replace(text->find("$C"), 2, GameState.player_callsign);
+    }
+    if (text->find("$W") != std::string::npos) {
+        text->replace(text->find("$W"), 2, GameState.wingman);
+    }
+    this->text         = (char *)text->c_str();
+    return 0;
+}
 
 PSConvPlayer::PSConvPlayer() {}
 
@@ -70,6 +139,40 @@ void PSConvPlayer::ReadNextFrame(void) {
 }
 
 void PSConvPlayer::parseConv(ConvFrame *tmp_frame) {
-    printf("PSConvPlayer::parseConv not implemented yet.\n");
-    conv.ReadByte(); // Just to advance the stream
+    if (this->conv.GetCurrentPosition() > this->size) {
+        return;
+    }
+    uint8_t type = conv.ReadByte();
+    switch (type) {
+    case 0x00: // Group plan
+    {
+        tmp_frame->parse_GROUP_SHOT(&conv);
+        break;
+    }
+    case 0x03: // Person talking
+    {
+        tmp_frame->parse_CLOSEUP(&conv);
+        break;
+    }
+    case 0x0A: // Show text
+    {
+        tmp_frame->parse_SHOW_TEXT(&conv);
+        tmp_frame->face = this->conversation_frames.back()->face;
+        tmp_frame->textColor = this->conversation_frames.back()->textColor;
+        tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
+        tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
+        tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
+        
+        break;
+    }
+    case 0xE: {
+        topOffset = conv.ReadByte();
+        first_palette = conv.ReadByte();
+        this->parseConv(tmp_frame);
+        break;
+    }
+    default:
+        tmp_frame->do_not_add = true;
+        break;
+    }
 }

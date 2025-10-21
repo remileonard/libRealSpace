@@ -54,6 +54,7 @@ public:
     uint16_t ReadUShortBE(void);
     std::vector<uint8_t> ReadBytes(size_t count);
     void ReadBytes(uint8_t *buffer, size_t count);
-    int GetCurrentPosition() { return this->position; };
+    size_t GetCurrentPosition() { return this->position; };
+    size_t GetSize() { return this->size; };
     bool IsEndOfStream() { return this->position >= this->size; };
 };

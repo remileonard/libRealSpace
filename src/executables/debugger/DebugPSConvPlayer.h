@@ -9,5 +9,5 @@ public:
     virtual void init() override { PSConvPlayer::init();}
     virtual void renderMenu() override { DebugConvPlayer::renderMenu(); }
     virtual void renderUI() override { DebugConvPlayer::renderUI(); }
-    virtual void runFrame(void) override { DebugConvPlayer::runFrame(); }
+    virtual void runFrame(void) override;
 };
