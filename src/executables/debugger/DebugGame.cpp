@@ -445,8 +445,7 @@ void DebugGame::loadPacificConv() {
     }
     main->init();
     main->SCConvPlayer::init();
-    main->PSConvPlayer::SetID(150);
-    
+    main->PSConvPlayer::SetID(139);
     main->SCConvPlayer::conversation_frames = main->PSConvPlayer::conversation_frames;
     this->addActivity(static_cast<IActivity*>(static_cast<DebugConvPlayer*>(main)));
 }
