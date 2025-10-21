@@ -16,6 +16,8 @@ target_include_directories(libRealSpace_tests
 target_link_libraries(libRealSpace_tests 
     PRIVATE 
     commons
+    engine
+    realspace
     GTest::gtest
     GTest::gtest_main
 )
