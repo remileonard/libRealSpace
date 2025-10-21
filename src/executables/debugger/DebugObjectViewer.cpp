@@ -72,7 +72,7 @@ void DebugObjectViewer::runFrame()  {
             glEnd();
             
         }
-        Renderer.drawModel(objs.showCases[currentObject].entity, LOD_LEVEL_MAX);    
+        Renderer.drawModel(objs.showCases[currentObject].entity, lodLevel);    
     } else if (objs.showCases[currentObject].entity->animations.size() > 0) {
         this->fps++;
         if (this->fps > 12) {
@@ -263,6 +263,7 @@ void DebugObjectViewer::renderUI() {
         if (ImGui::BeginTabItem("Properties")) {
             
             RSEntity *entity = objs.showCases[currentObject].entity;
+            ImGui::InputInt("LOD Level", &lodLevel);
             ImGui::BeginChild("general", ImVec2(0, 0), true);
             ImGui::Text("Entity Type: %d", entity->entity_type);
             ImGui::Text("Target Type: %d", entity->target_type);
