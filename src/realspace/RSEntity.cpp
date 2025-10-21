@@ -812,7 +812,7 @@ void RSEntity::parseREAL_APPR_POLY(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_APPR_POLY_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_POLY_VERT(uint8_t *data, size_t size) {
-    if (size % 12 != 0)
+    if (size < 12)
         return;
     ByteStream stream(data, size);
     size_t numVertice = size / 12;
@@ -863,7 +863,7 @@ void RSEntity::parseREAL_APPR_POLY_DETA_LVLX(uint8_t *data, size_t size) {
     AddLod(&lod);
 }
 void RSEntity::parseREAL_APPR_POLY_ATTR(uint8_t *data, size_t size) {
-    if (size % 9 != 0)
+    if (size < 9)
         return;
     size_t num_attr = size / 9;
     ByteStream stream(data, size);
@@ -901,7 +901,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS(uint8_t *data, size_t size) {
 }
 
 void RSEntity::parseREAL_APPR_POLY_TRIS_VTRI(uint8_t *data, size_t size) {
-    if (size % 8 != 0)
+    if (size < 8)
         return;
     size_t numTriangle = size / 8;
     ByteStream stream(data, size);
@@ -925,7 +925,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_VTRI(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_FACE(uint8_t *data, size_t size) {
-    if (size % 8 != 0)
+    if (size < 8)
         return;
     size_t numTriangle = size / 8;
     ByteStream stream(data, size);
@@ -1125,7 +1125,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
     
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_UVXY(uint8_t *data, size_t size) {
-    if (size % 8 != 0)
+    if (size < 8)
         return;
     ByteStream stream(data, size);
 
@@ -1150,7 +1150,7 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_UVXY(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_MAPS(uint8_t *data, size_t size) {
-    if (size % 16 != 0)
+    if (size < 16)
         return;
     ByteStream stream(data, size);
 
@@ -1193,7 +1193,7 @@ void RSEntity::parseREAL_APPR_POLY_QUAD(uint8_t *data, size_t size) {
 }
 
 void RSEntity::parseREAL_APPR_POLY_QUAD_FACE(uint8_t *data, size_t size) {
-    if (size % 10 != 0)
+    if (size < 10)
         return;
     size_t numQuad = size / 10;
     ByteStream stream(data, size);
@@ -1219,7 +1219,7 @@ void RSEntity::parseREAL_APPR_POLY_QUAD_FACE(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_APPR_POLY_QUAD_MAPS(uint8_t *data, size_t size) {
-    if (size % 20 != 0)
+    if (size < 20)
         return;
     ByteStream stream(data, size);
 
