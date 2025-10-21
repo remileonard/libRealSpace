@@ -18,9 +18,6 @@ DebugConvPlayer::DebugConvPlayer() {
 DebugConvPlayer::~DebugConvPlayer() {
 }
 
-void DebugConvPlayer::renderMenu() {
-}
-
 void DebugConvPlayer::renderUI() {
     static std::vector<GLuint> s_PrevFrameGLTex;
     static std::vector<GLuint> s_CurrentFrameGLTex;
@@ -165,5 +162,25 @@ void DebugConvPlayer::renderUI() {
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
+    }
+}
+void DebugConvPlayer::renderMenu() {
+    static bool conv_player = false;
+    if (ImGui::BeginMenu("Conversation")) {
+        ImGui::MenuItem("Open a conversation", NULL, &conv_player);
+        ImGui::EndMenu();
+    }
+    if (conv_player) {
+        ImGui::Begin("Convert Player", &conv_player);
+        static ImGuiComboFlags flags = 0;
+        if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
+            for (int i = 0; i < 256; i++) {
+                if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
+                    this->SetID(i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::End();
     }
 }
