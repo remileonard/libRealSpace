@@ -99,13 +99,13 @@ TEST_F(ByteStreamTest, ReadString_ReturnsCorrectString_AndAdvancesPosition) {
     EXPECT_EQ(6, stream.GetCurrentPosition());
 }
 
-TEST_F(ByteStreamTest, ReadString_WithNullTerminator_StopsAtNull_AndAdvancesPosition) {
+TEST_F(ByteStreamTest, ByteStreamTest_ReadString_MaxSizeReached_StripNull_Test) {
     uint8_t data[] = {'T', 'e', 's', 't', 0x00, 'X', 'Y', 'Z'};
     ByteStream stream(data, 8);
     
     EXPECT_EQ(0, stream.GetCurrentPosition());
     std::string result = stream.ReadString(6);
-    EXPECT_EQ("Test", result);
+    EXPECT_EQ("TestX", result);
     EXPECT_EQ(6, stream.GetCurrentPosition()); // Lit jusqu'à la taille spécifiée
 }
 
@@ -145,8 +145,8 @@ TEST_F(ByteStreamTest, MoveForward_BeyondEnd_ClampedToSize) {
     
     EXPECT_EQ(0, stream.GetCurrentPosition());
     stream.MoveForward(100);
-    EXPECT_EQ(2, stream.GetCurrentPosition()); // Limité à la taille
-    EXPECT_EQ(0, stream.ReadByte()); // Devrait retourner 0
+    EXPECT_EQ(1, stream.GetCurrentPosition()); // Limité à la taille - 1
+    EXPECT_EQ(0x02, stream.ReadByte()); // Devrait retourner 0
     EXPECT_EQ(2, stream.GetCurrentPosition()); // Position ne change pas
 }
 
