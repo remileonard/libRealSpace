@@ -7,7 +7,7 @@ public:
     DebugPSConvPlayer();
     ~DebugPSConvPlayer();
     virtual void init() override { PSConvPlayer::init();}
+    virtual void SetID(int conv_id);
     virtual void renderMenu() override { DebugConvPlayer::renderMenu(); }
     virtual void renderUI() override { DebugConvPlayer::renderUI(); }
-    virtual void runFrame(void) override;
 };

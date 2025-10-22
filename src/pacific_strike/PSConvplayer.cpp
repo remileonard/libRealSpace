@@ -5,9 +5,8 @@ PSConvFrame::PSConvFrame() {}
 PSConvFrame::~PSConvFrame() {}
 
 void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
-    char *location = (char *)conv->GetPosition();
-
-    ConvBackGround *bg = ConvAssets.GetBackGround(location);
+    std::string loc_str = conv->ReadString(8);
+    ConvBackGround *bg = ConvAssets.GetBackGround(loc_str.c_str());
 
     this->mode = ConvFrame::CONV_WIDE;
     this->participants.clear();
@@ -16,7 +15,6 @@ void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
     this->bgPalettes = &bg->palettes;
     this->face      = nullptr;
 
-    conv->MoveForward(8);
     while (conv->PeekByte() == 0x0 && !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
@@ -33,19 +31,22 @@ void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
 }
 
 void PSConvFrame::parse_CLOSEUP(ByteStream *conv) {
-    char *speakerName            = (char *)conv->GetPosition();
-    this->face_expression = (uint8_t)*(conv->GetPosition() + 0x09);
-    char *setName                = (char *)conv->GetPosition() + 0xA;
-
-    int next_frame_offset = SetSentenceFromConv(conv,0x17);
+    std::string speaker_name_str = conv->ReadString(8);
+    conv->MoveForward(1);
+    this->face_expression = conv->ReadByte();
+    std::string location_set_name = conv->ReadString(8);
+    conv->MoveForward(2);
+    uint8_t pos = conv->ReadByte();
+    conv->MoveForward(2);
+    int next_frame_offset = SetSentenceFromConv(conv,0);
     this->participants.clear();
     this->participants.shrink_to_fit();
-    uint8_t pos               = *(conv->GetPosition() + 0x13);
+    
     this->facePosition = static_cast<ConvFrame::FacePos>(pos);
 
     this->mode         = ConvFrame::CONV_CLOSEUP;
-    this->face         = ConvAssets.GetCharFace(speakerName);
-    ConvBackGround *bg        = ConvAssets.GetBackGround(setName);
+    this->face         = ConvAssets.GetCharFace(speaker_name_str.c_str());
+    ConvBackGround *bg        = ConvAssets.GetBackGround(location_set_name.c_str());
     this->bgLayers     = &bg->layers;
     this->bgPalettes   = &bg->palettes;
 
@@ -146,34 +147,49 @@ void PSConvPlayer::parseConv(ConvFrame *tmp_frame) {
     switch (type) {
     case 0x00: // Group plan
     {
-        if (conv.CurrentByte() < 0x2E) {
+        uint8_t cub = conv.CurrentByte();
+        if ((0x20 <= cub) && (cub <= 0x7E)) {
+            tmp_frame->parse_GROUP_SHOT(&conv);
+        } else if (cub == 0x3) {
+            uint8_t next_b = conv.PeekByte();
+            if ((0x20 <= next_b) && (next_b <= 0x7E)) {
+                conv.MoveForward(1);
+                tmp_frame->parse_CLOSEUP(&conv);
+            } else {
+                conv.MoveForward(1);
+                tmp_frame->do_not_add = true;
+            }
+        }else {
             conv.MoveForward(1);
             tmp_frame->do_not_add = true;
-        } else {
-            tmp_frame->parse_GROUP_SHOT(&conv);
         }
         break;
     }
     case 0x03: // Person talking
     {
-        tmp_frame->parse_CLOSEUP(&conv);
+        uint8_t cub = conv.CurrentByte();
+        if ((0x20 <= cub) && (cub <= 0x7E)) {
+            tmp_frame->parse_CLOSEUP(&conv);
+        } else {
+            conv.MoveForward(1);
+            tmp_frame->do_not_add = true;
+        }
         break;
     }
     case 0x0A: // Show text
     {
-        tmp_frame->parse_SHOW_TEXT(&conv);
-        tmp_frame->face = this->conversation_frames.back()->face;
-        tmp_frame->textColor = this->conversation_frames.back()->textColor;
-        tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
-        tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
-        tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
-        
-        break;
-    }
-    case 0xE: {
-        topOffset = conv.ReadByte();
-        first_palette = conv.ReadByte();
-        this->parseConv(tmp_frame);
+        uint8_t cub = conv.CurrentByte();
+        if ((0x20 <= cub) && (cub <= 0x7E)) {
+            tmp_frame->parse_SHOW_TEXT(&conv);
+            tmp_frame->face = this->conversation_frames.back()->face;
+            tmp_frame->textColor = this->conversation_frames.back()->textColor;
+            tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
+            tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
+            tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
+        } else {
+            conv.MoveForward(1);
+            tmp_frame->do_not_add = true;
+        }
         break;
     }
     default:

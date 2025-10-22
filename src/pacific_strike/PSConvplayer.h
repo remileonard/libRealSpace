@@ -13,7 +13,7 @@ public:
     int SetSentenceFromConv(ByteStream *conv, int start_offset);
 
 };
-class PSConvPlayer: public SCConvPlayer {
+class PSConvPlayer: public virtual SCConvPlayer {
 protected:
 
 public:

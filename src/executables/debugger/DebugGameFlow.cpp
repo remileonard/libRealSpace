@@ -24,6 +24,22 @@ void DebugGameFlow::playConv(uint8_t convId) {
     conv->SetID(convId);
     this->convs.push(conv);
 }
+void DebugGameFlow::renderConvPlayer() {
+    ImGui::Begin("Convert Player", &conv_player);
+    static ImGuiComboFlags flags = 0;
+    if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
+        for (int i = 0; i < 256; i++) {
+            if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
+                SCConvPlayer *conv = new DebugConvPlayer();
+                conv->init();
+                conv->SetID(i);
+                this->convs.push(conv);
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::End();
+}
 /**
  * This method renders the game flow menu using ImGui.
  *
@@ -43,13 +59,12 @@ void DebugGameFlow::renderMenu() {
     static bool show_gamestate = false;
     static bool show_shots = false;
     static bool load_sprites = false;
-    static bool conv_player = false;
     static bool show_music_player = false;
     static int miss_selected = 0;
     if (ImGui::BeginMenu("GameFlow")) {
         ImGui::MenuItem("Load Miss", NULL, &show_load_miss);
         ImGui::MenuItem("Load shots", NULL, &show_shots);
-        ImGui::MenuItem("Convert player", NULL, &conv_player);
+        ImGui::MenuItem("Convert player", NULL, &this->conv_player);
         ImGui::MenuItem("load sprites from current scene", NULL, &load_sprites);
         ImGui::MenuItem("Info", NULL, &show_scene_window);
         ImGui::MenuItem("GameState", NULL, &show_gamestate);
@@ -143,20 +158,7 @@ void DebugGameFlow::renderMenu() {
         ImGui::End();
     }
     if (conv_player) {
-        ImGui::Begin("Convert Player", &conv_player);
-        static ImGuiComboFlags flags = 0;
-        if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
-            for (int i = 0; i < 256; i++) {
-                if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
-                    SCConvPlayer *conv = new DebugConvPlayer();
-                    conv->init();
-                    conv->SetID(i);
-                    this->convs.push(conv);
-                }
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::End();
+        this->renderConvPlayer();
     }
     if (load_sprites) {
         ImGui::Begin("Load Sprites", &load_sprites);

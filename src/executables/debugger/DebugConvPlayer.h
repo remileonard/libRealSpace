@@ -1,7 +1,7 @@
 #pragma once
 #include "../../strike_commander/precomp.h"
 
-class DebugConvPlayer : public SCConvPlayer {
+class DebugConvPlayer : public virtual SCConvPlayer {
 protected:
     bool paused{false};
     void CheckFrameExpired(void) override;

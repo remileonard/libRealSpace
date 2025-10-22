@@ -18,7 +18,7 @@
 #include "DebugConvPlayer.h"
 #include "DebugPacificStrikeMISN.h"
 #include "DebugPSConvPlayer.h"
-
+#include "DebugPSGameFlow.h"
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
 
@@ -433,7 +433,7 @@ void DebugGame::loadPacificConv() {
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
     ConvAssetManager::getInstance().init();
-    DebugPSConvPlayer* main = new DebugPSConvPlayer();
+    DebugPSGameFlow* main = new DebugPSGameFlow();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
     GameState.player_callsign = "Debug";
@@ -443,11 +443,8 @@ void DebugGame::loadPacificConv() {
     for (int i=0; i<256; i++) {
         GameState.requierd_flags[i] = false;
     }
-    main->init();
-    main->SCConvPlayer::init();
-    main->PSConvPlayer::SetID(139);
-    main->SCConvPlayer::conversation_frames = main->PSConvPlayer::conversation_frames;
-    this->addActivity(static_cast<IActivity*>(static_cast<DebugConvPlayer*>(main)));
+    main->DebugGameFlow::init();
+    this->addActivity(main);
 }
 
 void DebugGame::loadPacificMISN() {
