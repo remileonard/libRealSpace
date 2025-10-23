@@ -10,7 +10,9 @@ void DebugPSGameFlow::playConv(uint8_t convId) {
     conv->SetID(convId);
     DebugGameFlow::convs.push(conv);
 }
-DebugPSGameFlow::DebugPSGameFlow() {}
+DebugPSGameFlow::DebugPSGameFlow() {
+    printf("DebugPSGameFlow constructor\n");
+}
 
 DebugPSGameFlow::~DebugPSGameFlow() {}
 

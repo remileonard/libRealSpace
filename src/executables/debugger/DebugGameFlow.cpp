@@ -308,17 +308,23 @@ void DebugGameFlow::renderMissionInfos() {
     ImGui::Text("Nb Miss %zu", this->gameFlowParser.game.game.size());
     ImGui::Text("Nb Layers %zu", this->layers.size());
     ImGui::Text("Nb Scenes %zu", this->gameFlowParser.game.game[this->current_miss]->scen.size());
+    for (int j = 0; j < this->gameFlowParser.game.game[this->current_miss]->scen.size(); j++) {
+        if (ImGui::Button(std::to_string(this->gameFlowParser.game.game[this->current_miss]->scen.at(j)->info.ID).c_str())) {
+            this->current_scen = j;
+            this->currentSpriteId = 0;
+            this->createScen();
+        }
+    }
     if (this->gameFlowParser.game.game[this->current_miss]->efct != nullptr) {
         ImGui::Text("Miss has efct");
         if (ImGui::TreeNodeEx("Miss Efect", tflag)) {
             for (auto effect : *this->gameFlowParser.game.game[this->current_miss]->efct) {
-                if (game_flow_op_name.find(GameFlowOpCode(effect->opcode)) == game_flow_op_name.end()) {
-                    ImGui::Text("OPC: %03d\tVAL: %03d", effect->opcode, effect->value);
+                if (game_flow_op_name.find(GameFlowOpCode(effect->opcode)) != game_flow_op_name.end()) {
+                    ImGui::Text("OPC:[%03d] %s\tVAL: %03d",effect->opcode, game_flow_op_name[GameFlowOpCode(effect->opcode)].c_str(), effect->value);
                     
                 } else {
                     ImGui::Text("OPC: %03d\tVAL: %03d", effect->opcode, effect->value);
                 }
-                
             }
             ImGui::TreePop();
         }
@@ -355,7 +361,11 @@ void DebugGameFlow::renderMissionInfos() {
                         if (sprite->efect != nullptr && sprite->efect->size() > 0) {
                             if (ImGui::TreeNodeEx("Efect",tflag)) {
                                 for (auto efct : *sprite->efect) {
-                                    ImGui::Text("OPC: %s\tVAL: %03d", game_flow_op_name[GameFlowOpCode(efct->opcode)].c_str(), efct->value);
+                                    if (game_flow_op_name.find(GameFlowOpCode(efct->opcode)) != game_flow_op_name.end()) {
+                                        ImGui::Text("OPC:[%03d] %s\tVAL: %03d",efct->opcode, game_flow_op_name[GameFlowOpCode(efct->opcode)].c_str(), effect->value);
+                                    } else {
+                                        ImGui::Text("OPC: %03d\tVAL: %03d", efct->opcode, efct->value);
+                                    }
                                 }
                                 ImGui::TreePop();
                             }

@@ -44,7 +44,7 @@ void RSImageSet::InitFromPakEntry(PakEntry *entry) {
             pal_size |= *(currImage+6) << 8;
             pal_size |= *(currImage+7) << 0;
             if (*(currImage+8)=='P') {
-                palette->initFromFileRam(currImage, pal_size+16, 8);
+                palette->initFromFileRam(currImage, pal_size+16, 4);
                 this->palettes.push_back(palette);
                 RLEShape *shape = new RLEShape();
                 *shape = *RLEShape::GetEmptyShape();

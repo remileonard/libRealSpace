@@ -443,7 +443,7 @@ void DebugGame::loadPacificConv() {
     for (int i=0; i<256; i++) {
         GameState.requierd_flags[i] = false;
     }
-    main->DebugGameFlow::init();
+    main->init();
     this->addActivity(main);
 }
 
