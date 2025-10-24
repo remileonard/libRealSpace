@@ -367,6 +367,9 @@ void SCGameFlow::runEffect() {
             }
             break;
         case EFECT_OPT_LOAD_GAME:
+            if (instruction->value != 0) {
+                break;
+            }
             if (this->frequest == nullptr) {
                 uint8_t soffset = 0;
                 if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
@@ -380,6 +383,9 @@ void SCGameFlow::runEffect() {
             this->frequest->loadFiles();
         break;
         case EFECT_OPT_SAVE_GAME:
+            if (instruction->value != 0) {
+                break;
+            }
             if (this->frequest == nullptr) {
                 uint8_t soffset = 0;
                 if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {

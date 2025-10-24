@@ -70,24 +70,36 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
 
         if (chunk_stype == "FORM") {
             size_t chunk_size = this->stream->ReadUInt32BE();
-            chunk_size += chunk_size % 2;
+            if (chunk_size % 2 != 0) {
+                //chunk_size++;
+            }
+            //chunk_size += chunk_size % 2;
             std::vector<uint8_t> bname = this->stream->ReadBytes(4);
             chunk_stype.assign(bname.begin(), bname.end());
             read += 8;
             if (events.count(chunk_stype) > 0) {
                 uint8_t * chunk_data = (uint8_t *)calloc(chunk_size + size_offset, sizeof(uint8_t));
                 this->stream->ReadBytes(chunk_data, chunk_size + size_offset);
+                if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
+                    this->stream->MoveForward(1);
+                    read++;
+                }
                 events.at(chunk_stype)(chunk_data, chunk_size + size_offset);
                 read += (chunk_size + size_offset);
                 free(chunk_data);
             } else {
                 printf("%s not handled\n", chunk_stype.c_str());
                 std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size + size_offset);
+                if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
+                    this->stream->MoveForward(1);
+                }
                 read += (chunk_size+ size_offset );
             }
         } else {
             size_t chunk_size = this->stream->ReadUInt32BE();
-            chunk_size += chunk_size % 2;
+            if (chunk_size % 2 != 0) {
+                //chunk_size++;
+            }
 			if (chunk_size > this->size) {
 				chunk_size = size-4;
 				stream->MoveForward(-4);
@@ -97,6 +109,10 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                 if (chunk_size > 0) {
                     uint8_t * chunk_data = (uint8_t *)calloc(chunk_size, sizeof(uint8_t));
                     this->stream->ReadBytes(chunk_data, chunk_size);
+                    if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
+                        this->stream->MoveForward(1);
+                        read++;
+                    }
                     events.at(chunk_stype.c_str())(chunk_data, chunk_size);
                     free(chunk_data);
                 } else {
@@ -108,6 +124,10 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                 if (chunk_size > 0) {
                     //std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size);
                     this->stream->MoveForward(chunk_size);
+                    if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
+                        this->stream->MoveForward(1);
+                        read++;
+                    }
                     read += chunk_size;
                 }
             }

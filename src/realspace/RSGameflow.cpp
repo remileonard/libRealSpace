@@ -1,6 +1,8 @@
 #include "RSGameflow.h"
 #include "RSGameflow.h"
 #include "../commons/IFFSaxLexer.h"
+#include "../strike_commander/SCenums.h"
+
 #include <unordered_map>
 #include <string>
 #include <functional>
@@ -48,21 +50,27 @@ void RSGameFlow::parseMISS(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseMISS_INFO(uint8_t* data, size_t size) {
-	if (size < 2)
+	if (size < 1)
 		return;
-	this->tmpmiss->info.ID = *data++;
-	this->tmpmiss->info.UNKOWN = *data;
+	this->tmpmiss->info.ID = data[0];
+	if (size > 1) {
+		this->tmpmiss->info.UNKOWN = data[1];
+	}
 }
 
 void RSGameFlow::parseMISS_EFCT(uint8_t* data, size_t size) {
 	if (size < 2) {
 		return;
 	}
+	ByteStream stream(data, size);
 	this->tmpmiss->efct = new std::vector<EFCT *>();
-	for (int i = 0; i < size; i=i+2) {
+	while (!stream.IsEndOfStream()) {
 		EFCT* efct = new EFCT();
-		efct->opcode = data[i];
-		efct->value = data[i + 1];
+		efct->opcode = stream.ReadByte();
+		if (stream.IsEndOfStream()) {
+			break;
+		}
+		efct->value = stream.ReadByte();
 		this->tmpmiss->efct->push_back(efct);
 	}
 }
@@ -80,10 +88,11 @@ void RSGameFlow::parseMISS_SCEN(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseMISS_SCEN_INFO(uint8_t* data, size_t size) {
-	if (size < 2)
+	if (size < 1)
 		return;
-	this->tmpgfsc->info.ID = *data++;
-	this->tmpgfsc->info.UNKOWN = *data;
+	this->tmpgfsc->info.ID = data[0];
+	if (size > 1)
+		this->tmpgfsc->info.UNKOWN = data[1];
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT(uint8_t* data, size_t size) {
@@ -102,10 +111,11 @@ void RSGameFlow::parseMISS_SCEN_SPRT(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT_INFO(uint8_t* data, size_t size) {
-	if (size < 2)
+	if (size < 1)
 		return;
-	this->tmpscsp->info.ID = *data++;
-	this->tmpscsp->info.UNKOWN = *data;
+	this->tmpscsp->info.ID = data[0];
+	if (size > 1)
+		this->tmpscsp->info.UNKOWN = data[1];
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
@@ -116,8 +126,10 @@ void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
 	for (int i = 0; i < size; i=i+2) {
 		EFCT* efct = new EFCT();
 		efct->opcode = data[i];
-		efct->value = data[i + 1];
-		this->tmpscsp->efct->push_back(efct);
+		if (i + 1 < size) {
+			efct->value = data[i + 1];
+			this->tmpscsp->efct->push_back(efct);
+		}
 	}
 }
 
@@ -130,8 +142,10 @@ void RSGameFlow::parseMISS_SCEN_SPRT_REQU(uint8_t* data, size_t size) {
 	for (int i=0; i<size; i+=2) {
 		REQU* tmprequ = new REQU();
 		tmprequ->op = data[i];
-		tmprequ->value = data[i+1];
-		this->tmpscsp->requ->push_back(tmprequ);
+		if (i + 1 < size) {
+			tmprequ->value = data[i+1];
+			this->tmpscsp->requ->push_back(tmprequ);
+		}
 	}
 }
 
@@ -157,10 +171,11 @@ void RSGameFlow::parseWRLD_MAPS(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseWRLD_MAPS_INFO(uint8_t* data, size_t size) {
-	if (size < 2)
+	if (size < 1)
 		return;
-	this->tmpmap->info.ID = *data++;
-	this->tmpmap->info.UNKOWN = *data;
+	this->tmpmap->info.ID = data[0];
+	if (size > 1)
+		this->tmpmap->info.UNKOWN = data[1];
 }
 
 void RSGameFlow::parseWRLD_MAPS_SPED(uint8_t* data, size_t size) {
@@ -281,10 +296,11 @@ void RSGameFlow::parseWNGS_WING(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseWNGS_WING_INFO(uint8_t* data, size_t size) {
-	if (size < 2)
+	if (size < 1)
 		return;
-	this->tmpwings->info.ID = *data++;
-	this->tmpwings->info.UNKOWN = *data;
+	this->tmpwings->info.ID = data[0];
+	if (size > 1)
+		this->tmpwings->info.UNKOWN = data[1];
 }
 
 void RSGameFlow::parseWNGS_WING_PILT(uint8_t* data, size_t size) {
@@ -325,14 +341,15 @@ void RSGameFlow::parseSTAT_CHNG(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseSTAT_CHNG_INFO(uint8_t* data, size_t size) {
-	if (size < 2)
+	if (size < 1)
 		return;
-	this->tmpstat->info.ID = *data++;
-	this->tmpstat->info.UNKOWN = *data;
+	this->tmpstat->info.ID = data[0];
+	if (size > 1)
+		this->tmpstat->info.UNKOWN = data[1];
 }
 
 void RSGameFlow::parseSTAT_CHNG_PILT(uint8_t* data, size_t size) {
-	if (size % 5 != 0) {
+	if (size < 5) {
 		return;
 	}
 	std::vector<PILT_CHANGE *>* tpilt = new std::vector<PILT_CHANGE*>();
@@ -376,7 +393,7 @@ void RSGameFlow::parseSTAT_CHNG_OVER(uint8_t* data, size_t size) {
 }
 
 void RSGameFlow::parseSTAT_CHNG_WEAP(uint8_t* data, size_t size) {
-	if (size % 4 != 0) {
+	if (size < 4) {
 		return;
 	}
 	std::vector<WEAP_CHANGE*>* tweap = new std::vector<WEAP_CHANGE*>();

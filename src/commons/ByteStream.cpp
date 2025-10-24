@@ -125,7 +125,7 @@ uint8_t ByteStream::PeekByte(void) {
 	return *(this->cursor + 1);
 }
 uint8_t ByteStream::CurrentByte(void) { 
-	if (this->position >= this->size) {
+	if (this->position > this->size) {
 		printf("ByteStream: Attempt to read current byte past end of stream (%zu >= %zu)\n", this->position, this->size);
 		return 0;
 	}

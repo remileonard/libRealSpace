@@ -108,7 +108,7 @@ void DebugGameFlow::renderMenu() {
             miss[i] = new char[10];
             sprintf(miss[i], "%d", i);
         }
-        if (ImGui::BeginCombo("List des miss", miss[miss_selected], flags)) {
+        /*if (ImGui::BeginCombo("List des miss", miss[miss_selected], flags)) {
             for (int i = 0; i < this->gameFlowParser.game.game.size(); i++) {
                 const bool is_selected = (miss_selected == i);
                 if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
@@ -119,6 +119,17 @@ void DebugGameFlow::renderMenu() {
                 if (is_selected)
                     ImGui::SetItemDefaultFocus();
             }
+            ImGui::EndCombo();
+        }*/
+        if (ImGui::BeginCombo("Liste des missions", std::to_string(miss_selected).c_str(), flags)) {
+            for (auto miss: this->gameFlowParser.game.game) {
+                const bool is_selected = (miss_selected == miss.first);
+                if (ImGui::Selectable(std::to_string(miss.second->info.ID).c_str(), false)) {
+                    miss_selected = miss.first;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }   
             ImGui::EndCombo();
         }
         //delete [] miss;
@@ -199,6 +210,14 @@ void DebugGameFlow::renderUI() {
         }
         if (ImGui::BeginTabItem("GameState")) {
             this->renderGameState();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("GameFlow Content")) {
+            int i=0;
+            for (auto flymiss : this->gameFlowParser.game.mlst->data) {
+                ImGui::Text("Mission [%03d]ID: %s",i, flymiss->c_str());
+                i++;
+            }
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

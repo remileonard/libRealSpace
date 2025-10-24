@@ -92,20 +92,25 @@ void RSOption::parseOPTS_SCEN_BACK(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_BACK_PALT(uint8_t *data, size_t size) {
-    if (size < 2)
+    if (size < 1)
         return;
     PALT *palt = new PALT();
-    palt->ID = *data++;
-    palt->UNKOWN = *data;
+    palt->ID = data[0];
+    palt->UNKOWN = 0;
+    if (size > 1) {
+        palt->UNKOWN = data[1];
+    }
     this->tmpback->palette = palt;
 }
 
 void RSOption::parseOPTS_SCEN_BACK_SHAPE(uint8_t *data, size_t size) {
-    if (size < 2)
+    if (size < 1)
         return;
     BACK_SHAP *shps = new BACK_SHAP();
-    shps->ID = *data++;
-    shps->UNKOWN_1 = *data;
+    shps->ID = data[0];
+    if (size > 1) {
+        shps->UNKOWN_1 = data[1];
+    }
     this->tmpback->images.push_back(shps);
 }
 
@@ -125,11 +130,14 @@ void RSOption::parseOPTS_SCEN_FORE(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_PALT(uint8_t *data, size_t size) {
-    if (size < 2)
+    if (size < 1)
         return;
     PALT *palette = new PALT();
-    palette->ID = *data++;
-    palette->UNKOWN = *data;
+    palette->ID = data[0];
+    palette->UNKOWN = 0;
+    if (size > 1) {
+        palette->UNKOWN = data[1];
+    }
     this->tmpfore->palette = palette;
 }
 
@@ -160,21 +168,27 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_TUNE(uint8_t *data, size_t size) {
-    if (size < 2)
+    if (size < 1)
         return;
     TUNE *tune = new TUNE();
-    tune->ID = *data++; 
-    tune->UNKOWN = *data;
+    tune->ID = data[0]; 
+    if (size > 1) {
+        tune->UNKOWN = data[1];
+    }
     this->tmpsprt->tune = tune;
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_SHAP(uint8_t *data, size_t size) {
-    if (size < 4)
+    if (size < 2)
         return;
-    this->tmpsprt->sprite.GID = *data++;
-    this->tmpsprt->sprite.SHP_ID = *data++;
-    this->tmpsprt->sprite.UNKOWN_1 = *data++;
-    this->tmpsprt->sprite.UNKOWN_2 = *data;
+    this->tmpsprt->sprite.GID = data[0];
+    this->tmpsprt->sprite.SHP_ID = data[1];
+    if (size > 3) {
+        this->tmpsprt->sprite.UNKOWN_1 = data[2];
+    }
+    if (size > 4) {
+        this->tmpsprt->sprite.UNKOWN_2 = data[3];
+    }
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_CLCK(uint8_t *data, size_t size) { 
@@ -209,13 +223,19 @@ void RSOption::parseOPTS_SCEN_FORE_SPRT_QUAD(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SPRT_INFO(uint8_t *data, size_t size) {
-    if (size < 4)
+    if (size < 1)
         return;
     SPRT_INFO *info = new SPRT_INFO();
-    info->ID = *data++;
-    info->UNKOWN_1 = *data++;
-    info->UNKOWN_2 = *data++;
-    info->UNKOWN_3 = *data;
+    info->ID = data[0];
+    if (size > 1) {
+        info->UNKOWN_1 = data[1];
+    }
+    if (size > 2) {
+        info->UNKOWN_2 = data[2];
+    }
+    if (size > 3) {
+        info->UNKOWN_3 = data[3];
+    }
 }
 
 void RSOption::parseOPTS_SCEN_FORE_SEQU(uint8_t *data, size_t size) {
@@ -272,10 +292,13 @@ void RSOption::parseETSB_SHOT(uint8_t *data, size_t size) {
 }
 
 void RSOption::parseETSB_SHOT_INFO(uint8_t *data, size_t size) {
-    if (size < 2)
+    if (size < 1)
         return;
-    this->tmpshot->infos.ID = *data++;
-    this->tmpshot->infos.UNKOWN = *data;
+
+    this->tmpshot->infos.ID = data[0];
+    if (size > 1) {
+        this->tmpshot->infos.UNKOWN = data[1];
+    }
 }
 
 void RSOption::parseETSB_SHOT_SHPS(uint8_t *data, size_t size) {
