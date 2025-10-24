@@ -78,7 +78,7 @@ void SCZone::draw(void) {
     }
     
     if (this->sprite != nullptr) {
-        RLEShape *spr_shape = this->sprite->img->GetShape(this->sprite->img->sequence[0]);
+        RLEShape *spr_shape = this->sprite->img->GetShape(0);
         Point2D spr_pos = {0,0};
         if (spr_shape->leftDist < 0) {
             spr_pos = {-spr_shape->leftDist, -spr_shape->topDist};

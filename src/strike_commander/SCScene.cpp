@@ -105,6 +105,7 @@ SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<E
             sprt->unkown       = sprite->info.UNKOWN;
             sprt->efect        = sprite->efct;
             sprt->img          = this->getShape(optsprtId);
+            sprt->img->removeFirstEmptyShape();
             sprt->frameCounter = 0;
             if (this->sceneOpts->foreground->sprites[sprtId]->CLCK == 1) {
                 sprt->cliked       = true;

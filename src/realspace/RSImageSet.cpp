@@ -190,3 +190,14 @@ RLEShape *RSImageSet::GetShape(size_t index) {
 void RSImageSet::Add(RLEShape *shape) { this->shapes.push_back(shape); }
 
 size_t RSImageSet::GetNumImages(void) { return this->shapes.size(); }
+
+void RSImageSet::removeFirstEmptyShape(void) {
+    if (this->shapes.size() <=1 ) {
+        return;
+    }
+    RLEShape *firstShape = this->shapes[0];
+    if (firstShape->GetWidth() == 0 || firstShape->GetHeight() == 0) {
+        this->shapes.erase(this->shapes.begin());
+        delete firstShape;
+    }
+}

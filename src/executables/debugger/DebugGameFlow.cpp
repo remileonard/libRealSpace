@@ -362,7 +362,7 @@ void DebugGameFlow::renderMissionInfos() {
                             if (ImGui::TreeNodeEx("Efect",tflag)) {
                                 for (auto efct : *sprite->efect) {
                                     if (game_flow_op_name.find(GameFlowOpCode(efct->opcode)) != game_flow_op_name.end()) {
-                                        ImGui::Text("OPC:[%03d] %s\tVAL: %03d",efct->opcode, game_flow_op_name[GameFlowOpCode(efct->opcode)].c_str(), effect->value);
+                                        ImGui::Text("OPC:[%03d] %s\tVAL: %03d",efct->opcode, game_flow_op_name[GameFlowOpCode(efct->opcode)].c_str(), efct->value);
                                     } else {
                                         ImGui::Text("OPC: %03d\tVAL: %03d", efct->opcode, efct->value);
                                     }
