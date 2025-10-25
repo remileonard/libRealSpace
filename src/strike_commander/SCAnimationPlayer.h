@@ -6,8 +6,7 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 
-#ifndef __libRealSpace__SCAnimationPlayer__
-#define __libRealSpace__SCAnimationPlayer__
+#pragma once
 
 
 class SCAnimationPlayer: public IActivity {
@@ -25,7 +24,7 @@ protected:
     std::unordered_map<uint8_t, MIDGAME_DATA> midgames_data;
     std::vector<PakArchive*> mid;
     std::vector<PakArchive*> midvoc;
-    std::unordered_map<uint8_t, std::vector<MIDGAME_SHOT *>> midgames_shots;
+    
     int shot_counter{0};
     int fps_counter{0};
     int fps{1};
@@ -43,7 +42,5 @@ public:
     virtual void renderMenu() {};
     virtual void renderUI(void) {};
     bool pause{false};
+    std::unordered_map<uint8_t, std::vector<MIDGAME_SHOT *>> midgames_shots;
 };
-
-#endif /* defined(__libRealSpace__SCAnimationPlayer__) */
-

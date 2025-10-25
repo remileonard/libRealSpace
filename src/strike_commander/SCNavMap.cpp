@@ -210,7 +210,10 @@ void SCNavMap::runFrame(void) {
     float map_width = BLOCK_WIDTH * 18.0f;
     if (this->navMap->maps.count(*this->name)>0) {
         VGA.getFrameBuffer()->drawShape(this->navMap->maps[*this->name]);
-        VGA.getFrameBuffer()->drawShape(this->navMap->background);
+        RLEShape *shape = this->navMap->background;
+        if (shape != nullptr) {
+            VGA.getFrameBuffer()->drawShape(shape);
+        }
         Point2D pos = this->navMap->maps[*this->name]->position;
         int w = 238;
         int h = 155;
