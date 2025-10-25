@@ -4,7 +4,7 @@
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
 #include <nfd.hpp>
-
+#define EMPTY_VALUE -9999
 RSImageSet *loadImage(PakArchive *pak, int entry_id) {
     if (pak == nullptr || entry_id < 0 || entry_id >= pak->GetNumEntries()) {
         return nullptr;
@@ -129,6 +129,7 @@ void DebugAnimationPlayer::renderUI() {
             ImGui::SameLine();
             if (ImGui::Button("Next Frame")) {
                 this->fps++;
+                this->fps_counter++;
                 if (this->fps > this->midgames_shots[1][this->shot_counter]->nbframe) {
                     this->fps = this->midgames_shots[1][this->shot_counter]->nbframe;
                 }
@@ -1072,6 +1073,12 @@ void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *char
         chara->velocity.x = velocity_x;
         chara->velocity.y = velocity_y;
     }
+    if (ImGui::Button("Supprimer le character")) {
+        chara->image = nullptr;
+        delete chara;
+        chara = nullptr;
+        this->p_character_editor = nullptr;
+    }
 }
 void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
     if (!shot)
@@ -1137,9 +1144,40 @@ void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
         }
     }
 }
+void initIntHelper(int *value, int defaultValue) {
+    if (*value == EMPTY_VALUE || *value != defaultValue) {
+        *value = defaultValue;
+    }
+}
 void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     static std::vector<GLuint> s_PrevFrameGLTex;
     static std::vector<GLuint> s_CurrentFrameGLTex;
+
+    static int shapeid = EMPTY_VALUE;
+    static int palette_id = EMPTY_VALUE;
+    static int start_x = EMPTY_VALUE, start_y = EMPTY_VALUE;
+    static int end_x = EMPTY_VALUE, end_y = EMPTY_VALUE;
+    static int velocity_x = EMPTY_VALUE, velocity_y = EMPTY_VALUE;
+
+    static MIDGAME_SHOT_BG *s_LastEditedBG = nullptr;
+
+    if (s_LastEditedBG != bg) {
+        // Réinitialiser toutes les valeurs statiques
+        shapeid = bg->pak_entry_id;
+        palette_id = bg->palette;
+        start_x = bg->position_start.x;
+        start_y = bg->position_start.y;
+        end_x = bg->position_end.x;
+        end_y = bg->position_end.y;
+        velocity_x = bg->velocity.x;
+        velocity_y = bg->velocity.y;
+        
+        // Mettre à jour le pointeur
+        s_LastEditedBG = bg;
+    }
+
+
+
     // Détruire les textures de la frame précédente (elles ont été rendues)
     if (!s_PrevFrameGLTex.empty()) {
         for (GLuint id : s_PrevFrameGLTex) {
@@ -1178,7 +1216,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     }
     this->current_entry_index = bg->pak_entry_id;
     this->midgameChoser();
-    int shapeid = bg->pak_entry_id;
+    
     if (ImGui::InputInt("ID de forme", &shapeid)) {
         this->current_entry_index = shapeid;
     }
@@ -1211,7 +1249,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
         bg->palette = this->current_palette_entry_index;
     }
     this->current_palette_entry_index = bg->palette;
-    int palette_id = bg->palette;
+    
     midgamePaletteChoser();
     if (ImGui::InputInt("ID de palette", &palette_id)) {
         if (palette_id >= 0 && palette_id <= 255) {
@@ -1223,8 +1261,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     }
     // Position de départ
     ImGui::Text("Position de départ");
-    int start_x = bg->position_start.x;
-    int start_y = bg->position_start.y;
+    
     if (ImGui::InputInt("X##start", &start_x) || ImGui::InputInt("Y##start", &start_y)) {
         bg->position_start.x = start_x;
         bg->position_start.y = start_y;
@@ -1232,8 +1269,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
 
     // Position finale
     ImGui::Text("Position finale");
-    int end_x = bg->position_end.x;
-    int end_y = bg->position_end.y;
+
     if (ImGui::InputInt("X##end", &end_x) || ImGui::InputInt("Y##end", &end_y)) {
         bg->position_end.x = end_x;
         bg->position_end.y = end_y;
@@ -1241,8 +1277,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
 
     // Vitesse
     ImGui::Text("Vitesse");
-    int velocity_x = bg->velocity.x;
-    int velocity_y = bg->velocity.y;
+
     if (ImGui::InputInt("X##velocity", &velocity_x) || ImGui::InputInt("Y##velocity", &velocity_y)) {
         bg->velocity.x = velocity_x;
         bg->velocity.y = velocity_y;
@@ -1383,7 +1418,10 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
     if (ImGui::Checkbox("Conserver la première frame", &keep_first)) {
         sprite->keep_first_frame = keep_first ? 1 : 0;
     }
-
+    bool repeate = sprite->repeat_animation != 0;
+    if (ImGui::Checkbox("Repeate animation", &repeate)) {
+        sprite->repeat_animation = repeate ? 1 : 0;
+    }
     // Position de départ
     ImGui::Text("Position de départ");
     int start_x = sprite->position_start.x;

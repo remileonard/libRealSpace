@@ -213,6 +213,13 @@ void EventManager::update() {
         if (m_forwardImGui) {
             if (!isKb || (isKb && m_keyboardCaptureImGui)) {
                 ImGui_ImplSDL2_ProcessEvent(&event);
+            } else {
+                if (event.type == SDL_TEXTINPUT || event.type == SDL_KEYDOWN) {
+                    // Ne pas consommer ces événements si ImGui veut l'input
+                    if (ImGui::GetIO().WantCaptureKeyboard) {
+                        ImGui_ImplSDL2_ProcessEvent(&event);
+                    }
+                }
             }
         }
         switch (event.type) {

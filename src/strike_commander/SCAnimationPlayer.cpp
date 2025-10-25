@@ -961,6 +961,16 @@ void SCAnimationPlayer::runFrame(void){
         if (sprt->keep_first_frame) {
             texture->drawShape(sprt->image->GetShape(1));
         }
+        if (fpsupdate && (sprt->velocity.x != 0 || sprt->velocity.y != 0)) {
+            if (sprt->current_position.x != sprt->position_end.x) {
+                sprt->current_position.x += sprt->velocity.x;
+            }  
+            if (sprt->velocity.y<0 && sprt->current_position.y > sprt->position_end.y) {
+                sprt->current_position.y += sprt->velocity.y;
+            } else if (sprt->velocity.y>0 && sprt->current_position.y < sprt->position_end.y) {
+                sprt->current_position.y += sprt->velocity.y;
+            }
+        }
         if (fpsupdate) {
             sprt->current_frame++;
             if (sprt->current_frame > sprt->image->GetNumImages()-1) {
@@ -975,7 +985,7 @@ void SCAnimationPlayer::runFrame(void){
         texture->drawShape(sprt->image->GetShape(sprt->current_frame));
         
         int color = texture->framebuffer[0];
-        fb->blitWithMask(texture->framebuffer, sprt->position_start.x, sprt->position_start.y, 320, 200,color);
+        fb->blitWithMask(texture->framebuffer, sprt->current_position.x, sprt->current_position.y, 320, 200,color);
         delete texture;
     }
     for (auto bg : shot->foreground) {
@@ -1004,6 +1014,17 @@ void SCAnimationPlayer::runFrame(void){
     if (!pause) {
         fps_counter++;
         fps+=fpsupdate;
+    } else if (pause && fps == 1) {
+        for (auto bg : shot->background) {
+            bg->current_position = {bg->position_start.x, bg->position_start.y};
+        }
+        for (auto sprt: shot->sprites) {
+            sprt->current_frame = 1;
+            sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
+        }
+        for (auto bg : shot->foreground) {
+            bg->current_position = {bg->position_start.x, bg->position_start.y};
+        }
     }
     if (fps > shot->nbframe) {
         fps = 1;
@@ -1012,6 +1033,7 @@ void SCAnimationPlayer::runFrame(void){
         }
         for (auto sprt: shot->sprites) {
             sprt->current_frame = 1;
+            sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
         }
         for (auto bg : shot->foreground) {
             bg->current_position = {bg->position_start.x, bg->position_start.y};
