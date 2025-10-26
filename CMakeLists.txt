@@ -55,6 +55,8 @@ file(MAKE_DIRECTORY ${FONTS_DIR})
 # Copie des assets (ajustez les chemins selon votre structure de projet)
 file(COPY "${CMAKE_SOURCE_DIR}/resources/STRIKE.wopl" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_1.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_2.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_3.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${FONTS_DIR}")
 
 # Installation des exécutables et des DLLs
