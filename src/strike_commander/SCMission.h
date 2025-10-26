@@ -21,7 +21,7 @@ struct RadioMessages {
 class SCProg;
 
 class SCMission {
-private:
+protected:
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
     RSEntity * LoadEntity(std::string name);
@@ -54,11 +54,12 @@ public:
     std::vector<RadioMessages*> radio_messages;
     bool mission_over{false};
     bool mission_won{false};
+    SCMission();
     SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache);
     ~SCMission();
-    void loadMission();
+    virtual void loadMission();
     void cleanup();
-    void update();
+    virtual void update();
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
 };

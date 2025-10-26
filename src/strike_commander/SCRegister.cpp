@@ -50,7 +50,7 @@ void SCRegister::init() {
     palettesPak.InitFromRAM("OPTSHPS.PAK",palettesEntry->data,palettesEntry->size);
 
     ByteStream paletteReader;
-    paletteReader.Set(palettesPak.GetEntry(OPTPALS_PAK_STARTGAME_REGISTRATION)->data);
+    paletteReader.Set(palettesPak.GetEntry(OPTPALS_PAK_STARTGAME_REGISTRATION)->data, palettesPak.GetEntry(OPTPALS_PAK_STARTGAME_REGISTRATION)->size);
     this->palette.ReadPatch(&paletteReader);
 
     this->font = FontManager.GetFont("..\\..\\DATA\\FONTS\\SM-FONT.SHP");

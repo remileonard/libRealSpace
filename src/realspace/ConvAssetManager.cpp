@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "ConvAssetManager.h"
 
 ConvAssetManager::ConvAssetManager() {
     this->conv_file_name = "CONVDATA.IFF";
@@ -143,10 +144,10 @@ uint8_t ConvAssetManager::GetFacePaletteID(std::string name) {
  * returns a dummy shape instead.
  *
  */
-void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGround *back) {
+void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGround *back, size_t size) {
 
     ByteStream dataReader;
-    dataReader.Set(data + 5 * layerID);
+    dataReader.Set(data + 5 * layerID, size);
 
     uint8_t type = dataReader.ReadByte();
     uint8_t shapeID = dataReader.ReadByte();
@@ -166,50 +167,49 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
         shapeArchive = &this->optShps;
         paletteArchive = &this->optPals;
     }
-
-    // Debug Display
-    /*
-        printf("\n%8s layer %lu :",back->name,layerID);
-        for (size_t x=0; x < 5 ; x++) {
-            printf("%3d ",*(data + 5 * layerID+x));
-        }
-    */
-
-    /*
-    // The pack features some duplicate entries.
-    while(convShapeArchive.GetEntry(shapeID)->size == 0)
-        shapeID--;
-    */
+    if (type == 0x00 && shapeID == 3) {
+        printf("Debug\n");
+    }
 
     RLEShape *s = new RLEShape();
 
     PakEntry *shapeEntry = shapeArchive->GetEntry(shapeID);
     PakArchive subPAK;
-    subPAK.InitFromRAM("", shapeEntry->data, shapeEntry->size);
-
-    if (!subPAK.IsReady()) {
-
-        // Sometimes the image is not in a PAK but as raw data.
-        if (shapeEntry->size == 0) {
-            printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
-            s = RLEShape::GetEmptyShape();
+    if (shapeEntry->size == 0) {
+        s = RLEShape::GetEmptyShape();
+    } else {
+        subPAK.InitFromRAM("", shapeEntry->data, shapeEntry->size);
+        if (!subPAK.IsReady()) {
+            uint16_t shape_chunk_size = *(uint16_t *)(shapeEntry->data);
+            subPAK.InitFromRAM("", shapeEntry->data, shape_chunk_size);
+            if (!subPAK.IsReady()) {
+                printf("ConvAssetManager: Cannot find shape ID %d for background '%s', returning dummy shape instead.\n", shapeID, back->name.c_str());
+                s = RLEShape::GetEmptyShape();
+            } else {
+                /*
+                TreEntry shap;
+                shap.data = shapeEntry->data;
+                shap.size = shapeEntry->size;
+                RSImageSet* set = new RSImageSet();
+                set->InitFromTreEntry(&shap);
+                delete set;
+                */
+                s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
+                if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
+                    Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
+                    s->SetPosition(&pos);
+                }
+                
+            }
         } else {
-            printf("Error on Pak %d for layer %d in loc %8s => Using dummy instead\n", shapeID, (int)layerID, back->name.c_str());
-            RSImageSet *set = new RSImageSet();
-            set->InitFromRam(shapeEntry->data, shapeEntry->size);
-            s = set->GetShape(0);
+            s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
             if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
                 Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
                 s->SetPosition(&pos);
             }
         }
-    } else {
-        s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
-        if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
-            Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
-            s->SetPosition(&pos);
-        }
     }
+    
 
     back->layers.push_back(s);
     back->palettes.push_back(paletteArchive->GetEntry(paletteID)->data);
@@ -281,6 +281,7 @@ void ConvAssetManager::parseBCKS_BACK(uint8_t *data, size_t size) {
     handlers["DATA"] = std::bind(&ConvAssetManager::parseBCKS_BACK_DATA, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
+    
     this->backgrounds[this->tmp_conv_bg->name] = this->tmp_conv_bg;
 
 }
@@ -288,9 +289,18 @@ void ConvAssetManager::parseBCKS_BACK_INFO(uint8_t *data, size_t size) {
     this->tmp_conv_bg->name = std::string((char *)data, strnlen((char *)data, 8));
 }
 void ConvAssetManager::parseBCKS_BACK_DATA(uint8_t *data, size_t size) {
+    if (size < 5) {
+        return;
+    }
     size_t numLayers = size / 5; // A layer entry is 5 bytes wide
+    if (numLayers == 1) {
+        printf("Warning: Background %8s has only 1 layer.\n", this->tmp_conv_bg->name.c_str());
+    }
+    if (this->tmp_conv_bg->name == "ms_fpov5") {
+        printf("Debug\n");
+    }
     for (size_t layerID = 0; layerID < numLayers; layerID++)
-        ParseBGLayer(data, layerID, tmp_conv_bg);
+        ParseBGLayer(data, layerID, tmp_conv_bg, size);
 }
 void ConvAssetManager::parseFACE(uint8_t *data, size_t size) {
 
@@ -302,7 +312,10 @@ void ConvAssetManager::parseFACE(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFACE_DATA(uint8_t *data, size_t size) {
-    ByteStream s(data);
+    if (size < 9) {
+        return;
+    }
+    ByteStream s(data, size);
 
     CharFace *tmp_face = new CharFace();
     tmp_face->name = std::string((char *)data, strnlen((char *)data, 8));
@@ -335,7 +348,10 @@ void ConvAssetManager::parseFIGR(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFIGR_DATA(uint8_t *data, size_t size) {
-    ByteStream s(data);
+    if (size < 9) {
+        return;
+    }
+    ByteStream s(data, size);
 
     CharFigure *figr = new CharFigure();
     figr->name = std::string((char *)data, strnlen((char *)data, 8));
@@ -367,7 +383,9 @@ void ConvAssetManager::parsePFIG(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parsePFIG_DATA(uint8_t *data, size_t size) {
-    ByteStream s(data);
+    if (size < 9) {
+        return;
+    }
     std::string figr;
     figr = std::string((char *)data, strnlen((char *)data, 8));
     if (this->figures.find(figr) != this->figures.end()) {
@@ -383,12 +401,18 @@ void ConvAssetManager::parseFCPL(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFCPL_DATA(uint8_t *data, size_t size) {
+    if (size < 9) {
+        return;
+    }
     FacePalette *pal = new FacePalette();
     pal->name = std::string((char *)data, strnlen((char *)data, 8));
     pal->index = *(data + 8);
     this->facePalettes[pal->name] = pal;
 }
 void ConvAssetManager::parseFGPL(uint8_t *data, size_t size) {
+    if (size < 9) {
+        return;
+    }
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;

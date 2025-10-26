@@ -15,20 +15,21 @@ RSImageSet::~RSImageSet() {}
 void RSImageSet::InitFromPakEntry(PakEntry *entry) {
 
     uint8_t *end = entry->data + entry->size;
-    ByteStream index(entry->data);
+    ByteStream index(entry->data, entry->size);
 
     uint32_t nextImage = index.ReadUInt32LE();
     nextImage = nextImage & 0x00FFFFFF;
 
     uint32_t numImages = nextImage / 4;
     for (size_t i = 0; i < numImages && (entry->data + nextImage < end); i++) {
-
+        size_t size = 0;
+        size = end - (entry->data + nextImage);
         uint8_t *currImage = entry->data + nextImage;
 
         nextImage = index.ReadUInt32LE();
         nextImage = nextImage & 0x00FFFFFF;
 
-        size_t size = 0;
+        
 
         if (*currImage != 'F') {
             RLEShape *shape = new RLEShape();
@@ -43,7 +44,7 @@ void RSImageSet::InitFromPakEntry(PakEntry *entry) {
             pal_size |= *(currImage+6) << 8;
             pal_size |= *(currImage+7) << 0;
             if (*(currImage+8)=='P') {
-                palette->initFromFileRam(currImage, pal_size+16, 8);
+                palette->initFromFileRam(currImage, pal_size+16, 4);
                 this->palettes.push_back(palette);
                 RLEShape *shape = new RLEShape();
                 *shape = *RLEShape::GetEmptyShape();
@@ -67,20 +68,20 @@ void RSImageSet::InitFromRam(uint8_t *data, size_t size) {
 
 
     uint8_t *end = data + size;
-    ByteStream index(data);
+    ByteStream index(data, size);
 
     uint32_t nextImage = index.ReadUInt32LE();
     nextImage = nextImage & 0x00FFFFFF;
 
     uint32_t numImages = nextImage / 4;
     for (size_t i = 0; i < numImages && (data + nextImage < end); i++) {
-
+        size_t size = 0;
+        size = end - (data + nextImage);
         uint8_t *currImage = data + nextImage;
 
         nextImage = index.ReadUInt32LE();
         nextImage = nextImage & 0x00FFFFFF;
 
-        size_t size = 0;
 
         if (*currImage != 'F') {
             RLEShape *shape = new RLEShape();
@@ -109,7 +110,7 @@ void RSImageSet::InitFromRam(uint8_t *data, size_t size) {
 void RSImageSet::InitFromTreEntry(TreEntry *entry) {
 
     uint8_t *end = entry->data + entry->size;
-    ByteStream index(entry->data);
+    ByteStream index(entry->data, entry->size);
 
     uint32_t nextImage = index.ReadUInt32LE();
     nextImage = nextImage & 0x00FFFFFF;
@@ -152,7 +153,7 @@ void RSImageSet::InitFromTreEntry(TreEntry *entry) {
 void RSImageSet::InitFromSubPakEntry(PakArchive *entry) {
     for (int i = 0; i < entry->GetNumEntries(); i++) {
         RLEShape *shape = new RLEShape();
-        shape->init(entry->GetEntry(i)->data, 0);
+        shape->init(entry->GetEntry(i)->data, entry->GetEntry(i)->size);
         Point2D pos = {0, 0};
         shape->SetPosition(&pos);
         this->shapes.push_back(shape);
@@ -167,7 +168,7 @@ void RSImageSet::InitFromPakArchive(PakArchive *entry) {
 void RSImageSet::InitFromPakArchive(PakArchive *entry, uint8_t data_offset) {
     for (int i = 0; i < entry->GetNumEntries(); i++) {
         RLEShape *shape = new RLEShape();
-        shape->init(entry->GetEntry(i)->data + data_offset, 0);
+        shape->init(entry->GetEntry(i)->data + data_offset, entry->GetEntry(i)->size - data_offset);
         Point2D pos = {0, 0};
         shape->SetPosition(&pos);
         this->shapes.push_back(shape);
@@ -176,11 +177,11 @@ void RSImageSet::InitFromPakArchive(PakArchive *entry, uint8_t data_offset) {
 }
 
 
-RLEShape *RSImageSet::GetShape(size_t index) { 
-    if (index > this->shapes.size()) {
-        if (this->shapes.size() == 0) {
-            return RLEShape::GetEmptyShape();
-        }
+RLEShape *RSImageSet::GetShape(size_t index) {
+    if (this->shapes.size() == 0) {
+        return RLEShape::GetEmptyShape();
+    }
+    if (index > this->shapes.size()-1) {
         return this->shapes[0];
     }
     return this->shapes[index];
@@ -189,3 +190,14 @@ RLEShape *RSImageSet::GetShape(size_t index) {
 void RSImageSet::Add(RLEShape *shape) { this->shapes.push_back(shape); }
 
 size_t RSImageSet::GetNumImages(void) { return this->shapes.size(); }
+
+void RSImageSet::removeFirstEmptyShape(void) {
+    if (this->shapes.size() <=1 ) {
+        return;
+    }
+    RLEShape *firstShape = this->shapes[0];
+    if (firstShape->GetWidth() == 0 || firstShape->GetHeight() == 0) {
+        this->shapes.erase(this->shapes.begin());
+        delete firstShape;
+    }
+}

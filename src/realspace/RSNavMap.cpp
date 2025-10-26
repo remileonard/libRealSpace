@@ -12,7 +12,7 @@ void RSNavMap::parseNMAP(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSNavMap::parseNMAP_MAPS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     std::string name;
     size_t read = 0;
     while (read < size) {
@@ -30,14 +30,14 @@ void RSNavMap::parseNMAP_MAPS(uint8_t *data, size_t size) {
             size_t csize = 0;
             shape_data = lzbuffer.DecodeLZW(shape_data2 +6, shape_size - 6, csize);
             maps[name] = new RLEShape();
-            maps[name]->init(shape_data+8, 0);
+            maps[name]->init(shape_data+8, csize -8);
             read += shape_size;
             stream.MoveForward(shape_size);      
         } else {
             shape_data = (uint8_t *)malloc(shape_size);
             memcpy(shape_data, stream.GetPosition() + 4, shape_size);
             maps[name] = new RLEShape();
-            maps[name]->init(shape_data, 0);
+            maps[name]->init(shape_data, shape_size);
             stream.MoveForward(shape_size - 4);
             read += (shape_size - 4);
         }
@@ -61,13 +61,19 @@ void RSNavMap::parseNMAP_SHAP(uint8_t *data, size_t size) {
         data = uncompressed_data;
         size = csize;
         this->background = new RLEShape();
-        this->background->init(data+8,0);
+        this->background->init(data+8,size -8);
+    } if (data[0] == 'w'&& data[1] == 'i' && data[2] == 'l' && data[3] == 'd') {
+        this->background = new RLEShape();
+        uint8_t *shape_data;
+        shape_data = (uint8_t *)malloc(size);
+        memcpy(shape_data, data + 16, size);
+        this->background->init(shape_data, size -16);
     } else {
         this->background = new RLEShape();
         uint8_t *shape_data;
         shape_data = (uint8_t *)malloc(size);
         memcpy(shape_data, data + 8, size);
-        this->background->init(shape_data, 0);
+        this->background->init(shape_data, size -8);
     }
 }
 

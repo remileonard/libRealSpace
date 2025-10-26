@@ -349,7 +349,7 @@ void SCRenderer::init(int width, int height) {
     // glClearDepth(1.0f);								// Depth Buffer Setup
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
-    camera.setPersective(45.0f, this->width / (float)this->height, 3.8f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
+    camera.setPersective(45.0f, this->width / (float)this->height, 1.5f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
 
     light.SetWithCoo(300, 300, 300);
 
@@ -1002,6 +1002,9 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
                 triangleID = object->attrs[triangleID]->id;
             }
             if (triangleID >= object->triangles.size()) {
+                continue;
+            }
+            if (triangleID >= object->quads.size()) {
                 continue;
             }
             Quads *triangle = object->quads[triangleID];
@@ -1695,7 +1698,6 @@ void SCRenderer::getRenderToTexture() {
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 800, 600, 0);
 }
 void SCRenderer::initRenderCameraView(){ 
-    const float verticalOffset = 0.45f;
     Matrix *projectionMatrix = camera.getProjectionMatrix();
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

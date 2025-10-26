@@ -90,7 +90,7 @@ public:
     }
 
     static bool hasInstance() { return (bool)s_instance; }
-
+    float verticalOffset{0.45f};
     GLuint texture{0};
     SCRenderer();
     ~SCRenderer();

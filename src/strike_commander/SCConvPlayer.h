@@ -38,19 +38,19 @@ public:
 
     inline void SetExpired(bool exp) { this->expired = exp; }
     inline bool IsExpired(void) { return this->expired; }
-    void parse_GROUP_SHOT(ByteStream *conv);
-    void parse_CLOSEUP(ByteStream *conv);
-    void parse_CLOSEUP_CONTINUATION(ByteStream *conv);
-    void parse_YESNOCHOICE_BRANCH1(ByteStream *conv, SCConvPlayer *player);
-    void parse_YESNOCHOICE_BRANCH2(ByteStream *conv);
-    void parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv);
-    void parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv);
-    void parse_SHOW_TEXT(ByteStream *conv);
-    void parse_UNKNOWN(ByteStream *conv);
-    void parse_CHOOSE_WINGMAN(ByteStream *conv, SCConvPlayer *player);
-    int SetSentenceFromConv(ByteStream *conv, int start_offset);
+    virtual void parse_GROUP_SHOT(ByteStream *conv);
+    virtual void parse_CLOSEUP(ByteStream *conv);
+    virtual void parse_CLOSEUP_CONTINUATION(ByteStream *conv);
+    virtual void parse_YESNOCHOICE_BRANCH1(ByteStream *conv, SCConvPlayer *player);
+    virtual void parse_YESNOCHOICE_BRANCH2(ByteStream *conv);
+    virtual void parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv);
+    virtual void parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv);
+    virtual void parse_SHOW_TEXT(ByteStream *conv);
+    virtual void parse_UNKNOWN(ByteStream *conv);
+    virtual void parse_CHOOSE_WINGMAN(ByteStream *conv, SCConvPlayer *player);
+    virtual int SetSentenceFromConv(ByteStream *conv, int start_offset);
     int yes_no_path{0}; // current path taken for yes/no choice
-private:
+protected:
     bool expired;
     SCState &GameState = SCState::getInstance();
     ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
@@ -71,8 +71,8 @@ protected:
     ConvFrame *current_frame{nullptr};
 
     virtual void CheckFrameExpired(void);
-    void ReadNextFrame(void);
-    void parseConv(ConvFrame *tmp_frame);
+    virtual void ReadNextFrame(void);
+    virtual void parseConv(ConvFrame *tmp_frame);
     void SetArchive(PakEntry *conv);
     void CheckZones(void);
     void DrawText(void);

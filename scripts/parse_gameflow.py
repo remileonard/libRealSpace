@@ -8,6 +8,51 @@ changes = []
 is_change_chunk_type = False
 change_id = {}
 
+misn_opcodes = {
+    1:'[1   ] OP_EXIT_PROG                          ',
+    2:'[2   ] OP_EXEC_SUB_PROG                      ',
+    8:'[8   ] OP_SET_LABEL                          ',
+    9:'[9   ] OP_INVERT_FLAG                        ',
+    16:'[16  ] OP_MOVE_VALUE_TO_WORK_REGISTER        ',
+    17:'[17  ] OP_MOVE_FLAG_TO_WORK_REGISTER         ',
+    20:'[20  ] OP_SAVE_VALUE_TO_GAMFLOW_REGISTER     ',
+    35:'[35  ] OP_ADD_WORK_REGISTER_TO_FLAG          ',
+    46:'[46  ] OP_MUL_VALUE_WITH_WORK                ',
+    64:'[64  ] OP_CMP_GREATER_EQUAL_THAN             ',
+    69:'[69  ] OP_GET_FLAG_ID                        ',
+    70:'[70  ] OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS',
+    72:'[72  ] OP_GOTO_LABEL_IF_TRUE                 ',
+    73:'[73  ] OP_GOTO_LABEL_IF_FALSE                ',
+    74:'[74  ] OP_IF_LESS_THAN_GOTO                  ',
+    75:'[75  ] OP_IF_GREATER_THAN_GOTO               ',
+    79:'[79  ] OP_EXECUTE_CALL                       ',
+    80:'[80  ] OP_MOVE_WORK_REGISTER_TO_FLAG         ',
+    82:'[82  ] OP_SET_FLAG_TO_TRUE                   ',
+    83:'[83  ] OP_SET_FLAG_TO_FALSE                  ',
+    85:'[85  ] OP_ADD_1_TO_FLAG                      ',
+    86:'[86  ] OP_REMOVE_1_TO_FLAG                   ',
+    128:'[128 ] OP_ACTIVATE_SCENE                    ',
+    144:'[144 ] OP_ACTIVATE_OBJ                       ',
+    146:'[146 ] OP_IF_TARGET_IN_AREA                 ',
+    147:'[147 ] OP_IS_TARGET_ALIVE                   ',
+    148:'[148 ] OP_INSTANT_DESTROY_TARGET            ',
+    149:'[149 ] OP_DIST_TO_TARGET                    ',
+    151:'[151 ] OP_DIST_TO_SPOT                      ',
+    152:'[152 ] OP_IS_TARGET_ACTIVE                  ',
+    160:'[160 ] OP_SET_OBJ_UNKNOWN                   ',
+    161:'[161 ] OP_SET_OBJ_TAKE_OFF                   ',
+    162:'[162 ] OP_SET_OBJ_LAND                       ',
+    165:'[165 ] OP_SET_OBJ_FLY_TO_WP                  ',
+    166:'[166 ] OP_SET_OBJ_FLY_TO_AREA                ',
+    167:'[167 ] OP_SET_OBJ_DESTROY_TARGET             ',
+    168:'[168 ] OP_SET_OBJ_DEFEND_TARGET              ',
+    170:'[170 ] OP_SET_OBJ_FOLLOW_ALLY                ',
+    171:'[171 ] OP_SET_MESSAGE                        ',
+    190:'[190 ] OP_DEACTIVATE_OBJ                    ',
+    208:'[208 ] OP_SELECT_FLAG_208                   ',
+
+}
+
 def parse_iff_filereader(f, file_path, dec=0):
     global is_change_chunk_type
     while True:
@@ -267,6 +312,27 @@ def print_efect_from_chunk(chunk_data, dec):
                 changes.append(c)
                 change_op = False
             i = 0
+    
+    print(' ' * dec,'==============MISN=================')
+    i = 0
+    change_op = False
+    for c in chunk_data:
+        if i == 0:
+            if c in misn_opcodes:
+                print(' ' * dec, misn_opcodes[c], end='')
+                if c == 34:
+                    change_op = True   
+            else:
+                print(' ' * dec, 'OPCODE', '0x{:02X}\t'.format(c), c, end='')
+            i = 1
+        elif i == 1:
+            print(' ' * dec, 'VALUE','0x{:02X}\t'.format(c), c)
+            if change_op:
+                changes.append(c)
+                change_op = False
+            i = 0
+    print(' ' * dec,'====================================')
+
 
 
 def extract_bin_to_file(chunk_data):

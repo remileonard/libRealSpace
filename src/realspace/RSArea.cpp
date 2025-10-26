@@ -16,7 +16,11 @@ RSArea::RSArea() {
 }
 RSArea::~RSArea() {
     //delete archive;
-
+    for (auto overlay : objectOverlay) {
+        delete[] overlay.vertices;
+        overlay.vertices = nullptr;
+        overlay.nbTriangles = 0;
+    }
     while (!textures.empty()) {
         RSMapTextureSet *set = textures.back();
         textures.pop_back();
@@ -50,12 +54,12 @@ void RSArea::ParseObjects() {
         if (entry->size == 0)
             continue;
         entry = objectFiles.GetEntry(i);
-        ByteStream sizeGetter(entry->data);
+        ByteStream sizeGetter(entry->data, entry->size);
         uint16_t numObjs = sizeGetter.ReadUShort();
 
         for (int j = 0; j < numObjs; j++) {
 
-            ByteStream reader(entry->data + OBJ_ENTRY_NUM_OBJECTS_FIELD + OBJ_ENTRY_SIZE * j);
+            ByteStream reader(entry->data + OBJ_ENTRY_NUM_OBJECTS_FIELD + OBJ_ENTRY_SIZE * j, entry->size-OBJ_ENTRY_NUM_OBJECTS_FIELD - OBJ_ENTRY_SIZE * j);
             MapObject mapObject;
 
             for (int k = 0; k < 8; k++)
@@ -99,14 +103,18 @@ void RSArea::ParseTriFile(PakEntry *entry) {
 
         AreaOverlay overTheMapIsTheRunway;
         size_t read = 0;
-        ByteStream stream(entry->data);
+        ByteStream stream(entry->data, entry->size);
         int numvertice = stream.ReadShort();
         read += 2;
         int nbpoly = stream.ReadShort();
         read += 2;
-        stream.MoveForward(2);
+        int nbquads = stream.ReadShort();
+        if (nbquads != 1) {
+            stream.MoveForward(2);
+            read += 2;
+        }
         read += 4;
-        AoVPoints *vertices = new AoVPoints[numvertice];
+        AoVPoints* vertices = new AoVPoints[numvertice];
         overTheMapIsTheRunway.lx = 0;
         overTheMapIsTheRunway.ly = 0;
         overTheMapIsTheRunway.hx = 0;
@@ -118,6 +126,7 @@ void RSArea::ParseTriFile(PakEntry *entry) {
             v->u0 = stream.ReadByte();
             v->u1 = stream.ReadByte();
             v->u2 = stream.ReadByte();
+            read += 3;
             coo = stream.ReadInt24LE();
             read += 4;
             v->x = coo * (int)(BLOCK_COORD_SCALE);
@@ -136,6 +145,7 @@ void RSArea::ParseTriFile(PakEntry *entry) {
             overTheMapIsTheRunway.ly = v->z < overTheMapIsTheRunway.ly ? v->z : overTheMapIsTheRunway.ly;
             overTheMapIsTheRunway.hx = v->x > overTheMapIsTheRunway.hx ? v->x : overTheMapIsTheRunway.hx;
             overTheMapIsTheRunway.hy = v->z > overTheMapIsTheRunway.hy ? v->z : overTheMapIsTheRunway.hy;
+            overTheMapIsTheRunway.verticesVec.push_back(*v);
         }
         overTheMapIsTheRunway.vertices = vertices;
 
@@ -151,12 +161,24 @@ void RSArea::ParseTriFile(PakEntry *entry) {
 
             aot.u7 = stream.ReadByte();
             aot.verticesIdx[0] = stream.ReadByte();
+            if (aot.verticesIdx[0] >= numvertice) {
+                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
+                aot.verticesIdx[0] = 0;
+            }
             read += 2;
             aot.u8 = stream.ReadByte();
             aot.verticesIdx[1] = stream.ReadByte();
+            if (aot.verticesIdx[1] >= numvertice) {
+                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
+                aot.verticesIdx[1] = 0;
+            }
             read += 2;
             aot.u9 = stream.ReadByte();
             aot.verticesIdx[2] = stream.ReadByte();
+            if (aot.verticesIdx[2] >= numvertice) {
+                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
+                aot.verticesIdx[2] = 0;
+            }
             read += 2;
 
             aot.u2 = stream.ReadByte();
@@ -172,7 +194,10 @@ void RSArea::ParseTriFile(PakEntry *entry) {
             overTheMapIsTheRunway.trianles[overTheMapIsTheRunway.nbTriangles++] = aot;
         }
         // TODO figure out what is the remaining data is used for.
-        stream.MoveForward(entry->size - read);
+        //stream.MoveForward(entry->size - read);
+        if (read != entry->size) {
+            printf("Warning: TRI file read mismatch: %zu != %zu\n", read, entry->size);
+        }
         objectOverlay.push_back(overTheMapIsTheRunway);
     }
 }
@@ -221,7 +246,7 @@ void RSArea::ParseBlocks(size_t lod, PakEntry *entry, size_t blockDim) {
 
         block->sideSize = static_cast<int32_t>(blockDim);
 
-        ByteStream vertStream(blockEntry->data);
+        ByteStream vertStream(blockEntry->data, blockEntry->size);
         for (size_t vertexID = 0; vertexID < blockDim * blockDim; vertexID++) {
 
             MapVertex *vertex = &block->vertice[vertexID];
@@ -308,7 +333,7 @@ void RSArea::ParseElevations(void) {
 
     entry = archive->GetEntry(6);
 
-    ByteStream stream(entry->data);
+    ByteStream stream(entry->data, entry->size);
 
     for (size_t i = 0; i < BLOCKS_PER_MAP; i++) {
         elevation[i] = stream.ReadUShort();
@@ -345,8 +370,26 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
 
     // Check the PAK has 5 entries
     FileData *fileData = assetsManager.GetFileData(pakFilename);
+    if (fileData == nullptr) {
+        printf("Error: Cannot find area file %s\n", pakFilename);
+        return;
+    }
+    this->InitFromRam(pakFilename, fileData->data, fileData->size);
+}
+void RSArea::InitFromZipFileName(std::string zipFilename) {
+    TreEntry *treEntry = assetsManager.GetEntryByName(zipFilename);
+    PKWareDecompressor decompressor;
+    if (treEntry == nullptr) {
+        printf("Error: Cannot find area file %s in TRE\n", zipFilename.c_str());
+        return;
+    }
+    size_t uncompSize = 0;
+    uint8_t *data = decompressor.DecompressPKWare(treEntry->data, treEntry->size, uncompSize);
+    this->InitFromRam(zipFilename.c_str(), data, uncompSize);
+}
+void RSArea::InitFromRam(const char *pakFilename, uint8_t *data, size_t size) {
     this->archive = new PakArchive();
-    this->archive->InitFromRAM(pakFilename, fileData->data, fileData->size);
+    this->archive->InitFromRAM(pakFilename, data, size);
     this->objects.clear();
     this->objects.shrink_to_fit();
 
@@ -407,7 +450,6 @@ void RSArea::InitFromPAKFileName(const char *pakFilename) {
 
     ParseHeightMap();
 }
-
 float RSArea::getGroundLevel(int BLOC, float x, float y) {
     if (BLOC < 0 || BLOC >= BLOCKS_PER_MAP)
         return 0;
@@ -496,7 +538,7 @@ void RSArea::parseTERA_BLOX(uint8_t *data, size_t size) {
 void RSArea::parseTERA_BLOX_ELEV(uint8_t *data, size_t size) {
     printf("Content of elevation chunk:\n");
     size_t numEleRecords = size / 46;
-    ByteStream elevStream(data);
+    ByteStream elevStream(data, size);
     for (size_t e = 0; e < numEleRecords; e++) {
 
         uint8_t unknownsElev[20];
@@ -517,7 +559,7 @@ void RSArea::parseTERA_BLOX_ELEV(uint8_t *data, size_t size) {
 }
 
 void RSArea::parseTERA_BLOX_ATRI(uint8_t *data, size_t size) {
-    ByteStream triStream(data);
+    ByteStream triStream(data, size);
 
     char triFileName[13];
     for (int i = 0; i < 13; i++)
@@ -539,7 +581,7 @@ void RSArea::parseTERA_TXML(uint8_t *data, size_t size) {
 void RSArea::parseTERA_TXML_INFO(uint8_t *data, size_t size) {}
 
 void RSArea::parseTERA_TXMS_MAPS(uint8_t *data, size_t size) {
-    ByteStream textureRefStrean(data);
+    ByteStream textureRefStrean(data, size);
     size_t numTexturesSets = size / 12;
     for (size_t i = 0; i < numTexturesSets; i++) {
         uint16_t fastID = textureRefStrean.ReadUShort();

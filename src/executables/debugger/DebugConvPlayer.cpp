@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
+#include "DebugUtils.h"
 
 void DebugConvPlayer::CheckFrameExpired(void) {
     if (this->paused == true) {
@@ -15,9 +16,6 @@ DebugConvPlayer::DebugConvPlayer() {
 }
 
 DebugConvPlayer::~DebugConvPlayer() {
-}
-
-void DebugConvPlayer::renderMenu() {
 }
 
 void DebugConvPlayer::renderUI() {
@@ -61,6 +59,12 @@ void DebugConvPlayer::renderUI() {
                         ImGui::Text("Face Position: %d", frame->facePosition);
                         ImGui::Text("Face Expression: %d", frame->face_expression);
                         ImGui::Text("Face Palette ID: %d", frame->facePaletteID);
+                        RLEShape *faceShape = frame->face->appearances->GetShape(1);
+                        if (faceShape->GetWidth() == 0 || faceShape->GetHeight() == 0) {
+                            ImGui::Text("Face Shape is empty.");
+                            ImGui::TreePop();
+                            continue;
+                        }
                         FrameBuffer *fb = new FrameBuffer(320, 200);
                         fb->fillWithColor(223);
                         fb->drawShape(frame->face->appearances->GetShape(1));
@@ -87,6 +91,11 @@ void DebugConvPlayer::renderUI() {
                         if (ImGui::TreeNodeEx("Participants", ImGuiTreeNodeFlags_DefaultOpen)) {
                             for (auto part : frame->participants) {
                                 ImGui::Text("Participant: %s", part->name.c_str());
+                                RLEShape *partShape = part->appearances->GetShape(0);
+                                if (partShape->GetWidth() == 0 || partShape->GetHeight()== 0) {
+                                    ImGui::Text("Participant Shape is empty.");
+                                    continue;
+                                }
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
                                 fb->fillWithColor(223);
                                 fb->drawShape(part->appearances->GetShape(0));
@@ -113,6 +122,10 @@ void DebugConvPlayer::renderUI() {
                     if (frame->bgLayers != nullptr && frame->bgLayers->size() > 0) {
                         if (ImGui::TreeNodeEx("Background Layers", ImGuiTreeNodeFlags_DefaultOpen)) {
                             for (auto layer : *frame->bgLayers) {
+                                if (layer->GetWidth() == 0 || layer->GetHeight() == 0) {
+                                    ImGui::Text("Layer Shape is empty.");
+                                    continue;
+                                }
                                 FrameBuffer *fb = new FrameBuffer(320, 200);
                                 fb->fillWithColor(223);
                                 fb->drawShape(layer);
@@ -143,6 +156,31 @@ void DebugConvPlayer::renderUI() {
             }
             ImGui::EndTabItem();
         }
+        if (ImGui::BeginTabItem("Screen")) {
+            ImGui::Text("Screen Palette");
+            displayPalette(VGA.getPalette());
+            ImGui::EndTabItem();
+        }
         ImGui::EndTabBar();
+    }
+}
+void DebugConvPlayer::renderMenu() {
+    static bool conv_player = false;
+    if (ImGui::BeginMenu("Conversation")) {
+        ImGui::MenuItem("Open a conversation", NULL, &conv_player);
+        ImGui::EndMenu();
+    }
+    if (conv_player) {
+        ImGui::Begin("Convert Player", &conv_player);
+        static ImGuiComboFlags flags = 0;
+        if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
+            for (int i = 0; i < 256; i++) {
+                if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
+                    this->SetID(i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::End();
     }
 }

@@ -105,6 +105,7 @@ SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<E
             sprt->unkown       = sprite->info.UNKOWN;
             sprt->efect        = sprite->efct;
             sprt->img          = this->getShape(optsprtId);
+            sprt->img->removeFirstEmptyShape();
             sprt->frameCounter = 0;
             if (this->sceneOpts->foreground->sprites[sprtId]->CLCK == 1) {
                 sprt->cliked       = true;
@@ -141,7 +142,7 @@ void SCScene::Render() {
     }
     if (this->rawPalette != nullptr) {
         ByteStream paletteReader;
-        paletteReader.Set((this->rawPalette));
+        paletteReader.Set((this->rawPalette), 772);
         this->palette.ReadPatch(&paletteReader);
     }
 
@@ -153,7 +154,7 @@ void SCScene::Render() {
     }
     if (this->forPalette != nullptr) {
         ByteStream paletteReader;
-        paletteReader.Set((this->forPalette));
+        paletteReader.Set((this->forPalette), 772);
         this->palette.ReadPatch(&paletteReader);
     }
     VGA.setPalette(&this->palette);
@@ -717,7 +718,7 @@ void WeaponLoadoutScene::Render() {
         }
     }
     ByteStream paletteReader;
-    paletteReader.Set((this->rawPalette));
+    paletteReader.Set((this->rawPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.setPalette(&this->palette);
     for (auto layer : this->layers) {
@@ -727,7 +728,7 @@ void WeaponLoadoutScene::Render() {
         }
     }
 
-    paletteReader.Set((this->forPalette));
+    paletteReader.Set((this->forPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.setPalette(&this->palette);
     for (auto ezn : this->extra_zones) {

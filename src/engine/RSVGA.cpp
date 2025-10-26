@@ -182,12 +182,15 @@ void RSVGA::init(int width, int height) {
     AssetManager &assets = AssetManager::instance();
 
     RSPalette palette;
-    FileData *f = assets.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    
+    if (entries != nullptr) {
         palette.initFromFileRam(entries->data, entries->size);
     } else {
-        palette.initFromFileData(f);
+        FileData *f = assets.GetFileData("PALETTE.IFF");
+        if  (f != nullptr) {
+            palette.initFromFileData(f);
+        }
     }
     
     this->palette = *palette.GetColorPalette();

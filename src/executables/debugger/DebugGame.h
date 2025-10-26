@@ -28,8 +28,10 @@ public:
     void loadTO();
     void loadPacific();
     void loadPacificConv();
+    void loadPacificMISN();
     void testMissionSC();
     void testObjects();
     void testController();
     void testMidGames();
+    void loadWingsOfGlory();
 };

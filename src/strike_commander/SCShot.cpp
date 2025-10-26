@@ -70,10 +70,16 @@ void SCShot::init() {
  * @throws None
  */
 void SCShot::SetShotId(uint8_t shotid) {
+    if (this->optionParser.estb.find(shotid) == this->optionParser.estb.end()) {
+        return;
+    }
     for (auto s : this->optionParser.estb[shotid]->images) {
         shotBackground *bg = new shotBackground();
         bg->img = this->getShape(s->OptshapeID);
         this->layers.push_back(bg);
+    }
+    if (this->optionParser.estb[shotid]->palettes.size() < 1) {
+        return;
     }
     uint8_t paltID = this->optionParser.estb[shotid]->palettes[0]->ID;
     this->rawPalette = this->optPals.GetEntry(paltID)->data;
@@ -129,7 +135,7 @@ void SCShot::runFrame(void) {
     int cpt = 0;
     for (auto layer : this->layers) {
         if (cpt < this->palettes.size()) {
-            paletteReader.Set((this->palettes[cpt]));
+            paletteReader.Set((this->palettes[cpt]), 772);
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
         }
@@ -186,7 +192,7 @@ void EndMissionScene::runFrame() {
     Mixer.switchBank(0);
     Mixer.playMusic(27, 1);
     ByteStream paletteReader;
-    paletteReader.Set((this->rawPalette));
+    paletteReader.Set((this->rawPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.activate();
     VGA.getFrameBuffer()->fillWithColor(0);
@@ -250,7 +256,7 @@ void MapShot::SetPoints(std::vector<MAP_POINT *> *points) {
 void MapShot::runFrame(void) {
     checkKeyboard();
     ByteStream paletteReader;
-    paletteReader.Set((this->rawPalette));
+    paletteReader.Set((this->rawPalette), 772);
     this->palette.ReadPatch(&paletteReader);
     VGA.activate();
     VGA.getFrameBuffer()->fillWithColor(255);

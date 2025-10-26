@@ -82,7 +82,7 @@ void RSCockpit::parseEJEC(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("EJEC", data2, size-1);
+    pak->InitFromRAM("EJEC", data2, size);
     if (pak->GetNumEntries() == 0) {
         this->EJEC.InitFromRam(data2, size);
     } else {
@@ -93,7 +93,7 @@ void RSCockpit::parseGUNF(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("GUNF", data2, size-1);
+    pak->InitFromRAM("GUNF", data2, size);
     if (pak->GetNumEntries() == 0) {
         this->GUNF.InitFromRam(data2, size);
     } else {
@@ -104,7 +104,7 @@ void RSCockpit::parseGHUD(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("GHUD", data2, size-1);
+    pak->InitFromRAM("GHUD", data2, size);
     this->GHUD.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseREAL(uint8_t* data, size_t size) {
@@ -130,11 +130,12 @@ void RSCockpit::parseREAL_INFO(uint8_t* data, size_t size) {
  * @param size The size of the data to parse.
  */
 void RSCockpit::parseREAL_OBJS(uint8_t* data, size_t size) {
-    ByteStream* reader = new ByteStream(data);
+    ByteStream* reader = new ByteStream(data, size);
     std::string name = reader->ReadString(size);
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     TreEntry* entry = this->asset_manager->GetEntryByName(this->asset_manager->object_root_path + name + ".IFF");
     REAL.OBJS = new RSEntity();
-    REAL.OBJS->InitFromRAM(entry->data, entry->size);
+    REAL.OBJS->InitFromRAM(entry->data, entry->size, this->asset_manager->object_root_path + name + ".IFF");
 }
 void RSCockpit::parseCHUD(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
@@ -143,7 +144,7 @@ void RSCockpit::parseCHUD(uint8_t* data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSCockpit::parseCHUD_FILE(uint8_t* data, size_t size) {
-    ByteStream* reader = new ByteStream(data);
+    ByteStream* reader = new ByteStream(data, size);
     CHUD.FILE = reader->ReadString(size);
 }
 void RSCockpit::parseMONI(uint8_t* data, size_t size) {
@@ -179,7 +180,7 @@ void RSCockpit::parseMONI_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     // shape 20 byte offset, don't know why
-    this->MONI.SHAP.init(shape_data+offset, 0);
+    this->MONI.SHAP.init(shape_data+offset, size - offset);
 }
 void RSCockpit::parseMONI_DAMG(uint8_t* data, size_t size) {
 	uint8_t *data2;
@@ -232,7 +233,7 @@ void RSCockpit::parseMONI_MFDS_AARD_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("AARD",shape_data, size-1);
+    pak->InitFromRAM("AARD",shape_data, size);
     this->MONI.MFDS.AARD.ARTS.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseMONI_MFDS_AGRD(uint8_t* data, size_t size) {
@@ -250,7 +251,7 @@ void RSCockpit::parseMONI_MFDS_AGRD_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("AGRD",shape_data, size-1);
+    pak->InitFromRAM("AGRD",shape_data, size);
     this->MONI.MFDS.AGRD.ARTS.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseMONI_MFDS_GCAM(uint8_t* data, size_t size) {
@@ -305,7 +306,7 @@ void RSCockpit::parseMONI_MFDS_DAMG_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("DAMG",shape_data, size-1);
+    pak->InitFromRAM("DAMG",shape_data, size);
     this->MONI.MFDS.DAMG.ARTS.InitFromSubPakEntry(pak);
 }
 /**
@@ -369,7 +370,7 @@ void RSCockpit::parseMONI_INST_RAWS_SHAP_ZOOM(uint8_t* data, size_t size) {
 	uint8_t *shape_data;
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
-    this->MONI.INST.RAWS.ZOOM.init(shape_data+offset, size);
+    this->MONI.INST.RAWS.ZOOM.init(shape_data+offset, size - offset);
 }
 void RSCockpit::parseMONI_INST_RAWS_SHAP_NORM(uint8_t* data, size_t size) {
     int offset = 0;
@@ -384,7 +385,7 @@ void RSCockpit::parseMONI_INST_RAWS_SHAP_NORM(uint8_t* data, size_t size) {
         shape_data = (uint8_t*) malloc(size);
         memcpy(shape_data, data, size);
         // shape 20 byte offset, don't know why
-        this->MONI.INST.RAWS.NORM.init(shape_data+offset, 0);
+        this->MONI.INST.RAWS.NORM.init(shape_data+offset, size - offset);
     } else {
         shape_data = (uint8_t*) malloc(size);
         memcpy(shape_data, data, size);

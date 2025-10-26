@@ -50,7 +50,7 @@ void SCTrainingMenu::init() {
     assets.List(stdout);
 
     ByteStream paletteReader;
-    paletteReader.Set(assets.GetEntry(7)->data);
+    paletteReader.Set(assets.GetEntry(7)->data, assets.GetEntry(7)->size);
     this->palette.ReadPatch(&paletteReader);
 
     PakEntry *backgroundPakEntry = assets.GetEntry(6);

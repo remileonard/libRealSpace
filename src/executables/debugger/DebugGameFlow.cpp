@@ -24,6 +24,22 @@ void DebugGameFlow::playConv(uint8_t convId) {
     conv->SetID(convId);
     this->convs.push(conv);
 }
+void DebugGameFlow::renderConvPlayer() {
+    ImGui::Begin("Convert Player", &conv_player);
+    static ImGuiComboFlags flags = 0;
+    if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
+        for (int i = 0; i < 256; i++) {
+            if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
+                SCConvPlayer *conv = new DebugConvPlayer();
+                conv->init();
+                conv->SetID(i);
+                this->convs.push(conv);
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::End();
+}
 /**
  * This method renders the game flow menu using ImGui.
  *
@@ -43,13 +59,12 @@ void DebugGameFlow::renderMenu() {
     static bool show_gamestate = false;
     static bool show_shots = false;
     static bool load_sprites = false;
-    static bool conv_player = false;
     static bool show_music_player = false;
     static int miss_selected = 0;
     if (ImGui::BeginMenu("GameFlow")) {
         ImGui::MenuItem("Load Miss", NULL, &show_load_miss);
         ImGui::MenuItem("Load shots", NULL, &show_shots);
-        ImGui::MenuItem("Convert player", NULL, &conv_player);
+        ImGui::MenuItem("Convert player", NULL, &this->conv_player);
         ImGui::MenuItem("load sprites from current scene", NULL, &load_sprites);
         ImGui::MenuItem("Info", NULL, &show_scene_window);
         ImGui::MenuItem("GameState", NULL, &show_gamestate);
@@ -93,7 +108,7 @@ void DebugGameFlow::renderMenu() {
             miss[i] = new char[10];
             sprintf(miss[i], "%d", i);
         }
-        if (ImGui::BeginCombo("List des miss", miss[miss_selected], flags)) {
+        /*if (ImGui::BeginCombo("List des miss", miss[miss_selected], flags)) {
             for (int i = 0; i < this->gameFlowParser.game.game.size(); i++) {
                 const bool is_selected = (miss_selected == i);
                 if (ImGui::Selectable(std::to_string(i).c_str(), is_selected))
@@ -104,6 +119,17 @@ void DebugGameFlow::renderMenu() {
                 if (is_selected)
                     ImGui::SetItemDefaultFocus();
             }
+            ImGui::EndCombo();
+        }*/
+        if (ImGui::BeginCombo("Liste des missions", std::to_string(miss_selected).c_str(), flags)) {
+            for (auto miss: this->gameFlowParser.game.game) {
+                const bool is_selected = (miss_selected == miss.first);
+                if (ImGui::Selectable(std::to_string(miss.second->info.ID).c_str(), false)) {
+                    miss_selected = miss.first;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }   
             ImGui::EndCombo();
         }
         //delete [] miss;
@@ -143,20 +169,7 @@ void DebugGameFlow::renderMenu() {
         ImGui::End();
     }
     if (conv_player) {
-        ImGui::Begin("Convert Player", &conv_player);
-        static ImGuiComboFlags flags = 0;
-        if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
-            for (int i = 0; i < 256; i++) {
-                if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
-                    SCConvPlayer *conv = new DebugConvPlayer();
-                    conv->init();
-                    conv->SetID(i);
-                    this->convs.push(conv);
-                }
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::End();
+        this->renderConvPlayer();
     }
     if (load_sprites) {
         ImGui::Begin("Load Sprites", &load_sprites);
@@ -197,6 +210,14 @@ void DebugGameFlow::renderUI() {
         }
         if (ImGui::BeginTabItem("GameState")) {
             this->renderGameState();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("GameFlow Content")) {
+            int i=0;
+            for (auto flymiss : this->gameFlowParser.game.mlst->data) {
+                ImGui::Text("Mission [%03d]ID: %s",i, flymiss->c_str());
+                i++;
+            }
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
@@ -306,11 +327,23 @@ void DebugGameFlow::renderMissionInfos() {
     ImGui::Text("Nb Miss %zu", this->gameFlowParser.game.game.size());
     ImGui::Text("Nb Layers %zu", this->layers.size());
     ImGui::Text("Nb Scenes %zu", this->gameFlowParser.game.game[this->current_miss]->scen.size());
+    for (int j = 0; j < this->gameFlowParser.game.game[this->current_miss]->scen.size(); j++) {
+        if (ImGui::Button(std::to_string(this->gameFlowParser.game.game[this->current_miss]->scen.at(j)->info.ID).c_str())) {
+            this->current_scen = j;
+            this->currentSpriteId = 0;
+            this->createScen();
+        }
+    }
     if (this->gameFlowParser.game.game[this->current_miss]->efct != nullptr) {
         ImGui::Text("Miss has efct");
         if (ImGui::TreeNodeEx("Miss Efect", tflag)) {
             for (auto effect : *this->gameFlowParser.game.game[this->current_miss]->efct) {
-                ImGui::Text("OPC: %s\tVAL: %03d", game_flow_op_name[GameFlowOpCode(effect->opcode)].c_str(), effect->value);
+                if (game_flow_op_name.find(GameFlowOpCode(effect->opcode)) != game_flow_op_name.end()) {
+                    ImGui::Text("OPC:[%03d] %s\tVAL: %03d",effect->opcode, game_flow_op_name[GameFlowOpCode(effect->opcode)].c_str(), effect->value);
+                    
+                } else {
+                    ImGui::Text("OPC: %03d\tVAL: %03d", effect->opcode, effect->value);
+                }
             }
             ImGui::TreePop();
         }
@@ -320,7 +353,9 @@ void DebugGameFlow::renderMissionInfos() {
         if (ImGui::TreeNodeEx("Zones", tflag)) {
             for (auto zone : *this->zones) {
                 if (ImGui::TreeNodeEx((void *)(intptr_t)zone->id, tflag, "Zone %d", zone->id)) {
-                    ImGui::Text("%s", zone->label->c_str());
+                    if (zone->label != nullptr) {
+                        ImGui::Text("%s", zone->label->c_str());
+                    }
                     animatedSprites *sprite = zone->sprite;
                     if (sprite == nullptr) {
                         ImGui::Text("No sprite");
@@ -345,7 +380,11 @@ void DebugGameFlow::renderMissionInfos() {
                         if (sprite->efect != nullptr && sprite->efect->size() > 0) {
                             if (ImGui::TreeNodeEx("Efect",tflag)) {
                                 for (auto efct : *sprite->efect) {
-                                    ImGui::Text("OPC: %s\tVAL: %03d", game_flow_op_name[GameFlowOpCode(efct->opcode)].c_str(), efct->value);
+                                    if (game_flow_op_name.find(GameFlowOpCode(efct->opcode)) != game_flow_op_name.end()) {
+                                        ImGui::Text("OPC:[%03d] %s\tVAL: %03d",efct->opcode, game_flow_op_name[GameFlowOpCode(efct->opcode)].c_str(), efct->value);
+                                    } else {
+                                        ImGui::Text("OPC: %03d\tVAL: %03d", efct->opcode, efct->value);
+                                    }
                                 }
                                 ImGui::TreePop();
                             }
@@ -407,9 +446,13 @@ void DebugGameFlow::renderMissionInfos() {
                         for (auto sprt : this->sceneOpts->foreground->sprites) {
                             ImGui::Text("Sprite %d", sprt.second->sprite.SHP_ID);
                             RLEShape *shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(0);
+                            
                             if (shp != nullptr) {
+                                if (shp->GetWidth() <= 2) {
+                                    shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(1);
+                                }
                                 ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
-                                if (shp->GetWidth() > 0 && shp->GetHeight() > 0) {
+                                if (shp->GetWidth() > 1 && shp->GetHeight() > 1) {
                                     FrameBuffer *fb = new FrameBuffer(320, 200);
                                     fb->clear();
                                     fb->drawShape(shp);

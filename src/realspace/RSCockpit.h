@@ -108,6 +108,7 @@ struct Moni {
         InfoShape AIRS;
         InfoShape MWRN;
     } INST;
+    std::unordered_map<std::string, bool> instruments_present;
 };
 
 /**

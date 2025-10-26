@@ -1,6 +1,12 @@
 #include "precomp.h"
 #include <limits>
 
+SCMission::SCMission() {
+    this->last_time = SDL_GetTicks();
+    this->last_tick = 0;
+    this->tick_counter = 0;
+    this->tps = 0;
+}
 SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->mission_name = mission_name;
     this->obj_cache = objCache;
@@ -294,7 +300,7 @@ RSEntity * SCMission::LoadEntity(std::string name) {
     RSEntity *objct = new RSEntity();
     TreEntry *entry = Assets.GetEntryByName((char *)tmpname.c_str());
     if (entry != nullptr) {
-        objct->InitFromRAM(entry->data, entry->size);
+        objct->InitFromRAM(entry->data, entry->size, tmpname);
         return objct;
     }
     return nullptr;
@@ -452,7 +458,7 @@ void SCMission::update() {
                 }
             }
         }
-        if (ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {
+        if (ai_actor->object->entity != nullptr && ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {
             if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == false) {
                 if (ai_actor->retarget_cooldown > 0) {
                     ai_actor->shootWeapon(ai_actor->target);
