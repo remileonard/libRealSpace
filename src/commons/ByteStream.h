@@ -40,6 +40,7 @@ public:
     std::string ReadString(size_t lenght);
     std::string ReadStringNoSize(size_t maxLenght);
     void MoveForward(size_t bytes);
+    void MoveBackward(int bytes);
     uint8_t ReadByte(void);
     uint8_t PeekByte(void);
     uint8_t CurrentByte(void);

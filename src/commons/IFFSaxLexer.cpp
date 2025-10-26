@@ -71,9 +71,8 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
         if (chunk_stype == "FORM") {
             size_t chunk_size = this->stream->ReadUInt32BE();
             if (chunk_size % 2 != 0) {
-                //chunk_size++;
+                chunk_size++;
             }
-            //chunk_size += chunk_size % 2;
             std::vector<uint8_t> bname = this->stream->ReadBytes(4);
             chunk_stype.assign(bname.begin(), bname.end());
             read += 8;
@@ -83,6 +82,14 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                 if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
                     this->stream->MoveForward(1);
                     read++;
+                } else if (chunk_size % 2 != 0 && this->stream->CurrentByte() == this->stream->PeekByte()) {
+                    this->stream->MoveForward(1);
+                    read++;
+                } else if (chunk_size % 2 != 0 && this->stream->GetSize() - this->stream->GetCurrentPosition() == 1) {
+                    this->stream->MoveForward(1);
+                    read++;
+                } else if (chunk_size % 2 != 0) {
+                    printf("IFF SAX: Expected padding byte not found after chunk %s\n", chunk_stype.c_str());
                 }
                 events.at(chunk_stype)(chunk_data, chunk_size + size_offset);
                 read += (chunk_size + size_offset);
@@ -92,6 +99,15 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                 std::vector<uint8_t> dump = this->stream->ReadBytes(chunk_size + size_offset);
                 if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
                     this->stream->MoveForward(1);
+                    read++;
+                } else if (chunk_size % 2 != 0 && this->stream->CurrentByte() == this->stream->PeekByte()) {
+                    this->stream->MoveForward(1);
+                    read++;
+                } else if (chunk_size % 2 != 0 && this->stream->GetSize() - this->stream->GetCurrentPosition() == 1) {
+                    this->stream->MoveForward(1);
+                    read++;
+                } else if (chunk_size % 2 != 0) {
+                    printf("IFF SAX: Expected padding byte not found after chunk %s\n", chunk_stype.c_str());
                 }
                 read += (chunk_size+ size_offset );
             }
@@ -102,7 +118,8 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
             }
 			if (chunk_size > this->size) {
 				chunk_size = size-4;
-				stream->MoveForward(-4);
+				stream->MoveBackward(4);
+                read -= 4;
 			}
             read += 4;
             if (events.count(chunk_stype.c_str()) > 0) {
@@ -112,6 +129,14 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                     if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
                         this->stream->MoveForward(1);
                         read++;
+                    } else if (chunk_size % 2 != 0 && this->stream->CurrentByte() == this->stream->PeekByte()) {
+                        this->stream->MoveForward(1);
+                        read++;
+                    } else if (chunk_size % 2 != 0 && this->stream->GetSize() - this->stream->GetCurrentPosition() == 1) {
+                        this->stream->MoveForward(1);
+                        read++;
+                    } else if (chunk_size % 2 != 0) {
+                        printf("IFF SAX: Expected padding byte not found after chunk %s\n", chunk_stype.c_str());
                     }
                     events.at(chunk_stype.c_str())(chunk_data, chunk_size);
                     free(chunk_data);
@@ -127,6 +152,14 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
                     if (this->stream->CurrentByte() == 0 && (chunk_size % 2 != 0)) {
                         this->stream->MoveForward(1);
                         read++;
+                    } else if (chunk_size % 2 != 0 && this->stream->CurrentByte() == this->stream->PeekByte()) {
+                        this->stream->MoveForward(1);
+                        read++;
+                    } else if (chunk_size % 2 != 0 && this->stream->GetSize() - this->stream->GetCurrentPosition() == 1) {
+                        this->stream->MoveForward(1);
+                        read++;
+                    } else if (chunk_size % 2 != 0) {
+                        printf("IFF SAX: Expected padding byte not found after chunk %s\n", chunk_stype.c_str());
                     }
                     read += chunk_size;
                 }

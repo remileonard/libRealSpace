@@ -107,6 +107,18 @@ void ByteStream::MoveForward(size_t bytes) {
 	this->cursor += bytes;
 	this->position += bytes;
 }
+void ByteStream::MoveBackward(int bytes) {
+	if (this->position == 0) {
+		return;
+	}
+	if ((int)this->position - bytes < 0) {
+		this->cursor = this->cursor - this->position;
+		this->position = 0;
+		return;
+	}
+	this->cursor -= bytes;
+	this->position -= bytes;
+}
 
 uint8_t ByteStream::ReadByte(void) { 
 	if (this->position > this->size - 1) {
@@ -245,13 +257,14 @@ uint16_t ByteStream::ReadUShortBE(void) {
 }
 
 std::vector<uint8_t> ByteStream::ReadBytes(size_t count) {
+	if (count == 0) {
+		return std::vector<uint8_t>();
+	}
 	if (this->position >= this->size) {
 		printf("ByteStream: Attempt to read bytes past end of stream (%zu >= %zu)\n", this->position, this->size);
 		return std::vector<uint8_t>();
 	}
-	if (count == 0) {
-		return std::vector<uint8_t>();
-	}
+	
 	if (count > this->size - this->position) {
 		count = this->size - this->position;
 	}
