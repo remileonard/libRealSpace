@@ -15,11 +15,27 @@
 static SDL_Window *sdlWindow;
 static SDL_Renderer *sdlRenderer;
 
-
-DebugScreen::DebugScreen(){
+void DebugScreen::setVideoProperties() {
+    RSVGA& vga = RSVGA::instance();
+    static int r = 0;
+    static int g = 0;
+    static int b = 0;
+    ImGui::Begin("Video Properties", nullptr);
+    ImGui::SliderFloat("Contrast", &vga.contrastFactor, 0.5f, 2.0f);
+    ImGui::SliderFloat("Brightness", &vga.brightnessFactor, 0.5f, 2.0f);
     
+    ImGui::SliderInt("Tint R", &r, 0, 255);
+    ImGui::SliderInt("Tint G", &g, 0, 255);
+    ImGui::SliderInt("Tint B", &b, 0, 255);
+    vga.tintR = static_cast<uint8_t>(r);
+    vga.tintG = static_cast<uint8_t>(g);
+    vga.tintB = static_cast<uint8_t>(b);
+    ImGui::SliderFloat("Tint Intensity", &vga.tintIntensity, 0.0f, 1.0f);
+    
+    ImGui::End();
 }
 
+DebugScreen::DebugScreen() {}
 
 DebugScreen::~DebugScreen(){
     
@@ -130,6 +146,7 @@ void DebugScreen::refresh(void){
     ImGui::SetNextWindowPos(viewport->Pos);
     ImGui::SetNextWindowSize(viewport->Size);
     bool p_open = true;
+    static bool showVideoProps = false;
     if (ImGui::Begin("##Fullscreen window", &p_open, flags)) {
         if (ImGui::BeginMenuBar()) {
             if (debugGameInstance != nullptr) {
@@ -206,6 +223,11 @@ void DebugScreen::refresh(void){
                     if (ImGui::MenuItem("Toggle Mouse", nullptr, this->show_mouse)) {
                         this->show_mouse = !this->show_mouse;
                     }
+                    
+                    if (ImGui::MenuItem("Video Properties", nullptr, showVideoProps)) {
+                        showVideoProps = !showVideoProps;
+                    }
+                    
                     if (ImGui::MenuItem("Exit")) {
                         exit(0);
                     }
@@ -255,6 +277,9 @@ void DebugScreen::refresh(void){
                 act->renderUI();    
             }
             ImGui::EndChild();
+        }
+        if (this->show_ui && showVideoProps) {
+            setVideoProperties();
         }
         ImGui::End();
     }

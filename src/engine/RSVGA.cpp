@@ -324,6 +324,9 @@ void RSVGA::displayBuffer(uint32_t *buffer, int width, int height) {
 
 void RSVGA::vSync(void) {
     Texel *dst = data;
+    this->ajusterContraste(contrastFactor);
+    this->ajusterLuminosite(brightnessFactor);
+    this->appliquerTeinte(tintR, tintG, tintB, tintIntensity);
     for (size_t i = 0; i < 320 * 200; i++) {
         Texel *rgba = palette.GetRGBColor(frameBuffer->framebuffer[i]);
         if (frameBuffer->framebuffer[i] == 255) {

@@ -30,6 +30,7 @@ private:
     GLuint screen_texture;
     bool show_ui{false};
     bool show_mouse{true};
+    void setVideoProperties();
 public:
     
     DebugScreen();

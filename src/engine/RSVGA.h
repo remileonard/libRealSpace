@@ -70,5 +70,11 @@ public:
     void restaurerPalette();
     void interpolerPalettes(VGAPalette* palette1, VGAPalette* palette2, float facteur);
     
+    float contrastFactor = 1.0f;
+    float brightnessFactor = 1.0f;
+    uint8_t tintR = 0;
+    uint8_t tintG = 0;
+    uint8_t tintB = 0;
+    float tintIntensity = 0.0f;
 
 };
