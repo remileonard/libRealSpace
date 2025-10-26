@@ -43,7 +43,7 @@ void RSWorld::parseWRLD_PALT(uint8_t *data, size_t size) {}
 
 void RSWorld::parseWRLD_TERA(uint8_t *data, size_t size) {IFFSaxLexer lexer;
 
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     this->tera = stream.ReadStringNoSize(size+1);
 }
 

@@ -29,7 +29,7 @@ void RSObjViewer::parseVIEW(uint8_t *data, size_t size) {
 }
 
 void RSObjViewer::parseVIEW_OBJS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
 
     size_t numObjectInList = size / 33;
 
@@ -51,7 +51,7 @@ void RSObjViewer::parseVIEW_OBJS(uint8_t *data, size_t size) {
         }
 
         showCase.entity = new RSEntity();
-        showCase.entity->InitFromRAM(entry->data, entry->size);
+        showCase.entity->InitFromRAM(entry->data, entry->size, model_path);
 
         showCase.displayName = stream.ReadString(20);
         showCase.displayName.shrink_to_fit();

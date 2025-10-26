@@ -100,7 +100,7 @@ void TreArchive::ReadEntry(ByteStream* stream, TreEntry* entry){
 
 void TreArchive::Parse(void){
 
-    ByteStream stream(this->data);
+    ByteStream stream(this->data, this->size);
     size_t numEntries = stream.ReadUInt32LE() ;
     //The pointer to the start of the data. We are not using it.
     stream.ReadUInt32LE() ;

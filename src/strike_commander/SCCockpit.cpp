@@ -68,38 +68,59 @@ SCCockpit::~SCCockpit() {
  */
 void SCCockpit::init() {
     RSPalette palette;
-    FileData *f = Assets.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    if (entries != nullptr) {
         palette.initFromFileRam(entries->data, entries->size);
     } else {
-        palette.initFromFileData(f);
+        FileData *f = Assets.GetFileData("PALETTE.IFF");
+        if (f != nullptr) {
+            palette.initFromFileData(f);    
+        }
     }
     this->palette         = *palette.GetColorPalette();
-    cockpit               = new RSCockpit();
-    TreEntry *cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F16-CKPT.IFF");
-    cockpit->InitFromRam(cockpit_def->data, cockpit_def->size);
-
-    TreEntry *hud_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\HUD.IFF");
-    hud               = new RSHud();
-    hud->InitFromRam(hud_def->data, hud_def->size);
-    for (int i = 0; i < 36; i++) {
-        HudLine line;
-        line.start.x = 0;
-        line.start.y = 0 + i * 20;
-        line.end.x   = 70;
-        line.end.y   = 0 + i * 20;
-        horizon.push_back(line);
+    cockpit = nullptr;
+    TreEntry *cockpit_def = nullptr;
+    if (player_plane != nullptr) {
+        if (player_plane->object->entity != nullptr) {
+            RSEntity *e = player_plane->object->entity;
+            cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\"+e->cockpit_name+".IFF");
+        }
     }
-    hud_framebuffer       = new FrameBuffer(96, 93);
-    mfd_right_framebuffer = new FrameBuffer(115, 95);
-    mfd_left_framebuffer  = new FrameBuffer(115, 95);
-    raws_framebuffer      = new FrameBuffer(36, 32);
-    target_framebuffer    = new FrameBuffer(320, 200);
-    alti_framebuffer      = new FrameBuffer(33, 29);
-    speed_framebuffer     = new FrameBuffer(36, 29);
-    this->font            = FontManager.GetFont("..\\..\\DATA\\FONTS\\SHUDFONT.SHP");
-    this->big_font        = FontManager.GetFont("..\\..\\DATA\\FONTS\\HUDFONT.SHP");
+    if (cockpit_def == nullptr) {
+        if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-16DES.IFF") {
+            cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F16-CKPT.IFF");
+        } else if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-22.IFF") {
+            cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F22-CKPT.IFF");
+        }
+        
+    }
+    if (cockpit_def != nullptr) {
+        cockpit = new RSCockpit();
+        cockpit->InitFromRam(cockpit_def->data, cockpit_def->size);
+        TreEntry *hud_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\HUD.IFF");
+        if (hud_def != nullptr) {
+            hud               = new RSHud();
+            hud->InitFromRam(hud_def->data, hud_def->size);
+            for (int i = 0; i < 36; i++) {
+                HudLine line;
+                line.start.x = 0;
+                line.start.y = 0 + i * 20;
+                line.end.x   = 70;
+                line.end.y   = 0 + i * 20;
+                horizon.push_back(line);
+            }
+            hud_framebuffer       = new FrameBuffer(96, 93);
+            mfd_right_framebuffer = new FrameBuffer(115, 95);
+            mfd_left_framebuffer  = new FrameBuffer(115, 95);
+            raws_framebuffer      = new FrameBuffer(36, 32);
+            target_framebuffer    = new FrameBuffer(320, 200);
+            alti_framebuffer      = new FrameBuffer(33, 29);
+            speed_framebuffer     = new FrameBuffer(36, 29);
+            this->font            = FontManager.GetFont("..\\..\\DATA\\FONTS\\SHUDFONT.SHP");
+            this->big_font        = FontManager.GetFont("..\\..\\DATA\\FONTS\\HUDFONT.SHP");    
+        }
+    }
+    
 }
 /**
  * SCCockpit::RenderAltitude
@@ -398,6 +419,9 @@ void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuff
 }
 
 void SCCockpit::RenderMFDS(Point2D mfds, FrameBuffer *fb = nullptr) {
+    if (this->cockpit->MONI.SHAP.data == nullptr) {
+        return;
+    }
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -635,6 +659,9 @@ void SCCockpit::RenderBombSight() {
     delete weap;
 }
 void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) {
+    if (this->cockpit->MONI.SHAP.data == nullptr) {
+        return;
+    }
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -940,6 +967,9 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
 }
 
 void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = nullptr) {
+    if (this->cockpit->MONI.INST.RAWS.NORM.data == nullptr) {
+        return;
+    }
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -988,6 +1018,9 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = nullp
 }
 
 void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nullptr) {
+    if (this->cockpit->MONI.SHAP.data == nullptr) {
+        return;
+    }
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -1063,97 +1096,98 @@ void SCCockpit::Render(int face) {
         fb=VGA.getFrameBuffer();
         fb->clear();
         
-        
-        if (face == 0) {
-            this->RenderHUD();
-            
-            fb->blit(this->hud_framebuffer->framebuffer, 114,6, this->hud_framebuffer->width,this->hud_framebuffer->height);
-            if (this->target != this->player) {
-                this->RenderTargetWithCam();
-            }
-            if (this->player_plane->weaps_load.size() > 0 && this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
-                switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
-                case ID_20MM:
-                    this->RenderTargetingReticle();
-                    this->radar_mode = RadarMode::AARD;
-                    break;
-                case ID_AIM9J:
-                case ID_AIM9M:
-                case ID_AIM120:
-                    this->radar_mode = RadarMode::AARD;
-                    break;
-                case ID_MK20:
-                case ID_MK82:
-                case ID_DURANDAL:
-                    this->RenderBombSight();
-                    this->radar_mode = RadarMode::AGRD;
-                    break;
-                case ID_AGM65D:
-                case ID_GBU15:
-                    this->radar_mode = RadarMode::AGRD;
-                    break;
-                case ID_LAU3:
-                    this->radar_mode = RadarMode::AGRD;
-                    break;
+        if (cockpit != nullptr) {
+            if (face == 0) {
+                if (this->hud != nullptr) {
+                    this->RenderHUD();
+                    fb->blit(this->hud_framebuffer->framebuffer, 114,6, this->hud_framebuffer->width,this->hud_framebuffer->height);
                 }
-            }
+                if (this->target != this->player) {
+                    this->RenderTargetWithCam();
+                }
+                if (this->player_plane->weaps_load.size() > 0 && this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+                    switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
+                    case ID_20MM:
+                        this->RenderTargetingReticle();
+                        this->radar_mode = RadarMode::AARD;
+                        break;
+                    case ID_AIM9J:
+                    case ID_AIM9M:
+                    case ID_AIM120:
+                        this->radar_mode = RadarMode::AARD;
+                        break;
+                    case ID_MK20:
+                    case ID_MK82:
+                    case ID_DURANDAL:
+                        this->RenderBombSight();
+                        this->radar_mode = RadarMode::AGRD;
+                        break;
+                    case ID_AGM65D:
+                    case ID_GBU15:
+                        this->radar_mode = RadarMode::AGRD;
+                        break;
+                    case ID_LAU3:
+                        this->radar_mode = RadarMode::AGRD;
+                        break;
+                    }
+                }
 
-            fb->plot_pixel(161, 50, 223);
-        }
-        fb->drawShape(this->cockpit->ARTP.GetShape(face));
-        if (face == 0) {
-            this->RenderRAWS({84, 112}, fb);
-            this->RenderAlti({161,166}, fb);
-            this->RenderSpeedOmetter({125, 166}, fb);
-            Point2D pmfd_right = {0, 200 - this->cockpit->MONI.SHAP.GetHeight()};
-            Point2D pmfd_left  = {
-                320 - this->cockpit->MONI.SHAP.GetWidth() - 1, 200 - this->cockpit->MONI.SHAP.GetHeight()
-            };
-            Point2D pmfd;
-            bool mfds = false;
-            if (this->show_radars) {
-                if (!mfds) {
-                    pmfd = pmfd_left;
-                    mfds = true;
-                } else {
-                    pmfd = pmfd_right;
-                }
-                float range = 0.0f;
-                switch (this->radar_zoom) {
-                case 1:
-                    range = 18520.0f;
-                    break;
-                case 2:
-                    range = 18520.0f * 2.0f;
-                case 3:
-                    range = 18520.0f * 4.0f;
-                    break;
-                case 4:
-                    range = 18520.0f * 8.0f;
-                    break;    
-                }
-                this->RenderMFDSRadar(pmfd, range, this->radar_mode);
+                fb->plot_pixel(161, 50, 223);
             }
-            if (this->show_weapons) {
-                if (!mfds) {
-                    pmfd = pmfd_left;
-                    mfds = true;
-                } else {
-                    pmfd = pmfd_right;
+            fb->drawShape(this->cockpit->ARTP.GetShape(face));
+            if (face == 0) {
+                this->RenderRAWS({84, 112}, fb);
+                this->RenderAlti({161,166}, fb);
+                this->RenderSpeedOmetter({125, 166}, fb);
+                Point2D pmfd_right = {0, 200 - this->cockpit->MONI.SHAP.GetHeight()};
+                Point2D pmfd_left  = {
+                    320 - this->cockpit->MONI.SHAP.GetWidth() - 1, 200 - this->cockpit->MONI.SHAP.GetHeight()
+                };
+                Point2D pmfd;
+                bool mfds = false;
+                if (this->show_radars) {
+                    if (!mfds) {
+                        pmfd = pmfd_left;
+                        mfds = true;
+                    } else {
+                        pmfd = pmfd_right;
+                    }
+                    float range = 0.0f;
+                    switch (this->radar_zoom) {
+                    case 1:
+                        range = 18520.0f;
+                        break;
+                    case 2:
+                        range = 18520.0f * 2.0f;
+                    case 3:
+                        range = 18520.0f * 4.0f;
+                        break;
+                    case 4:
+                        range = 18520.0f * 8.0f;
+                        break;    
+                    }
+                    this->RenderMFDSRadar(pmfd, range, this->radar_mode);
                 }
-                this->RenderMFDSWeapon(pmfd);
-            }
-            if (this->show_comm) {
-                if (!mfds) {
-                    pmfd = pmfd_left;
-                    mfds = true;
-                } else {
-                    pmfd = pmfd_right;
+                if (this->show_weapons) {
+                    if (!mfds) {
+                        pmfd = pmfd_left;
+                        mfds = true;
+                    } else {
+                        pmfd = pmfd_right;
+                    }
+                    this->RenderMFDSWeapon(pmfd);
                 }
-                this->RenderMFDSComm(pmfd, this->comm_target);
+                if (this->show_comm) {
+                    if (!mfds) {
+                        pmfd = pmfd_left;
+                        mfds = true;
+                    } else {
+                        pmfd = pmfd_right;
+                    }
+                    this->RenderMFDSComm(pmfd, this->comm_target);
+                }
             }
-        }
-        if (this->current_mission->radio_messages.size() > 0) {
+            if (this->current_mission->radio_messages.size() > 0) {
             if (this->radio_mission_timer == 0) {
                 if (this->current_mission->radio_messages[0]->sound != nullptr) {
                     Mixer.playSoundVoc(this->current_mission->radio_messages[0]->sound->data, 
@@ -1183,6 +1217,7 @@ void SCCockpit::Render(int face) {
                 this->current_mission->radio_messages.erase(this->current_mission->radio_messages.begin());
                 this->radio_mission_timer = 0;
             }
+        }
         }
         if (this->mouse_control) {
             Mouse.draw();
@@ -1215,6 +1250,9 @@ void SCCockpit::Update() {
 
 void SCCockpit::RenderHUD() {
     FrameBuffer *hud = this->hud_framebuffer;
+    if (hud == nullptr) {
+        return;
+    }
     hud->fillWithColor(255);
     this->RenderHudHorizonLinesSmall({46, 44}, hud);
     this->RenderAltitude({72, 24}, hud);
@@ -1328,6 +1366,9 @@ void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = null
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
+    if (this->cockpit->MONI.INST.ALTI.ARTS.GetNumImages() == 0) {
+        return;
+    }
     RLEShape *shape = this->cockpit->MONI.INST.ALTI.ARTS.GetShape(0);
     Point2D raws_size = {
         shape->GetWidth(),
@@ -1375,6 +1416,9 @@ void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = null
 void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125,166}, FrameBuffer *fb = nullptr) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
+    }
+    if (this->cockpit->MONI.INST.AIRS.ARTS.GetNumImages() == 0) {
+        return;
     }
     RLEShape *shape = this->cockpit->MONI.INST.AIRS.ARTS.GetShape(0);
     Point2D raws_size = {

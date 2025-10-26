@@ -92,6 +92,7 @@ protected:
     std::queue<SCConvPlayer *> convs;
     std::queue<SCShot *> cutsenes;
     std::queue<SCStrike *> fly_mission;
+    std::queue<SCAnimationPlayer *> mid_games;
     
     RLEShape *test_shape{nullptr};
     SCScene *scen{nullptr};

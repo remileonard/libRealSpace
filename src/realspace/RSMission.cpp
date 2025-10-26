@@ -73,21 +73,21 @@ void RSMission::parseMISN(uint8_t *data, size_t size) {
 }
 
 void RSMission::parseMISN_VERS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     this->mission_data.version = stream.ReadUShort();
 }
 void RSMission::parseMISN_INFO(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     if (size > 0) {
         this->mission_data.info = stream.ReadString(size);
     }
 }
 void RSMission::parseMISN_TUNE(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     this->mission_data.tune = stream.ReadByte();
 }
 void RSMission::parseMISN_NAME(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     for (int i = 0; i < size; i++) {
         this->mission_data.name.push_back(stream.ReadByte());
     }
@@ -101,11 +101,11 @@ void RSMission::parseMISN_WRLD(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSMission::parseMISN_WRLD_FILE(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     this->mission_data.world_filename = stream.ReadStringNoSize(size+1);
 }
 void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
 
     size_t read = 0;
     uint8_t buffer;
@@ -204,7 +204,7 @@ int32_t ReadInt24LE_fromVec(std::vector<uint8_t>data, int offset) {
 }
 void RSMission::parseMISN_SPOT(uint8_t *data, size_t size) {
     size_t numParts = size / 14;
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     for (int i = 0; i < numParts; i++) {
         SPOT *spt = new SPOT();
         if (spt != NULL) {
@@ -229,7 +229,7 @@ void RSMission::parseMISN_SPOT(uint8_t *data, size_t size) {
     }
 }
 void RSMission::parseMISN_NUMS(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     for (int i = 0; i < size; i++) {
         this->mission_data.nums.push_back(stream.ReadByte());
     }
@@ -254,8 +254,11 @@ void RSMission::parseMISN_MSGS(uint8_t *data, size_t size) {
     }
 }
 void RSMission::parseMISN_FLAG(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     this->mission_data.flags.clear();
+    if (size < 2) {
+        return;
+    }
     stream.ReadByte(); // skip first byte
     size_t read = 1;
     this->mission_data.flags.push_back(0);
@@ -269,16 +272,17 @@ void RSMission::parseMISN_FLAG(uint8_t *data, size_t size) {
 }
 void RSMission::parseMISN_CAST(uint8_t *data, size_t size) {
     size_t nbactor = size / 9;
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     
     for (int i = 0; i < nbactor; i++) {
         CAST *tmpcast = new CAST();
         std::string actor = stream.ReadString(8);
         std::transform(actor.begin(), actor.end(), actor.begin(), ::toupper);
-        stream.ReadByte();
+        
         tmpcast->actor = actor;
         tmpcast->profile = nullptr;
         this->mission_data.casting.push_back(tmpcast);
+        stream.ReadByte();
     }
 }
 void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
@@ -301,7 +305,7 @@ void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
 void RSMission::parseMISN_PART(uint8_t *data, size_t size) {
     printf("PARSING PART\n");
     printf("Number of entries %zu\n", size / 62);
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     size_t numParts = size / 62;
     for (int i = 0; i < numParts; i++) {
         MISN_PART *prt = new MISN_PART();
@@ -349,7 +353,7 @@ void RSMission::parseMISN_PART(uint8_t *data, size_t size) {
     }
 }
 void RSMission::parseMISN_TEAM(uint8_t *data, size_t size) {
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     size_t read = 0;
     while (read < size) {
         uint16_t buffer = stream.ReadShort();
@@ -366,7 +370,7 @@ void RSMission::parseMISN_PLAY(uint8_t *data, size_t size) {
 }
 void RSMission::parseMISN_PLAY_SCEN(uint8_t *data, size_t size) {
     MISN_SCEN *scen = new MISN_SCEN();
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     scen->is_active = stream.ReadByte();
     scen->area_id = stream.ReadShort();
     int16_t prog_id = 0;

@@ -34,7 +34,10 @@ DebugStrike::DebugStrike() : SCStrike() {}
 
 DebugStrike::~DebugStrike() {}
 
-void DebugStrike::setMission(std::string mission_name) { SCStrike::setMission(mission_name.c_str()); }
+void DebugStrike::setMission(std::string mission_name) { 
+    target = nullptr;
+    SCStrike::setMission(mission_name.c_str()); 
+}
 
 void DebugStrike::init() { SCStrike::init(); }
 void DebugStrike::showOffCamera() {
@@ -131,7 +134,7 @@ void DebugStrike::loadPlane() {
             printf("Unable to load plane %s\n", plane_name.c_str());
             return;
         }
-        plane_to_load->InitFromRAM(entry->data, entry->size);
+        plane_to_load->InitFromRAM(entry->data, entry->size, Assets.object_root_path + plane_name + ".IFF");
         BoudingBox *bb = plane_to_load->GetBoudingBpx();
         envergure = (bb->max.z - bb->min.z) / 2.0f;
         surface = plane_to_load->wing_area;
@@ -223,6 +226,7 @@ void DebugStrike::loadPlane() {
         this->current_mission->player->plane = this->player_plane;
 
         this->cockpit->player_plane = this->player_plane;
+        this->cockpit->init();
     }
     ImGui::Text("Plane name: %s", plane_name.c_str());
     ImGui::Text("Envergure: %.2f", envergure);
@@ -556,6 +560,9 @@ void DebugStrike::radar() {
                 ImVec2(actor_canvas_pos.x + square_size * 0.5f, actor_canvas_pos.y + square_size * 0.5f);
             ImVec2 circle_center = ImVec2(actor_canvas_pos.x, actor_canvas_pos.y);
             ImU32 color = IM_COL32(255, 255, 0, 255);
+            if (actor->object == nullptr || actor->object->entity == nullptr) {
+                continue;
+            }
             switch (actor->object->entity->entity_type) {
             case EntityType::swpn:
                 color = IM_COL32(0, 255, 0, 255);
@@ -1114,96 +1121,51 @@ void DebugStrike::renderMenu() {
             ImGui::Text("Mouse control enabled");
         }
         ImGui::Text("Target %s", this->current_mission->actors[this->current_target]->actor_name.c_str());
-        Vector3D targetPos = {this->target->object->position.x, this->target->object->position.y,
-                              this->target->object->position.z};
-        Vector3D playerPos = {this->new_position.x, this->new_position.y, this->new_position.z};
+        if (this->target != nullptr && this->target->object != nullptr) {
+            Vector3D targetPos = {this->target->object->position.x, this->target->object->position.y,
+                                this->target->object->position.z};
+            Vector3D playerPos = {this->new_position.x, this->new_position.y, this->new_position.z};
 
-        Camera totarget;
-        totarget.SetPosition(&playerPos);
-        totarget.lookAt(&targetPos);
-        float raw;
-        float yawn;
-        float pitch;
-        raw = 0.0f;
-        yawn = 0.0f;
-        pitch = 0.0f;
+            Camera totarget;
+            totarget.SetPosition(&playerPos);
+            totarget.lookAt(&targetPos);
+            float raw;
+            float yawn;
+            float pitch;
+            raw = 0.0f;
+            yawn = 0.0f;
+            pitch = 0.0f;
 
-        totarget.getOrientation().GetAngles(pitch, yawn, raw);
+            totarget.getOrientation().GetAngles(pitch, yawn, raw);
 
-        Vector3D directionVector = {targetPos.x - playerPos.x, targetPos.y - playerPos.y, targetPos.z - playerPos.z};
+            Vector3D directionVector = {targetPos.x - playerPos.x, targetPos.y - playerPos.y, targetPos.z - playerPos.z};
 
-        ImGui::Text("Target position [%.3f,%.3f,%.3f]", targetPos.x, targetPos.y, targetPos.z);
-        ImGui::Text("Player position [%.3f,%.3f,%.3f]", playerPos.x, playerPos.y, playerPos.z);
-        ImGui::Text("Azimuth to target %.3f",
-                    (360 - (this->player_plane->azimuthf / 10.0f)) -
-                        (atan2(targetPos.z - playerPos.z, targetPos.x - playerPos.x) * (180.0 / M_PI) + 90.0f));
-        ImGui::Text("Q angles [%.3f,%.3f,%.3f] rel %.3f", pitch * 180.0 / M_PI, yawn * 180.0 / M_PI,
-                    180.0f - (raw * 180.0 / M_PI),
-                    (180.0f - (raw * 180.0 / M_PI)) - (360 - (this->player_plane->azimuthf / 10.0f)));
-        if (ImGui::TreeNode("missiles")) {
-            for (auto missils : this->player_plane->weaps_object) {
-                ImGui::Text("VX:%.3f\tVY:%.3f\tVZ:%.3f\televation:%.3f\tazimut:%.3f\tspeed%.3f", missils->vx,
-                            missils->vy, missils->vz, missils->elevationf, missils->azimuthf,
-                            Vector3D(missils->vx, missils->vy, missils->vz).Norm());
-                ImGui::Text("X:%.3f\tY:%.3f\tZ:%.3f", missils->x + 180000.0f, missils->y, missils->z + 180000.0f);
-                if (missils->target != nullptr) {
-                    ImGui::Text("Target X:%.0f\tY:%.0f\tZ:%.0f", missils->target->object->position.x,
-                                missils->target->object->position.y, missils->target->object->position.z);
+            ImGui::Text("Target position [%.3f,%.3f,%.3f]", targetPos.x, targetPos.y, targetPos.z);
+            ImGui::Text("Player position [%.3f,%.3f,%.3f]", playerPos.x, playerPos.y, playerPos.z);
+            ImGui::Text("Azimuth to target %.3f",
+                        (360 - (this->player_plane->azimuthf / 10.0f)) -
+                            (atan2(targetPos.z - playerPos.z, targetPos.x - playerPos.x) * (180.0 / M_PI) + 90.0f));
+            ImGui::Text("Q angles [%.3f,%.3f,%.3f] rel %.3f", pitch * 180.0 / M_PI, yawn * 180.0 / M_PI,
+                        180.0f - (raw * 180.0 / M_PI),
+                        (180.0f - (raw * 180.0 / M_PI)) - (360 - (this->player_plane->azimuthf / 10.0f)));
+            if (ImGui::TreeNode("missiles")) {
+                for (auto missils : this->player_plane->weaps_object) {
+                    ImGui::Text("VX:%.3f\tVY:%.3f\tVZ:%.3f\televation:%.3f\tazimut:%.3f\tspeed%.3f", missils->vx,
+                                missils->vy, missils->vz, missils->elevationf, missils->azimuthf,
+                                Vector3D(missils->vx, missils->vy, missils->vz).Norm());
+                    ImGui::Text("X:%.3f\tY:%.3f\tZ:%.3f", missils->x + 180000.0f, missils->y, missils->z + 180000.0f);
+                    if (missils->target != nullptr) {
+                        ImGui::Text("Target X:%.0f\tY:%.0f\tZ:%.0f", missils->target->object->position.x,
+                                    missils->target->object->position.y, missils->target->object->position.z);
+                    }
                 }
+                ImGui::TreePop();
             }
-            ImGui::TreePop();
         }
         ImGui::End();
     }
     if (show_mission) {
-        ImGui::Begin("Mission", &show_mission);
-        std::vector<const char *> to_mission_list = {
-            "MISN-a1.IFF", "MISN-a2.IFF", "MISN-b1.IFF", "MISN-bw.IFF", "MISN-b2.IFF", "MISN-b3.IFF",
-            "MISN-b4.IFF", "MISN-c1.IFF", "MISN-cw.IFF", "MISN-c2.IFF", "MISN-c3.IFF", "MISN-cy.IFF",
-            "MISN-c4.IFF", "MISN-cz.IFF", "MISN-d1.IFF", "MISN-dw.IFF", "MISN-d2.IFF", "MISN-e1.IFF",
-            "MISN-e2.IFF", "MISN-e3.IFF", "MISN-e4.IFF", "MISN-f1.IFF", "MISN-f2.IFF", "MISN-fx.IFF",
-            "MISN-f3.IFF", "MISN-f4.IFF", "MISN-g1.IFF", "MISN-g2.IFF", "MISN-g3.IFF", "MISN-h1.IFF"};
-        static ImGuiComboFlags flags = 0;
-        static int to_mission_idx = 0;
-        ImGui::PushItemWidth(120.0f);
-        if (ImGui::BeginCombo("Strike Commander", mission_list[mission_idx], flags)) {
-            for (int n = 0; n < SCSTRIKE_MAX_MISSIONS; n++) {
-                const bool is_selected = (mission_idx == n);
-                if (ImGui::Selectable(mission_list[n], is_selected))
-                    mission_idx = n;
-                if (is_selected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::SameLine(300);
-        if (ImGui::Button("Load SC Mission")) {
-            Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-            Assets.navmap_add_filename = "";
-            this->setMission((char *)mission_list[mission_idx]);
-        }
-        ImGui::PopItemWidth();
-        ImGui::PushItemWidth(120.0f);
-        if (ImGui::BeginCombo("Tactical Operation", to_mission_list[to_mission_idx], flags)) {
-            for (int n = 0; n < to_mission_list.size(); n++) {
-                const bool is_selected = (to_mission_idx == n);
-                if (ImGui::Selectable(to_mission_list[n], is_selected))
-                    to_mission_idx = n;
-                if (is_selected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::SameLine(300);
-        if (ImGui::Button("Load TO Mission")) {
-            Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-            Assets.navmap_add_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
-            this->setMission((char *)to_mission_list[to_mission_idx]);
-        }
-        ImGui::PopItemWidth();
-        ImGui::End();
+        renderMissionLoadingDialog(show_mission);
     }
 
     if (show_mission_parts_and_areas) {
@@ -1242,6 +1204,26 @@ void DebugStrike::renderMenu() {
                     ImGui::Text("Object name %s", obj->name);
                     ImGui::Text("Object x %.3f y %.3f z %.3f", obj->position.x, obj->position.y, obj->position.z);
                     ImGui::TreePop();
+                }
+            }
+            ImGui::TreePop();
+        }
+        if (ImGui::TreeNode("Area overlay")) {
+            for (auto overlay : this->current_mission->area->objectOverlay) {
+                ImGui::Text("Overlay nbtrianbles %d", overlay.nbTriangles);
+                ImGui::Text("Overlay nbvertices %d", overlay.verticesVec.size());
+                for (auto vertex : overlay.verticesVec) {
+                    ImGui::Text("Overlay vertex x %d y %d z %d", vertex.x, vertex.y, vertex.z);
+                }
+                for (int i=0; i < overlay.verticesVec.size(); i++) {
+                    ImGui::Text("Overlay vertices [%d] (%d, %d, %d)",i, overlay.vertices[i].x, overlay.vertices[i].y, overlay.vertices[i].z);
+                }
+                for (int i=0; i < overlay.nbTriangles; i++) {
+                    ImGui::Text("Overlay triangle [%d] vertices:%d, %d, %d",i, 
+                        overlay.trianles[i].verticesIdx[0],
+                        overlay.trianles[i].verticesIdx[1],
+                        overlay.trianles[i].verticesIdx[2]
+                    );
                 }
             }
             ImGui::TreePop();
@@ -1435,7 +1417,7 @@ void DebugStrike::renderUI() {
             ImGui::EndChild();
             ImGui::SameLine();
             ImGui::BeginChild("Target", ImVec2(0, 0), true);
-            if (this->target != nullptr) {
+            if (this->target != nullptr && this->target->object != nullptr) {
                 ImGui::Text("Target: %s", this->target->object->member_name.c_str());
                 if (this->target->plane) {
                     ImGui::Text("Air Speed: %d", this->target->plane->airspeed);
@@ -1716,5 +1698,55 @@ void DebugStrike::showTextures() {
         }
         ImGui::EndTable();
     }
+    ImGui::End();
+}
+void DebugStrike::renderMissionLoadingDialog(bool &show_mission) {
+    ImGui::Begin("Mission", &show_mission);
+    std::vector<const char *> to_mission_list = {
+        "MISN-a1.IFF", "MISN-a2.IFF", "MISN-b1.IFF", "MISN-bw.IFF", "MISN-b2.IFF", "MISN-b3.IFF",
+        "MISN-b4.IFF", "MISN-c1.IFF", "MISN-cw.IFF", "MISN-c2.IFF", "MISN-c3.IFF", "MISN-cy.IFF",
+        "MISN-c4.IFF", "MISN-cz.IFF", "MISN-d1.IFF", "MISN-dw.IFF", "MISN-d2.IFF", "MISN-e1.IFF",
+        "MISN-e2.IFF", "MISN-e3.IFF", "MISN-e4.IFF", "MISN-f1.IFF", "MISN-f2.IFF", "MISN-fx.IFF",
+        "MISN-f3.IFF", "MISN-f4.IFF", "MISN-g1.IFF", "MISN-g2.IFF", "MISN-g3.IFF", "MISN-h1.IFF"};
+    static ImGuiComboFlags flags = 0;
+    static int to_mission_idx = 0;
+    ImGui::PushItemWidth(120.0f);
+    if (ImGui::BeginCombo("Strike Commander", mission_list[mission_idx], flags)) {
+        for (int n = 0; n < SCSTRIKE_MAX_MISSIONS; n++) {
+            const bool is_selected = (mission_idx == n);
+            if (ImGui::Selectable(mission_list[n], is_selected))
+                mission_idx = n;
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SameLine(300);
+    if (ImGui::Button("Load SC Mission")) {
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        Assets.navmap_add_filename = "";
+        this->setMission((char *)mission_list[mission_idx]);
+    }
+    ImGui::PopItemWidth();
+    ImGui::PushItemWidth(120.0f);
+    if (ImGui::BeginCombo("Tactical Operation", to_mission_list[to_mission_idx], flags)) {
+        for (int n = 0; n < to_mission_list.size(); n++) {
+            const bool is_selected = (to_mission_idx == n);
+            if (ImGui::Selectable(to_mission_list[n], is_selected))
+                to_mission_idx = n;
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SameLine(300);
+    if (ImGui::Button("Load TO Mission")) {
+        Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        Assets.navmap_add_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
+        this->setMission((char *)to_mission_list[to_mission_idx]);
+    }
+    ImGui::PopItemWidth();
     ImGui::End();
 }

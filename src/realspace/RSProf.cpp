@@ -42,7 +42,7 @@ void RSProf::parsePROF_RADI_INFO(uint8_t *data, size_t size){
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
     this->radi.info.id = stream.ReadShort();
     this->radi.info.name = stream.ReadStringNoSize(size);
     this->radi.info.callsign = stream.ReadStringNoSize(size);
@@ -52,7 +52,7 @@ void RSProf::parsePROF_RADI_OPTS(uint8_t *data, size_t size){
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
     int read = 0;
     while (read < size) {
         char r = stream.ReadByte();
@@ -68,7 +68,7 @@ void RSProf::parsePROF_RADI_MSGS(uint8_t *data, size_t size){
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
     while (stream.GetPosition() < data + size) {
         uint8_t key = stream.ReadByte();
         std::string value = stream.ReadStringNoSize(size);
@@ -80,7 +80,7 @@ void RSProf::parsePROF_RADI_ASKS(uint8_t *data, size_t size){
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
     while (stream.GetPosition() < data + size) {
         std::string cat = stream.ReadStringNoSize(size);
         std::string value = stream.ReadStringNoSize(size);
@@ -93,8 +93,8 @@ void RSProf::parsePROF_RADI_SPCH(uint8_t *data, size_t size){
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
-    this->radi.spch = stream.ReadShort();
+    stream.Set(data, size);
+    this->radi.spch = (int16_t) stream.ReadByte();
 }
 void RSProf::parsePROF__AI_(uint8_t *data, size_t size){
     IFFSaxLexer lexer;
@@ -114,7 +114,7 @@ void RSProf::parsePROF__AI_MVRS(uint8_t *data, size_t size) {
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
 
     while (stream.GetPosition() < data + size) {
         this->ai.mvrs.push_back(AI_STATE{stream.ReadByte(), stream.ReadByte()});
@@ -125,7 +125,7 @@ void RSProf::parsePROF__AI_GOAL(uint8_t *data, size_t size) {
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
     while (stream.GetPosition() < data + size) {
         this->ai.goal.push_back(stream.ReadByte());
     }
@@ -135,7 +135,7 @@ void RSProf::parsePROF__AI_ATRB(uint8_t *data, size_t size) {
     if (data == nullptr) {
         return;
     }
-    stream.Set(data);
+    stream.Set(data, size);
     this->ai.atrb.TH = stream.ReadByte();
     this->ai.atrb.CN = stream.ReadByte();
     this->ai.atrb.VB = stream.ReadByte();

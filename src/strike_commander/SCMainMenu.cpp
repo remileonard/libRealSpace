@@ -179,14 +179,14 @@ void SCMainMenu::LoadPalette(void) {
     palettesPak.InitFromRAM("OPTSHPS.PAK", palettesEntry->data, palettesEntry->size);
     // palettesPak.List(stdout);
 
-    paletteReader.Set(palettesPak.GetEntry(OPTPALS_PAK_MOUTAIN_PALETTE_PATCH_ID)->data); // mountains Good but not sky
+    paletteReader.Set(palettesPak.GetEntry(OPTPALS_PAK_MOUTAIN_PALETTE_PATCH_ID)->data, palettesPak.GetEntry(OPTPALS_PAK_MOUTAIN_PALETTE_PATCH_ID)->size); // mountains Good but not sky
     this->palette.ReadPatch(&paletteReader);
-    paletteReader.Set(palettesPak.GetEntry(OPTPALS_PAK_SKY_PALETTE_PATCH_ID)->data); // Sky Good but not mountains
+    paletteReader.Set(palettesPak.GetEntry(OPTPALS_PAK_SKY_PALETTE_PATCH_ID)->data, palettesPak.GetEntry(OPTPALS_PAK_SKY_PALETTE_PATCH_ID)->size); // Sky Good but not mountains
     this->palette.ReadPatch(&paletteReader);
 
     // Third palette patch (for silver board and buttons)
     PakEntry *palettePatchEntry = mainMenupak.GetEntry(MAINMENU_PAK_BOARD_PALETTE);
-    paletteReader.Set(palettePatchEntry->data);
+    paletteReader.Set(palettePatchEntry->data, palettePatchEntry->size);
     this->palette.ReadPatch(&paletteReader);
 }
 

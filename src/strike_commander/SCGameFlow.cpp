@@ -367,6 +367,9 @@ void SCGameFlow::runEffect() {
             }
             break;
         case EFECT_OPT_LOAD_GAME:
+            if (instruction->value != 0) {
+                break;
+            }
             if (this->frequest == nullptr) {
                 uint8_t soffset = 0;
                 if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
@@ -380,6 +383,9 @@ void SCGameFlow::runEffect() {
             this->frequest->loadFiles();
         break;
         case EFECT_OPT_SAVE_GAME:
+            if (instruction->value != 0) {
+                break;
+            }
             if (this->frequest == nullptr) {
                 uint8_t soffset = 0;
                 if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
@@ -416,6 +422,28 @@ void SCGameFlow::runEffect() {
                 this->optionParser.opts[30],
                 std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2));
             break;
+        case EFECT_OPT_PLAY_MIDGAME:
+        {
+            SCAnimationPlayer *midgame = new SCAnimationPlayer();
+            SCAnimationArchive archive;
+            std::vector<MIDGAME_SHOT *> shots;
+            std::vector<std::string> midgame_files = {
+                "./assets/MID_1.IFF",
+                "./assets/MID_2.IFF",
+                "./assets/MID_3.IFF",
+            };
+            if (instruction->value-1 < midgame_files.size()) {
+                std::string filepath = midgame_files[instruction->value-1];
+                if (archive.LoadFromFile(filepath.c_str(), shots)) {
+                    midgame->midgames_shots[1] = shots;
+                    this->mid_games.push(midgame);
+                    printf("Animation loaded from %s\n", filepath.c_str());
+                } else {
+                    printf("Failed to load animation from %s\n", filepath.c_str());
+                }
+            }
+            break;
+        }
         case EFECT_OPT_VIEW_CATALOG:
             this->zones->clear();
             if (this->scen != nullptr) {
@@ -708,6 +736,12 @@ void SCGameFlow::runFrame(void) {
     if (this->cutsenes.size() > 0) {
         SCShot *c = this->cutsenes.front();
         this->cutsenes.pop();
+        Game->addActivity(c);
+        return;
+    }
+    if (this->mid_games.size() > 0) {
+        SCAnimationPlayer *c = this->mid_games.front();
+        this->mid_games.pop();
         Game->addActivity(c);
         return;
     }

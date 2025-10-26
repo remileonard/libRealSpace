@@ -62,7 +62,7 @@ void RSPalette::parsePAL(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSPalette::parsePAL_CMAP(uint8_t *data, size_t size){
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     
     Texel texel;
     
@@ -97,7 +97,7 @@ void RSPalette::parsePALT_TABL(uint8_t *data, size_t size){
 }
 
 void RSPalette::parsePALT_PALT(uint8_t *data, size_t size){
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     
     this->colorFlag = stream.ReadUInt32LE();
 
@@ -133,7 +133,7 @@ void RSPalette::parsePALT_PALT(uint8_t *data, size_t size){
     }
 }
 void RSPalette::parsePALT_BLWH(uint8_t *data, size_t size){
-    ByteStream stream(data);
+    ByteStream stream(data, size);
     
     this->bwFlag = stream.ReadUInt32LE();
 

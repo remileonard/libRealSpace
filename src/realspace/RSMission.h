@@ -71,7 +71,7 @@ struct CAST {
 };
 struct PROG {
     uint8_t opcode;
-    int8_t arg;
+    uint8_t arg;
 };
 struct MISN_SCEN {
     uint8_t is_active {0};

@@ -131,12 +131,14 @@ void SCNavMap::checkKeyboard(void) {
  */
 void SCNavMap::init(){
     RSPalette palette;
-    FileData *f = Assets.GetFileData("PALETTE.IFF");
-    if (f == nullptr) {
-        TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
+    if (entries != nullptr) {
         palette.initFromFileRam(entries->data, entries->size);
     } else {
-        palette.initFromFileData(f);
+        FileData *f = Assets.GetFileData("PALETTE.IFF");
+        if (f != nullptr) {
+            palette.initFromFileData(f);    
+        }
     }
     this->palette = *palette.GetColorPalette();
     for (uint8_t i=0; i<255; i++) {
@@ -208,7 +210,10 @@ void SCNavMap::runFrame(void) {
     float map_width = BLOCK_WIDTH * 18.0f;
     if (this->navMap->maps.count(*this->name)>0) {
         VGA.getFrameBuffer()->drawShape(this->navMap->maps[*this->name]);
-        VGA.getFrameBuffer()->drawShape(this->navMap->background);
+        RLEShape *shape = this->navMap->background;
+        if (shape != nullptr) {
+            VGA.getFrameBuffer()->drawShape(shape);
+        }
         Point2D pos = this->navMap->maps[*this->name]->position;
         int w = 238;
         int h = 155;
@@ -362,16 +367,18 @@ void SCNavMap::runFrame(void) {
                         );
                     }
                     c = 255;
-                    newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
-                    newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
+                    if (wp->spot->area_id > 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
+                        newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
+                        newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
+                        if (newx>0 && newx<320 && newy>0 && newy<200) {
+                            VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
+                            VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
+                        }
+                        this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
+                    }   
                     
-                    if (newx>0 && newx<320 && newy>0 && newy<200) {
-                        VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
-                        VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
-                    }
-                    this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
                 } else {
-                    if (wp->spot->area_id != 255) {
+                    if (wp->spot->area_id != 255 && wp->spot->area_id > 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
                         newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
                         newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
                         if (used_areas.find(wp->spot->area_id) == used_areas.end()) {

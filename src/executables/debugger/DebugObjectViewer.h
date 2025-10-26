@@ -6,6 +6,7 @@ private:
     std::vector<Vector3D> vertices;
     bool moovingLight{true};
     bool autoRotate{true};
+    int lodLevel{0};
 public:
     DebugObjectViewer();
     ~DebugObjectViewer();

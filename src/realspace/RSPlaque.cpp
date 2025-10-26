@@ -50,7 +50,7 @@ void RSPlaque::parsePLAQ_SHAP(uint8_t *data, size_t size) {
     uint8_t *archive_data = (uint8_t *)malloc(size);
     memcpy(archive_data, data, size);
     PakArchive *shapesArchive = new PakArchive();
-    shapesArchive->InitFromRAM("PLAQUE_SHAPES", archive_data, size-1);
+    shapesArchive->InitFromRAM("PLAQUE_SHAPES", archive_data, size);
     for (int i = 0; i < shapesArchive->GetNumEntries(); i++) {
         PakEntry *entry = shapesArchive->GetEntry(i);
         RLEShape *shape = new RLEShape();

@@ -11,6 +11,7 @@
 #include "SCMidGamesEnum.h"
 
 
+#ifdef OLD_CODE
 void SCAnimationPlayer::initMid1() {
     MIDGAME_DATA mid1Data = {
         {
@@ -638,6 +639,12 @@ void SCAnimationPlayer::initMid1() {
     };
     this->midgames_data[1] = mid1Data;
 }
+#endif
+void SCAnimationPlayer::initMid1(){
+    SCAnimationArchive archive;
+    archive.LoadFromFile("MID_1.IFF", this->midgames_shots[1]);
+}
+
 
 SCAnimationPlayer::SCAnimationPlayer() { this->fps_timer = SDL_GetTicks() / 10; }
 
@@ -684,7 +691,7 @@ void SCAnimationPlayer::init(){
                 continue;
             }
             PakArchive *arch = new PakArchive();
-            arch->InitFromRAM(midgames_files[i].c_str(), entry->data, entry->size);
+            arch->InitFromRAM(file_path.c_str(), entry->data, entry->size);
             this->midvoc.push_back(arch);
         }
     }
@@ -696,10 +703,11 @@ void SCAnimationPlayer::init(){
         Assets.optpals_filename
     );
     this->optPals.InitFromRAM("OPTPALS.PAK", optPalettesEntry->data, optPalettesEntry->size);
-
+    
     this->initMid1();
     
-    for (auto mid_data: this->midgames_data) {
+
+    /*for (auto mid_data: this->midgames_data) {
         for (auto sht: mid_data.second.shots) {
             MIDGAME_SHOT *shot = new MIDGAME_SHOT();
         
@@ -729,6 +737,7 @@ void SCAnimationPlayer::init(){
                 bg->shapeid = shot_bg.sub_shape_id;
                 bg->position_start = shot_bg.start;
                 bg->position_end = shot_bg.end;
+                bg->current_position = {shot_bg.start.x, shot_bg.start.y};
                 bg->velocity = shot_bg.velocity;
                 shot->background.push_back(bg);
             }
@@ -777,6 +786,7 @@ void SCAnimationPlayer::init(){
                 bg->shapeid = shot_bg.sub_shape_id;
                 bg->position_start = shot_bg.start;
                 bg->position_end = shot_bg.end;
+                bg->current_position = {shot_bg.start.x, shot_bg.start.y};
                 bg->velocity = shot_bg.velocity;
                 shot->foreground.push_back(bg);
             }
@@ -791,7 +801,7 @@ void SCAnimationPlayer::init(){
             }
             this->midgames_shots[1].push_back(shot);
         }
-    }
+    }*/
 
     this->original_palette.CopyFromOtherPalette(VGA.getPalette(), false);
     this->palette.CopyFromOtherPalette(VGA.getPalette(), false);
@@ -811,10 +821,13 @@ void SCAnimationPlayer::runFrame(void){
     FrameBuffer *fb = VGA.getFrameBuffer();
     fb->fillWithColor(0);
     int fpsupdate = 0;
-    fpsupdate = (SDL_GetTicks() / 10) - fps_timer > 6;
-    if (fpsupdate) {
-        fps_timer = (SDL_GetTicks() / 10);
+    if (!pause) {
+        fpsupdate = (SDL_GetTicks() / 10) - fps_timer > 6;
+        if (fpsupdate) {
+            fps_timer = (SDL_GetTicks() / 10);
+        }
     }
+    
     
 
     MIDGAME_SHOT *shot = this->midgames_shots[1][shot_counter];
@@ -828,15 +841,15 @@ void SCAnimationPlayer::runFrame(void){
         shot->sound = nullptr;
     }
     for (auto bg : shot->background) {
-         if (bg->palette != 0) {
+        if (bg->palette != 0) {
             ByteStream paletteReader;
             if (bg->pak_palette == nullptr) {
-                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 772);
             } else {
                 if (bg->palette >= bg->pak_palette->GetNumEntries()) {
                     continue;
                 }
-                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data);
+                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data, 772);
             }
             this->palette.ReadPatch(&paletteReader);
         }
@@ -845,15 +858,15 @@ void SCAnimationPlayer::runFrame(void){
         }
     }
     for (auto bg: shot->foreground) {
-         if (bg->palette != 0) {
+        if (bg->palette != 0) {
             ByteStream paletteReader;
             if (bg->pak_palette == nullptr) {
-                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data);
+                paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 772);
             } else {
                 if (bg->palette >= bg->pak_palette->GetNumEntries()) {
                     continue;
                 }
-                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data);
+                paletteReader.Set(bg->pak_palette->GetEntry(bg->palette)->data, 772);
             }
             
             this->palette.ReadPatch(&paletteReader);
@@ -863,20 +876,35 @@ void SCAnimationPlayer::runFrame(void){
         }
     }
     for (auto sprt: shot->sprites) {
-         if (sprt->palette != 0) {
+        if (sprt->palette != 0) {
             ByteStream paletteReader;
             if (sprt->pak_palette == nullptr) {
-                paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data);
+                paletteReader.Set(this->optPals.GetEntry(sprt->palette)->data, 772);
             } else {
                 if (sprt->palette >= sprt->pak_palette->GetNumEntries()) {
                     continue;
                 }
-                paletteReader.Set(sprt->pak_palette->GetEntry(sprt->palette)->data);
+                paletteReader.Set(sprt->pak_palette->GetEntry(sprt->palette)->data, 772);
             }
             this->palette.ReadPatch(&paletteReader);
         }
         if (sprt->pal != nullptr && !sprt->use_external_palette) {
             this->palette.CopyFromOtherPalette(sprt->pal->GetColorPalette());
+        }
+    }
+    for (auto chara: shot->characters) {
+        if (chara->palette != 0) {
+            ByteStream paletteReader;
+            PakEntry *palEntry = nullptr;
+            palEntry = ConvAssetManager::getInstance().convPals.GetEntry(chara->palette);
+            if (palEntry == nullptr) {
+                continue;
+            }
+            if (palEntry->size == 0) {
+                continue;
+            }
+            paletteReader.Set(palEntry->data, 772);
+            this->palette.ReadPatch(&paletteReader);
         }
     }
     
@@ -891,18 +919,17 @@ void SCAnimationPlayer::runFrame(void){
             FrameBuffer *texture = new FrameBuffer(320, 200);
             texture->fillWithColor(255);
             texture->drawShape(shp);
-            fb->blitWithMask(texture->framebuffer, bg->position_start.x, bg->position_start.y, 320, 200,255);
+            fb->blitWithMask(texture->framebuffer, bg->current_position.x, bg->current_position.y, 320, 200,255);
             if (fpsupdate && (bg->velocity.x != 0 || bg->velocity.y != 0)) {
-                if (bg->position_start.x != bg->position_end.x) {
-                    bg->position_start.x += bg->velocity.x;
+                if (bg->current_position.x != bg->position_end.x) {
+                    bg->current_position.x += bg->velocity.x;
                 }  
-                if (bg->velocity.y<0 && bg->position_start.y > bg->position_end.y) {
-                    bg->position_start.y += bg->velocity.y;
-                } else if (bg->velocity.y>0 && bg->position_start.y < bg->position_end.y) {
-                    bg->position_start.y += bg->velocity.y;
+                if (bg->velocity.y<0 && bg->current_position.y > bg->position_end.y) {
+                    bg->current_position.y += bg->velocity.y;
+                } else if (bg->velocity.y>0 && bg->current_position.y < bg->position_end.y) {
+                    bg->current_position.y += bg->velocity.y;
                 }
             }
-           
             delete texture;
         }
     }
@@ -934,11 +961,31 @@ void SCAnimationPlayer::runFrame(void){
         if (sprt->keep_first_frame) {
             texture->drawShape(sprt->image->GetShape(1));
         }
-        if (fps<sprt->image->GetNumImages()) {
-            texture->drawShape(sprt->image->GetShape(fps));
+        if (fpsupdate && (sprt->velocity.x != 0 || sprt->velocity.y != 0)) {
+            if (sprt->current_position.x != sprt->position_end.x) {
+                sprt->current_position.x += sprt->velocity.x;
+            }  
+            if (sprt->velocity.y<0 && sprt->current_position.y > sprt->position_end.y) {
+                sprt->current_position.y += sprt->velocity.y;
+            } else if (sprt->velocity.y>0 && sprt->current_position.y < sprt->position_end.y) {
+                sprt->current_position.y += sprt->velocity.y;
+            }
         }
+        if (fpsupdate) {
+            sprt->current_frame++;
+            if (sprt->current_frame > sprt->image->GetNumImages()-1) {
+                if (sprt->repeat_animation) {
+                    sprt->current_frame = 1;
+                } else {
+                    sprt->current_frame = sprt->image->GetNumImages()-1;
+                }
+            }
+        }
+        
+        texture->drawShape(sprt->image->GetShape(sprt->current_frame));
+        
         int color = texture->framebuffer[0];
-        fb->blitWithMask(texture->framebuffer, sprt->position_start.x, sprt->position_start.y, 320, 200,color);
+        fb->blitWithMask(texture->framebuffer, sprt->current_position.x, sprt->current_position.y, 320, 200,color);
         delete texture;
     }
     for (auto bg : shot->foreground) {
@@ -950,15 +997,15 @@ void SCAnimationPlayer::runFrame(void){
             FrameBuffer *texture = new FrameBuffer(320, 200);
             texture->fillWithColor(255);
             texture->drawShape(shp);
-            fb->blitWithMask(texture->framebuffer, bg->position_start.x, bg->position_start.y, 320, 200,255);
+            fb->blitWithMask(texture->framebuffer, bg->current_position.x, bg->current_position.y, 320, 200,255);
             if (fpsupdate && (bg->velocity.x != 0 || bg->velocity.y != 0)) {
-                if (bg->position_start.x != bg->position_end.x) {
-                    bg->position_start.x += bg->velocity.x;
+                if (bg->current_position.x != bg->position_end.x) {
+                    bg->current_position.x += bg->velocity.x;
                 }  
-                if (bg->velocity.y<0 && bg->position_start.y > bg->position_end.y) {
-                    bg->position_start.y += bg->velocity.y;
-                } else if (bg->velocity.y>0 && bg->position_start.y < bg->position_end.y) {
-                    bg->position_start.y += bg->velocity.y;
+                if (bg->velocity.y<0 && bg->current_position.y > bg->position_end.y) {
+                    bg->current_position.y += bg->velocity.y;
+                } else if (bg->velocity.y>0 && bg->current_position.y < bg->position_end.y) {
+                    bg->current_position.y += bg->velocity.y;
                 }
             }
             delete texture;
@@ -967,9 +1014,30 @@ void SCAnimationPlayer::runFrame(void){
     if (!pause) {
         fps_counter++;
         fps+=fpsupdate;
+    } else if (pause && fps == 1) {
+        for (auto bg : shot->background) {
+            bg->current_position = {bg->position_start.x, bg->position_start.y};
+        }
+        for (auto sprt: shot->sprites) {
+            sprt->current_frame = 1;
+            sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
+        }
+        for (auto bg : shot->foreground) {
+            bg->current_position = {bg->position_start.x, bg->position_start.y};
+        }
     }
     if (fps > shot->nbframe) {
         fps = 1;
+        for (auto bg : shot->background) {
+            bg->current_position = {bg->position_start.x, bg->position_start.y};
+        }
+        for (auto sprt: shot->sprites) {
+            sprt->current_frame = 1;
+            sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
+        }
+        for (auto bg : shot->foreground) {
+            bg->current_position = {bg->position_start.x, bg->position_start.y};
+        }
         shot_counter++;
         if (shot_counter>this->midgames_shots[1].size()-1) {
             shot_counter = 0;

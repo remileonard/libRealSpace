@@ -16,7 +16,9 @@
 #include "DebugControllerActivity.h"
 #include "DebugAnimationPlayer.h"
 #include "DebugConvPlayer.h"
-
+#include "DebugPacificStrikeMISN.h"
+#include "DebugPSConvPlayer.h"
+#include "DebugPSGameFlow.h"
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
 
@@ -408,20 +410,106 @@ void DebugGame::loadPacificConv() {
         "PACIFIC.DAT"
     };
     Assets.init(cdTreFiles);
+    Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+    Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
     Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
-    Assets.conv_pak_filename = "..\\..\\DATA\\GAMEFLOW\\CONVSHPS.PAK";
-    Assets.conv_pal_filename = "..\\..\\DATA\\GAMEFLOW\\CONVPALS.PAK";
-    Assets.conv_data_filename = "..\\..\\DATA\\GAMEFLOW\\CONVDATA.IFF";
-    Assets.convpak_filename = "..\\..\\DATA\\GAMEFLOW\\CONV.PAK";
-    Assets.optshps_filename = "..\\..\\DATA\\GAMEFLOW\\OPTSHPS.PAK";
-    Assets.optpals_filename = "..\\..\\DATA\\GAMEFLOW\\OPTPALS.PAK";
+    Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+    Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+    Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+
+    Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
+    Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+    Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+    Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+    Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+    Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+    Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+    Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+    Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+    Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+    Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+    Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
     RSMixer::getInstance().init();
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
     ConvAssetManager::getInstance().init();
-    DebugConvPlayer* main = new DebugConvPlayer();
+    DebugPSGameFlow* main = new DebugPSGameFlow();
+    SCState &GameState = SCState::getInstance();
+    GameState.Reset();
+    GameState.player_callsign = "Debug";
+    GameState.player_name = "Debug Player";
+    GameState.player_firstname = "Debug";
+    GameState.current_mission = 1;
+    for (int i=0; i<256; i++) {
+        GameState.requierd_flags[i] = false;
+    }
     main->init();
-    main->SetID(2);
+    this->addActivity(main);
+}
+
+void DebugGame::loadPacificMISN() {
+    Assets.SetBase("./assets");
+    // Load all TREs and PAKs
+    
+    std::vector<std::string> cdTreFiles = {
+        "PACIFIC.DAT"
+    };
+    Assets.init(cdTreFiles);
+    Assets.intel_root_path = "..\\..\\DATA\\INTEL\\";
+    Assets.mission_root_path = "..\\..\\DATA\\MISSIONS\\";
+    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+    Assets.sound_root_path = "..\\..\\DATA\\SOUND\\";
+    Assets.texture_root_path = "..\\..\\DATA\\TXM\\";
+    Assets.gameflow_root_path = "..\\..\\DATA\\GAMEFLOW\\";
+
+    Assets.gameflow_filename = Assets.gameflow_root_path+"GAMEFLOW.IFF";
+    Assets.optshps_filename = Assets.gameflow_root_path+"OPTSHPS.PAK";
+    Assets.optpals_filename = Assets.gameflow_root_path+"OPTPALS.PAK";
+    Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
+    Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+    Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
+    Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+    Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+    Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
+    Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
+    Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
+    Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
+    RSMixer::getInstance().init();
+    FontManager.init();
+    SCRenderer::getInstance().init(1280,800);
+    SCMouse::getInstance().init();
+    ConvAssetManager::getInstance().init();
+    DebugPacificStrikeMISN* main = new DebugPacificStrikeMISN();
+    SCState &GameState = SCState::getInstance();
+    GameState.Reset();
+    GameState.player_callsign = "Debug";
+    GameState.player_name = "Debug Player";
+    GameState.player_firstname = "Debug";
+    GameState.current_mission = 1;
+    for (int i=0; i<256; i++) {
+        GameState.requierd_flags[i] = false;
+    }
+    main->init();
+    main->setMission("PRLH-M1.IFF");
+    this->addActivity(static_cast<IActivity*>(static_cast<DebugStrike*>(main)));
+}
+
+void DebugGame::loadWingsOfGlory() {
+    Assets.SetBase("./assets");
+    // Load all TREs and PAKs
+    
+    std::vector<std::string> cdTreFiles = {
+        "WOGDATA1.TRE",
+        "WOGDATA2.TRE",
+        "WOGDATA3.TRE",
+    };
+    Assets.init(cdTreFiles);
+    Assets.object_root_path = "..\\..\\DATA\\OBJECTS\\";
+    RSMixer::getInstance().init();
+    FontManager.init();
+    SCRenderer::getInstance().init(1280,800);
+    DebugObjectViewer* main = new DebugObjectViewer();
+    main->init();
     this->addActivity(main);
 }
 

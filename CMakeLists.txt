@@ -4,6 +4,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
+# Trouver Google Test
+find_package(GTest CONFIG REQUIRED)
+
+# Activer les tests
+enable_testing()
+
 find_package(SDL2 REQUIRED)
 find_package(SDL2_mixer_ext CONFIG REQUIRED)
 find_package(SDL2_ttf CONFIG REQUIRED)
@@ -15,11 +21,14 @@ add_subdirectory(src/executables/sc)
 add_subdirectory(src/executables/to)
 add_subdirectory(src/executables/debugger)
 add_subdirectory(src/strike_commander)
+add_subdirectory(src/pacific_strike)
 add_subdirectory(src/engine)
 add_subdirectory(src/realspace)
 add_subdirectory(src/commons/pklib)
 add_subdirectory(src/commons)
 
+# Tests unitaires
+add_subdirectory(tests)
 
 # Configuration du package CPack
 set(CPACK_GENERATOR "ZIP")
@@ -45,6 +54,9 @@ file(MAKE_DIRECTORY ${FONTS_DIR})
 
 # Copie des assets (ajustez les chemins selon votre structure de projet)
 file(COPY "${CMAKE_SOURCE_DIR}/resources/STRIKE.wopl" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_1.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_2.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_3.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${FONTS_DIR}")
 
 # Installation des exécutables et des DLLs

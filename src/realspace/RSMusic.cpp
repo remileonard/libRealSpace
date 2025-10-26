@@ -27,6 +27,10 @@ void RSMusic::init() {
         midgames_musics[0].push_back(music);
     }
     TreEntry *gameflow = assetManager.GetEntryByName("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL");
+    if (gameflow == NULL) {
+        printf("RSMusic::init: Could not find ..\\..\\DATA\\SOUND\\GAMEFLOW.ADL\n");
+        return;
+    }
     pak = new PakArchive();
     pak->InitFromRAM("..\\..\\DATA\\SOUND\\GAMEFLOW.ADL", gameflow->data, gameflow->size);
     for (size_t i = 0; i < pak->GetNumEntries(); i++) {

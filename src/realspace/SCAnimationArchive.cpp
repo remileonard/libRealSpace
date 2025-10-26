@@ -87,6 +87,25 @@ void SCAnimationArchive::WriteShot(IFFWriter& writer, const MIDGAME_SHOT* shot) 
         WriteCharacters(writer, shot->characters);
     }
     
+    if (shot->sound_pak != nullptr && shot->sound_pak_entry_id >= 0) {
+        writer.StartChunk("SOND");
+        std::string archiveName = shot->sound_pak->GetName();
+        if (archiveName.length() < 4 || archiveName.compare(archiveName.length() - 4, 4, ".PAK") != 0) {
+            archiveName += ".PAK";
+        }
+        AssetManager& Assets = AssetManager::getInstance();
+        for (auto treRef: Assets.treEntries) {
+            if (treRef.first.length() >= archiveName.length() &&
+                treRef.first.compare(treRef.first.length() - archiveName.length(), archiveName.length(), archiveName) == 0) {
+                archiveName = treRef.first;
+                break;
+            }
+        }
+        writer.WriteUint16(archiveName.length());
+        writer.WriteString(archiveName.c_str(), archiveName.length());
+        writer.WriteUint16(shot->sound_pak_entry_id);
+        writer.EndChunk();
+    }
     writer.EndChunk();
 }
 
@@ -242,7 +261,7 @@ void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRIT
     writer.WriteInt16(sprite->velocity.x);
     writer.WriteInt16(sprite->velocity.y);
     writer.WriteUint8(sprite->keep_first_frame);
-    
+    writer.WriteUint8(sprite->repeat_animation);
     writer.EndChunk();
 }
 
@@ -299,14 +318,6 @@ void SCAnimationArchive::WriteForegrounds(IFFWriter& writer, const std::vector<M
     writer.EndChunk();
 }
 
-void SCAnimationArchive::WriteSound(IFFWriter& writer, const MIDGAME_SOUND* sound) {
-    writer.StartChunk("SOND");
-    if (sound != nullptr && sound->data != nullptr) {
-        writer.WriteData(sound->data, sound->size);
-    }
-    writer.EndChunk();
-}
-
 void SCAnimationArchive::HandleANIM(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
     
@@ -351,17 +362,19 @@ void SCAnimationArchive::HandleCHAR(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_CHARACTER* character = new MIDGAME_SHOT_CHARACTER();
         
         // Lecture du nom du personnage
         uint16_t charNameLength = stream.ReadUShort();
         character->character_name = stream.ReadString(charNameLength);
-        
+        ConvAssetManager& ConvAssets = ConvAssetManager::getInstance();
+        character->image = ConvAssets.GetCharFace(character->character_name)->appearances;
         // Lecture du nom du fond
         uint16_t bgNameLength = stream.ReadUShort();
-        character->background_name = stream.ReadString(bgNameLength);
+        if (bgNameLength > 0)
+            character->background_name = stream.ReadString(bgNameLength);
         
         // Lecture des positions et vélocité
         character->position_start.x = stream.ReadShort();
@@ -388,7 +401,7 @@ void SCAnimationArchive::HandleCHRC(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleSHTP(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         currentShot->nbframe = stream.ReadInt32LE();
         currentShot->music = stream.ReadByte();
         currentShot->sound_time_code = stream.ReadUShort();
@@ -404,7 +417,7 @@ void SCAnimationArchive::HandleBGND(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_BG* bg = new MIDGAME_SHOT_BG();
         
@@ -434,6 +447,7 @@ void SCAnimationArchive::HandleBKGD(uint8_t* data, size_t size) {
         // Lire les positions et la vélocité
         bg->position_start.x = stream.ReadShort();
         bg->position_start.y = stream.ReadShort();
+        bg->current_position = {bg->position_start.x, bg->position_start.y};
         bg->position_end.x = stream.ReadShort();
         bg->position_end.y = stream.ReadShort();
         bg->velocity.x = stream.ReadShort();
@@ -474,7 +488,7 @@ void SCAnimationArchive::HandleSPRT(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleSPRI(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_SPRITE* sprite = new MIDGAME_SHOT_SPRITE();
         
@@ -508,6 +522,7 @@ void SCAnimationArchive::HandleSPRI(uint8_t* data, size_t size) {
         sprite->velocity.x = stream.ReadShort();
         sprite->velocity.y = stream.ReadShort();
         sprite->keep_first_frame = stream.ReadByte();
+        sprite->repeat_animation = stream.ReadByte();
         if (sprite->pak != nullptr) {
             PakEntry* entry = sprite->pak->GetEntry(sprite->pak_entry_id);
             if (entry != nullptr) {
@@ -544,7 +559,7 @@ void SCAnimationArchive::HandleFGND(uint8_t* data, size_t size) {
 
 void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
     if (currentShot) {
-        ByteStream stream(data);
+        ByteStream stream(data, size);
         
         MIDGAME_SHOT_BG* fg = new MIDGAME_SHOT_BG();
         
@@ -573,6 +588,7 @@ void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
         // Lire les positions et la vélocité
         fg->position_start.x = stream.ReadShort();
         fg->position_start.y = stream.ReadShort();
+        fg->current_position = {fg->position_start.x, fg->position_start.y};
         fg->position_end.x = stream.ReadShort();
         fg->position_end.y = stream.ReadShort();
         fg->velocity.x = stream.ReadShort();
@@ -605,13 +621,22 @@ void SCAnimationArchive::HandleFRGD(uint8_t* data, size_t size) {
 }
 
 void SCAnimationArchive::HandleSOND(uint8_t* data, size_t size) {
-    if (currentShot && size > 0) {
-        MIDGAME_SOUND* sound = new MIDGAME_SOUND();
-        sound->size = size;
-        sound->data = new uint8_t[size];
-        memcpy(sound->data, data, size);
+    if (currentShot) {
+        ByteStream stream(data, size);
         
-        currentShot->sound = sound;
+        uint16_t nameLength = stream.ReadUShort();
+        std::string archiveName = stream.ReadString(nameLength);
+        currentShot->sound_pak = FindOrLoadPakArchive(archiveName);
+        currentShot->sound_pak_entry_id = stream.ReadUShort();
+        
+        if (currentShot->sound_pak != nullptr) {
+            PakEntry* soundEntry = currentShot->sound_pak->GetEntry(currentShot->sound_pak_entry_id);
+            if (soundEntry != nullptr) {
+                currentShot->sound = new MIDGAME_SOUND();
+                currentShot->sound->data = soundEntry->data;
+                currentShot->sound->size = soundEntry->size;
+            }
+        }
     }
 }
 

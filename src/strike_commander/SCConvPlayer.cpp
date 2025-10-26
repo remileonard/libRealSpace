@@ -100,16 +100,15 @@ std::unordered_map<uint8_t, std::vector<uint8_t>> faces_shape = {
 bool isNextFrameIsConv(uint8_t type) {
     switch (type) {
         case GROUP_SHOT:
-        case GROUP_SHOT_ADD_CHARCTER:
         case GROUP_SHOT_CHARCTR_TALK:
         case CLOSEUP:
         case CLOSEUP_CONTINUATION:
         case SHOW_TEXT:
+        case GROUP_SHOT_ADD_CHARCTER:
         case YESNOCHOICE_BRANCH1:
         case YESNOCHOICE_BRANCH2:
         case CHOOSE_WINGMAN:
         case 0xE0:
-        case 0xFF:
             return true;
         default:
             return false;
@@ -130,10 +129,10 @@ void ConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
     this->face      = nullptr;
 
     conv->MoveForward(8);
-    while (conv->PeekByte() == 0x0) {
+    while (conv->PeekByte() == 0x0 && !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())) {
+    while (!isNextFrameIsConv((uint8_t) conv->PeekByte()) && !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
     uint8_t next_type = conv->PeekByte();
@@ -230,7 +229,7 @@ void ConvFrame::parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv) {
     participant->x = conv->ReadUShortBE();
     participant->y = conv->ReadUShortBE();
     this->participants.push_back(participant);
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())) {
+    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())&& !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
     if (conv->PeekByte() == GROUP_SHOT_ADD_CHARCTER) {
@@ -254,7 +253,7 @@ void ConvFrame::parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv) {
 }
 void ConvFrame::parse_SHOW_TEXT(ByteStream *conv) {
     this->mode = ConvFrame::CONV_SHOW_TEXT;
-    int8_t color      = conv->ReadByte();
+    uint8_t color      = conv->ReadByte();
     int next_frame_offset = this->SetSentenceFromConv(conv, 0);
     this->textColor = color;
 
@@ -370,9 +369,15 @@ int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
         decalage = 2;
     }
     if (!isNextFrameIsConv((uint8_t) sentence_end[0])) {
+        std::string test = std::string(sentence_end);
         sound_offset = (int) strlen((char *)sentence) + decalage;
-        this->sound_file_name = new std::string(sentence);
-        sentence = sentence_end;
+        uint8_t t = test.c_str()[0];
+        if (t != 0xFF && t != 0xF4) {
+            this->sound_file_name = new std::string(sentence);
+            sentence = sentence_end;
+        } else {
+            sound_offset = 4;
+        }
     }
     std::string *text = new std::string(sentence);
     if (text->find("$N") != std::string::npos) {
@@ -441,8 +446,11 @@ void SCConvPlayer::ReadNextFrame(void) {
 }
 
 void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
+    static bool yes_no_choice_in_progress = false;
+    if (this->conv.GetCurrentPosition() > this->size) {
+        return;
+    }
     uint8_t type = conv.ReadByte();
-
     switch (type) {
     case GROUP_SHOT: // Group plan
     {
@@ -473,20 +481,32 @@ void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
         tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
         tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
         tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
+        yes_no_choice_in_progress = true;
         break;
     }
     case YESNOCHOICE_BRANCH2: // Choice offset after first branch
     {
-
+        if (!yes_no_choice_in_progress) {
+            tmp_frame->do_not_add = true;
+            break;
+        }
         // tmp_frame->mode = ConvFrame::CONV_CONTRACT_CHOICE;
         // Looks like first byte is the offset to skip if the answer is no.
         tmp_frame->parse_YESNOCHOICE_BRANCH2(&conv);
         tmp_frame->do_not_add = true;
+        yes_no_choice_in_progress = false;
         break;
     }
     case GROUP_SHOT_ADD_CHARCTER: // Add person to GROUP
     {
-        tmp_frame->parse_GROUP_SHOT_ADD_CHARACTER(&conv);
+        if (conv.CurrentByte() == CLOSEUP) {
+            conv.MoveForward(1);
+            tmp_frame->parse_CLOSEUP(&conv);
+        } else {
+            tmp_frame->parse_GROUP_SHOT_ADD_CHARACTER(&conv);
+        }
+            
+
         break;
     }
     case GROUP_SHOT_CHARCTR_TALK: // Make group character talk
@@ -531,7 +551,7 @@ void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
 
     this->size = convPakEntry->size;
 
-    this->conv.Set(convPakEntry->data);
+    this->conv.Set(convPakEntry->data, convPakEntry->size);
     end = convPakEntry->data + convPakEntry->size;
 
     if (this->conversation_frames.size() > 0) {
@@ -542,7 +562,7 @@ void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
         this->conversation_frames.shrink_to_fit();
     }
 
-    while (conv.GetPosition() < end) {
+    while (conv.GetPosition() < end && !conv.IsEndOfStream()) {
         ReadNextFrame();
     }
 
@@ -558,8 +578,13 @@ void SCConvPlayer::SetID(int32_t id) {
         Game->log("Cannot load conversation id (max convID is %lu).", convPak.GetNumEntries() - 1);
         return;
     }
+    
     topOffset = CONV_TOP_BAR_HEIGHT + 1;
     PakEntry *entry = convPak.GetEntry(id);
+    if (entry->size == 0) {
+        Game->log("Conversation entry is empty: Unable to load it.\n");
+        return;
+    }
     if (entry->data[5] == 0x06 && entry->data[4] == 0x00) {
         PKWareDecompressor decompressor;
         uint8_t *compressed = entry->data + 4;
@@ -816,12 +841,17 @@ void SCConvPlayer::runFrame(void) {
     if (this->current_frame->bgLayers != nullptr && this->current_frame->bgPalettes != nullptr) {
         for (size_t i = 0; i < this->current_frame->bgLayers->size(); i++) {
             ByteStream paletteReader;
-            paletteReader.Set((*this->current_frame->bgPalettes)[i]);
+            paletteReader.Set((*this->current_frame->bgPalettes)[i], 772);
             this->palette.ReadPatch(&paletteReader);
         }
         VGA.setPalette(&this->palette);
         for (size_t i = 0; i < this->current_frame->bgLayers->size(); i++) {
             RLEShape *shape = (*this->current_frame->bgLayers)[i];
+
+            if (shape->leftDist < 0) {
+                Point2D pos = {-shape->leftDist, -shape->topDist};
+                shape->SetPosition(&pos);
+            }
             VGA.getFrameBuffer()->drawShape(shape);
         }
     }
@@ -841,7 +871,7 @@ void SCConvPlayer::runFrame(void) {
                 VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
             ByteStream paletteReader;
 
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
+            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
             this->palette.ReadPatch(&paletteReader);
 
             int32_t pos = 0;
@@ -893,9 +923,9 @@ void SCConvPlayer::runFrame(void) {
                 VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
             ByteStream paletteReader;
 
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
+            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
             this->palette.ReadPatch(&paletteReader);
-
+            VGA.setPalette(&this->palette);
             int32_t pos = 0;
 
             if (this->current_frame->mode == ConvFrame::CONV_CLOSEUP) {
@@ -930,7 +960,7 @@ void SCConvPlayer::runFrame(void) {
 
                 if (i == 0) {
                     ByteStream paletteReader;
-                    paletteReader.Set(convPals.GetEntry(participant->paletteID)->data);
+                    paletteReader.Set(convPals.GetEntry(participant->paletteID)->data, convPals.GetEntry(participant->paletteID)->size);
                     this->palette.ReadPatch(&paletteReader);
                     VGA.setPalette(&this->palette);
                 }
@@ -960,7 +990,7 @@ void SCConvPlayer::runFrame(void) {
             for (size_t i = 0; i < this->current_frame->participants.size(); i++) {
                 CharFigure *participant = this->current_frame->participants[i];
                 ByteStream paletteReader;
-                paletteReader.Set(convPals.GetEntry(participant->paletteID)->data);
+                paletteReader.Set(convPals.GetEntry(participant->paletteID)->data, convPals.GetEntry(participant->paletteID)->size);
                 this->palette.ReadPatch(&paletteReader);
                 VGA.setPalette(&this->palette);
                 RLEShape *s = participant->appearances->GetShape(0);
@@ -980,7 +1010,7 @@ void SCConvPlayer::runFrame(void) {
         case ConvFrame::CONV_CONTRACT_CHOICE:
         {
             ByteStream paletteReader;
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data);
+            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
             this->palette.ReadPatch(&paletteReader);
             VGA.setPalette(&this->palette);
             int32_t pos = 0;

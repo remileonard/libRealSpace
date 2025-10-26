@@ -11,19 +11,6 @@ DebugObjectViewer::~DebugObjectViewer() {
     
 }
 void DebugObjectViewer::runFrame()  {
-        checkButtons();
-
-    VGA.activate();
-    VGA.getFrameBuffer()->clear();
-    VGA.setPalette(&this->palette);
-
-    VGA.setPalette(&this->palette);
-
-    // Draw static
-    VGA.getFrameBuffer()->drawShape(&bluePrint);
-
-    VGA.vSync();
-
     /**/
     // Ok now time to draw the model
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -85,7 +72,7 @@ void DebugObjectViewer::runFrame()  {
             glEnd();
             
         }
-        Renderer.drawModel(objs.showCases[currentObject].entity, LOD_LEVEL_MAX);    
+        Renderer.drawModel(objs.showCases[currentObject].entity, lodLevel);    
     } else if (objs.showCases[currentObject].entity->animations.size() > 0) {
         this->fps++;
         if (this->fps > 12) {
@@ -104,19 +91,6 @@ void DebugObjectViewer::runFrame()  {
     glPopMatrix();
     glPopMatrix();
     glDisable(GL_DEPTH_TEST);
-
-    VGA.activate();
-    VGA.getFrameBuffer()->clear();
-    VGA.setPalette(&this->palette);
-
-    VGA.getFrameBuffer()->drawShape(&title);
-
-    drawButtons();
-
-    // Draw Mouse
-    Mouse.draw();
-
-    VGA.vSync();
 }
 void DebugObjectViewer::renderMenu() {
     static bool load_object = false;
@@ -139,7 +113,7 @@ void DebugObjectViewer::renderMenu() {
                         if (ImGui::Selectable(entry->name, false)) {
                             printf("load object");
                             RSEntity *obj = new RSEntity();
-                            obj->InitFromRAM(entry->data, entry->size);
+                            obj->InitFromRAM(entry->data, entry->size, entry->name);
                             objs.showCases[0].entity = obj;
                             objs.showCases[0].filename = std::string(entry->name);
                             currentObject = 0; 
@@ -179,7 +153,7 @@ void DebugObjectViewer::renderUI() {
                         if (ImGui::Selectable(entry->name, false)) {
                             printf("load object");
                             RSEntity *obj = new RSEntity();
-                            obj->InitFromRAM(entry->data, entry->size);
+                            obj->InitFromRAM(entry->data, entry->size, entry->name);
                             objs.showCases[0].entity = obj;
                             objs.showCases[0].filename = std::string(entry->name);
                             currentObject = 0; 
@@ -289,6 +263,7 @@ void DebugObjectViewer::renderUI() {
         if (ImGui::BeginTabItem("Properties")) {
             
             RSEntity *entity = objs.showCases[currentObject].entity;
+            ImGui::InputInt("LOD Level", &lodLevel);
             ImGui::BeginChild("general", ImVec2(0, 0), true);
             ImGui::Text("Entity Type: %d", entity->entity_type);
             ImGui::Text("Target Type: %d", entity->target_type);

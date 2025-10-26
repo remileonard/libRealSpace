@@ -32,5 +32,5 @@ public:
     void Add(RLEShape *shape);
     std::vector<RSPalette *> palettes;
     std::vector<RLEShape *> shapes;
-    
+    void removeFirstEmptyShape(void);
 };
