@@ -1018,7 +1018,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = nullp
 }
 
 void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nullptr) {
-    if (this->cockpit->MONI.instruments_present["COMM"] == false) {
+    if (this->cockpit->MONI.SHAP.data == nullptr) {
         return;
     }
     if (!fb) {

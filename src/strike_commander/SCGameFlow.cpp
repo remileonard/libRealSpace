@@ -432,10 +432,11 @@ void SCGameFlow::runEffect() {
                 "./assets/MID_2.IFF",
                 "./assets/MID_3.IFF",
             };
-            if (instruction->value < midgame_files.size()) {
-                std::string filepath = midgame_files[instruction->value];
+            if (instruction->value-1 < midgame_files.size()) {
+                std::string filepath = midgame_files[instruction->value-1];
                 if (archive.LoadFromFile(filepath.c_str(), shots)) {
                     midgame->midgames_shots[1] = shots;
+                    this->mid_games.push(midgame);
                     printf("Animation loaded from %s\n", filepath.c_str());
                 } else {
                     printf("Failed to load animation from %s\n", filepath.c_str());
@@ -735,6 +736,12 @@ void SCGameFlow::runFrame(void) {
     if (this->cutsenes.size() > 0) {
         SCShot *c = this->cutsenes.front();
         this->cutsenes.pop();
+        Game->addActivity(c);
+        return;
+    }
+    if (this->mid_games.size() > 0) {
+        SCAnimationPlayer *c = this->mid_games.front();
+        this->mid_games.pop();
         Game->addActivity(c);
         return;
     }

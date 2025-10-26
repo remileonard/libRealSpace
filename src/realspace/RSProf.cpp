@@ -94,7 +94,7 @@ void RSProf::parsePROF_RADI_SPCH(uint8_t *data, size_t size){
         return;
     }
     stream.Set(data, size);
-    this->radi.spch = stream.ReadShort();
+    this->radi.spch = (int16_t) stream.ReadByte();
 }
 void RSProf::parsePROF__AI_(uint8_t *data, size_t size){
     IFFSaxLexer lexer;

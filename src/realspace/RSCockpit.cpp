@@ -82,7 +82,7 @@ void RSCockpit::parseEJEC(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("EJEC", data2, size-1);
+    pak->InitFromRAM("EJEC", data2, size);
     if (pak->GetNumEntries() == 0) {
         this->EJEC.InitFromRam(data2, size);
     } else {
@@ -93,7 +93,7 @@ void RSCockpit::parseGUNF(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("GUNF", data2, size-1);
+    pak->InitFromRAM("GUNF", data2, size);
     if (pak->GetNumEntries() == 0) {
         this->GUNF.InitFromRam(data2, size);
     } else {
@@ -104,7 +104,7 @@ void RSCockpit::parseGHUD(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("GHUD", data2, size-1);
+    pak->InitFromRAM("GHUD", data2, size);
     this->GHUD.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseREAL(uint8_t* data, size_t size) {
@@ -233,7 +233,7 @@ void RSCockpit::parseMONI_MFDS_AARD_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("AARD",shape_data, size-1);
+    pak->InitFromRAM("AARD",shape_data, size);
     this->MONI.MFDS.AARD.ARTS.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseMONI_MFDS_AGRD(uint8_t* data, size_t size) {
@@ -251,7 +251,7 @@ void RSCockpit::parseMONI_MFDS_AGRD_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("AGRD",shape_data, size-1);
+    pak->InitFromRAM("AGRD",shape_data, size);
     this->MONI.MFDS.AGRD.ARTS.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseMONI_MFDS_GCAM(uint8_t* data, size_t size) {
@@ -306,7 +306,7 @@ void RSCockpit::parseMONI_MFDS_DAMG_SHAP(uint8_t* data, size_t size) {
 	shape_data = (uint8_t*) malloc(size);
 	memcpy(shape_data, data, size);
     PakArchive* pak = new PakArchive();
-    pak->InitFromRAM("DAMG",shape_data, size-1);
+    pak->InitFromRAM("DAMG",shape_data, size);
     this->MONI.MFDS.DAMG.ARTS.InitFromSubPakEntry(pak);
 }
 /**

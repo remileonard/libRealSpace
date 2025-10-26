@@ -1279,7 +1279,7 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
         pak.InitFromRAM("SHAPE", data2, size);
         img_set->InitFromSubPakEntry(&pak);
     } else {
-        pak.InitFromRAM("SHAPE", data2, size-1);
+        pak.InitFromRAM("SHAPE", data2, size);
         img_set->InitFromSubPakEntry(&pak);    
     }
     
