@@ -1278,6 +1278,8 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     if (ImGui::InputInt("X##start", &start_x) || ImGui::InputInt("Y##start", &start_y)) {
         bg->position_start.x = start_x;
         bg->position_start.y = start_y;
+        bg->current_position.x = start_x;
+        bg->current_position.y = start_y;
     }
 
     // Position finale
@@ -1442,6 +1444,8 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
     if (ImGui::InputInt("X##start", &start_x) || ImGui::InputInt("Y##start", &start_y)) {
         sprite->position_start.x = start_x;
         sprite->position_start.y = start_y;
+        sprite->current_position.x = start_x;
+        sprite->current_position.y = start_y;
     }
 
     // Position finale
