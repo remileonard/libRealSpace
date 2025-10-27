@@ -40,17 +40,8 @@ void DebugAnimationPlayer::renderMenu() {
             nfdresult_t result = NFD::OpenDialog(outPath, filters, 1);
             
             if (result == NFD_OKAY) {
-                SCAnimationArchive archive;
-                std::vector<MIDGAME_SHOT *> shots;
-                if (archive.LoadFromFile(outPath.get(), shots)) {
-                    this->shot_counter = 0;
-                    this->fps_counter = 0;
-                    this->fps = 1;
-                    this->midgames_shots[1] = shots;
-                    printf("Animation loaded from %s\n", outPath.get());
-                } else {
-                    printf("Failed to load animation\n");
-                }
+                this->loadShot(outPath.get());
+                printf("Animation loaded from %s\n", outPath.get());
             } else if (result == NFD_CANCEL) {
                 printf("User cancelled load dialog\n");
             } else {
@@ -107,6 +98,17 @@ void DebugAnimationPlayer::renderUI() {
                 }
                 this->fps = 1;
                 this->fps_counter = 0;
+                for (auto bg : this->midgames_shots[1][this->shot_counter]->background) {
+                    bg->current_position = {bg->position_start.x, bg->position_start.y};
+                }
+                for (auto sprt: this->midgames_shots[1][this->shot_counter]->sprites) {
+                    sprt->current_frame = 1;
+                    sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
+                }
+                for (auto bg : this->midgames_shots[1][this->shot_counter]->foreground) {
+                    bg->current_position = {bg->position_start.x, bg->position_start.y};
+                }
+                this->midgames_shots[1][this->shot_counter]->sound_played = false;
             }
             ImGui::SameLine();
             if (ImGui::Button("Previous Frame")) {
@@ -146,6 +148,17 @@ void DebugAnimationPlayer::renderUI() {
                 }
                 this->fps = 1;
                 this->fps_counter = 0;
+                for (auto bg : this->midgames_shots[1][this->shot_counter]->background) {
+                    bg->current_position = {bg->position_start.x, bg->position_start.y};
+                }
+                for (auto sprt: this->midgames_shots[1][this->shot_counter]->sprites) {
+                    sprt->current_frame = 1;
+                    sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
+                }
+                for (auto bg : this->midgames_shots[1][this->shot_counter]->foreground) {
+                    bg->current_position = {bg->position_start.x, bg->position_start.y};
+                }
+                this->midgames_shots[1][this->shot_counter]->sound_played = false;
             }
             ImGui::Separator();
             ImGui::Text("Total shots: %d", this->midgames_shots[1].size());

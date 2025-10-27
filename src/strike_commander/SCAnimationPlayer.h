@@ -35,12 +35,16 @@ protected:
     void initMid1();
     VGAPalette original_palette;
 public:
+
+    bool pause{false};
+    std::unordered_map<uint8_t, std::vector<MIDGAME_SHOT *>> midgames_shots;
+
     SCAnimationPlayer();
     ~SCAnimationPlayer();
     virtual void init();
     virtual void runFrame(void);
     virtual void renderMenu() {};
     virtual void renderUI(void) {};
-    bool pause{false};
-    std::unordered_map<uint8_t, std::vector<MIDGAME_SHOT *>> midgames_shots;
+    void loadShot(std::string filename);
+
 };

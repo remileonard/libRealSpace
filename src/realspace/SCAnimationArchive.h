@@ -92,6 +92,7 @@ typedef struct MIDGAME_SHOT {
     int sound_time_code{0};
     PakArchive *sound_pak{nullptr};
     int sound_pak_entry_id{0};
+    bool sound_played{false};
 } MIDGAME_SHOT;
 
 typedef struct MIDGAME_DATA_SHOT {
