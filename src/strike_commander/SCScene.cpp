@@ -674,6 +674,9 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
 std::vector<SCZone *> *WeaponLoadoutScene::init(
     GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick
 ) {
+    if (sc_opts == nullptr) {
+        return nullptr;
+    }
     this->gameflow_scene = gf;
     this->sceneOpts      = sc_opts;
     this->zones.clear();
