@@ -165,6 +165,12 @@ SCZone *SCGameFlow::CheckZones(void) {
     Mouse.setMode(SCMouse::CURSOR);
     return nullptr;
 }
+void SCGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {
+    MapShot *map = new MapShot();
+    map->init();
+    map->SetPoints(points);
+    this->cutsenes.push(map);
+}
 /**
  * Runs the current effect based on the efect vector and currentOptCode.
  *
@@ -235,10 +241,9 @@ void SCGameFlow::runEffect() {
         }
         switch (instruction->opcode) {
         case EFFCT_OPT_SHOW_MAP: {
-            MapShot *map = new MapShot();
-            map->init();
-            map->SetPoints(&this->gameFlowParser.game.wrld[instruction->value]->data->points);
-            this->cutsenes.push(map);
+            if (instruction->value < this->gameFlowParser.game.wrld.size()) {
+                this->playMapShot(&this->gameFlowParser.game.wrld[instruction->value]->data->points);
+            }
         } break;
         case EFECT_OPT_CONV: {
             this->playConv(instruction->value);

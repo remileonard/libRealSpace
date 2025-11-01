@@ -12,11 +12,11 @@ struct INFO {
 };
 struct REQU {
 	uint8_t op;
-	uint8_t value;
+	uint16_t value;
 };
 struct EFCT {
 	uint8_t opcode;
-	uint8_t value;
+	uint16_t value;
 };
 
 struct GAMEFLOW_SPRT {
@@ -112,7 +112,7 @@ struct GAMEFLOW {
  */
 class RSGameFlow {
 
-private:
+protected:
 
 	/**
 	 * Temporary storage for the current mission
@@ -155,7 +155,7 @@ private:
 	 * @param data The data to parse
 	 * @param size The size of the data
 	 */
-	void parseGAME(uint8_t* data, size_t size);
+	virtual void parseGAME(uint8_t* data, size_t size);
 
 	/**
 	 * Parses the mission data
@@ -163,7 +163,7 @@ private:
 	 * @param data The data to parse
 	 * @param size The size of the data
 	 */
-	void parseMISS(uint8_t* data, size_t size);
+	virtual void parseMISS(uint8_t* data, size_t size);
 
 	/**
 	 * Parses the mission info data
@@ -179,7 +179,7 @@ private:
 	 * @param data The data to parse
 	 * @param size The size of the data
 	 */
-	void parseMISS_EFCT(uint8_t* data, size_t size);
+	virtual void parseMISS_EFCT(uint8_t* data, size_t size);
 
 	/**
 	 * Parses the mission scene data
@@ -420,6 +420,6 @@ public:
 	 * @param data The data to parse
 	 * @param size The size of the data
 	 */
-	void InitFromRam(uint8_t* data, size_t size);
+	virtual void InitFromRam(uint8_t* data, size_t size);
 
 };

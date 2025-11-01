@@ -1,18 +1,35 @@
 #include "DebugPSConvPlayer.h"
 #include "DebugPSGameFlow.h"
+#include "../pacific_strike/PSGameFlowParser.h"
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
 #include <imgui_impl_sdl2.h>
 
+void DebugPSGameFlow::init() {
+    TreEntry *gameflowIFF = Assets.GetEntryByName(Assets.gameflow_filename);
+    TreEntry *optionIFF = Assets.GetEntryByName(Assets.option_filename);
+    this->optionParser.InitFromRam(optionIFF->data, optionIFF->size);
+    PSGameFlowParser psParser;
+    psParser.InitFromRam(gameflowIFF->data, gameflowIFF->size);
+    this->gameFlowParser = psParser;
+    //this->gameFlowParser.InitFromRam(gameflowIFF->data, gameflowIFF->size);
+
+    TreEntry *optShapEntry = Assets.GetEntryByName(Assets.optshps_filename);
+    this->optShps.InitFromRAM("OPTSHPS.PAK", optShapEntry->data, optShapEntry->size);
+    TreEntry *optPalettesEntry = Assets.GetEntryByName(Assets.optpals_filename);
+    this->optPals.InitFromRAM("OPTPALS.PAK", optPalettesEntry->data, optPalettesEntry->size);
+    this->efect = nullptr;
+    this->createMiss();
+}
 void DebugPSGameFlow::playConv(uint8_t convId) {
     SCConvPlayer *conv = new DebugPSConvPlayer();
     conv->init();
     conv->SetID(convId);
     DebugGameFlow::convs.push(conv);
 }
-DebugPSGameFlow::DebugPSGameFlow() {
-    printf("DebugPSGameFlow constructor\n");
-}
+void DebugPSGameFlow::playShot(uint8_t shotId) {}
+void DebugPSGameFlow::flyMission() {}
+DebugPSGameFlow::DebugPSGameFlow() { printf("DebugPSGameFlow constructor\n"); }
 
 DebugPSGameFlow::~DebugPSGameFlow() {}
 
@@ -33,3 +50,5 @@ void DebugPSGameFlow::renderConvPlayer() {
     }
     ImGui::End();
 }
+
+void DebugPSGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {}

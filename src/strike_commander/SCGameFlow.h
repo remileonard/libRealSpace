@@ -59,7 +59,7 @@ public:
     SCGameFlow();
     ~SCGameFlow();
 
-    void init();
+    virtual void init();
     void InitFromGameState();
     void createMiss();
     void loadMiss();
@@ -106,6 +106,7 @@ protected:
     void runEffectAfterLoad();
     SCZone *CheckZones(void);
     void createScen();
+    virtual void playMapShot(std::vector<MAP_POINT *> *points);
     virtual void flyMission();
     virtual void playShot(uint8_t shotId);
     virtual void playConv(uint8_t convId);
