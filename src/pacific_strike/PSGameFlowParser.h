@@ -4,6 +4,7 @@
 class PSGameFlowParser : public RSGameFlow {
 protected:
     void parseOpCode(uint8_t *data, size_t size, std::vector<EFCT *>* efct_list) override;
+    void parseRequBytes(uint8_t* data, size_t size, std::vector<REQU *>* requ_list) override;
 public:
     PSGameFlowParser();
     ~PSGameFlowParser();

@@ -126,21 +126,22 @@ void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
 	this->tmpscsp->efct = new std::vector<EFCT *>();
 	this->parseOpCode(data, size, this->tmpscsp->efct);
 }
-
+void RSGameFlow::parseRequBytes(uint8_t* data, size_t size, std::vector<REQU *>* requ_list) {
+	for (int i = 0; i < size; i = i + 2) {
+		REQU* requ = new REQU();
+		requ->op = data[i];
+		if (i + 1 < size) {
+			requ->value = data[i + 1];
+			requ_list->push_back(requ);
+		}
+	}
+}
 void RSGameFlow::parseMISS_SCEN_SPRT_REQU(uint8_t* data, size_t size) {
 	if (size < 2) {
 		return;
 	}
 	this->tmpscsp->requ = new std::vector<REQU *>();
-	
-	for (int i=0; i<size; i+=2) {
-		REQU* tmprequ = new REQU();
-		tmprequ->op = data[i];
-		if (i + 1 < size) {
-			tmprequ->value = data[i+1];
-			this->tmpscsp->requ->push_back(tmprequ);
-		}
-	}
+	this->parseRequBytes(data, size, this->tmpscsp->requ);
 }
 
 void RSGameFlow::parseWRLD(uint8_t* data, size_t size) {

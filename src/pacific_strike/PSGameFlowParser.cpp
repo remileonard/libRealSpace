@@ -64,7 +64,17 @@ void PSGameFlowParser::parseOpCode(uint8_t *data, size_t size, std::vector<EFCT 
         efct_list->push_back(efct);
     }
 }
-
+void PSGameFlowParser::parseRequBytes(uint8_t* data, size_t size, std::vector<REQU *>* requ_list) {
+    for (int i = 0; i < size; i++) {
+		REQU* requ = new REQU();
+		requ->op = data[i];
+		if (i + 2 < size) {
+			requ->value = data[i + 1]  | data[i + 2] << 8;
+			requ_list->push_back(requ);
+            i = i + 2;
+		}
+	}
+}
 PSGameFlowParser::PSGameFlowParser() {}
 
 PSGameFlowParser::~PSGameFlowParser() {}

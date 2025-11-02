@@ -150,6 +150,7 @@ protected:
 	GAMEFLOW_SPRT* tmpscsp;
 
 	virtual void parseOpCode(uint8_t *data, size_t size, std::vector<EFCT *>* efct_list);
+	virtual void parseRequBytes(uint8_t* data, size_t size, std::vector<REQU *>* requ_list);
 	/**
 	 * Parses the game data
 	 *
