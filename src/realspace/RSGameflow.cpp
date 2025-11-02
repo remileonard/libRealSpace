@@ -64,15 +64,7 @@ void RSGameFlow::parseMISS_EFCT(uint8_t* data, size_t size) {
 	}
 	ByteStream stream(data, size);
 	this->tmpmiss->efct = new std::vector<EFCT *>();
-	while (!stream.IsEndOfStream()) {
-		EFCT* efct = new EFCT();
-		efct->opcode = stream.ReadByte();
-		if (stream.IsEndOfStream()) {
-			break;
-		}
-		efct->value = stream.ReadByte();
-		this->tmpmiss->efct->push_back(efct);
-	}
+	this->parseOpCode(data, size, this->tmpmiss->efct);
 }
 
 void RSGameFlow::parseMISS_SCEN(uint8_t* data, size_t size) {
@@ -117,20 +109,22 @@ void RSGameFlow::parseMISS_SCEN_SPRT_INFO(uint8_t* data, size_t size) {
 	if (size > 1)
 		this->tmpscsp->info.UNKOWN = data[1];
 }
-
-void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
-	if (size < 2) {
-		return;
-	}
-	this->tmpscsp->efct = new std::vector<EFCT *>();
+void RSGameFlow::parseOpCode(uint8_t *data, size_t size, std::vector<EFCT *>* efct_list) {
 	for (int i = 0; i < size; i=i+2) {
 		EFCT* efct = new EFCT();
 		efct->opcode = data[i];
 		if (i + 1 < size) {
 			efct->value = data[i + 1];
-			this->tmpscsp->efct->push_back(efct);
+			efct_list->push_back(efct);
 		}
 	}
+}
+void RSGameFlow::parseMISS_SCEN_SPRT_EFCT(uint8_t* data, size_t size) {
+	if (size < 2) {
+		return;
+	}
+	this->tmpscsp->efct = new std::vector<EFCT *>();
+	this->parseOpCode(data, size, this->tmpscsp->efct);
 }
 
 void RSGameFlow::parseMISS_SCEN_SPRT_REQU(uint8_t* data, size_t size) {

@@ -266,6 +266,9 @@ enum GameFlowOpCode {
     EFECT_OPT_U15 = 37,
     EFECT_OPT_U16 = 27,
     EFFCT_OPT_U17 = 35,
+    EFFCT_OPT_U18 = 11,
+    EFFCT_OPT_U19 = 40,
+    EFFCT_OPT_U20 = 14
 };
 static std::unordered_map<GameFlowOpCode, std::string> game_flow_op_name = {
     {EFECT_OPT_CONV, "PLAY CONV"},

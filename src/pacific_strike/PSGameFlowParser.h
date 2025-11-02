@@ -3,11 +3,8 @@
 
 class PSGameFlowParser : public RSGameFlow {
 protected:
-    void parseMISS_EFCT(uint8_t* data, size_t size) override;
-    void parseMISS(uint8_t* data, size_t size) override;
-    void parseGAME(uint8_t* data, size_t size) override;
+    void parseOpCode(uint8_t *data, size_t size, std::vector<EFCT *>* efct_list) override;
 public:
-    void InitFromRam(uint8_t* data, size_t size) override;
     PSGameFlowParser();
     ~PSGameFlowParser();
 };
