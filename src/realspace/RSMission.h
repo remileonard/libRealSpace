@@ -71,7 +71,7 @@ struct CAST {
 };
 struct PROG {
     uint8_t opcode;
-    uint8_t arg;
+    uint16_t arg;
 };
 struct MISN_SCEN {
     uint8_t is_active {0};
@@ -116,8 +116,9 @@ public:
     MISN_PART *getObject(const char *name);
     void InitFromRAM(uint8_t *data, size_t size);
 
-private:
+protected:
     MISN_PART *player{nullptr};
+    virtual void paseMissionScript(uint8_t *data, size_t size);
     void parseMISN(uint8_t *data, size_t size);
     void parseMISN_VERS(uint8_t *data, size_t size);
     void parseMISN_INFO(uint8_t *data, size_t size);

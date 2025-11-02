@@ -234,10 +234,14 @@ void SCProg::execute() {
                 break;
                 case OP_EXEC_SUB_PROG:
                 {
-                    std::vector<PROG> *sub_prog = this->mission->mission->mission_data.prog[prog.arg];
-                    SCProg *sub_prog_obj = new SCProg(this->actor, *sub_prog, this->mission, prog.arg);
-                    sub_prog_obj->execute();
-                    delete sub_prog_obj;
+                    if (prog.arg < this->mission->mission->mission_data.prog.size()) {
+                        std::vector<PROG> *sub_prog = this->mission->mission->mission_data.prog[prog.arg];
+                        SCProg *sub_prog_obj = new SCProg(this->actor, *sub_prog, this->mission, prog.arg);
+                        sub_prog_obj->execute();
+                        delete sub_prog_obj;
+                    } else {
+                        // Invalid sub-program index; no operation performed.
+                    }
                 }
                 break;
                 case OP_CMP_WORK_WITH_VALUE:

@@ -256,6 +256,10 @@ void RSMission::parseMISN_MSGS(uint8_t *data, size_t size) {
 void RSMission::parseMISN_FLAG(uint8_t *data, size_t size) {
     ByteStream stream(data, size);
     this->mission_data.flags.clear();
+    this->mission_data.flags.reserve(65536);
+    for (int i = 0; i < 65536; i++) {
+        this->mission_data.flags.push_back(0);
+    }
     if (size < 2) {
         return;
     }
@@ -285,7 +289,7 @@ void RSMission::parseMISN_CAST(uint8_t *data, size_t size) {
         stream.ReadByte();
     }
 }
-void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
+void RSMission::paseMissionScript(uint8_t *data, size_t size) {
     std::vector<PROG> *prog;
     prog = new std::vector<PROG>();
     for (int i = 0; i < size; i=i+2) {
@@ -301,6 +305,9 @@ void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
             prog->push_back(tmp);
         }
     }
+}
+void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
+    this->paseMissionScript(data, size);
 }
 void RSMission::parseMISN_PART(uint8_t *data, size_t size) {
     printf("PARSING PART\n");

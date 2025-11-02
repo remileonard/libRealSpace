@@ -154,6 +154,9 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
     bool should_talk = false;
     bool is_new_target = false;
     bool is_ground_target = false;
+    if (this->pilot == nullptr) {
+        return false;
+    }
     if (this->target == nullptr) {
         should_talk = true;
     }
@@ -161,8 +164,12 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
         this->current_target = arg;
         is_new_target = true;
     }
-    
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
+    Vector3D position;
+    if (this->plane == nullptr) {
+        position = {this->object->position.x, this->object->position.y, this->object->position.z};
+    } else {
+        position = {this->plane->x, this->plane->y, this->plane->z};
+    }
     if (this->target == nullptr) {
         for (auto actor: this->mission->actors) {
             if (actor->actor_id == this->current_target) {
@@ -187,7 +194,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
         return true;
     }
     this->current_objective = OP_SET_OBJ_DESTROY_TARGET;
-    uint8_t area_id = this->mission->getAreaID({this->plane->x, this->plane->y, this->plane->z});
+    uint8_t area_id = this->mission->getAreaID(position);
     if (this->target != nullptr) {
         SCMissionActors *actor = this->target;
         if (actor->plane != nullptr) {

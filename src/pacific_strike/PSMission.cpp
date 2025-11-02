@@ -1,4 +1,5 @@
 #include "PSMission.h"
+#include "PSMissionParser.h"
 
 PSMission::PSMission() {
     this->last_time = SDL_GetTicks();
@@ -22,7 +23,7 @@ void PSMission::loadMission() {
     std::string miss_file_name = Assets.mission_root_path + this->mission_name; 
     std::transform(miss_file_name.begin(), miss_file_name.end(), miss_file_name.begin(), ::toupper);
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
-    this->mission = new RSMission();
+    this->mission = new PSMissionParser();
     this->mission->InitFromRAM(mission_tre->data, mission_tre->size);
 
 
@@ -81,22 +82,22 @@ void PSMission::loadMission() {
                 }
                 actor->profile = this->LoadProfile(cast->actor);
                 actor->mission = this;
-                if (actor->object->on_is_activated != 255) {
+                if (actor->object->on_is_activated != 255 && this->mission->mission_data.prog.size() > actor->object->on_is_activated) {
                     for (auto op: *this->mission->mission_data.prog[actor->object->on_is_activated]) {
                         actor->on_is_activated.push_back(op);
                     }
                 }
-                if (actor->object->on_is_destroyed != 255) {
+                if (actor->object->on_is_destroyed != 255 && this->mission->mission_data.prog.size() > actor->object->on_is_destroyed) {
                     for (auto op: *this->mission->mission_data.prog[actor->object->on_is_destroyed]) {
                         actor->on_is_destroyed.push_back(op);
                     }
                 }
-                if (actor->object->on_missions_init != 255) {
+                if (actor->object->on_missions_init != 255 && this->mission->mission_data.prog.size() > actor->object->on_missions_init) {
                     for (auto op: *this->mission->mission_data.prog[actor->object->on_missions_init]) {
                         actor->on_mission_start.push_back(op);
                     }
                 }
-                if (actor->object->on_mission_update != 255) {
+                if (actor->object->on_mission_update != 255 && this->mission->mission_data.prog.size() > actor->object->on_mission_update) {
                     for (auto op: *this->mission->mission_data.prog[actor->object->on_mission_update]) {
                         actor->on_update.push_back(op);
                     }
