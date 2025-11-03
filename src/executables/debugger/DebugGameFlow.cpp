@@ -10,7 +10,7 @@ DebugGameFlow::DebugGameFlow() {}
 
 DebugGameFlow::~DebugGameFlow() {}
 
-void DebugGameFlow::flyMission() {
+void DebugGameFlow::flyMission(uint8_t missionid) {
     SCStrike *fly = new DebugStrike();
     fly->init();
     fly->setMission(this->missionToFly);

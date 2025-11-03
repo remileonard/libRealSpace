@@ -107,9 +107,18 @@ protected:
     SCZone *CheckZones(void);
     void createScen();
     virtual void playMapShot(std::vector<MAP_POINT *> *points);
-    virtual void flyMission();
+    virtual void flyMission(uint8_t missionid);
     virtual void playShot(uint8_t shotId);
     virtual void playConv(uint8_t convId);
+    virtual void playMidGame(uint8_t midGameId);
+    virtual void playShowMap(uint8_t mapId);
+    virtual void playEndMission();
+    virtual bool playFlyMission(uint8_t flyMissionId);
+    virtual bool playFlyMission2(uint8_t flyMissionId);
+    virtual void lookAtLedger();
+    virtual void lookAtKillBoard();
+    virtual void viewCatalog();
+
     RSImageSet *getShape(uint8_t shpid);
     std::unordered_map<uint8_t, RSImageSet*> shape_cache;
 };

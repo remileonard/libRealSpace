@@ -100,7 +100,9 @@ void SCShot::SetShotId(uint8_t shotid) {
 RSImageSet *SCShot::getShape(uint8_t shpid) {
     PakEntry *shapeEntry = this->optShps.GetEntry(shpid);
     PakArchive subPAK;
-
+    if (!shapeEntry) {
+        return nullptr;
+    }
     subPAK.InitFromRAM("", shapeEntry->data, shapeEntry->size);
     RSImageSet *img = new RSImageSet();
     if (!subPAK.IsReady()) {
@@ -121,6 +123,10 @@ RSImageSet *SCShot::getShape(uint8_t shpid) {
  * @throws None
  */
 void SCShot::runFrame(void) {
+    if (!this->layers.size()) {
+        Game->stopTopActivity();
+        return;
+    }
     checkKeyboard();
     VGA.activate();
     VGA.getFrameBuffer()->fillWithColor(0);
@@ -175,14 +181,28 @@ void EndMissionScene::init() {
     this->layers.clear();
     shotBackground *tmpbg = new shotBackground();
     tmpbg->img = this->getShape(143);
-    this->layers.push_back(tmpbg);
+    if (tmpbg->img != nullptr) {   
+        this->layers.push_back(tmpbg);
+    }
     tmpbg = new shotBackground();
     tmpbg->img = this->getShape(141);
-    this->layers.push_back(tmpbg);
-    this->rawPalette = this->optPals.GetEntry(20)->data;
+    if (tmpbg->img != nullptr) {
+        this->layers.push_back(tmpbg);
+    }
+    
+    PakEntry *paletteEntry = this->optPals.GetEntry(20);
+    this->rawPalette = nullptr;
+    if (paletteEntry != nullptr) {
+        this->rawPalette = this->optPals.GetEntry(20)->data;
+    }
+    
 }
 
 void EndMissionScene::runFrame() {
+    if (this->rawPalette == nullptr) {
+        Game->stopTopActivity();
+        return;
+    }
     checkKeyboard();
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - this->fps > 12;

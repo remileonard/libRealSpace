@@ -107,11 +107,11 @@ void SCGameFlow::flyOrReturnFromScene(std::vector<EFCT *> *script, uint8_t id) {
         this->createScen();
         break;
     default:
-        this->flyMission();
+        this->flyMission(0);
         break;
     }
 }
-void SCGameFlow::flyMission() {
+void SCGameFlow::flyMission(uint8_t missionid) {
     SCStrike *fly = new SCStrike();
     fly->init();
     fly->setMission(this->missionToFly);
@@ -188,9 +188,8 @@ void SCGameFlow::runEffect() {
     bool executeStack[MAX_IF_DEPTH] = {true};  // Pile d'exécution (par défaut: true)
     bool elseEncountered[MAX_IF_DEPTH] = {false};  // Suivi des else
     int ifDepth = 0;  // Niveau d'imbrication actuel
-    
-    bool flymission = false;
     int i = 0;
+    bool flymission = false;
     
     for (auto instruction : *this->efect) {
         if (i < this->currentOptCode) {
@@ -259,23 +258,7 @@ void SCGameFlow::runEffect() {
             break;
         case EFECT_OPT_END_MISS: {
             // @TODO Show weapons selection screen.
-            bool direct = false;
-            for (auto z : *this->zones) {
-                if (z->id == this->currentSpriteId) {
-                    direct = z->sprite->requ == nullptr;
-                    if (!direct) {
-                        for (auto r : *z->sprite->requ) {
-                            if (r->op == 1) {
-                                direct = true;
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-            if (direct) {
-                this->next_miss = GameState.mission_id;
-            }
+            this->playEndMission();
         } break;
         case EFECT_OPT_MIS2:
             GameState.mission_id = instruction->value;
@@ -284,20 +267,10 @@ void SCGameFlow::runEffect() {
             this->playShot(instruction->value);
         } break;
         case EFECT_OPT_FLYM: {
-            uint8_t flymID = instruction->value;
-            GameState.mission_flyed = flymID;
-            this->missionToFly = (char *)malloc(13);
-            sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
-            strtoupper(this->missionToFly, this->missionToFly);
-            flymission = true;
+            flymission = this->playFlyMission(instruction->value);
         } break;
         case EFECT_OPT_FLYM2: {
-            uint8_t flymID = instruction->value;
-            GameState.mission_flyed = flymID;
-            this->missionToFly = (char *)malloc(13);
-            sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
-            strtoupper(this->missionToFly, this->missionToFly);
-            flymission = true;
+            flymission = this->playFlyMission2(instruction->value);
         } break;
         case EFECT_OPT_SETFLAG_TRUE:
             GameState.requierd_flags[instruction->value] = true;
@@ -404,62 +377,18 @@ void SCGameFlow::runEffect() {
             this->frequest->loadFiles();
             break;
         case EFECT_OPT_LOOK_AT_LEDGER:
-            this->zones->clear();
-            if (this->scen != nullptr) {
-                delete this->scen;
-            }
-            this->scen = new LedgerScene(&this->optShps, &this->optPals);
-
-            this->zones = this->scen->init(
-                this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
-                this->optionParser.opts[128],
-                std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2));
+            this->lookAtLedger();
             break;
         case EFECT_OPT_LOOK_AT_KILLBOARD:
-            this->zones->clear();
-            if (this->scen != nullptr) {
-                delete this->scen;
-            }
-            this->scen = new KillBoardScene(&this->optShps, &this->optPals);
-
-            this->zones = this->scen->init(
-                this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
-                this->optionParser.opts[30],
-                std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2));
+            this->lookAtKillBoard();
             break;
         case EFECT_OPT_PLAY_MIDGAME:
         {
-            SCAnimationPlayer *midgame = new SCAnimationPlayer();
-            SCAnimationArchive archive;
-            std::vector<MIDGAME_SHOT *> shots;
-            std::vector<std::string> midgame_files = {
-                "./assets/MID_1.IFF",
-                "./assets/MID_2.IFF",
-                "./assets/MID_3.IFF",
-            };
-            if (instruction->value-1 < midgame_files.size()) {
-                std::string filepath = midgame_files[instruction->value-1];
-                if (archive.LoadFromFile(filepath.c_str(), shots)) {
-                    midgame->midgames_shots[1] = shots;
-                    this->mid_games.push(midgame);
-                    printf("Animation loaded from %s\n", filepath.c_str());
-                } else {
-                    printf("Failed to load animation from %s\n", filepath.c_str());
-                }
-            }
+            this->playMidGame(instruction->value);
             break;
         }
         case EFECT_OPT_VIEW_CATALOG:
-            this->zones->clear();
-            if (this->scen != nullptr) {
-                delete this->scen;
-            }
-            this->scen = new CatalogueScene(&this->optShps, &this->optPals);
-
-            this->zones = this->scen->init(
-                this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
-                this->optionParser.opts[30],
-                std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2));
+            this->viewCatalog();
             break;
         case EFECT_OPT_GO:
             this->next_miss = GameState.mission_id;
@@ -548,7 +477,7 @@ void SCGameFlow::runEffect() {
                 std::bind(&SCGameFlow::flyOrReturnFromScene, this, std::placeholders::_1, std::placeholders::_2)
             );
         } else {
-            this->flyMission();
+            this->flyMission(0);
         }
         
     }
@@ -688,10 +617,11 @@ void SCGameFlow::createScen() {
             // delete this->scen;
         }
         this->scen = new SCScene(&this->optShps, &this->optPals);
-        this->zones =
-            this->scen->init(this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
-                             this->optionParser.opts[optionScenID],
-                             std::bind(&SCGameFlow::clicked, this, std::placeholders::_1, std::placeholders::_2));
+        this->zones = this->scen->init(
+            this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
+            this->optionParser.opts[optionScenID],
+            std::bind(&SCGameFlow::clicked, this, std::placeholders::_1, std::placeholders::_2)
+        );
     }
 }
 
@@ -814,4 +744,108 @@ void SCGameFlow::playConv(uint8_t convId) {
     conv->init();
     conv->SetID(convId);
     this->convs.push(conv);
+}
+
+void SCGameFlow::playMidGame(uint8_t midGameId) {
+    SCAnimationPlayer *midgame = new SCAnimationPlayer();
+    SCAnimationArchive archive;
+    std::vector<MIDGAME_SHOT *> shots;
+    std::vector<std::string> midgame_files = {
+        "./assets/MID_1.IFF",
+        "./assets/MID_2.IFF",
+        "./assets/MID_3.IFF",
+    };
+    if (midGameId-1 < midgame_files.size()) {
+        std::string filepath = midgame_files[midGameId-1];
+        if (archive.LoadFromFile(filepath.c_str(), shots)) {
+            midgame->midgames_shots[1] = shots;
+            this->mid_games.push(midgame);
+            printf("Animation loaded from %s\n", filepath.c_str());
+        } else {
+            printf("Failed to load animation from %s\n", filepath.c_str());
+        }
+    }
+
+}
+
+void SCGameFlow::playShowMap(uint8_t mapId) {}
+
+void SCGameFlow::playEndMission() {
+    bool direct = false;
+    for (auto z : *this->zones) {
+        if (z->id == this->currentSpriteId) {
+            direct = z->sprite->requ == nullptr;
+            if (!direct) {
+                for (auto r : *z->sprite->requ) {
+                    if (r->op == 1) {
+                        direct = true;
+                    }
+                }
+            }
+            break;
+        }
+    }
+    if (direct) {
+        this->next_miss = GameState.mission_id;
+    }
+}
+
+bool SCGameFlow::playFlyMission(uint8_t flyMissionId) {
+    uint8_t flymID = flyMissionId;
+    GameState.mission_flyed = flymID;
+    this->missionToFly = (char *)malloc(13);
+    sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
+    strtoupper(this->missionToFly, this->missionToFly);
+    return true;
+}
+
+bool SCGameFlow::playFlyMission2(uint8_t flyMissionId) {
+    uint8_t flymID = flyMissionId;
+    GameState.mission_flyed = flymID;
+    this->missionToFly = (char *)malloc(13);
+    sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
+    strtoupper(this->missionToFly, this->missionToFly);
+    return true;
+}
+
+void SCGameFlow::lookAtLedger() {
+    this->zones->clear();
+    if (this->scen != nullptr) {
+        delete this->scen;
+    }
+    this->scen = new LedgerScene(&this->optShps, &this->optPals);
+
+    this->zones = this->scen->init(
+        this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
+        this->optionParser.opts[128],
+        std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2)
+    );
+}
+
+void SCGameFlow::lookAtKillBoard() {
+    this->zones->clear();
+    if (this->scen != nullptr) {
+        delete this->scen;
+    }
+    this->scen = new KillBoardScene(&this->optShps, &this->optPals);
+
+    this->zones = this->scen->init(
+        this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
+        this->optionParser.opts[30],
+        std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2)
+    );
+}
+
+void SCGameFlow::viewCatalog() {
+    this->zones->clear();
+    if (this->scen != nullptr) {
+        delete this->scen;
+    }
+    this->scen = new CatalogueScene(&this->optShps, &this->optPals);
+
+    this->zones = this->scen->init(
+        this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
+        this->optionParser.opts[30],
+        std::bind(&SCGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2)
+    );
 }
