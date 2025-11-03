@@ -1087,10 +1087,23 @@ void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *char
         chara->velocity.y = velocity_y;
     }
     if (ImGui::Button("Supprimer le character")) {
-        chara->image = nullptr;
-        delete chara;
-        chara = nullptr;
-        this->p_character_editor = nullptr;
+        for (auto &shot : this->midgames_shots[1]) {
+            auto it = std::find(shot->characters.begin(), shot->characters.end(), chara);
+            if (it != shot->characters.end()) {
+                // Supprimer du vecteur AVANT de libérer la mémoire
+                shot->characters.erase(it);
+                
+                // Maintenant on peut libérer la mémoire
+                if (chara->image) {
+                    chara->image = nullptr; // Ne pas delete, géré par ConvAssetManager
+                }
+                delete chara;
+                
+                // Réinitialiser le pointeur d'édition
+                this->p_character_editor = nullptr;
+                break;
+            }
+        }
     }
 }
 void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
@@ -1333,13 +1346,38 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
         ImGui::Text("Utilisation de la palette par défaut");
     }
     if (ImGui::Button("Remove BG")) {
-        // Supprimer le background de son shot parent
+        bool found = false;
         for (auto &shot : this->midgames_shots[1]) {
             auto it = std::find(shot->background.begin(), shot->background.end(), bg);
             if (it != shot->background.end()) {
                 shot->background.erase(it);
+                found = true;
+            }
+            
+            // Chercher aussi dans les foregrounds
+            if (!found) {
+                auto itFg = std::find(shot->foreground.begin(), shot->foreground.end(), bg);
+                if (itFg != shot->foreground.end()) {
+                    shot->foreground.erase(itFg);
+                    found = true;
+                }
+            }
+            
+            if (found) {
+                // Libérer la mémoire
+                if (bg->image) {
+                    delete bg->image;
+                    bg->image = nullptr;
+                }
+                if (bg->pal) {
+                    delete bg->pal;
+                    bg->pal = nullptr;
+                }
                 delete bg;
+                
+                // Réinitialiser les pointeurs d'édition
                 this->p_bg_editor = nullptr;
+                this->p_foreground_editor = nullptr;
                 break;
             }
         }
@@ -1499,10 +1537,30 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
         ImGui::Text("Utilisation de la palette par défaut");
     }
 
-    // Bouton pour appliquer les modifications
-    if (ImGui::Button("Appliquer les modifications", ImVec2(200, 30))) {
-        // Les modifications ont déjà été appliquées en temps réel
-        ImGui::CloseCurrentPopup();
+    if (ImGui::Button("Supprimer le sprite")) {
+        // Trouver et supprimer le sprite de son shot parent
+        for (auto &shot : this->midgames_shots[1]) {
+            auto it = std::find(shot->sprites.begin(), shot->sprites.end(), sprite);
+            if (it != shot->sprites.end()) {
+                // Supprimer du vecteur AVANT de libérer la mémoire
+                shot->sprites.erase(it);
+                
+                // Maintenant on peut libérer la mémoire
+                if (sprite->image) {
+                    delete sprite->image;
+                    sprite->image = nullptr;
+                }
+                if (sprite->pal) {
+                    delete sprite->pal;
+                    sprite->pal = nullptr;
+                }
+                delete sprite;
+                
+                // Réinitialiser le pointeur d'édition
+                this->p_sprite_editor = nullptr;
+                break;
+            }
+        }
     }
 }
 
