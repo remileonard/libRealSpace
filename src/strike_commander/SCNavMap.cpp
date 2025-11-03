@@ -208,13 +208,21 @@ void SCNavMap::runFrame(void) {
     used_areas.clear();
     float center = BLOCK_WIDTH * 9.0f;
     float map_width = BLOCK_WIDTH * 18.0f;
-    if (this->navMap->maps.count(*this->name)>0) {
-        VGA.getFrameBuffer()->drawShape(this->navMap->maps[*this->name]);
+    RLEShape *map_shape = nullptr;
+    if (this->navMap != nullptr && this->name != nullptr) {
+        if (this->navMap->maps.count(*this->name)>0) {
+            map_shape = this->navMap->maps[*this->name];
+        } else if (this->navMap->maps.count(this->mission->mission->mission_data.world_filename)>0) {
+            map_shape = this->navMap->maps[this->mission->mission->mission_data.world_filename];
+        }
+    }
+    if (map_shape != nullptr) {
+        VGA.getFrameBuffer()->drawShape(map_shape);
         RLEShape *shape = this->navMap->background;
         if (shape != nullptr) {
             VGA.getFrameBuffer()->drawShape(shape);
         }
-        Point2D pos = this->navMap->maps[*this->name]->position;
+        Point2D pos = map_shape->position;
         int w = 238;
         int h = 155;
         int t = 18;
