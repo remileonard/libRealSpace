@@ -130,18 +130,25 @@ uint8_t ByteStream::ReadByte(void) {
 }
 
 uint8_t ByteStream::PeekByte(void) { 
-	if (this->position > this->size) {
+	return (this->PeekByte(1));
+}
+uint8_t ByteStream::PeekByte(int offset) { 
+	if (this->position+offset > this->size) {
 		printf("ByteStream: Attempt to peek past end of stream (%zu >= %zu)\n", this->position, this->size);
 		return 0;
 	}
-	return *(this->cursor + 1);
+	return *(this->cursor + offset);
 }
-uint8_t ByteStream::CurrentByte(void) { 
-	if (this->position > this->size) {
-		printf("ByteStream: Attempt to read current byte past end of stream (%zu >= %zu)\n", this->position, this->size);
+uint16_t ByteStream::PeekUShort(void) { 
+	if (this->position+1 > this->size) {
+		printf("ByteStream: Attempt to peek past end of stream (%zu >= %zu)\n", this->position, this->size);
 		return 0;
 	}
-	return *(this->cursor);
+	uint16_t *ushortP = (uint16_t *)this->cursor;
+	return *ushortP;
+}
+uint8_t ByteStream::CurrentByte(void) { 
+	return (this->PeekByte(0));
 }
 uint16_t ByteStream::ReadUShort(void) {
 	if (this->position + 1 >= this->size) {

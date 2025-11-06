@@ -43,6 +43,8 @@ public:
     void MoveBackward(int bytes);
     uint8_t ReadByte(void);
     uint8_t PeekByte(void);
+    uint8_t PeekByte(int offset);
+    uint16_t PeekUShort(void);
     uint8_t CurrentByte(void);
     uint16_t ReadUShort(void);
     int16_t ReadShort(void);

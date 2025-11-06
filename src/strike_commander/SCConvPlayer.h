@@ -73,7 +73,7 @@ protected:
     virtual void CheckFrameExpired(void);
     virtual void ReadNextFrame(void);
     virtual void parseConv(ConvFrame *tmp_frame);
-    void SetArchive(PakEntry *conv);
+    virtual void SetArchive(PakEntry *conv);
     void CheckZones(void);
     void DrawText(void);
     int txt_color{0};

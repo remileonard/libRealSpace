@@ -9,25 +9,17 @@ void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
     ConvBackGround *bg = ConvAssets.GetBackGround(loc_str.c_str());
 
     this->mode = ConvFrame::CONV_WIDE;
-    this->participants.clear();
-    this->participants.shrink_to_fit();
     this->bgLayers   = &bg->layers;
     this->bgPalettes = &bg->palettes;
-    this->face      = nullptr;
-
-    while (conv->PeekByte() == 0x0 && !conv->IsEndOfStream()) {
+    this->participants.clear();
+    this->participants.shrink_to_fit();
+    while (conv->PeekByte(0) != 0x0A && !conv->IsEndOfStream()) {
         conv->MoveForward(1);
     }
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte()) && !conv->IsEndOfStream()) {
-        conv->MoveForward(1);
-    }
-    uint8_t next_type = conv->PeekByte();
-    if (next_type == 0x0A) {
-        conv->MoveForward(2);
-        this->parse_SHOW_TEXT(conv);
-    } else {
-        conv->MoveForward(1);
-    }
+    uint8_t x = conv->ReadByte();
+    uint8_t y = conv->ReadByte();
+    this->SetSentenceFromConv(conv, 0);
+    this->textColor = 160;
 }
 
 void PSConvFrame::parse_CLOSEUP(ByteStream *conv) {
@@ -41,30 +33,15 @@ void PSConvFrame::parse_CLOSEUP(ByteStream *conv) {
     int next_frame_offset = SetSentenceFromConv(conv,0);
     this->participants.clear();
     this->participants.shrink_to_fit();
-    
     this->facePosition = static_cast<ConvFrame::FacePos>(pos);
-
     this->mode         = ConvFrame::CONV_CLOSEUP;
     this->face         = ConvAssets.GetCharFace(speaker_name_str.c_str());
     ConvBackGround *bg        = ConvAssets.GetBackGround(location_set_name.c_str());
     this->bgLayers     = &bg->layers;
     this->bgPalettes   = &bg->palettes;
-
-    conv->MoveForward(next_frame_offset);
-    uint8_t color              = conv->ReadByte(); // Color ?
-    this->textColor            = color;
+    this->textColor            = 160;
     const char *pszExt         = "normal";
     this->facePaletteID = ConvAssets.GetFacePaletteID(const_cast<char *>(pszExt));
-}
-
-void PSConvFrame::parse_SHOW_TEXT(ByteStream *conv) {
-    this->mode = ConvFrame::CONV_SHOW_TEXT;
-    uint8_t color      = conv->ReadByte();
-    int next_frame_offset = this->SetSentenceFromConv(conv, 0);
-    this->textColor = color;
-
-    conv->MoveForward(next_frame_offset);
-    conv->PeekByte();
 }
 
 int PSConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
@@ -100,100 +77,98 @@ PSConvPlayer::PSConvPlayer() {}
 
 PSConvPlayer::~PSConvPlayer() {}
 
-void PSConvPlayer::ReadNextFrame(void) {
-    PSConvFrame *tmp_frame = new PSConvFrame();
 
-    tmp_frame->creationTime       = SDL_GetTicks();
-    tmp_frame->text               = nullptr;
-    tmp_frame->sound_file_name    = nullptr;
-    tmp_frame->facePaletteID      = 0;
-    tmp_frame->font = this->font;
-    tmp_frame->conversationID = this->conversationID;
-    // tmp_frame->face = nullptr;
-
-    this->parseConv(tmp_frame);
-
-    tmp_frame->SetExpired(false);
-    if (this->conversation_frames.size() > 0) {
-        if (tmp_frame->bgLayers == nullptr) {
-            tmp_frame->bgLayers = this->conversation_frames.back()->bgLayers;
-            tmp_frame->bgPalettes = this->conversation_frames.back()->bgPalettes;
-        }
+bool psIsNextFrameIsConv(uint8_t type) {
+    switch (type) {
+        case 0x00:
+        case 0x03:
+            return true;
+        default:
+            return false;
     }
-    if (this->txt_color != 0 && tmp_frame->textColor == 0) {
-        tmp_frame->textColor = this->txt_color;
-    } else if (tmp_frame->textColor != 0) {
-        this->txt_color = tmp_frame->textColor;
-    }
-    if (this->yes_no_path == 0 && tmp_frame->yes_no_path != 0) {
-        this->yes_no_path = tmp_frame->yes_no_path;
-    } else if (this->yes_no_path == 1 && tmp_frame->yes_no_path != 0) {
-        this->yes_no_path = tmp_frame->yes_no_path;
-    } else if (tmp_frame->yes_no_path == 0) {
-        tmp_frame->yes_no_path = this->yes_no_path;
-    }
-    if (!tmp_frame->do_not_add) {
-        this->conversation_frames.push_back(tmp_frame);
-    } else {
-        delete tmp_frame;
-    }
+    return false;
 }
 
-void PSConvPlayer::parseConv(ConvFrame *tmp_frame) {
-    if (this->conv.GetCurrentPosition() > this->size) {
+void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
+
+    if (convPakEntry->size == 0) {
+        Game->log("Conversation entry is empty: Unable to load it.\n");
+        stop();
         return;
     }
-    uint8_t type = conv.ReadByte();
-    switch (type) {
-    case 0x00: // Group plan
-    {
-        uint8_t cub = conv.CurrentByte();
-        if ((0x20 <= cub) && (cub <= 0x7E)) {
-            tmp_frame->parse_GROUP_SHOT(&conv);
-        } else if (cub == 0x3) {
-            uint8_t next_b = conv.PeekByte();
-            if ((0x20 <= next_b) && (next_b <= 0x7E)) {
-                conv.MoveForward(1);
-                tmp_frame->parse_CLOSEUP(&conv);
-            } else {
-                conv.MoveForward(1);
-                tmp_frame->do_not_add = true;
+
+    this->size = convPakEntry->size;
+
+    this->conv.Set(convPakEntry->data, convPakEntry->size);
+    end = convPakEntry->data + convPakEntry->size;
+
+    if (this->conversation_frames.size() > 0) {
+        for (auto frame : this->conversation_frames) {
+            delete frame;
+        }
+        this->conversation_frames.clear();
+        this->conversation_frames.shrink_to_fit();
+    }
+    std::vector<uint8_t> *conv_frames_data;
+    uint16_t end_of_frames_marker = 65535;
+    int read_bytes = 0;
+    int conv_size = 0;
+    bool between_frames = false;
+    std::vector<uint8_t> *between_frame_bytes;
+    std::vector<std::vector<uint8_t> *> all_frames_data;
+    while (read_bytes < conv.GetSize()) {
+        if (!between_frames) {
+            if (conv_size == 0) {
+                conv_frames_data = new std::vector<uint8_t>();
             }
-        }else {
-            conv.MoveForward(1);
-            tmp_frame->do_not_add = true;
-        }
-        break;
-    }
-    case 0x03: // Person talking
-    {
-        uint8_t cub = conv.CurrentByte();
-        if ((0x20 <= cub) && (cub <= 0x7E)) {
-            tmp_frame->parse_CLOSEUP(&conv);
+            conv_frames_data->push_back(conv.ReadByte());
+            read_bytes++;
+            conv_size++;
+            if (conv_frames_data->size() >= 2) {
+                uint16_t possible_end_marker = conv.PeekUShort();
+                if (possible_end_marker == end_of_frames_marker) {
+                    conv_frames_data->push_back(conv.ReadByte());
+                    conv_frames_data->push_back(conv.ReadByte());
+                    between_frames = true;
+                    between_frame_bytes = new std::vector<uint8_t>();
+                    conv_size = 0;
+                }
+            }
         } else {
-            conv.MoveForward(1);
-            tmp_frame->do_not_add = true;
+            uint8_t b = conv.PeekByte(0);
+            uint8_t b1 = conv.PeekByte(1);
+            if (psIsNextFrameIsConv(b) && !psIsNextFrameIsConv(b1) && between_frame_bytes->size()>=2) {
+                all_frames_data.push_back(conv_frames_data);
+                between_frames = false;
+            } else {
+                between_frame_bytes->push_back(conv.ReadByte());
+                read_bytes++;
+            }
         }
-        break;
     }
-    case 0x0A: // Show text
-    {
-        uint8_t cub = conv.CurrentByte();
-        if ((0x20 <= cub) && (cub <= 0x7E)) {
-            tmp_frame->parse_SHOW_TEXT(&conv);
-            tmp_frame->face = this->conversation_frames.back()->face;
-            tmp_frame->textColor = this->conversation_frames.back()->textColor;
-            tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
-            tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
-            tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
-        } else {
-            conv.MoveForward(1);
-            tmp_frame->do_not_add = true;
+    for (auto frame_data : all_frames_data) {
+        PSConvFrame *tmp_frame = new PSConvFrame();
+        tmp_frame->creationTime       = SDL_GetTicks();
+        tmp_frame->text               = nullptr;
+        tmp_frame->sound_file_name    = nullptr;
+        tmp_frame->facePaletteID      = 0;
+        tmp_frame->font = this->font;
+        tmp_frame->conversationID = this->conversationID;
+        tmp_frame->SetExpired(false);
+        ByteStream frame_stream;
+        frame_stream.Set(frame_data->data(), frame_data->size());
+        uint8_t frame_type = frame_stream.ReadByte();
+        switch (frame_type) {
+        case 0x00: // Group plan
+            tmp_frame->parse_GROUP_SHOT(&frame_stream);
+        break;
+        case 0x03: // Person talking
+            tmp_frame->parse_CLOSEUP(&frame_stream);
+        break;
+        default:
+            break;
         }
-        break;
+        this->conversation_frames.push_back(tmp_frame);
     }
-    default:
-        tmp_frame->do_not_add = true;
-        break;
-    }
+    initialized = true;
 }
