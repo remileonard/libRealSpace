@@ -898,8 +898,11 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             }
 
             bool twoSided = false;
-            if (object->attrs[quv->triangleID]->props1 == 1) {
-                twoSided = true;
+            for (auto attr : object->attrs) {
+                if (attr.second->id == quv->triangleID && attr.second->type == 'Q' && attr.second->props1 == 1) {
+                    twoSided = true;
+                    break;
+                }
             }
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_QUADS);
