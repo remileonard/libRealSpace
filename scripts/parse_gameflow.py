@@ -53,6 +53,62 @@ misn_opcodes = {
 
 }
 
+
+
+OPCODE = {
+    0x00: ("CONV", 2),
+    0x01: ("PLAY SCENE", 1),
+    0x02: ("PLAY SHOT", 1),
+    0x03: ("FLY MISSION AND GOTO NEXT MISSION", 1),
+    0x06: ("SET TRUE", 2),
+    0x07: ("SET FALSE", 2),
+    0x0A: ("IF", 2),
+    0x09: ("IF NOT", 2),
+    0x0C: ("PLAY FLY MISSION", 1),
+    0x0D: ("SET NEXT MISSION", 1),
+    0x0E: ("GOTO MISSION", 1),
+    0x0F: ("GOTO NEXT MISSION", 1),
+    0x14: ("IF MISSION ACCEPTED", 1),
+    0x15: ("IF MISSION REFUSED", 1),
+    0x1E: ("ELSE", 1),
+    0x1F: ("ENDIF", 1),
+    0x20: ("IF MISSION SUCCESSFULL", 1),
+    0x22: ("APPLY CHANGES", 1),
+    0x0B: ("UNKOWN_0B", 1),
+    0x18: ("UNKOWN_18", 1),
+    0x23: ("UNKOWN_23", 2),
+    0x24: ("UNKOWN_24", 2),
+    0x12: ("SHOW MAP", 1),
+    0x28: ("UNKOWN_28", 1),
+}
+
+def decode_effect(effect_bytes, decal=0):
+    max_bytes = len(effect_bytes)
+    i = 0
+    dec = 0
+    while i < max_bytes:
+        a = effect_bytes[i]
+        if a in OPCODE:
+            name, param_count = OPCODE[a]
+            if "ENDIF" in name:
+                dec = dec - 4
+            if i + param_count < len(effect_bytes):
+                params = effect_bytes[i + 1: i + 1 + param_count]
+                if param_count == 2:
+                    param_short_int = params[0] + (params[1] << 8)
+                    params_str_bytes = ", ".join([f"{p} [0x{p:02X}]" for p in params])
+                    param_str = f"short value : {param_short_int} [0x{param_short_int:04X}] {params_str_bytes}"
+                else:
+                    param_str = ", ".join([f"{p} [0x{p:02X}]" for p in params])
+                print(" "*decal + " " * dec +f"[0x{a:02X}] {name} {param_str}")
+                i = i + param_count
+            if "IF" in name and "ENDIF" not in name:
+                dec = dec + 4
+            
+        else :
+            print(" "*decal + " " * dec +f"Unknown byte: 0x{a:02X}")
+        i = i + 1
+
 def parse_iff_filereader(f, file_path, dec=0):
     global is_change_chunk_type
     while True:
@@ -107,7 +163,7 @@ def parse_iff_filereader(f, file_path, dec=0):
             elif chunk_type == b"SCNE":
                 print_int_from_chunk(chunk_data, dec+2)
             elif chunk_type == b"EFCT":
-                print_efect_from_chunk(chunk_data, dec+2)
+                decode_effect(chunk_data, dec+2)
             elif chunk_type == b"RECT":
                 print_int_from_chunk(chunk_data, dec+2)
             elif chunk_type == b"QUAD":

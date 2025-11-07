@@ -148,6 +148,9 @@ void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
     }
     for (auto frame_data : all_frames_data) {
         PSConvFrame *tmp_frame = new PSConvFrame();
+        ByteStream frame_stream;
+        frame_stream.Set(frame_data->data(), frame_data->size());
+        
         tmp_frame->creationTime       = SDL_GetTicks();
         tmp_frame->text               = nullptr;
         tmp_frame->sound_file_name    = nullptr;
@@ -155,8 +158,8 @@ void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
         tmp_frame->font = this->font;
         tmp_frame->conversationID = this->conversationID;
         tmp_frame->SetExpired(false);
-        ByteStream frame_stream;
-        frame_stream.Set(frame_data->data(), frame_data->size());
+        
+        
         uint8_t frame_type = frame_stream.ReadByte();
         switch (frame_type) {
         case 0x00: // Group plan

@@ -1424,7 +1424,7 @@ void SCStrike::runFrame(void) {
         }
         expl->render();
     }
-    this->player_plane->RenderSimulatedObject();
+    //this->player_plane->RenderSimulatedObject();
     this->cockpit->cam = camera;
     switch (this->camera_mode) {
     case View::FRONT:

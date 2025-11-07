@@ -258,6 +258,40 @@ void DebugObjectViewer::renderUI() {
                 }
             }
             ImGui::EndChild();
+            ImGui::BeginChild("Quads", ImVec2(0, 400), true);
+            int quad_count = 0;
+            for (auto quad : objs.showCases[currentObject].entity->quads) {
+                if (ImGui::TreeNode(("Quad " + std::to_string(quad_count++)).c_str())) {
+                    ImGui::Text("Quad ID: %d", quad_count);
+                    ImGui::Text("Property: %d", quad->property);
+                    for (int i=0; i<4; i++) {
+                        ImGui::Text("Flag %d: %d", i, quad->flags[i]);
+                    }
+                    ImGui::Text("Color ID: %d", quad->color);
+                    Texel *color = palette.GetRGBColor(quad->color);
+                    ImGui::Text("Color: R: %d, G: %d, B: %d, A: %d", color->r, color->g, color->b, color->a);
+                    RSEntity *entity = objs.showCases[currentObject].entity;
+                    if (entity->attrs.find(quad_count - 1) == entity->attrs.end()) {
+                        ImGui::Text("No attribute for this quad");
+                    } else {
+                        Attr *attr = entity->attrs[quad_count - 1];
+                        if (attr != nullptr) {
+                            ImGui::Text("Attribute props1: %d", attr->props1);
+                            ImGui::Text("Attribute props2: %d", attr->props2);
+                            ImGui::Text("Attribute ID: %d", attr->id);
+                            ImGui::Text("Attribute Type: %d", attr->type);
+                        }
+                    }
+                    ImGui::Text("Vertices: ");
+                    for (const auto &vertex : quad->ids) {
+                        ImGui::Text("  Vertex ID: %d", vertex);
+                        Vector3D vert=entity->vertices[vertex];
+                        ImGui::Text("    Position: (%.2f, %.2f, %.2f)", vert.x, vert.y, vert.z);
+                    }
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::EndChild();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Properties")) {

@@ -780,11 +780,8 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
                 continue;
                 
             }
-            Triangle *tri = new Triangle();
-            tri->ids[0] = triangle->ids[0];
-            tri->ids[1] = triangle->ids[1];
-            tri->ids[2] = triangle->ids[2];
-            bool twoSided = true;
+
+            bool twoSided = false;
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
@@ -880,7 +877,7 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             Texture *texture = image->GetTexture();
             Quads *triangle = object->quads[quv->triangleID];
             float alpha = 1.0f;
-            bool twoSided = true;
+            
             if (triangle->property == 6) {
                 alpha = 0.0f;
             }
@@ -900,14 +897,9 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
                 glDepthMask(GL_FALSE);
             }
 
-            Triangle *tri = new Triangle();
-            tri->ids[0] = triangle->ids[0];
-            tri->ids[1] = triangle->ids[1];
-            tri->ids[2] = triangle->ids[2];
-
-            
-            if (triangle->flags[2] == 1) {
-                twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
+            bool twoSided = false;
+            if (object->attrs[quv->triangleID]->props1 == 1) {
+                twoSided = true;
             }
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_QUADS);
@@ -1008,14 +1000,13 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
                 continue;
             }
             Quads *triangle = object->quads[triangleID];
-            bool twoSided = true;
+            bool twoSided = false;
+            if (object->attrs[triangleID]->props1 == 1) {
+                twoSided = true;
+            }
             if (triangle->property != RSEntity::SC_TRANSPARENT)
                 continue;
-            Triangle *tri = new Triangle();
-            tri->ids[0] = triangle->ids[0];
-            tri->ids[1] = triangle->ids[1];
-            tri->ids[2] = triangle->ids[2];
-    
+
             if (twoSided) glDisable(GL_CULL_FACE);
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
@@ -1072,7 +1063,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     Vector3D lightWorld{light.x, light.y, light.z};
     Vector3D lightEye = TransformPointCM(V, lightWorld);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
