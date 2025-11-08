@@ -733,7 +733,9 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
         if (triangle->flags[2] == 1) {
             twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
         }
-        if (twoSided) glDisable(GL_CULL_FACE);
+        if (twoSided) {
+            glDisable(GL_CULL_FACE);
+        }
         glBegin(GL_TRIANGLES);
         for (int j = 0; j < 3; j++) {
             Vector3D vLocal = object->vertices[triangle->ids[j]];
@@ -750,11 +752,16 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
             glVertex3f(vLocal.x, vLocal.y, vLocal.z);
         }
         glEnd();
-        if (twoSided) glEnable(GL_CULL_FACE);
+        if (twoSided) {
+            glEnable(GL_CULL_FACE);
+        }
+        
     }
     if (object->quads.size() > 0) {
         for (int i = 0; i < lod->numTriangles; i++) {
             uint16_t triangleID = lod->triangleIDs[i];
+            int prop1 = 0;
+            int prop2 = 0;
             if (object->attrs.size() > 0) {
                 if (object->attrs[triangleID]->type == 'T') {
                     continue;
@@ -762,7 +769,10 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
                 if (object->attrs[triangleID]->type == 'L') {
                     continue;
                 }
+                prop1 = object->attrs[triangleID]->props1;
+                prop2 = object->attrs[triangleID]->props2;
                 triangleID = object->attrs[triangleID]->id;
+                
             }
             if (triangleID >= object->quads.size()) {
                 continue;
@@ -782,7 +792,12 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
             }
 
             bool twoSided = false;
-            if (twoSided) glDisable(GL_CULL_FACE);
+            
+            
+            twoSided = prop2 == 1;
+            if (twoSided) {
+                glDisable(GL_CULL_FACE);
+            }
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
@@ -795,11 +810,14 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
                 const Texel *texel = palette.GetRGBColor(triangle->color-1);
                 glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
                           texel->b / 255.0f * lambertianFactor, alpha);
-
+                
+                
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
             glEnd();
-            if (twoSided) glEnable(GL_CULL_FACE);
+            if (twoSided) {
+                glEnable(GL_CULL_FACE);
+            }
         }
     }
     glDisable(GL_BLEND);
@@ -844,7 +862,9 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
                 glDepthMask(GL_FALSE);
             }
             
-            if (twoSided) glDisable(GL_CULL_FACE);
+            if (twoSided) {
+                glDisable(GL_CULL_FACE);
+            }
             glBegin(GL_TRIANGLES);
             for (int j = 0; j < 3; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
@@ -865,7 +885,9 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             glDepthFunc(GL_LESS);
             glDepthMask(GL_TRUE);
             glDisable(GL_TEXTURE_2D);
-            if (twoSided) glEnable(GL_CULL_FACE);
+            if (twoSided) {
+                glEnable(GL_CULL_FACE);
+            }
         }
 
         for (auto quv: object->qmapuvs) {
@@ -899,12 +921,17 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
 
             bool twoSided = false;
             for (auto attr : object->attrs) {
-                if (attr.second->id == quv->triangleID && attr.second->type == 'Q' && attr.second->props1 == 1) {
-                    twoSided = true;
+                if (attr.second->id == quv->triangleID && attr.second->type == 'Q') {
+                    int prop1 = attr.second->props1;
+                    int prop2 = attr.second->props2;
+                    
+                    twoSided = prop2 == 1;
                     break;
                 }
             }
-            if (twoSided) glDisable(GL_CULL_FACE);
+            if (twoSided) {
+                glDisable(GL_CULL_FACE);
+            }
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
@@ -919,10 +946,13 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
             glEnd();
+
+            if (twoSided) {
+                glEnable(GL_CULL_FACE);
+            }
             glDepthFunc(GL_LESS);
             glDepthMask(GL_TRUE);
             glDisable(GL_TEXTURE_2D);
-            if (twoSided) glEnable(GL_CULL_FACE);
         }
         glDisable(GL_BLEND);
     }
@@ -964,7 +994,9 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
         if (triangle->flags[2] == 1) {
             twoSided = true; // If all vertices are at the same Z, we assume it's a 2D quad
         }
-        if (twoSided) glDisable(GL_CULL_FACE);
+        if (twoSided) {
+            glDisable(GL_CULL_FACE);
+        }
         glBegin(GL_TRIANGLES);
         for (int j = 0; j < 3; j++) {
             Vector3D vLocal = object->vertices[triangle->ids[j]];
@@ -981,7 +1013,9 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
             glVertex3f(vLocal.x, vLocal.y, vLocal.z);
         }
         glEnd();
-        if (twoSided) glEnable(GL_CULL_FACE);
+        if (twoSided) {
+            glEnable(GL_CULL_FACE);
+        }
     }
 
     if (object->quads.size() > 0) {
@@ -1004,13 +1038,15 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
             }
             Quads *triangle = object->quads[triangleID];
             bool twoSided = false;
-            if (object->attrs[triangleID]->props1 == 1) {
+            if (object->attrs[triangleID]->props2 == 1) {
                 twoSided = true;
             }
             if (triangle->property != RSEntity::SC_TRANSPARENT)
                 continue;
 
-            if (twoSided) glDisable(GL_CULL_FACE);
+            if (twoSided) {
+                glDisable(GL_CULL_FACE);
+            }
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
@@ -1027,7 +1063,9 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
             glEnd();
-            if (twoSided) glEnable(GL_CULL_FACE);
+            if (twoSided) {
+                glEnable(GL_CULL_FACE);
+            }
         }    
     }
     
@@ -1066,7 +1104,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     Vector3D lightWorld{light.x, light.y, light.z};
     Vector3D lightEye = TransformPointCM(V, lightWorld);
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT, GL_FILL);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);

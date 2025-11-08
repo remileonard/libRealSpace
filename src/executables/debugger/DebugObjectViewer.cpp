@@ -55,24 +55,89 @@ void DebugObjectViewer::runFrame()  {
 
     glScalef(1 / this->zoomFactor, 1 / this->zoomFactor, 1 / this->zoomFactor);
     if (objs.showCases[currentObject].entity->triangles.size() > 0) {
-        if (this->vertices.size() > 0) {
-            glPointSize(5.0f);
-            glBegin(GL_POINTS);
-            for (const auto& vertex : this->vertices) {
-                glColor3f(1.0f, 0.0f, 0.0f);
-                glVertex3f(vertex.x, vertex.y, vertex.z);
+        Renderer.drawModel(objs.showCases[currentObject].entity, lodLevel);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glLineWidth(2.0f);
+        glColor3f(0.0f, 1.0f, 0.0f); // Vert pour les lignes
+        
+        
+        const Lod* lod = &objs.showCases[currentObject].entity->lods[lodLevel];
+        RSEntity *entity = objs.showCases[currentObject].entity;
+        
+        
+        for (int ti = 0; ti < lod->numTriangles; ti++) {
+            int triangle_id = lod->triangleIDs[ti];
+            if (entity->attrs.find(lod->triangleIDs[ti]) != entity->attrs.end() &&
+                entity->attrs[lod->triangleIDs[ti]]->type != 'T') {
+                continue;
+            } else if (entity->attrs.find(lod->triangleIDs[ti]) != entity->attrs.end()) {
+                triangle_id = entity->attrs[lod->triangleIDs[ti]]->id;
+            }
+            const Triangle& triangle = entity->triangles[triangle_id];
+            glBegin(GL_TRIANGLES);
+            for (int i = 0; i < 3; i++) {
+                Vector3D vert = entity->vertices[triangle.ids[i]];
+                glVertex3f(vert.x, vert.y, vert.z);
             }
             glEnd();
-            glBegin(GL_LINES);
-            for (size_t i = 0; i < this->vertices.size() - 1; i++) {
-                glColor3f(0.0f, 1.0f, 0.0f);
-                glVertex3f(this->vertices[i].x, this->vertices[i].y, this->vertices[i].z);
-                glVertex3f(this->vertices[i + 1].x, this->vertices[i + 1].y, this->vertices[i + 1].z);
-            }
-            glEnd();
-            
         }
-        Renderer.drawModel(objs.showCases[currentObject].entity, lodLevel);    
+        for (int ti = 0; ti < lod->numTriangles; ti++) {
+            int quad_id = 0;
+            int prop1 = 0;
+            int prop2 = 0;
+            if (entity->attrs.find(lod->triangleIDs[ti]) != entity->attrs.end() &&
+                entity->attrs[lod->triangleIDs[ti]]->type != 'Q') {
+                continue;
+            } else if (entity->attrs.find(lod->triangleIDs[ti]) != entity->attrs.end()) {
+                quad_id = entity->attrs[lod->triangleIDs[ti]]->id;
+                prop1 = entity->attrs[lod->triangleIDs[ti]]->props1;
+                prop2 = entity->attrs[lod->triangleIDs[ti]]->props2;
+            } else {
+                continue;
+            }
+            
+            const Quads *triangle = entity->quads[quad_id];
+            glColor3f(1.0f, 0.0f, 1.0f);
+            bool twoSided = false;
+            twoSided = prop2 == 1;
+            if (twoSided) {
+                glColor3f(1.0f, 1.0f, 0.0f);
+                glDisable(GL_CULL_FACE);
+            }
+            glBegin(GL_QUADS);
+            for (int i = 0; i < 4; i++) {
+                Vector3D vert = entity->vertices[triangle->ids[i]];
+                glVertex3f(vert.x, vert.y, vert.z);
+            }
+            glEnd();
+            if (twoSided) {
+                glEnable(GL_CULL_FACE);
+            }
+        }
+        
+        
+        // Dessiner les vertices
+        glPointSize(5.0f);
+        glColor3f(1.0f, 0.0f, 0.0f); // Rouge pour les vertices
+        glBegin(GL_POINTS);
+        for (int ti = 0; ti < lod->numTriangles; ti++) {
+            int triangle_id = lod->triangleIDs[ti];
+            if (entity->attrs.find(lod->triangleIDs[ti]) != entity->attrs.end() &&
+                entity->attrs[lod->triangleIDs[ti]]->type != 'T') {
+                continue;
+            } else if (entity->attrs.find(lod->triangleIDs[ti]) != entity->attrs.end()) {
+                triangle_id = entity->attrs[lod->triangleIDs[ti]]->id;
+            }
+            const Triangle& triangle = entity->triangles[triangle_id];
+            for (int i = 0; i < 3; i++) {
+                Vector3D vert = entity->vertices[triangle.ids[i]];
+                glVertex3f(vert.x, vert.y, vert.z);
+            }
+        }
+        glEnd();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glLineWidth(1.0f);
+        
     } else if (objs.showCases[currentObject].entity->animations.size() > 0) {
         this->fps++;
         if (this->fps > 12) {
@@ -215,9 +280,21 @@ void DebugObjectViewer::renderUI() {
             ImGui::EndChild();
             ImGui::BeginChild("Triangles", ImVec2(0, 400), true);
             int tri_count = 0;
-            for (auto triangle : objs.showCases[currentObject].entity->triangles) {
-                if (ImGui::TreeNode(("Triangle " + std::to_string(tri_count++)).c_str())) {
-                    ImGui::Text("Triangle ID: %d", tri_count);
+            const Lod* lod = &objs.showCases[currentObject].entity->lods[lodLevel];
+            RSEntity *entity = objs.showCases[currentObject].entity;
+            for (int ti = 0; ti < lod->numTriangles; ti++) {
+                if (objs.showCases[currentObject].entity->attrs[lod->triangleIDs[ti]]->type != 'T') {
+                    continue;
+                }
+                const Triangle& triangle = objs.showCases[currentObject].entity->triangles[lod->triangleIDs[ti]];
+                for (const auto &vertex : triangle.ids) {
+                    ImGui::Text("  Vertex ID: %d", vertex);
+                    Vector3D vert=entity->vertices[vertex];
+                    ImGui::Text("    Position: (%.2f, %.2f, %.2f)", vert.x, vert.y, vert.z);
+                    this->vertices.push_back(vert);
+                }
+                if (ImGui::TreeNode(("Triangle " + std::to_string(lod->triangleIDs[ti])).c_str())) {
+                    ImGui::Text("Triangle ID: %d", lod->triangleIDs[ti]);
                     ImGui::Text("Property: %d", triangle.property);
                     for (int i=0; i<3; i++) {
                         ImGui::Text("Flag %d: %d", i, triangle.flags[i]);
@@ -227,11 +304,11 @@ void DebugObjectViewer::renderUI() {
                     ImGui::Text("Color: R: %d, G: %d, B: %d, A: %d", color->r, color->g, color->b, color->a);
                     float colorValue[3] = {color->r / 255.0f, color->g / 255.0f, color->b / 255.0f};
                     ImGui::ColorPicker3("Color Picker", colorValue, ImGuiColorEditFlags_NoInputs);
-                    RSEntity *entity = objs.showCases[currentObject].entity;
-                    if (entity->attrs.find(tri_count - 1) == entity->attrs.end()) {
+                    
+                    if (entity->attrs.find(lod->triangleIDs[ti]) == entity->attrs.end()) {
                         ImGui::Text("No attribute for this triangle");
                     } else {
-                        Attr *attr = entity->attrs[tri_count - 1];
+                        Attr *attr = entity->attrs[lod->triangleIDs[ti]];
                         if (attr != nullptr) {
                             ImGui::Text("Attribute props1: %d", attr->props1);
                             ImGui::Text("Attribute props2: %d", attr->props2);
@@ -245,19 +322,13 @@ void DebugObjectViewer::renderUI() {
                         ImGui::Text("  Vertex ID: %d", vertex);
                         Vector3D vert=entity->vertices[vertex];
                         ImGui::Text("    Position: (%.2f, %.2f, %.2f)", vert.x, vert.y, vert.z);
-                    }
-                    this->vertices.clear();
-                    for (const auto &vertex : triangle.ids) {
-                        if (vertex < objs.showCases[currentObject].entity->vertices.size()) {
-                            this->vertices.push_back(objs.showCases[currentObject].entity->vertices[vertex]);
-                        } else {
-                            ImGui::Text("Vertex ID %d out of range", vertex);
-                        }
+                        this->vertices.push_back(vert);
                     }
                     ImGui::TreePop();
                 }
             }
             ImGui::EndChild();
+            
             ImGui::BeginChild("Quads", ImVec2(0, 400), true);
             int quad_count = 0;
             for (auto quad : objs.showCases[currentObject].entity->quads) {
