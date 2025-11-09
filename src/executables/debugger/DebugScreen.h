@@ -30,12 +30,13 @@ private:
     GLuint screen_texture;
     bool show_ui{false};
     bool show_mouse{true};
+    
     void setVideoProperties();
 public:
     
     DebugScreen();
     ~DebugScreen() override;
-    
+
     void init(int width, int height, bool fullscreen) override;
     void setTitle(const char* title) override;
     void refresh(void) override;

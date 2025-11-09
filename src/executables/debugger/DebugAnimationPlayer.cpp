@@ -855,7 +855,7 @@ void DebugAnimationPlayer::showEditor() {
     const float textPadding = 5.0f;
     const float shotTitleHeight = 25.0f;
     const float insertButtonWidth = 30.0f;
-
+    RSScreen::getInstance().force_keyboard_capture = true;
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
     ImVec2 canvasSize(ImGui::GetWindowWidth() - 20, timelineHeight);

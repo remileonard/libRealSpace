@@ -254,15 +254,16 @@ void DebugScreen::refresh(void){
             const bool gameChildHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
             if (gameChildHovered) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-            } else {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
-            }
-            if (gameChildFocused) {
                 EventManager::getInstance().enableImGuiKeyboardCapture(false);
             } else {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
                 EventManager::getInstance().enableImGuiKeyboardCapture(true);
             }
             s_gameChildFocusedPrev = gameChildFocused;
+        } else {
+            if (force_keyboard_capture) {
+                EventManager::getInstance().enableImGuiKeyboardCapture(true);
+            }
         }
         ImVec2 avail_size = ImGui::GetContentRegionAvail();
         ImGui::Image((void*)(intptr_t)this->screen_texture, avail_size, {0, 1}, {1, 0});
