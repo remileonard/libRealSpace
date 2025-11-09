@@ -35,6 +35,16 @@ void DebugAnimationPlayer::renderMenu() {
     if (ImGui::BeginMenu("MidGames Animations")) {
         ImGui::MenuItem("Edit Animation", NULL, &show_editor);
         if (ImGui::MenuItem("Load", nullptr, false)) {
+            // Initialiser NFD si pas déjà fait
+            static bool nfd_initialized = false;
+            if (!nfd_initialized) {
+                nfdresult_t result = NFD::Init();
+                if (result != NFD_OKAY) {
+                    printf("NFD Init failed: %s\n", NFD::GetError());
+                    return;
+                }
+                nfd_initialized = true;
+            }
             NFD::UniquePath outPath;
             nfdfilteritem_t filters[1] = { { "Animation Files", "iff" } };
             nfdresult_t result = NFD::OpenDialog(outPath, filters, 1);
