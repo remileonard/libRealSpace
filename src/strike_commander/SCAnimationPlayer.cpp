@@ -64,6 +64,20 @@ void SCAnimationPlayer::init(){
             arch->InitFromRAM(file_path.c_str(), entry->data, entry->size);
             this->midvoc.push_back(arch);
         }
+        std::string file_path = "..\\..\\DATA\\MIDGAMES\\MID33VOC.PAK";
+        TreEntry *entry = Assets.GetEntryByName(file_path.c_str());
+        if (entry != nullptr) {
+            PakArchive *arch = new PakArchive();
+            arch->InitFromRAM(file_path.c_str(), entry->data, entry->size);
+            this->midvoc.push_back(arch);
+        }
+        file_path = "..\\..\\DATA\\MIDGAMES\\MID34VOC.PAK";
+        entry = Assets.GetEntryByName(file_path.c_str());
+        if (entry != nullptr) {
+            PakArchive *arch = new PakArchive();
+            arch->InitFromRAM(file_path.c_str(), entry->data, entry->size);
+            this->midvoc.push_back(arch);
+        }
     }
     TreEntry *optShapEntry = Assets.GetEntryByName(
         Assets.optshps_filename
@@ -314,11 +328,13 @@ void SCAnimationPlayer::runFrame(void){
         for (auto bg : shot->foreground) {
             bg->current_position = {bg->position_start.x, bg->position_start.y};
         }
-        shot_counter++;
-        if (shot_counter>this->midgames_shots[1].size()-1) {
-            shot_counter = 0;
-            if (auto_stop) {
-                Game->stopTopActivity();
+        if (!stay_on_current_shot) {
+            shot_counter++;
+            if (shot_counter>this->midgames_shots[1].size()-1) {
+                shot_counter = 0;
+                if (auto_stop) {
+                    Game->stopTopActivity();
+                }
             }
         }
     }

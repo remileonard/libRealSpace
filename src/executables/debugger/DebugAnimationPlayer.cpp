@@ -103,6 +103,7 @@ void DebugAnimationPlayer::renderUI() {
         if (ImGui::BeginTabItem("MidGames Data")) {
             if (ImGui::Button("Previous Shot")) {
                 this->shot_counter--;
+                this->stay_on_current_shot = false;
                 if (this->shot_counter < 0) {
                     this->shot_counter = this->midgames_shots[1].size() - 1;
                 }
@@ -153,6 +154,7 @@ void DebugAnimationPlayer::renderUI() {
             ImGui::SameLine();
             if (ImGui::Button("Next Shot")) {
                 this->shot_counter++;
+                this->stay_on_current_shot = false;
                 if (this->shot_counter > this->midgames_shots[1].size() - 1) {
                     this->shot_counter = 0;
                 }
@@ -949,6 +951,7 @@ void DebugAnimationPlayer::showEditor() {
         if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
             this->shot_counter = static_cast<int>(shotIndex);
             this->fps_counter = 0;
+            this->stay_on_current_shot = true;
             this->pause = false;
         }
         ImGui::SameLine(0, textPadding);
@@ -1295,6 +1298,8 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     if (ImGui::Checkbox("Use external palette", &bg->use_external_palette)) {
         bg->use_external_palette = bg->use_external_palette ? 1 : 0;
     }
+    ImGui::Separator();
+    ImGui::Text("Current position: (%d, %d)", bg->current_position.x, bg->current_position.y);
     // Position de départ
     ImGui::Text("Position de départ");
     

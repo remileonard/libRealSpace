@@ -33,6 +33,7 @@ protected:
     
     bool auto_stop{true};
     void initMid1();
+    bool stay_on_current_shot{false};
     VGAPalette original_palette;
 public:
 

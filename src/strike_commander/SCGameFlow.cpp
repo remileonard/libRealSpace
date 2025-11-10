@@ -748,15 +748,18 @@ void SCGameFlow::playConv(uint8_t convId) {
 
 void SCGameFlow::playMidGame(uint8_t midGameId) {
     SCAnimationPlayer *midgame = new SCAnimationPlayer();
+    midgame->init();
     SCAnimationArchive archive;
     std::vector<MIDGAME_SHOT *> shots;
-    std::vector<std::string> midgame_files = {
-        "./assets/MID_1.IFF",
-        "./assets/MID_2.IFF",
-        "./assets/MID_3.IFF",
+    std::unordered_map<uint8_t, std::string> midgame_file_map = {
+        {1, "./assets/MID_1.IFF"},
+        {2, "./assets/MID_2.IFF"},
+        {3, "./assets/MID_3.IFF"},
+        {34, "./assets/MID_4.IFF"},
+        {5, "./assets/MID_5.IFF"},
     };
-    if (midGameId-1 < midgame_files.size()) {
-        std::string filepath = midgame_files[midGameId-1];
+    if (midgame_file_map.find(midGameId) != midgame_file_map.end()) {
+        std::string filepath = midgame_file_map[midGameId];
         if (archive.LoadFromFile(filepath.c_str(), shots)) {
             midgame->midgames_shots[1] = shots;
             this->mid_games.push(midgame);

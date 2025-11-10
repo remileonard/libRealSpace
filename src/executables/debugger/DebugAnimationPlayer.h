@@ -73,7 +73,6 @@ private:
     std::vector<ShotSectionElement> buildSpriteElements(MIDGAME_SHOT* shot);
     std::vector<ShotSectionElement> buildForegroundElements(MIDGAME_SHOT* shot);
 
-
 public:
     DebugAnimationPlayer();
     ~DebugAnimationPlayer();
