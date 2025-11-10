@@ -1642,12 +1642,13 @@ void DebugStrike::renderWorkingRegisters() {
         
         int cpt_flags = 0;
         for (auto flag : this->current_mission->mission->mission_data.flags) {
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text("%d", cpt_flags);
-            ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%d", flag);
+            
             if (flag != 0) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%d", cpt_flags);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%d", flag);
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 0.0f, 0.5f)));
             }
             cpt_flags++;
