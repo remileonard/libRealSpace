@@ -40,7 +40,7 @@ public:
     std::vector<SCMissionActors *> friendlies;
     std::vector<SCMissionWaypoint *> waypoints;
     std::vector<SCExplosion *> explosions;
-    std::unordered_map<uint8_t, int16_t> gameflow_registers;
+    std::unordered_map<uint16_t, int16_t> gameflow_registers;
     std::unordered_map<uint8_t, std::vector<uint8_t>> progs_traces;
     bool success{false};
     bool failure{false};
