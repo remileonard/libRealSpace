@@ -110,7 +110,7 @@ void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
     size_t read = 0;
     uint8_t buffer;
     int cpt = 0;
-    while (read < size) {
+    while (stream.IsEndOfStream() == false) {
         buffer = stream.ReadByte();
         AREA *tmparea = new AREA();
 
@@ -130,7 +130,6 @@ void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
             tmparea->AreaWidth = stream.ReadUShort();
             tmparea->AreaHeight = tmparea->AreaWidth;
             tmparea->unknown_bytes.push_back(stream.ReadByte());
-            read += 49;
             break;
         case 'C':
             tmparea->AreaType = 'C';
@@ -151,7 +150,6 @@ void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
             tmparea->AreaHeight = stream.ReadUShort() * (int) HEIGH_MAP_SCALE;
             // unsigned char Blank1; // off 52
             tmparea->unknown_bytes.push_back(stream.ReadByte());
-            read += 52;
             break;
         case 'B':
             tmparea->AreaType = 'B';
@@ -176,11 +174,9 @@ void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
             for (int k = 0; k < 5; k++) {
                 tmparea->unknown_bytes.push_back(stream.ReadByte());
             }
-
-            read += 67;
             break;
         default:
-            read++;
+            stream.ReadByte();
             printf("ERROR IN PARSING AREA\n");
             break;
         }
@@ -254,15 +250,15 @@ void RSMission::parseMISN_MSGS(uint8_t *data, size_t size) {
     }
 }
 void RSMission::parseMISN_FLAG(uint8_t *data, size_t size) {
-    ByteStream stream(data, size);
-    this->mission_data.flags.clear();
-    this->mission_data.flags.reserve(65536);
-    for (int i = 0; i < 65536; i++) {
-        this->mission_data.flags.push_back(0);
-    }
-    if (size < 2) {
+    if (size == 0) {
+        this->mission_data.flags.clear();
+        this->mission_data.flags.reserve(65536);
+        for (int i = 0; i < 65536; i++) {
+            this->mission_data.flags.push_back(0);
+        }
         return;
     }
+    ByteStream stream(data, size);
     stream.ReadByte(); // skip first byte
     size_t read = 1;
     this->mission_data.flags.push_back(0);

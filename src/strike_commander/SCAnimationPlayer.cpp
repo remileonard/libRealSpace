@@ -336,6 +336,17 @@ void SCAnimationPlayer::runFrame(void){
                     Game->stopTopActivity();
                 }
             }
+            shot = this->midgames_shots[1][shot_counter];
+            for (auto bg : shot->background) {
+                bg->current_position = {bg->position_start.x, bg->position_start.y};
+            }
+            for (auto sprt: shot->sprites) {
+                sprt->current_frame = 1;
+                sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
+            }
+            for (auto bg : shot->foreground) {
+                bg->current_position = {bg->position_start.x, bg->position_start.y};
+            }
         }
     }
     for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT; i++)

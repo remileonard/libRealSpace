@@ -375,7 +375,7 @@ void SCNavMap::runFrame(void) {
                         );
                     }
                     c = 255;
-                    if (wp->spot->area_id > 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
+                    if (wp->spot->area_id >= 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
                         newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
                         newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
                         if (newx>0 && newx<320 && newy>0 && newy<200) {
@@ -386,7 +386,7 @@ void SCNavMap::runFrame(void) {
                     }   
                     
                 } else {
-                    if (wp->spot->area_id != 255 && wp->spot->area_id > 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
+                    if (wp->spot->area_id != 255 && wp->spot->area_id >= 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
                         newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
                         newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
                         if (used_areas.find(wp->spot->area_id) == used_areas.end()) {
