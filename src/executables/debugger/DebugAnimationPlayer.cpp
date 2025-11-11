@@ -1171,6 +1171,8 @@ void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
             shot->sound_pak_entry_id = -1;
             delete shot->sound;
             shot->sound = nullptr;
+            this->current_midvoc = nullptr;
+            this->current_midvoc_entry_index = -1;
         }
     }
     if (ImGui::Button("Play Sound Effect")) {
