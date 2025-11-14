@@ -405,10 +405,10 @@ void SCGameFlow::runEffect() {
                         GameState.proj_cash = chng->cash->value*1000;
                         break;
                     case 1:
-                        GameState.proj_cash += chng->cash->value*1000;
+                        GameState.proj_cash -= chng->cash->value*1000;
                         break;
                     case 0:
-                        GameState.proj_cash -= chng->cash->value*1000;
+                        GameState.proj_cash += chng->cash->value*1000;
                         break;
                     }
                 }
@@ -418,10 +418,10 @@ void SCGameFlow::runEffect() {
                         GameState.over_head = chng->over->value*1000;
                         break;
                     case 1:
-                        GameState.over_head += chng->over->value*1000;
+                        GameState.over_head -= chng->over->value*1000;
                         break;
                     case 0:
-                        GameState.over_head -= chng->over->value*1000;
+                        GameState.over_head += chng->over->value*1000;
                         break;
                     }
                 }
@@ -432,10 +432,10 @@ void SCGameFlow::runEffect() {
                             GameState.weapon_inventory[weapon->weap_id+1] = weapon->value;
                             break;
                         case 1:
-                            GameState.weapon_inventory[weapon->weap_id+1] += weapon->value;
+                            GameState.weapon_inventory[weapon->weap_id+1] -= weapon->value;
                             break;
                         case 0:
-                            GameState.weapon_inventory[weapon->weap_id+1] -= weapon->value;
+                            GameState.weapon_inventory[weapon->weap_id+1] += weapon->value;
                             break;
                         }
                     }
@@ -447,10 +447,10 @@ void SCGameFlow::runEffect() {
                             GameState.kill_board[pil->pilot_id][pil->air] = pil->value;
                             break;
                         case 1:
-                            GameState.kill_board[pil->pilot_id][pil->air] += pil->value;
+                            GameState.kill_board[pil->pilot_id][pil->air] -= pil->value;
                             break;
                         case 0:
-                            GameState.kill_board[pil->pilot_id][pil->air] -= pil->value;
+                            GameState.kill_board[pil->pilot_id][pil->air] += pil->value;
                             break;
                         }
                     }

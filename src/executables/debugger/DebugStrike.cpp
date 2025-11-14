@@ -39,7 +39,7 @@ void DebugStrike::setMission(std::string mission_name) {
     SCStrike::setMission(mission_name.c_str()); 
 }
 
-void DebugStrike::init() { SCStrike::init(); }
+void DebugStrike::init() { SCStrike::init();}
 void DebugStrike::showOffCamera() {
     ImVec2 avail_size = ImGui::GetContentRegionAvail();
     ImGui::Image((void *)(intptr_t)Renderer.texture, avail_size, {0, 1}, {1, 0});
@@ -1592,6 +1592,9 @@ void DebugStrike::renderUI() {
                 progLabels.push_back("Program #" + std::to_string(i));
             }
 
+            if (selectedProgIndex >= progs.size()) {
+                selectedProgIndex = progs.size() - 1;
+            }
             // Combo box for selecting a prog
             if (ImGui::BeginCombo("Select Program", progLabels.empty() ? "No programs" : progLabels[selectedProgIndex].c_str())) {
                 for (int i = 0; i < progLabels.size(); i++) {
