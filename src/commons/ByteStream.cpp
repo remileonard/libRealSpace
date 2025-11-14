@@ -196,7 +196,16 @@ int32_t ByteStream::ReadInt32LE(void) {
 	cursor += 4;
 	return *i;
 }
-
+float ByteStream::ReadFixedFloatLE(void) {
+	int32_t integer_value = this->ReadInt32LE();
+	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x000000FF) / 255.0f;
+	return float_value;
+}
+float ByteStream::ReadFixedFloatBE(void) {
+	int32_t integer_value = this->ReadUInt32BE();
+	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x000000FF) / 255.0f;
+	return float_value;
+}
 int32_t ByteStream::ReadInt24LE(void) {
 	int32_t i = 0;
 	uint8_t buffer[4];

@@ -51,6 +51,8 @@ public:
     uint8_t *GetPosition(void);
     uint32_t ReadUInt32LE(void);
     int32_t ReadInt32LE(void);
+    float ReadFixedFloatLE(void);
+    float ReadFixedFloatBE(void);
     int32_t ReadInt24LE(void);
     int32_t ReadInt24LEByte3(void);
     uint32_t ReadUInt32BE(void);
