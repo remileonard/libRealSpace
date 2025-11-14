@@ -817,17 +817,11 @@ void RSEntity::parseREAL_APPR_POLY_VERT(uint8_t *data, size_t size) {
     ByteStream stream(data, size);
     size_t numVertice = size / 12;
     for (int i = 0; i < numVertice; i++) {
-        int32_t coo;
         Point3D vertex;
 
-        coo = stream.ReadInt32LE();
-        vertex.z = (coo >> 8) + static_cast<float>(coo & 0x000000FF) / 255.0f;
-
-        coo = stream.ReadInt32LE();
-        vertex.x = (coo >> 8) + static_cast<float>(coo & 0x000000FF) / 255.0f;
-
-        coo = stream.ReadInt32LE();
-        vertex.y = (coo >> 8) + static_cast<float>(coo & 0x000000FF) / 255.0f;
+        vertex.z = stream.ReadFixedFloatLE();
+        vertex.x = stream.ReadFixedFloatLE();
+        vertex.y = stream.ReadFixedFloatLE();
 
         AddVertex(&vertex);
     }
