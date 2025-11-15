@@ -19,7 +19,7 @@ typedef struct MIDGAME_SHOT_BG {
     PakArchive *pak;
     RSImageSet *image;
     PakArchive *pak_palette{nullptr};
-    uint8_t palette;
+    uint8_t palette{255};
     RSPalette *pal;
     Point2D position_start;
     Point2D position_end;
@@ -38,7 +38,7 @@ typedef struct MIDGAME_SHOT_CHARACTER {
     Point2D velocity;
     RSImageSet *image;
     RSPalette *pal;
-    uint8_t palette;
+    uint8_t palette{255};
     uint8_t cloth_id;
     uint8_t head_id;
     uint8_t expression_id;
@@ -63,7 +63,7 @@ typedef struct MIDGAME_SHOT_SPRITE {
     RSImageSet *image;
     RSPalette *pal;
     PakArchive *pak_palette{nullptr};
-    uint8_t palette{0};
+    uint8_t palette{255};
     Point2D position_start;
     Point2D position_end;
     Point2D velocity;

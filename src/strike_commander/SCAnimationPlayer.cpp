@@ -128,7 +128,7 @@ void SCAnimationPlayer::runFrame(void){
         shot->sound_played = true;
     }
     for (auto bg : shot->background) {
-        if (bg->palette != 0) {
+        if (bg->palette != 255) {
             ByteStream paletteReader;
             if (bg->pak_palette == nullptr) {
                 paletteReader.Set(this->optPals.GetEntry(bg->palette)->data, 772);
