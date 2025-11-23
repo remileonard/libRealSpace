@@ -16,3 +16,13 @@ target_link_libraries(debugger PUBLIC ${SDL2_LIBRARIES})
 target_link_libraries(debugger PRIVATE imgui::imgui )
 target_link_libraries(debugger PRIVATE nfd::nfd)
 target_link_libraries(debugger PUBLIC ${OPENGL_LIBRARIES})
+
+# Copie des fichiers resources vers assets en mode Debug
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR "${CMAKE_CONFIGURATION_TYPES}" MATCHES "Debug")
+    add_custom_command(TARGET debugger POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/resources"
+        "$<TARGET_FILE_DIR:debugger>/assets"
+        COMMENT "Copie des fichiers resources vers assets (Debug) $<TARGET_FILE_DIR:debugger>/assets"
+    )
+endif()

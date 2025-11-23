@@ -13,3 +13,13 @@ target_link_libraries(neosc PRIVATE strike_commander engine realspace commons)
 target_link_libraries(neosc PUBLIC ${SDL2_LIBRARIES})
 target_link_libraries(neosc PRIVATE imgui::imgui )
 target_link_libraries(neosc PUBLIC ${OPENGL_LIBRARIES})
+
+# Copie des fichiers resources vers assets en mode Debug
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR "${CMAKE_CONFIGURATION_TYPES}" MATCHES "Debug")
+    add_custom_command(TARGET neosc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/resources"
+        "$<TARGET_FILE_DIR:neosc>/assets"
+        COMMENT "Copie des fichiers resources vers assets (Debug) $<TARGET_FILE_DIR:neosc>/assets"
+    )
+endif()

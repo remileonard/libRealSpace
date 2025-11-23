@@ -329,7 +329,7 @@ void SCMission::update() {
         this->current_area_id = area_id;
     }
     for (auto scene: this->mission->mission_data.scenes) {
-        if (scene->area_id == area_id-1 || scene->area_id == -1) {
+        if (scene->area_id == area_id - 1 || scene->area_id == -1) {
             if (scene->is_active == 0) {
                 if (scene->on_mission_update != -1) {
                     if (scene->on_mission_update < this->mission->mission_data.prog.size()) {

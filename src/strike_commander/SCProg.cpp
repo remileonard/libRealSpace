@@ -224,9 +224,7 @@ void SCProg::execute() {
                     this->mission->gameflow_registers[prog.arg] = work_register;
                 break;
                 case OP_MOVE_WORK_REGISTER_TO_FLAG:
-                    if (prog.arg > 0) {
-                        this->mission->mission->mission_data.flags[prog.arg] = (uint8_t) work_register;
-                    }
+                    this->mission->mission->mission_data.flags[prog.arg] = (uint8_t) work_register;
                 break;
                 case OP_EXECUTE_CALL:
                     jump_to = work_register;
