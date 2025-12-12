@@ -702,7 +702,17 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             actor->is_hidden = false;
             Vector3D correction = {0.0f, 0.0f, 0.0f};
             if (actor->object->area_id != 255 && actor->object->unknown2 == 0) {
-                correction = this->mission->mission->mission_data.areas[actor->object->area_id]->position;
+                bool spot_found = false;
+                for (auto spot: this->mission->mission->mission_data.spots) {
+                    if (spot->area_id == actor->object->area_id) {
+                        correction = spot->position;
+                        spot_found = true;
+                        break;
+                    }
+                }
+                if (!spot_found) {
+                    correction = this->mission->mission->mission_data.areas[actor->object->area_id]->position;
+                }
             } else {
                 correction = {
                     this->mission->player->plane->x,
@@ -713,12 +723,13 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             if ((actor->object->area_id != 255) || (actor->object->area_id == 255 && actor->object->unknown2 == 1)) {
                 actor->object->position += correction;
             }
-            if (actor->object->position.y < this->mission->area->getY(actor->object->position.x, actor->object->position.z)) {
-                actor->object->position.y = this->mission->area->getY(actor->object->position.x, actor->object->position.z);
+            float ground_y = this->mission->area->getY(actor->object->position.x, actor->object->position.z);
+            if (actor->object->position.y < ground_y) {
+                actor->object->position.y = ground_y;
             }
             if (actor->plane != nullptr) {
-                if (this->mission->area->getY(actor->object->position.x, actor->object->position.z) <= actor->object->position.y) {
-                    actor->object->position.y = this->mission->area->getY(actor->object->position.x, actor->object->position.z)+10.0f;
+                if (actor->object->position.y <= ground_y) {
+                    actor->object->position.y = ground_y+10.0f;
                     actor->plane->on_ground = true;
                 } else {
                     actor->plane->on_ground = false;
@@ -726,6 +737,13 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                 actor->plane->x = actor->object->position.x;
                 actor->plane->y = actor->object->position.y;
                 actor->plane->z = actor->object->position.z;
+            }
+            if (actor->plane == nullptr) {
+                if (actor->object->position.y > ground_y) {
+                    actor->object->position.y = ground_y+2.0f;
+                } else if (actor->object->position.y < ground_y) {
+                    actor->object->position.y = ground_y+2.0f;
+                }
             }
             if (actor->team_id == this->mission->player->team_id) {
                 this->mission->friendlies.push_back(actor);
