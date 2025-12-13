@@ -454,50 +454,52 @@ float RSArea::getGroundLevel(int BLOC, float x, float y) {
     if (BLOC < 0 || BLOC >= BLOCKS_PER_MAP)
         return 0;
 
-    bool newcode = true;
-    if (newcode) {
-        // x et y correspondent respectivement à x et z des vertices
-        float bestDistance = (std::numeric_limits<float>::max)();
-        float resultY = 0;
-
-        for (int i = 0; i < 400; i++) {
-            const auto &vertex = blocks[0][BLOC].vertice[i].v;
-            float dx = x - vertex.x;
-            float dz = y - vertex.z;
-            float distanceSquared = dx * dx + dz * dz;
-
-            if (distanceSquared < bestDistance) {
-                bestDistance = distanceSquared;
-                resultY = vertex.y;
-            }
-        }
-        return resultY+5;
-    }
+    const AreaBlock& block = blocks[0][BLOC];
+    const int gridSize = block.sideSize; // 20 pour LOD max
     
-
-    if (BLOC < 0 || BLOC >= BLOCKS_PER_MAP)
-        return 0;
-
-    int verticeIndex = 0;
-    int centerX = 0;
-    int centerY = 0;
-    int vX = static_cast<int>((x) + centerX);
-    int vY = static_cast<int>((y) + centerY);
-
-    vX = vX / 1000;
-    vY = vY / 1000;
-
-    vX = vX * 1000;
-    vY = vY * 1000;
-
-    for (int i = 0; i < 400; i++) {
-        if ((blocks[0][BLOC].vertice[i].v.x >= vX) && (blocks[0][BLOC].vertice[i].v.z >= vY)) {
-            return (blocks[0][BLOC].vertice[i].v.y + 5);
-        }
-    }
-    return (blocks[0][BLOC].vertice[0].v.y);
-
+    // Calculer les limites du bloc
+    int blocIndexX = BLOC % BLOCK_PER_MAP_SIDE;
+    int blocIndexY = BLOC / BLOCK_PER_MAP_SIDE;
+    float blocMinX = blocIndexX * BLOCK_WIDTH - BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
+    float blocMinZ = blocIndexY * BLOCK_WIDTH - BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
     
+    // Position relative dans le bloc (0.0 à BLOCK_WIDTH)
+    float relX = x - blocMinX;
+    float relZ = y - blocMinZ;
+    
+    // Convertir en coordonnées de grille (0.0 à gridSize-1)
+    float gridX = (relX / BLOCK_WIDTH) * (gridSize - 1);
+    float gridZ = (relZ / BLOCK_WIDTH) * (gridSize - 1);
+    
+    // Indices de la cellule contenant le point
+    int i0 = (int)std::floor(gridX);
+    int j0 = (int)std::floor(gridZ);
+    
+    // Clamping pour éviter les dépassements
+    if (i0 < 0) i0 = 0;
+    if (j0 < 0) j0 = 0;
+    if (i0 >= gridSize - 1) i0 = gridSize - 2;
+    if (j0 >= gridSize - 1) j0 = gridSize - 2;
+    
+    int i1 = i0 + 1;
+    int j1 = j0 + 1;
+    
+    // Facteurs d'interpolation (0.0 à 1.0)
+    float fx = gridX - i0;
+    float fz = gridZ - j0;
+    
+    // Récupérer les 4 vertices du quad
+    const MapVertex* v00 = &block.vertice[j0 * gridSize + i0]; // coin bas-gauche
+    const MapVertex* v10 = &block.vertice[j0 * gridSize + i1]; // coin bas-droite
+    const MapVertex* v01 = &block.vertice[j1 * gridSize + i0]; // coin haut-gauche
+    const MapVertex* v11 = &block.vertice[j1 * gridSize + i1]; // coin haut-droite
+    
+    // Interpolation bilinéaire
+    float h0 = v00->v.y * (1.0f - fx) + v10->v.y * fx; // interpolation bas
+    float h1 = v01->v.y * (1.0f - fx) + v11->v.y * fx; // interpolation haut
+    float height = h0 * (1.0f - fz) + h1 * fz;         // interpolation finale
+    
+    return height + 5.0f; // +5 pour éviter d'être dans le sol
 }
 
 float RSArea::getY(float x, float z) {
