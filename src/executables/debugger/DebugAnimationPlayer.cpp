@@ -669,6 +669,8 @@ void DebugAnimationPlayer::addNewSprite(MIDGAME_SHOT *shot) {
     newSprite->image = nullptr;
     newSprite->pal = nullptr;
     newSprite->use_external_palette = 0;
+    newSprite->start_frame = 0;
+    newSprite->end_frame = 0;
     shot->sprites.push_back(newSprite);
     selectEditorElement(nullptr, newSprite, nullptr, nullptr, nullptr);
 }
@@ -1519,6 +1521,20 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
     if (ImGui::InputInt("X##velocity", &velocity_x) || ImGui::InputInt("Y##velocity", &velocity_y)) {
         sprite->velocity.x = velocity_x;
         sprite->velocity.y = velocity_y;
+    }
+    ImGui::Text("Start Frame");
+    int start_frame = sprite->start_frame;
+    if (ImGui::InputInt("##startframe", &start_frame)) {
+        if (start_frame < 0)
+            start_frame = 0;
+        sprite->start_frame = start_frame;
+    }
+    ImGui::Text("End Frame");
+    int end_frame = sprite->end_frame;
+    if (ImGui::InputInt("##endframe", &end_frame)) {
+        if (end_frame < 0)
+            end_frame = 0;
+        sprite->end_frame = end_frame;
     }
 
     // Affichage de l'aperçu de l'image si disponible

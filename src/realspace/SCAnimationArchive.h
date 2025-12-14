@@ -68,6 +68,8 @@ typedef struct MIDGAME_SHOT_SPRITE {
     Point2D position_end;
     Point2D velocity;
     Point2D current_position{0,0};
+    int16_t start_frame{-1};
+    int16_t end_frame{-1};
     int shapeid;
     uint8_t keep_first_frame;
     bool use_external_palette{false};

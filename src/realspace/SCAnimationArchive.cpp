@@ -262,6 +262,8 @@ void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRIT
     writer.WriteInt16(sprite->velocity.y);
     writer.WriteUint8(sprite->keep_first_frame);
     writer.WriteUint8(sprite->repeat_animation);
+    writer.WriteInt16(sprite->start_frame);
+    writer.WriteInt16(sprite->end_frame);
     writer.EndChunk();
 }
 
@@ -523,6 +525,8 @@ void SCAnimationArchive::HandleSPRI(uint8_t* data, size_t size) {
         sprite->velocity.y = stream.ReadShort();
         sprite->keep_first_frame = stream.ReadByte();
         sprite->repeat_animation = stream.ReadByte();
+        sprite->start_frame = stream.ReadShort();
+        sprite->end_frame = stream.ReadShort();
         if (sprite->pak != nullptr) {
             PakEntry* entry = sprite->pak->GetEntry(sprite->pak_entry_id);
             if (entry != nullptr) {

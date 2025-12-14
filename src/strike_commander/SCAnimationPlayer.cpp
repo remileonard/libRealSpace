@@ -306,7 +306,11 @@ void SCAnimationPlayer::runFrame(void){
             bg->current_position = {bg->position_start.x, bg->position_start.y};
         }
         for (auto sprt: shot->sprites) {
-            sprt->current_frame = 1;
+            if (sprt->start_frame > 0) {
+                sprt->current_frame = sprt->start_frame;
+            } else {
+                sprt->current_frame = 1;
+            }
             sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
         }
         for (auto bg : shot->foreground) {
@@ -322,7 +326,11 @@ void SCAnimationPlayer::runFrame(void){
             bg->current_position = {bg->position_start.x, bg->position_start.y};
         }
         for (auto sprt: shot->sprites) {
-            sprt->current_frame = 1;
+            if (sprt->start_frame > 0) {
+                sprt->current_frame = sprt->start_frame;
+            } else {
+                sprt->current_frame = 1;
+            }
             sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
         }
         for (auto bg : shot->foreground) {
@@ -341,7 +349,11 @@ void SCAnimationPlayer::runFrame(void){
                 bg->current_position = {bg->position_start.x, bg->position_start.y};
             }
             for (auto sprt: shot->sprites) {
-                sprt->current_frame = 1;
+                if (sprt->start_frame > 0) {
+                    sprt->current_frame = sprt->start_frame;
+                } else {
+                    sprt->current_frame = 1;
+                }
                 sprt->current_position = {sprt->position_start.x, sprt->position_start.y};
             }
             for (auto bg : shot->foreground) {
