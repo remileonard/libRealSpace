@@ -135,6 +135,18 @@ void RSProf::parsePROF__AI_ATRB(uint8_t *data, size_t size) {
     if (data == nullptr) {
         return;
     }
+    if (size == 1) {
+        this->ai.atrb.TH = 0;
+        this->ai.atrb.CN = 0;
+        this->ai.atrb.VB = 0;
+        this->ai.atrb.LY = 0;
+        this->ai.atrb.FL = 0;
+        this->ai.atrb.AG = 0;
+        this->ai.atrb.AA = 0;
+        this->ai.atrb.SM = 0;
+        this->ai.atrb.AR = 0;
+        return;
+    }
     stream.Set(data, size);
     this->ai.atrb.TH = stream.ReadByte();
     this->ai.atrb.CN = stream.ReadByte();

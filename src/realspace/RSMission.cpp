@@ -102,7 +102,7 @@ void RSMission::parseMISN_WRLD(uint8_t *data, size_t size) {
 }
 void RSMission::parseMISN_WRLD_FILE(uint8_t *data, size_t size) {
     ByteStream stream(data, size);
-    this->mission_data.world_filename = stream.ReadStringNoSize(size+1);
+    this->mission_data.world_filename = stream.ReadStringNoSize(size);
 }
 void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
     ByteStream stream(data, size);

@@ -121,7 +121,7 @@ void ByteStream::MoveBackward(int bytes) {
 }
 
 uint8_t ByteStream::ReadByte(void) { 
-	if (this->position > this->size - 1) {
+	if (this->position > this->size) {
 		printf("ByteStream: Attempt to read past end of stream (%zu >= %zu)\n", this->position, this->size);
 		return 0;
 	}
