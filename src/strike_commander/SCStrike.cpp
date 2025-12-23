@@ -990,7 +990,7 @@ void SCStrike::setMission(char const *missionName) {
     this->player_plane->yaw = (360 - playerCoord->azymuth) * 10.0f;
     this->player_plane->object = playerCoord;
     float ground = this->area->getY(new_position.x, new_position.z);
-    if (ground < new_position.y) {
+    if (fabs(ground - new_position.y) > 10.0f) {
         this->player_plane->SetThrottle(100);
         this->player_plane->SetWheel();
         this->player_plane->vz = -20;

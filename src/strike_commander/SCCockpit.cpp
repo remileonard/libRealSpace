@@ -91,6 +91,8 @@ void SCCockpit::init() {
             cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F16-CKPT.IFF");
         } else if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-22.IFF") {
             cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F22-CKPT.IFF");
+        } else if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-22B.IFF") {
+            cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F22-CKPT.IFF");
         }
         
     }
