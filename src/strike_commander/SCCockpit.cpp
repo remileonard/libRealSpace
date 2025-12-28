@@ -979,6 +979,10 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84,112}, FrameBuffer *fb = nullp
         this->cockpit->MONI.INST.RAWS.NORM.GetWidth(), 
         this->cockpit->MONI.INST.RAWS.NORM.GetHeight()
     };
+    if (this->cockpit->MONI.INST.RAWS.x != 0 && this->cockpit->MONI.INST.RAWS.y != 0) {
+        pmfd_left.x = this->cockpit->MONI.INST.RAWS.x;
+        pmfd_left.y = this->cockpit->MONI.INST.RAWS.y;
+    }
     Point2D bottom_right = {
         pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y
     };
@@ -1371,6 +1375,10 @@ void SCCockpit::RenderAlti(Point2D pmfd_left = {177,179}, FrameBuffer *fb = null
     if (this->cockpit->MONI.INST.ALTI.ARTS.GetNumImages() == 0) {
         return;
     }
+    if (this->cockpit->MONI.INST.ALTI.x != 0 && this->cockpit->MONI.INST.ALTI.y != 0) {
+        pmfd_left.x = this->cockpit->MONI.INST.ALTI.x;
+        pmfd_left.y = this->cockpit->MONI.INST.ALTI.y;
+    }
     RLEShape *shape = this->cockpit->MONI.INST.ALTI.ARTS.GetShape(0);
     Point2D raws_size = {
         shape->GetWidth(),
@@ -1421,6 +1429,10 @@ void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125,166}, FrameBuffer *f
     }
     if (this->cockpit->MONI.INST.AIRS.ARTS.GetNumImages() == 0) {
         return;
+    }
+    if (this->cockpit->MONI.INST.AIRS.x != 0 && this->cockpit->MONI.INST.AIRS.y != 0) {
+        pmfd_left.x = this->cockpit->MONI.INST.AIRS.x;
+        pmfd_left.y = this->cockpit->MONI.INST.AIRS.y;
     }
     RLEShape *shape = this->cockpit->MONI.INST.AIRS.ARTS.GetShape(0);
     Point2D raws_size = {

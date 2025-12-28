@@ -337,6 +337,22 @@ void RSCockpit::parseMONI_INST_RAWS(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_RAWS_INFO(uint8_t* data, size_t size) {
     this->MONI.INST.RAWS.INFO = std::vector<uint8_t>(data, data + size);
+    ByteStream* reader = new ByteStream(data, size);
+    this->MONI.INST.RAWS.width = reader->ReadUShort();
+    this->MONI.INST.RAWS.height = reader->ReadUShort();
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    reader->ReadUShort(); // skip
+    
+    this->MONI.INST.RAWS.x = reader->ReadUShort();
+    this->MONI.INST.RAWS.y = reader->ReadUShort();
+    
+    
 }
 void RSCockpit::parseMONI_INST_RAWS_SHAP(uint8_t* data, size_t size) {
 
@@ -405,6 +421,9 @@ void RSCockpit::parseMONI_INST_ALTI(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_ALTI_INFO(uint8_t* data, size_t size) {
     this->MONI.INST.ALTI.INFO = std::vector<uint8_t>(data, data + size);
+    ByteStream* reader = new ByteStream(data, size);
+    this->MONI.INST.ALTI.x = reader->ReadUShort();
+    this->MONI.INST.ALTI.y = reader->ReadUShort();
 }
 void RSCockpit::parseMONI_INST_ALTI_SHAP(uint8_t* data, size_t size) {
 	uint8_t *data2;
@@ -424,6 +443,9 @@ void RSCockpit::parseMONI_INST_AIRS(uint8_t* data, size_t size) {
 
 void RSCockpit::parseMONI_INST_AIRS_INFO(uint8_t* data, size_t size) {
     this->MONI.INST.AIRS.INFO = std::vector<uint8_t>(data, data + size);
+    ByteStream* reader = new ByteStream(data, size);
+    this->MONI.INST.AIRS.x = reader->ReadUShort();
+    this->MONI.INST.AIRS.y = reader->ReadUShort();
 }
 void RSCockpit::parseMONI_INST_AIRS_SHAP(uint8_t* data, size_t size) {
 	uint8_t *data2;
