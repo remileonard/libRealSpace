@@ -11,7 +11,7 @@
 #ifndef __libRealSpace__SCStrike__
 #define __libRealSpace__SCStrike__
 
-#define SCSTRIKE_MAX_MISSIONS 48
+#define SCSTRIKE_MAX_MISSIONS 47
 static const char *mission_list[] = {
     "MISN-1A.IFF",  "MISN-1B.IFF",  "MISN-1C.IFF",  "MISN-2A.IFF",  "MISN-3A.IFF",  "MISN-3B.IFF",  "MISN-3C.IFF",
     "MISN-4A.IFF",  "MISN-4B.IFF",  "MISN-4C.IFF",  "MISN-5A.IFF",  "MISN-5B.IFF",  "MISN-5BB.IFF", "MISN-5C.IFF",
