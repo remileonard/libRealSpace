@@ -20,7 +20,6 @@ private:
     std::vector<std::string> logMessages;
     std::mutex progressMutex;
     inline static std::unique_ptr<Loader> s_instance{};
-    RSScreen &screen;
 public:
 
     static Loader& getInstance() {

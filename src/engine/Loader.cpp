@@ -2,7 +2,7 @@
 #include "SDL_ttf.h"
 
 
-Loader::Loader() : loadingComplete(false), loadingProgress(0.0f), screen(RSScreen::getInstance()) {
+Loader::Loader() : loadingComplete(false), loadingProgress(0.0f) {
 }
 
 Loader::~Loader() {
