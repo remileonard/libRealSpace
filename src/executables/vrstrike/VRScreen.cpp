@@ -18,6 +18,14 @@
 #define GL_TEXTURE_MAX_LEVEL 0x813D
 #endif
 
+#ifndef GL_SRGB8_ALPHA8
+#define GL_SRGB8_ALPHA8 0x8C43
+#endif
+#ifndef GL_RGBA8
+#define GL_RGBA8 0x8058
+#endif
+
+
 namespace {
 	PFNGLGENFRAMEBUFFERSEXTPROC pglGenFramebuffersEXT = nullptr;
 	PFNGLDELETEFRAMEBUFFERSEXTPROC pglDeleteFramebuffersEXT = nullptr;
@@ -147,7 +155,7 @@ void VRScreen::setTitle(const char* title) {
 
 void VRScreen::init(int width, int height, bool fullscreen) {
 	// 1) Initialiser SDL + créer le contexte OpenGL via l'impl existante.
-	RSScreen::init(width, height, fullscreen);
+	RSScreen::init(width, height, false);
 
 	// 2) Initialiser OpenXR en réutilisant le contexte courant.
 	if (!initOpenXR()) {
@@ -494,21 +502,24 @@ bool VRScreen::initOpenXR() {
 		return false;
 	}
 
-	// Préférer RGBA8 (compatible GL 2.x), sinon le premier.
-	m_colorSwapchainFormat = 0;
-	for (auto f : formats) {
-		if (f == GL_RGBA8) {
-			m_colorSwapchainFormat = f;
-			break;
-		}
-	}
-	if (m_colorSwapchainFormat == 0 && !formats.empty()) {
-		m_colorSwapchainFormat = formats[0];
-	}
-	if (m_colorSwapchainFormat == 0) {
-		std::printf("[OpenXR] Aucun format de swapchain disponible.\n");
-		return false;
-	}
+	// Choix du format couleur: tester sRGB d'abord
+    const int64_t preferred[] = {
+        (int64_t)GL_SRGB8_ALPHA8,
+        (int64_t)GL_RGBA8,
+    };
+
+    m_colorSwapchainFormat = 0;
+    for (int64_t f : preferred) {
+        if (std::find(formats.begin(), formats.end(), f) != formats.end()) {
+            m_colorSwapchainFormat = f;
+            break;
+        }
+    }
+
+    if (m_colorSwapchainFormat == 0) {
+        // fallback: prendre le premier format fourni
+        m_colorSwapchainFormat = formats.empty() ? (int64_t)GL_RGBA8 : formats[0];
+    }
 
 	m_swapchains.clear();
 	{
@@ -996,7 +1007,7 @@ void VRScreen::refresh(void) {
 
 				// Positionner l'écran à distance fixe devant l'utilisateur au moment du lock.
 				// Plus la distance est faible, plus l'écran paraît grand.
-				const float distance = 1.4f;
+				const float distance = 2.0f;
 				m_cinemaPose.position = {p.x + fx * distance, p.y, p.z + fz * distance};
 
 				// Orientation: le QUAD "regarde" l'utilisateur.
@@ -1079,7 +1090,7 @@ void VRScreen::refresh(void) {
 	// Taille physique du panneau (mètres). Ajustable.
 	float aspect = (sc.height > 0) ? (sc.width / (float)sc.height) : 1.3333f;
 	// Augmenter cette valeur pour un "grand écran".
-	float quadHeight = 1.6f;
+	float quadHeight = 4.0f;
 	float quadWidth = quadHeight * aspect;
 	quad.size = {quadWidth, quadHeight};
 
