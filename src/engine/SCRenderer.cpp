@@ -174,9 +174,8 @@ bool SCRenderer::isAABBVisible(const AABB& box, const Plane planes[6]) {
     }
     return true;
 }
-// Ajoute un helper pour remettre la projection + vue avec l'offset
-void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
-    glViewport(0,0,this->width,this->height);
+void SCRenderer::bindCameraProjectionAndViewViewport(int32_t viewportW, int32_t viewportH, float verticalOffset /*=0.45f*/) {
+    glViewport(0, 0, viewportW, viewportH);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glTranslatef(0.0f, verticalOffset, 0.0f);
@@ -184,6 +183,11 @@ void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
 
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(camera.getViewMatrix()->ToGL());
+}
+
+// Helper historique (viewport = taille fenêtre)
+void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
+    bindCameraProjectionAndViewViewport(this->width, this->height, verticalOffset);
 }
 // Remplace computeBlockAABB pour utiliser un cache par RSArea
 const AABB& SCRenderer::computeBlockAABB(RSArea* area, int LOD, int blockId) {

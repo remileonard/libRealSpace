@@ -165,6 +165,7 @@ public:
     // Pré-calcul (optionnel) sur une plage de LOD
     void PrecomputeAABBs(RSArea* area, int minLOD, int maxLOD);
     void bindCameraProjectionAndView(float verticalOffset);
+    void bindCameraProjectionAndViewViewport(int32_t viewportW, int32_t viewportH, float verticalOffset);
     int32_t width;
     int32_t height;
     Point3D light;

@@ -34,6 +34,14 @@ void Camera::setPersective(float fovy, float aspect, float zNear, float zFar) {
     mproj.v[3][3] = 0;
 }
 
+void Camera::setProjectionMatrix(const Matrix& projection) {
+    this->mproj = projection;
+}
+
+void Camera::setViewMatrix(const Matrix& view) {
+    this->mview = view;
+}
+
 void Camera::lookAt(Point3D *lookAt) {
 
     // Update orientation
@@ -155,9 +163,23 @@ Point3D Camera::getPosition(void) { return this->position; }
 
 Quaternion Camera::getOrientation(void) { return this->orientation; }
 
-Matrix *Camera::getProjectionMatrix(void) { return &this->mproj; }
+Matrix *Camera::getProjectionMatrix(void) {
+    return this->m_useCustomMatrices ? &this->mprojCustom : &this->mproj;
+}
 
-Matrix *Camera::getViewMatrix(void) { return &this->mview; }
+Matrix *Camera::getViewMatrix(void) {
+    return this->m_useCustomMatrices ? &this->mviewCustom : &this->mview;
+}
+
+void Camera::setCustomMatrices(const Matrix& projection, const Matrix& view) {
+    this->mprojCustom = projection;
+    this->mviewCustom = view;
+    this->m_useCustomMatrices = true;
+}
+
+void Camera::clearCustomMatrices() {
+    this->m_useCustomMatrices = false;
+}
 
 Vector3D Camera::getForward(void) { 
     Matrix m = orientation.ToMatrix();
