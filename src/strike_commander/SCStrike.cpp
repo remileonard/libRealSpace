@@ -109,16 +109,33 @@ void SCStrike::renderVirtualCockpit() {
         s_PrevFrameGLTex.shrink_to_fit();
     }
     s_PrevFrameGLTex.swap(s_CurrentFrameGLTex); 
-    Vector3D cockpit_pos;
-    cockpit_pos.x = this->camera->getPosition().x;
-    cockpit_pos.y = this->camera->getPosition().y;
-    cockpit_pos.z = this->camera->getPosition().z;
+    const Vector3D camPos = {
+        this->camera->getPosition().x,
+        this->camera->getPosition().y,
+        this->camera->getPosition().z
+    };
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glTranslatef(camPos.x, camPos.y, camPos.z);
+
+    Vector3D cockpit_pos = {0.0f, 0.0f, 0.0f};
+
     this->cockpit->RenderHUD();
 
-    Vector3D cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f, this->player_plane->elevationf/10.0f, -this->player_plane->twist/10.0f};
+    Vector3D cockpit_rot;
+    cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f,
+                    this->player_plane->elevationf/10.0f,
+                    -this->player_plane->twist/10.0f};
+
     Vector3D cockpit_ajustement = { 0.0f,-(float) this->eye_y,0.0f};
-    
-    Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
+    if (this->camera->isUsingCustomMatrices()) {
+        const float cockpitScale = 1.0f; // ajuste: 0.7 .. 0.95
+        //cockpit_ajustement = { -0.225f,-(float) this->eye_y+2.35f,0.0f};
+        cockpit_ajustement = { -0.55f,-(float) this->eye_y,0.0f};
+        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
+    } else {
+        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
+    }
     
     if (this->cockpit->hud != nullptr) {
         Texture *hud_texture = new Texture();
@@ -338,7 +355,7 @@ void SCStrike::renderVirtualCockpit() {
         delete speed_image;
         s_CurrentFrameGLTex.push_back(speed_texture);
     }
-
+    glPopMatrix();
 }
 /**
  * @brief Constructor
@@ -1507,15 +1524,7 @@ void SCStrike::runFrame(void) {
         this->player_plane->RenderSimulatedObject();
         this->cockpit->cam = camera;
 
-        if (forceVirtualCockpit) {
-            this->renderVirtualCockpit();
-            return;
-        }
-
         switch (this->camera_mode) {
-        case View::FRONT:
-            this->cockpit->Render(0);
-            break;
         case View::MISSILE_CAM:
         case View::TARGET:
         case View::OBJECT:
@@ -1527,15 +1536,26 @@ void SCStrike::runFrame(void) {
                 this->player_plane->renderPlaneLined();
             }
             break;
+        case View::FRONT:
+            if (!forceVirtualCockpit) {
+                this->cockpit->Render(0);
+                break;
+            }
         case View::RIGHT:
-            this->cockpit->Render(1);
-            break;
+            if (!forceVirtualCockpit) {
+                this->cockpit->Render(1);
+                break;    
+            }
         case View::LEFT:
-            this->cockpit->Render(2);
-            break;
+            if (!forceVirtualCockpit) {
+                this->cockpit->Render(2);
+                break;
+            }
         case View::REAR:
-            this->cockpit->Render(3);
-            break;
+            if (!forceVirtualCockpit) {
+                this->cockpit->Render(3);
+                break;
+            }
         case View::EYE_ON_TARGET:
         case View::REAL:
         case View::CONTROLLER_LOOK:

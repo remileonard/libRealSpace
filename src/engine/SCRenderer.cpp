@@ -495,6 +495,18 @@ void SCRenderer::drawParticle(Vector3D pos, float alpha) {
     glPopMatrix();
     glDisable( GL_BLEND );
 }
+void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement, float scale) { 
+    glPushMatrix();
+    glTranslatef(static_cast<GLfloat>(position.x), static_cast<GLfloat>(position.y),
+                static_cast<GLfloat>(position.z));
+    glRotatef(orientation.x, 0, 1, 0);
+    glRotatef(orientation.y, 0, 0, 1);
+    glRotatef(orientation.z, 1, 0, 0);
+    glTranslatef(ajustement.x, ajustement.y, ajustement.z);
+    glScalef(scale, scale, scale);
+    drawModel(object, 0);
+    glPopMatrix(); 
+}
 void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement) { 
     glPushMatrix();
     glTranslatef(static_cast<GLfloat>(position.x), static_cast<GLfloat>(position.y),
