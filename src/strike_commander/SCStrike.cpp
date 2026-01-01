@@ -34,6 +34,66 @@ static Matrix invertRigidBodyMatrix(const Matrix& m) {
     out.v[3][2] = -(out.v[0][2] * tx + out.v[1][2] * ty + out.v[2][2] * tz);
     return out;
 }
+
+static void drawTargetSquareOverlay(int32_t viewportW,
+                                int32_t viewportH,
+                                const Matrix& projection,
+                                const Matrix& view,
+                                const Vector3D& targetWorldPos) {
+    Vector3DHomogeneous v = {targetWorldPos.x, targetWorldPos.y, targetWorldPos.z, 1.0f};
+    Matrix viewM = view;
+    Matrix projM = projection;
+    Vector3DHomogeneous viewPos = viewM.multiplyMatrixVector(v);
+    Vector3DHomogeneous clipPos = projM.multiplyMatrixVector(viewPos);
+
+    if (clipPos.w <= 0.0f) {
+        return;
+    }
+
+    const float ndcX = clipPos.x / clipPos.w;
+    const float ndcY = clipPos.y / clipPos.w;
+    const float ndcZ = clipPos.z / clipPos.w;
+
+    if (ndcX < -1.0f || ndcX > 1.0f || ndcY < -1.0f || ndcY > 1.0f || ndcZ < -1.0f || ndcZ > 1.0f) {
+        return;
+    }
+
+    const int px = (int)((ndcX * 0.5f + 0.5f) * (float)viewportW);
+    const int py = (int)((0.5f - ndcY * 0.5f) * (float)viewportH);
+
+    // Important: en VR on enchaîne deux rendus par oeil.
+    // Ce petit overlay ne doit PAS polluer l'état OpenGL (textures, blending, depth, etc.),
+    // sinon l'oeil suivant peut se retrouver "noir".
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_LINE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0.0, (double)viewportW, (double)viewportH, 0.0, -1.0, 1.0);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    glColor3f(0.0f, 1.0f, 0.0f);
+    const float s = 8.0f;
+    glBegin(GL_LINE_LOOP);
+    glVertex2f((float)px - s, (float)py - s);
+    glVertex2f((float)px + s, (float)py - s);
+    glVertex2f((float)px + s, (float)py + s);
+    glVertex2f((float)px - s, (float)py + s);
+    glEnd();
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
+    glPopAttrib();
+}
 void SCStrike::renderVirtualCockpit() {
     if (this->cockpit->cockpit == nullptr) {
         return;
@@ -163,7 +223,7 @@ void SCStrike::renderVirtualCockpit() {
         delete raws_image;
         s_CurrentFrameGLTex.push_back(raws_texture);
     }
-    if (cockpit->target_framebuffer != nullptr) {
+    if (cockpit->target_framebuffer != nullptr && !camera->isUsingCustomMatrices()) {
     
         cockpit->target_framebuffer->fillWithColor(255);
         cockpit->RenderTargetWithCam({0,0}, cockpit->target_framebuffer);
@@ -1516,6 +1576,15 @@ void SCStrike::runFrame(void) {
             }
             camera->setCustomMatrices(eyeInfo.projection, eyeInfo.view);
             renderScene(eyeInfo.width, eyeInfo.height, 0.0f, true);
+
+			if (this->cockpit && this->cockpit->target) {
+				drawTargetSquareOverlay(
+					eyeInfo.width,
+					eyeInfo.height,
+					eyeInfo.projection,
+					eyeInfo.view,
+					this->cockpit->target->position);
+			}
         }
 
         camera->clearCustomMatrices();
