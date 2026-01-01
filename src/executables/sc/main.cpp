@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     RSScreen &screen = RSScreen::instance();
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
-    screen.init(WIDTH,HEIGHT,FULLSCREEN);
+    screen.init(WIDTH,HEIGHT,false);
     screen.is_spfx_finished = false;
     while (!screen.is_spfx_finished) {
         screen.fxTurnOnTv();

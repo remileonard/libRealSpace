@@ -2,7 +2,8 @@
 #include "SDL_ttf.h"
 
 
-Loader::Loader() : loadingComplete(false), loadingProgress(0.0f) {}
+Loader::Loader() : loadingComplete(false), loadingProgress(0.0f), screen(RSScreen::getInstance()) {
+}
 
 Loader::~Loader() {
     if (loadingThread.joinable()) {
@@ -15,6 +16,7 @@ void Loader::init() {
         std::cerr << "Failed to initialize SDL_ttf: " << TTF_GetError() << std::endl;
         exit(1);
     }
+    
     if (loadingThread.joinable()) {
         loadingThread.join();
     }
@@ -77,8 +79,8 @@ void Loader::runFrame() {
         return;
     }
     
-    SDL_FillRect(loadingSurface, NULL, SDL_MapRGB(loadingSurface->format, 0, 0, 0));
-    glClearColor(0.f, 0.f, 0.f, 1.f);
+    SDL_FillRect(loadingSurface, NULL, SDL_MapRGBA(loadingSurface->format, 0, 0, 0, 255));
+    glClearColor(0.f, 0.f, 0.0f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -88,7 +90,7 @@ void Loader::runFrame() {
     glPushMatrix();
     glLoadIdentity();
 
-    TTF_Font* font = TTF_OpenFont("./assets/fonts/AcPlus_IBM_VGA_9x16.ttf", 36);
+    TTF_Font* font = TTF_OpenFont("./assets/AcPlus_IBM_VGA_9x16.ttf", 36);
     if (font) {
         SDL_Color textColor = {255, 255, 255, 255}; // White text
 
@@ -129,14 +131,14 @@ void Loader::runFrame() {
                 barWidth,
                 barHeight
             };
-            SDL_FillRect(loadingSurface, &progressBarBg, SDL_MapRGB(loadingSurface->format, 100, 100, 100));
+            SDL_FillRect(loadingSurface, &progressBarBg, SDL_MapRGBA(loadingSurface->format, 100, 100, 100, 255));
             SDL_Rect progressBarFill = {
                 progressBarBg.x + 2,
                 progressBarBg.y + 2,
                 static_cast<int>((barWidth - 4) * (this->loadingProgress/100.0f)),
                 barHeight - 4
             };
-            SDL_FillRect(loadingSurface, &progressBarFill, SDL_MapRGB(loadingSurface->format, 0, 255, 0));
+            SDL_FillRect(loadingSurface, &progressBarFill, SDL_MapRGBA(loadingSurface->format, 0, 255, 0, 255));
             
             SDL_FreeSurface(textSurface);
         }
@@ -161,7 +163,7 @@ void Loader::runFrame() {
 
     glBindTexture(GL_TEXTURE_2D, loadingTexture);
 
-    
+    glColor4f(1.0f,0.0f,1.0f,1.0f);
     glBegin(GL_QUADS);
         glTexCoord2f(0.0f, 0.0f);
         glVertex2f(-1.0f, 1.0f);
@@ -183,6 +185,4 @@ void Loader::runFrame() {
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
-    glFlush();
-    glFinish();
 }
