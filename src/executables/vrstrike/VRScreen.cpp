@@ -51,7 +51,57 @@ namespace {
 			pglRenderbufferStorageEXT;
 	}
 }
+static void drawMirrorTextureToWindow(GLuint tex, int winW, int winH)
+{
+    if (tex == 0 || winW <= 0 || winH <= 0) return;
 
+    // Revenir sur le framebuffer par défaut (compat OpenGL 1.1 via EXT)
+    if (pglBindFramebufferEXT) {
+        pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    }
+
+    glViewport(0, 0, winW, winH);
+
+    // Sauvegarde état minimal pour ne pas polluer le rendu
+    glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_TEXTURE_BIT | GL_DEPTH_BUFFER_BIT | GL_VIEWPORT_BIT);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_BLEND);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_QUADS);
+        // Si ton mirror est inversé verticalement, swap les v (0<->1)
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f, 1.0f);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, 1.0f);
+    glEnd();
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
+    glPopAttrib();
+}
 static const char* xrResultToString(XrResult result) {
 	switch (result) {
 		case XR_SUCCESS: return "XR_SUCCESS";
@@ -789,6 +839,13 @@ bool VRScreen::beginStereoEye(uint32_t eye,
 	pglFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, sc.images[imageIndex].image, 0);
 	pglFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_stereoDepthRb);
 
+	if (eye == 0) {
+        m_mirrorTex = sc.images[imageIndex].image;
+        m_mirrorW = sc.width;
+        m_mirrorH = sc.height;
+        m_mirrorValid = (m_mirrorTex != 0);
+    }
+
 	// Nettoyage minimal (le renderer fera son clear si nécessaire)
 	glViewport(0, 0, sc.width, sc.height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -871,7 +928,12 @@ void VRScreen::refresh(void) {
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(stereo)");
 		m_stereoFrameBegun = false;
 		m_projectionLayerReady = false;
-		// Mirror window swap (optionnel)
+		// Mirror desktop: afficher l'œil gauche
+        if (m_mirrorValid && m_window) {
+            int winW = 0, winH = 0;
+            SDL_GL_GetDrawableSize(m_window, &winW, &winH);
+            drawMirrorTextureToWindow(m_mirrorTex, winW, winH);
+        }
 		RSScreen::refresh();
 		return;
 	}

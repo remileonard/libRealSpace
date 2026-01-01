@@ -93,6 +93,12 @@ private:
     std::vector<uint32_t> m_stereoAcquiredImageIndex;
     std::vector<bool> m_stereoImageAcquired;
 
+    // Desktop mirror (texture GL du swapchain de l'œil 0)
+    GLuint m_mirrorTex = 0;
+    int32_t m_mirrorW = 0;
+    int32_t m_mirrorH = 0;
+    bool m_mirrorValid = false;
+    
     bool m_projectionLayerReady{false};
     XrCompositionLayerProjection m_projectionLayer{XR_TYPE_COMPOSITION_LAYER_PROJECTION};
     std::vector<XrCompositionLayerProjectionView> m_projectionViews;
