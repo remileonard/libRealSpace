@@ -575,6 +575,186 @@ static bool projectLocalAnglesToHud(const Vector3D& vLocal, FrameBuffer* fb, int
     outY = (int)(cy - ny * cy);
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
+
+/**
+ * projectToHUD3D - Projette un point 3D monde sur le HUD virtuel du cockpit 3D
+ * 
+ * Cette fonction calcule où un point cible (comme un viseur de cannon) doit
+ * apparaître sur le HUD en prenant en compte:
+ * - La position de l'œil du pilote dans le cockpit
+ * - La géométrie réelle du HUD (plan 3D)
+ * - La direction depuis l'œil vers la cible
+ * 
+ * Principe: On trace un rayon depuis l'œil vers la cible à l'infini,
+ * et on calcule l'intersection avec le plan du HUD.
+ * 
+ * @param targetLocal     Point cible en coordonnées locales de l'avion
+ * @param eyeLocal        Position de l'œil du pilote en coordonnées locales
+ * @param hudTopLeft      Coin supérieur gauche du HUD en coords locales (depuis renderVirtualCockpit)
+ * @param hudTopRight     Coin supérieur droit du HUD
+ * @param hudBottomRight  Coin inférieur droit du HUD
+ * @param hudBottomLeft   Coin inférieur gauche du HUD
+ * @param fb              FrameBuffer du HUD
+ * @param outX, outY      Coordonnées de sortie en pixels HUD
+ * @return true si le point est visible sur le HUD
+ */
+static bool projectToHUD3D(
+    const Vector3D& targetLocal,
+    const Vector3D& eyeLocal,
+    const Vector3D& hudTopLeft,
+    const Vector3D& hudTopRight,
+    const Vector3D& hudBottomRight,
+    const Vector3D& hudBottomLeft,
+    FrameBuffer* fb,
+    int& outX, int& outY)
+{
+    // Direction depuis l'œil vers la cible (normalisée pour un HUD collimaté à l'infini)
+    Vector3D dir = targetLocal - eyeLocal;
+    float dirLen = dir.Length();
+    if (dirLen < 0.001f) return false;
+    dir = dir * (1.0f / dirLen);
+    
+    // La cible doit être devant (X positif dans le repère cockpit où X pointe vers l'avant)
+    // Note: adapter selon votre convention d'axes
+    if (dir.x <= 0.001f) return false;
+    
+    // Calcul du plan du HUD à partir de ses 4 coins
+    // Le HUD est défini par hudTopLeft, hudTopRight, hudBottomRight, hudBottomLeft
+    // On utilise 2 vecteurs du plan pour calculer la normale
+    Vector3D hudRight = hudTopRight - hudTopLeft;
+    Vector3D hudDown = hudBottomLeft - hudTopLeft;
+    
+    // Normale du plan HUD (produit vectoriel)
+    Vector3D normal;
+    normal.x = hudRight.y * hudDown.z - hudRight.z * hudDown.y;
+    normal.y = hudRight.z * hudDown.x - hudRight.x * hudDown.z;
+    normal.z = hudRight.x * hudDown.y - hudRight.y * hudDown.x;
+    
+    float normalLen = normal.Length();
+    if (normalLen < 0.001f) return false;
+    normal = normal * (1.0f / normalLen);
+    
+    // Équation du plan: normal · (P - hudTopLeft) = 0
+    // D = -normal · hudTopLeft
+    float D = -(normal.x * hudTopLeft.x + normal.y * hudTopLeft.y + normal.z * hudTopLeft.z);
+    
+    // Intersection rayon-plan
+    // Rayon: P = eyeLocal + t * dir
+    // Plan: normal · P + D = 0
+    // => normal · (eyeLocal + t * dir) + D = 0
+    // => t = -(normal · eyeLocal + D) / (normal · dir)
+    
+    float denom = normal.x * dir.x + normal.y * dir.y + normal.z * dir.z;
+    if (fabsf(denom) < 0.0001f) return false; // Rayon parallèle au plan
+    
+    float t = -(normal.x * eyeLocal.x + normal.y * eyeLocal.y + normal.z * eyeLocal.z + D) / denom;
+    
+    // Le HUD doit être devant l'œil
+    if (t < 0.0f) return false;
+    
+    // Point d'intersection sur le plan du HUD
+    Vector3D hitPoint;
+    hitPoint.x = eyeLocal.x + t * dir.x;
+    hitPoint.y = eyeLocal.y + t * dir.y;
+    hitPoint.z = eyeLocal.z + t * dir.z;
+    
+    // Convertir le point d'intersection en coordonnées UV du HUD [0, 1]
+    // Vecteur du coin supérieur gauche vers le point d'intersection
+    Vector3D toHit = hitPoint - hudTopLeft;
+    
+    // Projection sur les axes du HUD
+    float hudWidth = hudRight.Length();
+    float hudHeight = hudDown.Length();
+    
+    if (hudWidth < 0.001f || hudHeight < 0.001f) return false;
+    
+    // Normaliser les vecteurs du HUD
+    Vector3D hudRightNorm = hudRight * (1.0f / hudWidth);
+    Vector3D hudDownNorm = hudDown * (1.0f / hudHeight);
+    
+    // Coordonnées UV (projection du point sur les axes du HUD)
+    float u = (toHit.x * hudRightNorm.x + toHit.y * hudRightNorm.y + toHit.z * hudRightNorm.z) / hudWidth;
+    float v = (toHit.x * hudDownNorm.x + toHit.y * hudDownNorm.y + toHit.z * hudDownNorm.z) / hudHeight;
+    
+    // Convertir en coordonnées pixels
+    outX = (int)(u * (fb->width - 1));
+    outY = (int)(v * (fb->height - 1));
+    
+    // Vérifier si dans les limites du HUD
+    return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
+}
+
+/**
+ * projectCannonSightToHUD - Version simplifiée pour le viseur de cannon
+ * 
+ * Utilise une approche angulaire adaptée au cockpit 3D:
+ * - Calcule la direction vers la cible depuis la position du cannon (pas l'œil)
+ * - Projette cette direction sur le HUD selon son champ de vision angulaire
+ * - Tient compte de la parallaxe entre l'œil du pilote et le cannon
+ * 
+ * @param targetWorld     Point cible en coordonnées monde
+ * @param planeFromWorld  Matrice inverse de transformation avion (monde -> local)
+ * @param eyeLocal        Position de l'œil en coordonnées locales cockpit
+ * @param cannonOffset    Offset angulaire du cannon en radians (azimut, élévation)
+ * @param fb              FrameBuffer du HUD
+ * @param outX, outY      Coordonnées de sortie en pixels
+ * @return true si le point est visible sur le HUD
+ */
+static bool projectCannonSightToHUD(
+    const Vector3D& targetWorld,
+    const Matrix& planeFromWorld,
+    const Vector3D& eyeLocal,
+    const Vector2D& cannonAngularOffset, // (azimut_offset, elevation_offset) en radians
+    FrameBuffer* fb,
+    int& outX, int& outY)
+{
+    // Transformer la cible dans le repère local de l'avion
+    Vector3D targetLocal = transformPoint(planeFromWorld, targetWorld);
+    
+    // Direction depuis l'origine de l'avion vers la cible dans le repère local
+    Vector3D toTarget = targetLocal;
+    
+    // Dans le repère cockpit:
+    // -Z = devant l'avion (forward)
+    // X = droite/gauche (positif = droite)
+    // Y = vers le haut (positif = haut)
+    
+    // La composante -Z doit être positive (cible devant)
+    const float forward = -toTarget.z;
+    if (forward <= 0.001f) return false;
+    
+    // Calcul des angles azimut (horizontal) et élévation (vertical)
+    // depuis l'axe de visée (-Z) du cockpit
+    float az = atan2f(toTarget.x, forward);  // Angle horizontal (X = droite/gauche)
+    float el = atan2f(toTarget.y, forward);  // Angle vertical (Y = haut/bas)
+    
+    // Appliquer l'offset angulaire du cannon
+    // Le cannon pointe légèrement différemment de l'axe de l'avion
+    az += cannonAngularOffset.x;  // Correction azimut
+    el += cannonAngularOffset.y;  // Correction élévation (cannon plus bas = élévation négative)
+    
+    // FOV angulaire du HUD - ces valeurs correspondent à la géométrie réelle
+    // du HUD tel que défini dans renderVirtualCockpit
+    // HUD coords: TopLeft(5.8, 2.0, -1.22) à BottomRight(6.0, -0.8, 1.35)
+    // Distance œil-HUD environ 6 unités, largeur HUD ~2.57, hauteur ~2.8
+    const float hudFovX = 24.0f * (float)M_PI / 180.0f; // ~24° horizontal
+    const float hudFovY = 26.0f * (float)M_PI / 180.0f; // ~26° vertical
+    
+    // Normaliser les angles dans [-1, 1]
+    const float nx = az / (hudFovX * 0.5f);
+    const float ny = el / (hudFovY * 0.5f);
+    
+    // Centre du HUD en pixels
+    const float cx = (fb->width - 1) * 0.5f;
+    const float cy = (fb->height - 1) * 0.5f;
+    
+    // Convertir en coordonnées pixels
+    // Note: Y est inversé car l'origine du framebuffer est en haut
+    outX = (int)(cx + nx * cx);
+    outY = (int)(cy - ny * cy);
+    
+    return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
+}
 void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
@@ -635,20 +815,17 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         weap->vz = velo.z;
     }
 
-    // ---- Nouveau: projection HUD sans dépendre de la caméra ----
-    // target est interprété comme un point monde (comme avant, il était projeté via cam->view/proj).
+    // ---- Projection HUD pour cockpit 3D ----
+    // target est le point d'impact prédit en coordonnées monde
     const Vector3D targetWorld = {target.x, target.y, target.z};
 
     // Monde -> repère avion (plane local)
     const Matrix planeFromWorld = invertRigidBodyMatrixLocal(this->player_plane->ptw);
-    Vector3D targetLocal  = transformPoint(planeFromWorld, targetWorld);
 
-    Vector3D vlocal;
-    vlocal = targetLocal + this->hud_eye_world;
-    // Repère avion -> pixels HUD
+    // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
     int Ydraw = 0;
-    if (projectLocalAnglesToHud(vlocal, fb, Xdraw, Ydraw)) {
+    if (projectCannonSightToHUD(targetWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw, Ydraw)) {
         fb->plot_pixel(Xdraw, Ydraw, 223);
         fb->circle_slow(Xdraw, Ydraw, 6, 90);
     }
@@ -718,14 +895,16 @@ void SCCockpit::RenderBombSight(FrameBuffer* fb) {
     Vector3D velo{0, 0, 0};
     std::tie(target, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
 
+    // Utiliser la nouvelle fonction de projection pour cockpit 3D
     Vector3D targetWorld = {target.x, target.y, target.z};
     const Matrix planeFromWorld = invertRigidBodyMatrixLocal(this->player_plane->ptw);
-    Vector3D targetLocal = transformPoint(planeFromWorld, targetWorld);
 
-    Vector3D vlocal;
-    vlocal = targetLocal + this->hud_eye_world;
+    // Offset angulaire pour les bombes (en radians)
+    // Les bombes suivent une trajectoire balistique, pas besoin d'offset angulaire
+    const Vector2D bombAngularOffset = {0.0f, 0.0f};
+
     int Xhud = 0, Yhud = 0;
-    if (projectLocalAnglesToHud(vlocal, fb, Xhud, Yhud)) {
+    if (projectCannonSightToHUD(targetWorld, planeFromWorld, this->hud_eye_world, bombAngularOffset, fb, Xhud, Yhud)) {
         fb->plot_pixel(center.x, center.y, 223);
         fb->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
         fb->plot_pixel(Xhud, Yhud, 223);
@@ -1177,7 +1356,7 @@ void SCCockpit::Render(int face) {
         VGA.upscale = false;
         fb=VGA.getFrameBuffer();
         fb->clear();
-        
+        this->cannonAngularOffset = {0.0f, 0.0f};
         if (cockpit != nullptr) {
             if (face == 0) {
                 if (this->hud != nullptr) {

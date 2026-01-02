@@ -138,6 +138,7 @@ void SCStrike::renderVirtualCockpit() {
     }
 
     this->cockpit->hud_eye_world = -cockpit_ajustement;
+    this->cockpit->cannonAngularOffset = {0.0f, -0.1f};
     this->cockpit->RenderHUD();
     if (this->cockpit->hud != nullptr) {
         Texture *hud_texture = new Texture();

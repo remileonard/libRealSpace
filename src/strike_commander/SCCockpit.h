@@ -95,6 +95,11 @@ public:
     
     Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
     bool has_hud_eye_world = false;
+    
+    // Offset angulaire pour le viseur cannon (en radians)
+    // x = azimut, y = élévation
+    // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
+    Vector2D cannonAngularOffset = {0.0f, 0.0f};
 
     SCCockpit();
     ~SCCockpit();
