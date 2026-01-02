@@ -722,6 +722,13 @@ void SCStrike::checkKeyboard(void) {
         this->mouse_control = false;
         this->camera_mode = View::REAL;
     }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {
+        if (this->cockpit->radar_mode == RadarMode::AARD) {
+            this->cockpit->radar_mode = RadarMode::AGRD;
+        } else if (this->cockpit->radar_mode == RadarMode::AGRD) {
+            this->cockpit->radar_mode = RadarMode::AARD;
+        }
+    }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_WEAPONS))) {
         if (this->camera_mode != View::MISSILE_CAM) {
             this->camera_mode = View::MISSILE_CAM;
