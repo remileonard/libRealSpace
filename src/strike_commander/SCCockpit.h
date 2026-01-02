@@ -28,8 +28,8 @@ private:
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
     
-    void RenderTargetingReticle();
-    void RenderBombSight();
+    void RenderTargetingReticle(FrameBuffer *fb);
+    void RenderBombSight(FrameBuffer* fb = nullptr);
     void RenderHeading(Point2D heading_pos, FrameBuffer *fb);
     void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
@@ -92,6 +92,10 @@ public:
     SCPlane *player_plane;
     SCMission *current_mission;
     uint8_t *nav_point_id{nullptr};
+    
+    Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
+    bool has_hud_eye_world = false;
+
     SCCockpit();
     ~SCCockpit();
     void init( );

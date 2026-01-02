@@ -120,7 +120,7 @@ void SCStrike::renderVirtualCockpit() {
 
     Vector3D cockpit_pos = {0.0f, 0.0f, 0.0f};
 
-    this->cockpit->RenderHUD();
+    
 
     Vector3D cockpit_rot;
     cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f,
@@ -136,7 +136,9 @@ void SCStrike::renderVirtualCockpit() {
     } else {
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
-    
+
+    this->cockpit->hud_eye_world = -cockpit_ajustement;
+    this->cockpit->RenderHUD();
     if (this->cockpit->hud != nullptr) {
         Texture *hud_texture = new Texture();
         hud_texture->animated = true;

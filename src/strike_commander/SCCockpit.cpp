@@ -510,12 +510,87 @@ void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb
     }
 }
 
-void SCCockpit::RenderTargetingReticle() {
+
+static Matrix invertRigidBodyMatrixLocal(const Matrix& m)
+{
+    // m: rotation + translation, stockage m.v[col][row]
+    Matrix inv;
+
+    // Rotation inverse = transpose
+    inv.v[0][0] = m.v[0][0]; inv.v[0][1] = m.v[1][0]; inv.v[0][2] = m.v[2][0]; inv.v[0][3] = 0.0f;
+    inv.v[1][0] = m.v[0][1]; inv.v[1][1] = m.v[1][1]; inv.v[1][2] = m.v[2][1]; inv.v[1][3] = 0.0f;
+    inv.v[2][0] = m.v[0][2]; inv.v[2][1] = m.v[1][2]; inv.v[2][2] = m.v[2][2]; inv.v[2][3] = 0.0f;
+
+    // Translation inverse = -R^T * t
+    const float tx = m.v[3][0];
+    const float ty = m.v[3][1];
+    const float tz = m.v[3][2];
+
+    inv.v[3][0] = -(inv.v[0][0] * tx + inv.v[1][0] * ty + inv.v[2][0] * tz);
+    inv.v[3][1] = -(inv.v[0][1] * tx + inv.v[1][1] * ty + inv.v[2][1] * tz);
+    inv.v[3][2] = -(inv.v[0][2] * tx + inv.v[1][2] * ty + inv.v[2][2] * tz);
+    inv.v[3][3] = 1.0f;
+
+    return inv;
+}
+
+static Vector3D transformPoint(const Matrix& m, const Vector3D& p)
+{
+    // m.v[col][row] et point w=1
+    Vector3D out;
+    out.x = p.x * m.v[0][0] + p.y * m.v[1][0] + p.z * m.v[2][0] + m.v[3][0];
+    out.y = p.x * m.v[0][1] + p.y * m.v[1][1] + p.z * m.v[2][1] + m.v[3][1];
+    out.z = p.x * m.v[0][2] + p.y * m.v[1][2] + p.z * m.v[2][2] + m.v[3][2];
+    return out;
+}
+
+static bool projectLocalAnglesToHud(const Vector3D& vLocal, FrameBuffer* fb, int& outX, int& outY)
+{
+    // Repère avion/cockpit:
+    // -Z = devant
+    // +X = droite (supposé)
+    // +Y = haut (supposé)
+    const float forward = -vLocal.z;
+    if (forward <= 0.001f) return false; // derrière ou trop proche du plan
+
+    // Angles (radians)
+    // az > 0 => à droite si +X est à droite
+    const float az = atan2f(vLocal.x, forward);
+
+    // el > 0 => vers le haut si +Y est vers le haut
+    // (si ton Y est inversé, enlève le '-' ci-dessous)
+    const float el = atan2f(vLocal.y, forward);
+
+    // A TUNER: FOV angulaire du HUD (collimation approximée)
+    const float hudFovX = 30.0f * (float)M_PI / 180.0f; // total
+    const float hudFovY = 25.0f * (float)M_PI / 180.0f; // total
+
+    const float nx = az / (hudFovX * 0.5f); // [-1..1]
+    const float ny = el / (hudFovY * 0.5f); // [-1..1]
+
+    const float cx = (fb->width  - 1) * 0.5f;
+    const float cy = (fb->height - 1) * 0.5f;
+
+    outX = (int)(cx + nx * cx);
+    outY = (int)(cy - ny * cy);
+    return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
+}
+void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    if (!this->player_plane) {
+        return;
+    }
+
     GunSimulatedObject *weap = new GunSimulatedObject();
-    Vector3D direction       = {
-        this->player_plane->x - this->player_plane->last_px, this->player_plane->y - this->player_plane->last_py,
+
+    Vector3D direction = {
+        this->player_plane->x - this->player_plane->last_px,
+        this->player_plane->y - this->player_plane->last_py,
         this->player_plane->z - this->player_plane->last_pz
     };
+
     float planeSpeed      = direction.Length();
     float thrustMagnitude = -planeSpeed;
     thrustMagnitude       = -planeSpeed * 250.0f * (60 / this->player_plane->tps); // coefficient ajustable
@@ -523,8 +598,10 @@ void SCCockpit::RenderTargetingReticle() {
     float yawRad   = tenthOfDegreeToRad(this->player_plane->yaw);
     float pitchRad = tenthOfDegreeToRad(-this->player_plane->pitch);
     float rollRad  = tenthOfDegreeToRad(0.0f);
+
     float cosRoll  = cosf(rollRad);
     float sinRoll  = sinf(rollRad);
+
     Vector3D initial_trust{0, 0, 0};
     initial_trust.x =
         thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
@@ -532,7 +609,6 @@ void SCCockpit::RenderTargetingReticle() {
     initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
 
     weap->obj       = this->player_plane->weaps_load[0]->objct;
-    Vector3D campos = this->cam->getPosition();
     weap->x         = this->player_plane->x;
     weap->y         = this->player_plane->y;
     weap->z         = this->player_plane->z;
@@ -544,11 +620,9 @@ void SCCockpit::RenderTargetingReticle() {
     weap->azimuthf   = this->player_plane->azimuthf;
     weap->elevationf = this->player_plane->elevationf;
     weap->target     = nullptr;
+
     Vector3D target{0, 0, 0};
     Vector3D velo{0, 0, 0};
-    float yawRad_update   = yawRad;
-    float pitchRad_update = pitchRad;
-    float rollRad_update  = rollRad;
 
     for (int i = 0; i < 150; i++) {
         std::tie(target, velo) = weap->ComputeTrajectory(this->player_plane->tps);
@@ -561,103 +635,103 @@ void SCCockpit::RenderTargetingReticle() {
         weap->vz = velo.z;
     }
 
-    Vector3DHomogeneous v = {target.x, target.y, target.z, 1.0f};
+    // ---- Nouveau: projection HUD sans dépendre de la caméra ----
+    // target est interprété comme un point monde (comme avant, il était projeté via cam->view/proj).
+    const Vector3D targetWorld = {target.x, target.y, target.z};
 
-    Matrix *mproj = this->cam->getProjectionMatrix();
-    Matrix *mview = this->cam->getViewMatrix();
+    // Monde -> repère avion (plane local)
+    const Matrix planeFromWorld = invertRigidBodyMatrixLocal(this->player_plane->ptw);
+    Vector3D targetLocal  = transformPoint(planeFromWorld, targetWorld);
 
-    Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
-    Vector3DHomogeneous result    = mproj->multiplyMatrixVector(mcombined);
-
-    if (result.z > 0.0f) {
-        float x = result.x / result.w;
-        float y = result.y / result.w;
-
-        int Xhud = (int)((x + 1.0f) * 160.0f);
-        int Yhud = (int)((1.0f - y - 0.50f) * 100.0f) - 1;
-
-        if (Xhud > 0 && Xhud < 320 && Yhud > 0 && Yhud < 200) {
-            Point2D p = {Xhud, Yhud};
-            VGA.getFrameBuffer()->plot_pixel((int)p.x, (int)p.y, 223);
-            VGA.getFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
-        }
+    Vector3D vlocal;
+    vlocal = targetLocal + this->hud_eye_world;
+    // Repère avion -> pixels HUD
+    int Xdraw = 0;
+    int Ydraw = 0;
+    if (projectLocalAnglesToHud(vlocal, fb, Xdraw, Ydraw)) {
+        fb->plot_pixel(Xdraw, Ydraw, 223);
+        fb->circle_slow(Xdraw, Ydraw, 6, 90);
     }
+
     delete weap;
 }
-void SCCockpit::RenderBombSight() {
-    const Point2D center{160, 50};
+void SCCockpit::RenderBombSight(FrameBuffer* fb) {
+    // Par défaut, on dessine dans la texture HUD si elle existe
+    if (!fb) {
+        fb = (this->hud_framebuffer != nullptr) ? this->hud_framebuffer : VGA.getFrameBuffer();
+    }
+    if (!this->player_plane) {
+        return;
+    }
+
+    // Zone de visée dans le HUD
+    const Point2D center{fb->width / 2, fb->height / 2};
     const int width  = 50;
     const int height = 60;
 
-    int bx1                  = center.x - width / 2;
-    int bx2                  = center.x + width / 2;
-    int by1                  = center.y - height / 2;
-    int by2                  = center.y + height / 2;
-    GunSimulatedObject *weap = new GunSimulatedObject();
-    Vector3D direction       = {
-        this->player_plane->x - this->player_plane->last_px, this->player_plane->y - this->player_plane->last_py,
+    const int bx1 = center.x - width / 2;
+    const int bx2 = center.x + width / 2;
+    const int by1 = center.y - height / 2;
+    const int by2 = center.y + height / 2;
+
+    GunSimulatedObject* weap = new GunSimulatedObject();
+
+    Vector3D direction = {
+        this->player_plane->x - this->player_plane->last_px,
+        this->player_plane->y - this->player_plane->last_py,
         this->player_plane->z - this->player_plane->last_pz
     };
+
     float planeSpeed      = direction.Length();
     float thrustMagnitude = -planeSpeed;
-    thrustMagnitude       = -planeSpeed * 50.0f * ((float) this->player_plane->tps / 60.0f); // coefficient ajustable
+    thrustMagnitude       = -planeSpeed * 50.0f * ((float)this->player_plane->tps / 60.0f); // comme avant
 
     float yawRad   = tenthOfDegreeToRad(this->player_plane->yaw);
     float pitchRad = tenthOfDegreeToRad(-this->player_plane->pitch);
     float rollRad  = tenthOfDegreeToRad(0.0f);
+
     float cosRoll  = cosf(rollRad);
     float sinRoll  = sinf(rollRad);
+
     Vector3D initial_trust{0, 0, 0};
     initial_trust.x = thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
     initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
     initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
 
-    weap->obj       = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
-    Vector3D campos = this->cam->getPosition();
-    weap->x         = campos.x;
-    weap->y         = campos.y;
-    weap->z         = campos.z;
-    weap->vx        = initial_trust.x;
-    weap->vy        = initial_trust.y;
-    weap->vz        = initial_trust.z;
+    weap->obj = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
 
-    weap->weight   = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->weight_in_kg * 2.205f;
-    weap->azimuthf = this->player_plane->yaw;
+    // IMPORTANT: départ bombe = position avion (pas camera)
+    weap->x  = this->player_plane->x;
+    weap->y  = this->player_plane->y;
+    weap->z  = this->player_plane->z;
+    weap->vx = initial_trust.x;
+    weap->vy = initial_trust.y;
+    weap->vz = initial_trust.z;
+
+    weap->weight     = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->weight_in_kg * 2.205f;
+    weap->azimuthf   = this->player_plane->yaw;
     weap->elevationf = this->player_plane->pitch;
     weap->target     = nullptr;
     weap->mission    = this->current_mission;
+
     Vector3D target{0, 0, 0};
     Vector3D velo{0, 0, 0};
     std::tie(target, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
-    weap->x                = target.x;
-    weap->y                = target.y;
-    weap->z                = target.z;
-    weap->vx               = velo.x;
-    weap->vy               = velo.y;
-    weap->vz               = velo.z;
-    Vector3DHomogeneous v = {target.x, target.y, target.z, 1.0f};
 
-    Matrix *mproj = this->cam->getProjectionMatrix();
-    Matrix *mview = this->cam->getViewMatrix();
+    Vector3D targetWorld = {target.x, target.y, target.z};
+    const Matrix planeFromWorld = invertRigidBodyMatrixLocal(this->player_plane->ptw);
+    Vector3D targetLocal = transformPoint(planeFromWorld, targetWorld);
 
-    Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
-    Vector3DHomogeneous result    = mproj->multiplyMatrixVector(mcombined);
-
-    if (result.z > 0.0f) {
-        float x = result.x / result.w;
-        float y = result.y / result.w;
-
-        int Xhud = (int)((x + 1.0f) * 160.0f);
-        int Yhud = (int)((1.0f - y - 0.45f) * 100.0f) - 1;
-
-        VGA.getFrameBuffer()->plot_pixel(center.x, center.y, 223);
-        VGA.getFrameBuffer()->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
-        if (Xhud > 0 && Xhud < 320 && Yhud > 0 && Yhud < 200) {
-            Point2D p = {Xhud, Yhud};
-            VGA.getFrameBuffer()->plot_pixel((int)p.x, (int)p.y, 223);
-            VGA.getFrameBuffer()->circle_slow((int)p.x, (int)p.y, 6, 90);
-        }
+    Vector3D vlocal;
+    vlocal = targetLocal + this->hud_eye_world;
+    int Xhud = 0, Yhud = 0;
+    if (projectLocalAnglesToHud(vlocal, fb, Xhud, Yhud)) {
+        fb->plot_pixel(center.x, center.y, 223);
+        fb->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
+        fb->plot_pixel(Xhud, Yhud, 223);
+        fb->circle_slow(Xhud, Yhud, 6, 90);
     }
+
     delete weap;
 }
 void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) {
@@ -1116,7 +1190,6 @@ void SCCockpit::Render(int face) {
                 if (this->player_plane->weaps_load.size() > 0 && this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
                     switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
                     case ID_20MM:
-                        this->RenderTargetingReticle();
                         this->radar_mode = RadarMode::AARD;
                         break;
                     case ID_AIM9J:
@@ -1127,7 +1200,6 @@ void SCCockpit::Render(int face) {
                     case ID_MK20:
                     case ID_MK82:
                     case ID_DURANDAL:
-                        this->RenderBombSight();
                         this->radar_mode = RadarMode::AGRD;
                         break;
                     case ID_AGM65D:
@@ -1367,6 +1439,18 @@ void SCCockpit::RenderHUD() {
     }
     Point2D pcenter = {hud->width / 2, hud->height / 2};
     hud->plot_pixel(pcenter.x, pcenter.y, 223);
+
+    // Reticle de gun: dessiné dans le même framebuffer que le HUD (important pour cockpit 3D/VR).
+    if (this->player_plane->weaps_load.size() > 0 &&
+        this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+        int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
+        if (weapon_id == ID_20MM) {
+            this->RenderTargetingReticle(hud);
+        }
+        if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
+            this->RenderBombSight(hud);
+        }
+    }
     //hud->rect_slow(0,0, hud->width - 1, hud->height - 1, 1);
 
 }
