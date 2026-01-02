@@ -171,16 +171,31 @@ public:
     inline Vector3D operator+(const Vector3D& other) {
         return Vector3D(this->x + other.x, this->y + other.y, this->z + other.z);
     };
+    inline Vector3D operator+(const Vector3D& other) const {
+        return Vector3D(this->x + other.x, this->y + other.y, this->z + other.z);
+    };
     inline Vector3D operator-(const Vector3D& other) {
+        return Vector3D(this->x - other.x, this->y - other.y, this->z - other.z);
+    };
+    inline Vector3D operator-(const Vector3D& other) const {
         return Vector3D(this->x - other.x, this->y - other.y, this->z - other.z);
     };
     inline Vector3D operator-() {
         return Vector3D(-this->x, -this->y, -this->z);
     };
+    inline Vector3D operator-() const {
+        return Vector3D(-this->x, -this->y, -this->z);
+    };
     inline Vector3D operator*(const float& factor) {
         return Vector3D(this->x * factor, this->y * factor, this->z * factor);
     };
+    inline Vector3D operator*(const float& factor) const {
+        return Vector3D(this->x * factor, this->y * factor, this->z * factor);
+    };
     int operator==(const Vector3D& other) {
+        return this->x == other.x && this->y == other.y && this->z == other.z;
+    };
+    int operator==(const Vector3D& other) const {
         return this->x == other.x && this->y == other.y && this->z == other.z;
     };
     float x;
