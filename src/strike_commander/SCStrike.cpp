@@ -190,8 +190,12 @@ void SCStrike::renderVirtualCockpit() {
         mfd_right_image->data = nullptr;
         delete mfd_right_image;
         s_CurrentFrameGLTex.push_back(mfd_right_texture);
-        
-        cockpit->RenderMFDSRadar({0,0}, cockpit->radar_zoom*20000.0f, this->cockpit->radar_mode, cockpit->mfd_left_framebuffer);
+        if (this->cockpit->show_comm) {
+            cockpit->mfd_left_framebuffer->fillWithColor(0);
+            cockpit->RenderMFDSComm({0,0}, cockpit->comm_target, cockpit->mfd_left_framebuffer);
+        } else {
+            cockpit->RenderMFDSRadar({0,0}, cockpit->radar_zoom*20000.0f, this->cockpit->radar_mode, cockpit->mfd_left_framebuffer);
+        }
         Texture *mfd_left_texture = new Texture();
         mfd_left_texture->animated = true;
         RSImage *mfd_left_image = new RSImage();
@@ -357,6 +361,68 @@ void SCStrike::renderVirtualCockpit() {
         speed_image->data = nullptr;        
         delete speed_image;
         s_CurrentFrameGLTex.push_back(speed_texture);
+        cockpit->comm_framebuffer->fillWithColor(0);
+
+        if (cockpit->RenderCommMessages({0,13}, cockpit->comm_framebuffer)) {
+            Texture *comm_texture = new Texture();
+            comm_texture->animated = true;
+            RSImage *comm_image = new RSImage();
+            comm_image->palette = &this->cockpit->palette;
+            comm_image->data = this->cockpit->comm_framebuffer->framebuffer;
+            comm_image->width = this->cockpit->comm_framebuffer->width;
+            comm_image->height = this->cockpit->comm_framebuffer->height;
+            comm_texture->set(comm_image);
+            comm_texture->updateContent(comm_image);
+            Renderer.drawTexturedQuad(
+                cockpit_pos,
+                cockpit_rot,
+                {
+                    {6.1f, -0.95f, -1.90f}, 
+                    {6.1f, -0.95f, 2.020f},
+                    {6.1f, -1.10f, 2.020f},
+                    {6.1f, -1.10f, -1.90f}
+                },
+                comm_texture
+            );
+            comm_image->data = nullptr;        
+            delete comm_image;
+            s_CurrentFrameGLTex.push_back(comm_texture);   
+        }
+        if (this->mouse_control) {
+            this->virtual_mouse_cockpit_buffer->fillWithColor(0);
+            this->virtual_mouse_cockpit_buffer->line(160,0,160,200, 223);
+            this->virtual_mouse_cockpit_buffer->line(0,100,320,100, 223);
+            this->virtual_mouse_cockpit_buffer->rect_slow(1,1,319,199, 223);
+            Point2D cursorPos = Mouse.position;
+            cursorPos.x -= 4;
+            cursorPos.y -= 4;
+            Mouse.appearances[SCMouse::CURSOR]->SetPosition(&cursorPos);
+            this->virtual_mouse_cockpit_buffer->drawShape(Mouse.appearances[SCMouse::CURSOR]);
+            Texture *mouse_texture = new Texture();
+            mouse_texture->animated = true;
+            RSImage *mouse_image = new RSImage();
+            mouse_image->palette = &this->cockpit->palette;
+            mouse_image->data = this->virtual_mouse_cockpit_buffer->framebuffer;
+            mouse_image->width = this->virtual_mouse_cockpit_buffer->width;
+            mouse_image->height = this->virtual_mouse_cockpit_buffer->height;
+            mouse_texture->set(mouse_image);
+            mouse_texture->updateContent(mouse_image);
+            Renderer.drawTexturedQuad(
+                cockpit_pos,
+                cockpit_rot,
+                {
+                    {6.05f, -1.10f, -1.0f}, 
+                    {6.05f, -1.10f, 1.0f},
+                    {6.05f, -2.10f, 1.0f},
+                    {6.05f, -2.10f, -1.0f}
+                },
+                mouse_texture
+            );
+            mouse_image->data = nullptr;        
+            delete mouse_image;
+            s_CurrentFrameGLTex.push_back(mouse_texture);
+        }
+        
     }
     glPopMatrix();
 }
@@ -1038,6 +1104,7 @@ void SCStrike::init(void) {
     Game->direct_mouse_control = true;
     this->pilote_lookat = {0, 0};
     this->registerSimulatorInputs();
+    this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
 }
 
 RSEntity * SCStrike::loadWeapon(std::string name) {

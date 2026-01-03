@@ -50,7 +50,7 @@ public:
     FrameBuffer *target_framebuffer{nullptr};
     FrameBuffer *alti_framebuffer{nullptr};
     FrameBuffer *speed_framebuffer{nullptr};
-
+    FrameBuffer *comm_framebuffer{nullptr};
 
     float pitch{0.0f};
     float roll{0.0f};
@@ -114,6 +114,7 @@ public:
     void RenderTargetWithCam(Point2D top_left, FrameBuffer *fb);
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);
     void RenderSpeedOmetter(Point2D speed_top_left, FrameBuffer *fb);
+    bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
     void SetCommActorTarget(int target);
 };
 #endif
