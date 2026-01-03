@@ -64,15 +64,15 @@ class Texture{
 public:
     enum Location{ DISK=0x1,RAM=0x2,VRAM=0x4};
 
-    size_t width;
-    size_t height;
+    size_t width{0};
+    size_t height{0};
     char name[9];
-    uint8_t* data;
+    uint8_t* data{nullptr};
     bool initialized{false};
     bool animated{false};
     bool needAphaFix{false};
-    uint8_t locFlag;
-    uint32_t id;
+    uint8_t locFlag{0};
+    uint32_t id{0};
 
     Texture();
     ~Texture();

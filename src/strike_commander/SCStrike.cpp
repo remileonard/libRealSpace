@@ -90,6 +90,22 @@ static void drawTargetSquareOverlay(int32_t viewportW,
     glMatrixMode(GL_MODELVIEW);
 
 }
+void SCStrike::cleanupVirtualCockpitTextures() {
+    static std::vector<Texture *> s_PrevFrameGLTex;
+    static std::vector<Texture *> s_CurrentFrameGLTex;
+    
+    for (Texture* tex : s_PrevFrameGLTex) {
+        delete tex;
+    }
+    s_PrevFrameGLTex.clear();
+    s_PrevFrameGLTex.shrink_to_fit();
+    
+    for (Texture* tex : s_CurrentFrameGLTex) {
+        delete tex;
+    }
+    s_CurrentFrameGLTex.clear();
+    s_CurrentFrameGLTex.shrink_to_fit();
+}
 void SCStrike::renderVirtualCockpit() {
     if (this->cockpit->cockpit == nullptr) {
         return;
@@ -1317,6 +1333,7 @@ void SCStrike::runFrame(void) {
             Renderer.clear();
             Screen->refresh();
             Renderer.clear();
+            cleanupVirtualCockpitTextures();
             Game->stopTopActivity();
             return;
         }

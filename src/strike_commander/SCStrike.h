@@ -157,6 +157,7 @@ protected:
     SCState &GameState = SCState::getInstance();
     void renderVirtualCockpit();
     FrameBuffer *virtual_mouse_cockpit_buffer{nullptr};
+    static void cleanupVirtualCockpitTextures();
 public:
     float verticalOffset{0.45f};
     /**
