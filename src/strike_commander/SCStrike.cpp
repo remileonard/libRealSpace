@@ -60,12 +60,7 @@ static void drawTargetSquareOverlay(int32_t viewportW,
 
     const int px = (int)((ndcX * 0.5f + 0.5f) * (float)viewportW);
     const int py = (int)((0.5f - ndcY * 0.5f) * (float)viewportH);
-
-    // Important: en VR on enchaîne deux rendus par oeil.
-    // Ce petit overlay ne doit PAS polluer l'état OpenGL (textures, blending, depth, etc.),
-    // sinon l'oeil suivant peut se retrouver "noir".
-    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_LINE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
@@ -76,7 +71,6 @@ static void drawTargetSquareOverlay(int32_t viewportW,
     glLoadIdentity();
 
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
 
     glColor3f(0.0f, 1.0f, 0.0f);
     const float s = 8.0f;
@@ -87,12 +81,14 @@ static void drawTargetSquareOverlay(int32_t viewportW,
     glVertex2f((float)px - s, (float)py + s);
     glEnd();
 
+    glEnable(GL_DEPTH_TEST);
+    
+
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
 
-    glPopAttrib();
 }
 void SCStrike::renderVirtualCockpit() {
     if (this->cockpit->cockpit == nullptr) {
