@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26.0)
-project(NeoSC VERSION 0.2.0 LANGUAGES C CXX)
+project(LibRealSpace VERSION 0.2.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -64,10 +64,11 @@ file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_12.IFF" DESTINATION "${ASSETS_DIR}"
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_14.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_15.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_17.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_20.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${FONTS_DIR}")
 
 # Installation des exécutables et des DLLs
-install(TARGETS ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${DEBUGGER_TARGET_NAME} DESTINATION ".")
+install(TARGETS ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${VRSTRIKE_TARGET_NAME} DESTINATION ".")
 
 # Installation des assets
 install(DIRECTORY "${ASSETS_DIR}/" DESTINATION "assets")
@@ -112,6 +113,8 @@ if(WIN32)
             "${VCPKG_BIN_DIR}/libpng16.dll"
             "${VCPKG_BIN_DIR}/adlmidi.dll"
             "${VCPKG_BIN_DIR}/opnmidi.dll"
+            "${VCPKG_BIN_DIR}/nfd.dll"
+            "${VCPKG_BIN_DIR}/openxr_loader.dll"
         )
         
         message(STATUS "VCPKG DLLs: ${VCPKG_DLLS}")
