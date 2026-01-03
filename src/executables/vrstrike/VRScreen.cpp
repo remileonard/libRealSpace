@@ -130,6 +130,7 @@ static const char* xrResultToString(XrResult result) {
 		case XR_ERROR_SESSION_RUNNING: return "XR_ERROR_SESSION_RUNNING";
 		case XR_ERROR_SESSION_NOT_RUNNING: return "XR_ERROR_SESSION_NOT_RUNNING";
 		case XR_ERROR_SESSION_LOST: return "XR_ERROR_SESSION_LOST";
+		case XR_ERROR_LAYER_INVALID: return "XR_ERROR_LAYER_INVALID";
 		default: return "XR_<unknown>";
 	}
 }
@@ -168,9 +169,9 @@ void VRScreen::pollXrEvents() {
 		return;
 	}
 
-	XrEventDataBuffer eventBuffer{XR_TYPE_EVENT_DATA_BUFFER};
+	XrEventDataBuffer eventBuffer{XR_TYPE_EVENT_DATA_BUFFER, nullptr};
 	while (true) {
-		eventBuffer = {XR_TYPE_EVENT_DATA_BUFFER};
+		eventBuffer = {XR_TYPE_EVENT_DATA_BUFFER, nullptr};
 		XrResult res = xrPollEvent(m_xrInstance, &eventBuffer);
 		if (res == XR_EVENT_UNAVAILABLE) {
 			break;
@@ -201,7 +202,7 @@ void VRScreen::ensureSessionRunning() {
 	pollXrEvents();
 
 	if (!m_sessionRunning && m_sessionState == XR_SESSION_STATE_READY) {
-		XrSessionBeginInfo beginInfo{XR_TYPE_SESSION_BEGIN_INFO};
+		XrSessionBeginInfo beginInfo{XR_TYPE_SESSION_BEGIN_INFO, nullptr};
 		beginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
 		if (xrCheck(xrBeginSession(m_xrSession, &beginInfo), "xrBeginSession")) {
 			m_sessionRunning = true;
@@ -357,7 +358,7 @@ bool VRScreen::initOpenXR() {
 	if (!xrCheck(xrEnumerateInstanceExtensionProperties(nullptr, 0, &extCount, nullptr), "xrEnumerateInstanceExtensionProperties(count)")) {
 		return false;
 	}
-	std::vector<XrExtensionProperties> exts(extCount, {XR_TYPE_EXTENSION_PROPERTIES});
+	std::vector<XrExtensionProperties> exts(extCount, {XR_TYPE_EXTENSION_PROPERTIES, nullptr});
 	if (!xrCheck(xrEnumerateInstanceExtensionProperties(nullptr, extCount, &extCount, exts.data()), "xrEnumerateInstanceExtensionProperties(list)")) {
 		return false;
 	}
@@ -369,7 +370,7 @@ bool VRScreen::initOpenXR() {
 	}
 	enabledExts.push_back(XR_KHR_OPENGL_ENABLE_EXTENSION_NAME);
 
-	XrInstanceCreateInfo createInfo{XR_TYPE_INSTANCE_CREATE_INFO};
+	XrInstanceCreateInfo createInfo{XR_TYPE_INSTANCE_CREATE_INFO, nullptr};
 	std::snprintf(createInfo.applicationInfo.applicationName, XR_MAX_APPLICATION_NAME_SIZE, "NeoSC");
 	createInfo.applicationInfo.applicationVersion = 1;
 	std::snprintf(createInfo.applicationInfo.engineName, XR_MAX_ENGINE_NAME_SIZE, "libRealSpace");
@@ -393,14 +394,14 @@ bool VRScreen::initOpenXR() {
 	}
 
 	// System
-	XrSystemGetInfo systemInfo{XR_TYPE_SYSTEM_GET_INFO};
+	XrSystemGetInfo systemInfo{XR_TYPE_SYSTEM_GET_INFO, nullptr};
 	systemInfo.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
 	if (!xrCheck(xrGetSystem(m_xrInstance, &systemInfo, &m_xrSystemId), "xrGetSystem")) {
 		return false;
 	}
 
 	// Graphics requirements
-	XrGraphicsRequirementsOpenGLKHR glReq{XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR};
+	XrGraphicsRequirementsOpenGLKHR glReq{XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR, nullptr};
 	if (!xrCheck(m_xrGetOpenGLGraphicsRequirementsKHR(m_xrInstance, m_xrSystemId, &glReq), "xrGetOpenGLGraphicsRequirementsKHR")) {
 		return false;
 	}
@@ -420,11 +421,11 @@ bool VRScreen::initOpenXR() {
 		std::printf("[OpenXR] FBO OpenGL (EXT) indisponible. Mode stéréo désactivé.\n");
 	}
 
-	XrGraphicsBindingOpenGLWin32KHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR};
+	XrGraphicsBindingOpenGLWin32KHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR, nullptr};
 	graphicsBinding.hDC = hdc;
 	graphicsBinding.hGLRC = hglrc;
 
-	XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
+	XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO, nullptr};
 	sessionInfo.next = &graphicsBinding;
 	sessionInfo.systemId = m_xrSystemId;
 	if (!xrCheck(xrCreateSession(m_xrInstance, &sessionInfo, &m_xrSession), "xrCreateSession")) {
@@ -433,7 +434,7 @@ bool VRScreen::initOpenXR() {
 	}
 
 	// Reference space
-	XrReferenceSpaceCreateInfo spaceInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
+	XrReferenceSpaceCreateInfo spaceInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO, nullptr};
 	spaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
 	spaceInfo.poseInReferenceSpace.orientation.w = 1.0f;
 	if (!xrCheck(xrCreateReferenceSpace(m_xrSession, &spaceInfo, &m_xrAppSpace), "xrCreateReferenceSpace")) {
@@ -443,7 +444,7 @@ bool VRScreen::initOpenXR() {
 
 	// VIEW space (head-locked) pour un "écran" VR toujours devant l'utilisateur.
 	{
-		XrReferenceSpaceCreateInfo viewSpaceInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
+		XrReferenceSpaceCreateInfo viewSpaceInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO, nullptr};
 		viewSpaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
 		viewSpaceInfo.poseInReferenceSpace.orientation.w = 1.0f;
 		if (!xrCheck(xrCreateReferenceSpace(m_xrSession, &viewSpaceInfo, &m_xrViewSpace), "xrCreateReferenceSpace(VIEW)")) {
@@ -459,7 +460,7 @@ bool VRScreen::initOpenXR() {
 				 "xrEnumerateViewConfigurationViews(count)")) {
 		return false;
 	}
-	m_viewConfigs.assign(viewCount, {XR_TYPE_VIEW_CONFIGURATION_VIEW});
+	m_viewConfigs.assign(viewCount, {XR_TYPE_VIEW_CONFIGURATION_VIEW, nullptr});
 	if (!xrCheck(xrEnumerateViewConfigurationViews(m_xrInstance, m_xrSystemId,
 												   XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
 												   viewCount, &viewCount, m_viewConfigs.data()),
@@ -467,7 +468,7 @@ bool VRScreen::initOpenXR() {
 		return false;
 	}
 
-	m_views.assign(viewCount, {XR_TYPE_VIEW});
+	m_views.assign(viewCount, {XR_TYPE_VIEW, nullptr});
 
 	// Environment blend mode: choisir une valeur supportée par le runtime.
 	{
@@ -540,7 +541,7 @@ bool VRScreen::initOpenXR() {
 		sc.width = recW;
 		sc.height = recH;
 
-		XrSwapchainCreateInfo scInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO};
+		XrSwapchainCreateInfo scInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO, nullptr};
 		scInfo.arraySize = 1;
 		scInfo.mipCount = 1;
 		scInfo.faceCount = 1;
@@ -559,7 +560,7 @@ bool VRScreen::initOpenXR() {
 		if (!xrCheck(xrEnumerateSwapchainImages(sc.handle, 0, &imageCount, nullptr), "xrEnumerateSwapchainImages(count)")) {
 			return false;
 		}
-		sc.images.assign(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR});
+		sc.images.assign(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR, nullptr});
 		if (!xrCheck(xrEnumerateSwapchainImages(sc.handle, imageCount, &imageCount,
 										reinterpret_cast<XrSwapchainImageBaseHeader*>(sc.images.data())),
 					 "xrEnumerateSwapchainImages(list)")) {
@@ -595,7 +596,7 @@ bool VRScreen::initOpenXR() {
 			if (sc.width <= 0) sc.width = 1024;
 			if (sc.height <= 0) sc.height = 1024;
 
-			XrSwapchainCreateInfo scInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO};
+			XrSwapchainCreateInfo scInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO, nullptr};
 			scInfo.arraySize = 1;
 			scInfo.mipCount = 1;
 			scInfo.faceCount = 1;
@@ -613,7 +614,7 @@ bool VRScreen::initOpenXR() {
 			if (!xrCheck(xrEnumerateSwapchainImages(sc.handle, 0, &imageCount, nullptr), "xrEnumerateSwapchainImages(stereo,count)")) {
 				return false;
 			}
-			sc.images.assign(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR});
+			sc.images.assign(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR, nullptr});
 			if (!xrCheck(xrEnumerateSwapchainImages(sc.handle, imageCount, &imageCount,
 									reinterpret_cast<XrSwapchainImageBaseHeader*>(sc.images.data())),
 					 "xrEnumerateSwapchainImages(stereo,list)")) {
@@ -626,7 +627,7 @@ bool VRScreen::initOpenXR() {
 
 	m_stereoAcquiredImageIndex.assign(m_viewConfigs.size(), 0);
 	m_stereoImageAcquired.assign(m_viewConfigs.size(), false);
-	m_projectionViews.assign(m_viewConfigs.size(), {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW});
+	m_projectionViews.assign(m_viewConfigs.size(), {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW, nullptr});
 
 	// La boucle principale du jeu appelle refresh() : on pilote le start session ici.
 	pollXrEvents();
@@ -770,13 +771,13 @@ bool VRScreen::prepareStereoFrame() {
 		return true;
 	}
 
-	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO};
-	m_stereoFrameState = {XR_TYPE_FRAME_STATE};
+	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO, nullptr};
+	m_stereoFrameState = {XR_TYPE_FRAME_STATE, nullptr};
 	if (!xrCheck(xrWaitFrame(m_xrSession, &waitInfo, &m_stereoFrameState), "xrWaitFrame(stereo)")) {
 		return false;
 	}
 
-	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO};
+	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO, nullptr};
 	if (!xrCheck(xrBeginFrame(m_xrSession, &beginInfo), "xrBeginFrame(stereo)")) {
 		return false;
 	}
@@ -792,12 +793,12 @@ bool VRScreen::prepareStereoFrame() {
 	}
 
 	// Localiser les vues.
-	XrViewLocateInfo locateInfo{XR_TYPE_VIEW_LOCATE_INFO};
+	XrViewLocateInfo locateInfo{XR_TYPE_VIEW_LOCATE_INFO, nullptr};
 	locateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
 	locateInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
 	locateInfo.space = m_xrAppSpace;
 
-	XrViewState viewState{XR_TYPE_VIEW_STATE};
+	XrViewState viewState{XR_TYPE_VIEW_STATE, nullptr};
 	uint32_t viewCountOutput = 0;
 	if (!xrCheck(xrLocateViews(m_xrSession, &locateInfo, &viewState,
 			(uint32_t)m_views.size(), &viewCountOutput, m_views.data()), "xrLocateViews")) {
@@ -826,12 +827,12 @@ bool VRScreen::beginStereoEye(uint32_t eye,
 
 	auto& sc = m_projectionSwapchains[eye];
 	uint32_t imageIndex = 0;
-	XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+	XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
 	if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage(stereo)")) {
 		return false;
 	}
 
-	XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+	XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
 	waitImg.timeout = XR_INFINITE_DURATION;
 	xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage(stereo)");
 
@@ -873,7 +874,7 @@ void VRScreen::endStereoFrame() {
 		for (uint32_t eye = 0; eye < (uint32_t)m_projectionSwapchains.size(); ++eye) {
 			if (!m_stereoImageAcquired[eye]) continue;
 			auto& sc = m_projectionSwapchains[eye];
-			XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+			XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
 			xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage(stereo)");
 			m_stereoImageAcquired[eye] = false;
 		}
@@ -886,11 +887,16 @@ void VRScreen::endStereoFrame() {
 
 	// Préparer layer projection pour refresh().
 	if (m_stereoShouldRender && m_projectionSwapchains.size() == m_views.size()) {
-		m_projectionLayer = {XR_TYPE_COMPOSITION_LAYER_PROJECTION};
+		m_projectionLayer = {XR_TYPE_COMPOSITION_LAYER_PROJECTION, nullptr};
 		m_projectionLayer.space = m_xrAppSpace;
-		m_projectionLayer.layerFlags = 0;
+		m_projectionLayer.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
+		m_projectionLayer.next = nullptr;
+        m_projectionLayer.layerFlags = 0;
+
 		for (uint32_t eye = 0; eye < (uint32_t)m_views.size(); ++eye) {
-			XrCompositionLayerProjectionView pv{XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
+			XrCompositionLayerProjectionView pv{XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW, nullptr};
+			pv.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
+			pv.next = nullptr;
 			pv.pose = m_views[eye].pose;
 			pv.fov = m_views[eye].fov;
 			pv.subImage.swapchain = m_projectionSwapchains[eye].handle;
@@ -922,19 +928,20 @@ void VRScreen::refresh(void) {
 	// Mode stéréo: si une frame a été commencée dans l'activité, on finalise ici.
 	if (m_presentMode == PresentMode::StereoProjection && m_stereoFrameBegun) {
 		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
-		endInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
-		endInfo.environmentBlendMode = m_environmentBlendMode;
+        endInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
+        endInfo.environmentBlendMode = m_environmentBlendMode;
+		endInfo.layerCount = 0;
+		endInfo.layers = nullptr;
+		const XrCompositionLayerBaseHeader* layers[1] = {nullptr};
 
-		if (!m_stereoShouldRender || !m_projectionLayerReady) {
-			endInfo.layerCount = 0;
-			endInfo.layers = nullptr;
-		} else {
-			const XrCompositionLayerBaseHeader* layers[] = {
-				reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_projectionLayer)
-			};
-			endInfo.layerCount = 1;
-			endInfo.layers = layers;
-		}
+        if (!m_stereoShouldRender || !m_projectionLayerReady) {
+            endInfo.layerCount = 0;
+            endInfo.layers = nullptr;
+        } else {
+            layers[0] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_projectionLayer);
+            endInfo.layerCount = 1;
+            endInfo.layers = layers;
+        }
 
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(stereo)");
 		m_stereoFrameBegun = false;
@@ -950,22 +957,23 @@ void VRScreen::refresh(void) {
 	}
 
 	// Frame timing
-	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO};
-	XrFrameState frameState{XR_TYPE_FRAME_STATE};
+	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO, nullptr};
+	XrFrameState frameState{XR_TYPE_FRAME_STATE, nullptr};
 	if (!xrCheck(xrWaitFrame(m_xrSession, &waitInfo, &frameState), "xrWaitFrame")) {
 		RSScreen::refresh();
 		return;
 	}
 
-	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO};
+	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO, nullptr};
 	xrCheck(xrBeginFrame(m_xrSession, &beginInfo), "xrBeginFrame");
 
 	if (!frameState.shouldRender) {
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
+		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
 		endInfo.displayTime = frameState.predictedDisplayTime;
 		endInfo.environmentBlendMode = m_environmentBlendMode;
 		endInfo.layerCount = 0;
 		endInfo.layers = nullptr;
+		printf("xrEndFrame line 977\n");
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 		RSScreen::refresh();
 		return;
@@ -974,7 +982,7 @@ void VRScreen::refresh(void) {
 	// Calculer une pose "cinéma" une fois: écran fixé dans l'espace LOCAL.
 	// On se base sur la pose VIEW (tête) exprimée dans LOCAL au moment du premier rendu.
 	if (!m_cinemaPoseValid && m_xrViewSpace != XR_NULL_HANDLE && m_xrAppSpace != XR_NULL_HANDLE) {
-		XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION};
+		XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION, nullptr};
 		if (xrCheck(xrLocateSpace(m_xrViewSpace, m_xrAppSpace, frameState.predictedDisplayTime, &viewInApp),
 					"xrLocateSpace(VIEW->LOCAL)")) {
 			const XrSpaceLocationFlags need = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
@@ -1033,11 +1041,12 @@ void VRScreen::refresh(void) {
 	}
 
 	if (m_swapchains.empty()) {
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
+		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
 		endInfo.displayTime = frameState.predictedDisplayTime;
 		endInfo.environmentBlendMode = m_environmentBlendMode;
 		endInfo.layerCount = 0;
 		endInfo.layers = nullptr;
+		printf("xrEndFrame line 1049\n");
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 		RSScreen::refresh();
 		return;
@@ -1045,19 +1054,20 @@ void VRScreen::refresh(void) {
 
 	auto& sc = m_swapchains[0];
 	uint32_t imageIndex = 0;
-	XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+	XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
 	if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage")) {
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
+		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
 		endInfo.displayTime = frameState.predictedDisplayTime;
 		endInfo.environmentBlendMode = m_environmentBlendMode;
 		endInfo.layerCount = 0;
 		endInfo.layers = nullptr;
+		printf("xrEndFrame line 1063\n");
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 		RSScreen::refresh();
 		return;
 	}
 
-	XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+	XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
 	waitImg.timeout = XR_INFINITE_DURATION;
 	xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage");
 
@@ -1077,12 +1087,12 @@ void VRScreen::refresh(void) {
 		glFlush();
 	}
 
-	XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+	XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
 	xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage");
 
 	// Construire un quad "écran cinéma" fixé dans l'espace.
 	// Important: un layer projection requiert un rendu par-oeil. Ici on veut une "écran" VR.
-	XrCompositionLayerQuad quad{XR_TYPE_COMPOSITION_LAYER_QUAD};
+	XrCompositionLayerQuad quad{XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
 	quad.space = m_xrAppSpace;
 	quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
 	quad.pose = m_cinemaPose;
@@ -1103,11 +1113,12 @@ void VRScreen::refresh(void) {
 		reinterpret_cast<const XrCompositionLayerBaseHeader*>(&quad)
 	};
 
-	XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
+	XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
 	endInfo.displayTime = frameState.predictedDisplayTime;
 	endInfo.environmentBlendMode = m_environmentBlendMode;
 	endInfo.layerCount = 1;
 	endInfo.layers = layers;
+	printf("xrEndFrame line 1120\n");
 	xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 
 	// Mirror window update (swap + clear)
