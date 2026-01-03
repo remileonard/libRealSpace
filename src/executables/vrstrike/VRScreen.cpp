@@ -973,7 +973,6 @@ void VRScreen::refresh(void) {
 		endInfo.environmentBlendMode = m_environmentBlendMode;
 		endInfo.layerCount = 0;
 		endInfo.layers = nullptr;
-		printf("xrEndFrame line 977\n");
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 		RSScreen::refresh();
 		return;
@@ -1046,7 +1045,6 @@ void VRScreen::refresh(void) {
 		endInfo.environmentBlendMode = m_environmentBlendMode;
 		endInfo.layerCount = 0;
 		endInfo.layers = nullptr;
-		printf("xrEndFrame line 1049\n");
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 		RSScreen::refresh();
 		return;
@@ -1061,7 +1059,6 @@ void VRScreen::refresh(void) {
 		endInfo.environmentBlendMode = m_environmentBlendMode;
 		endInfo.layerCount = 0;
 		endInfo.layers = nullptr;
-		printf("xrEndFrame line 1063\n");
 		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 		RSScreen::refresh();
 		return;
@@ -1118,7 +1115,6 @@ void VRScreen::refresh(void) {
 	endInfo.environmentBlendMode = m_environmentBlendMode;
 	endInfo.layerCount = 1;
 	endInfo.layers = layers;
-	printf("xrEndFrame line 1120\n");
 	xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
 
 	// Mirror window update (swap + clear)
