@@ -31,10 +31,18 @@ private:
     Matrix mproj;
     Matrix mview;
 
+    bool m_useCustomMatrices{false};
+    Matrix mprojCustom;
+    Matrix mviewCustom;
+
 public:
     
     //Update parameters and recalculate perspective
     void setPersective(float fovy, float aspect, float zNear, float zFar);
+
+    // Injection directe (ex: VR/OpenXR)
+    void setProjectionMatrix(const Matrix& projection);
+    void setViewMatrix(const Matrix& view);
     
     //Update orientation and Matrix view
     void lookAt(Point3D* lookAt);
@@ -52,6 +60,10 @@ public:
     Quaternion getOrientation(void);
     Matrix* getProjectionMatrix(void);
     Matrix* getViewMatrix(void);
+
+    void setCustomMatrices(const Matrix& projection, const Matrix& view);
+    void clearCustomMatrices();
+    bool isUsingCustomMatrices() const { return m_useCustomMatrices; }
     Vector3D getForward(void);
     Vector3D getUp(void);
     Vector3D getRight(void);

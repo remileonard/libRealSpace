@@ -101,6 +101,8 @@ public:
 
     void drawParticle(Vector3D pos, float alpha);
 
+    void drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement,
+                   float scale);
     void drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement);
     void drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation);
     void drawModel(RSEntity *object, Vector3D position, Vector3D orientation);
@@ -165,6 +167,7 @@ public:
     // Pré-calcul (optionnel) sur une plage de LOD
     void PrecomputeAABBs(RSArea* area, int minLOD, int maxLOD);
     void bindCameraProjectionAndView(float verticalOffset);
+    void bindCameraProjectionAndViewViewport(int32_t viewportW, int32_t viewportH, float verticalOffset);
     int32_t width;
     int32_t height;
     Point3D light;

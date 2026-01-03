@@ -174,9 +174,8 @@ bool SCRenderer::isAABBVisible(const AABB& box, const Plane planes[6]) {
     }
     return true;
 }
-// Ajoute un helper pour remettre la projection + vue avec l'offset
-void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
-    glViewport(0,0,this->width,this->height);
+void SCRenderer::bindCameraProjectionAndViewViewport(int32_t viewportW, int32_t viewportH, float verticalOffset /*=0.45f*/) {
+    glViewport(0, 0, viewportW, viewportH);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glTranslatef(0.0f, verticalOffset, 0.0f);
@@ -184,6 +183,11 @@ void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
 
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(camera.getViewMatrix()->ToGL());
+}
+
+// Helper historique (viewport = taille fenêtre)
+void SCRenderer::bindCameraProjectionAndView(float verticalOffset /*=0.45f*/) {
+    bindCameraProjectionAndViewViewport(this->width, this->height, verticalOffset);
 }
 // Remplace computeBlockAABB pour utiliser un cache par RSArea
 const AABB& SCRenderer::computeBlockAABB(RSArea* area, int LOD, int blockId) {
@@ -490,6 +494,18 @@ void SCRenderer::drawParticle(Vector3D pos, float alpha) {
     glEnd();
     glPopMatrix();
     glDisable( GL_BLEND );
+}
+void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement, float scale) { 
+    glPushMatrix();
+    glTranslatef(static_cast<GLfloat>(position.x), static_cast<GLfloat>(position.y),
+                static_cast<GLfloat>(position.z));
+    glRotatef(orientation.x, 0, 1, 0);
+    glRotatef(orientation.y, 0, 0, 1);
+    glRotatef(orientation.z, 1, 0, 0);
+    glTranslatef(ajustement.x, ajustement.y, ajustement.z);
+    glScalef(scale, scale, scale);
+    drawModel(object, 0);
+    glPopMatrix(); 
 }
 void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement) { 
     glPushMatrix();

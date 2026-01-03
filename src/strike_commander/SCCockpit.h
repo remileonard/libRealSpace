@@ -28,8 +28,8 @@ private:
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
     
-    void RenderTargetingReticle();
-    void RenderBombSight();
+    void RenderTargetingReticle(FrameBuffer *fb);
+    void RenderBombSight(FrameBuffer* fb = nullptr);
     void RenderHeading(Point2D heading_pos, FrameBuffer *fb);
     void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
@@ -50,7 +50,7 @@ public:
     FrameBuffer *target_framebuffer{nullptr};
     FrameBuffer *alti_framebuffer{nullptr};
     FrameBuffer *speed_framebuffer{nullptr};
-
+    FrameBuffer *comm_framebuffer{nullptr};
 
     float pitch{0.0f};
     float roll{0.0f};
@@ -92,6 +92,15 @@ public:
     SCPlane *player_plane;
     SCMission *current_mission;
     uint8_t *nav_point_id{nullptr};
+    
+    Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
+    bool has_hud_eye_world = false;
+    
+    // Offset angulaire pour le viseur cannon (en radians)
+    // x = azimut, y = élévation
+    // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
+    Vector2D cannonAngularOffset = {0.0f, 0.0f};
+
     SCCockpit();
     ~SCCockpit();
     void init( );
@@ -105,6 +114,7 @@ public:
     void RenderTargetWithCam(Point2D top_left, FrameBuffer *fb);
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);
     void RenderSpeedOmetter(Point2D speed_top_left, FrameBuffer *fb);
+    bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
     void SetCommActorTarget(int target);
 };
 #endif

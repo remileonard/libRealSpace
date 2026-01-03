@@ -12,12 +12,10 @@
 #include "imgui_impl_opengl2.h"
 #include <functional>
 
-static SDL_Window *sdlWindow;
-static SDL_Renderer *sdlRenderer;
 
 
 void RSScreen::setTitle(const char* title){
-    SDL_SetWindowTitle(sdlWindow, title);
+    SDL_SetWindowTitle(m_window, title);
 }
 
 void RSScreen::init(int width, int height, bool fullscreen){
@@ -52,33 +50,33 @@ void RSScreen::init(int width, int height, bool fullscreen){
     }
 
     // 3. UNE seule création de fenêtre
-    sdlWindow = SDL_CreateWindow("Neo Strike Commander",
+    m_window = SDL_CreateWindow("Neo Strike Commander",
                                  SDL_WINDOWPOS_UNDEFINED,
                                  SDL_WINDOWPOS_UNDEFINED,
                                  this->width,
                                  this->height,
                                  window_flags);
-    if (!sdlWindow) {
+    if (!m_window) {
         printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
         return;
     }
 
-    SDL_GLContext gl_context = SDL_GL_CreateContext(sdlWindow);
-    if (!gl_context) {
+    m_glContext = SDL_GL_CreateContext(m_window);
+    if (!m_glContext) {
         printf("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
         return;
     }
-    SDL_GL_MakeCurrent(sdlWindow, gl_context);
+    SDL_GL_MakeCurrent(m_window, m_glContext);
     SDL_GL_SetSwapInterval(1); // vsync
 
     openScreen();
-    SDL_ShowWindow(sdlWindow);
+    SDL_ShowWindow(m_window);
 }
 
 void RSScreen::openScreen(void){
     // Utiliser la taille du framebuffer OpenGL (pixels réels)
     int drawableW = 0, drawableH = 0;
-    SDL_GL_GetDrawableSize(sdlWindow, &drawableW, &drawableH);
+    SDL_GL_GetDrawableSize(m_window, &drawableW, &drawableH);
     if (drawableW <= 0 || drawableH <= 0) {
         drawableW = this->width;
         drawableH = this->height;
@@ -108,7 +106,7 @@ void RSScreen::openScreen(void){
 }
 
 void RSScreen::refresh(void){
-    SDL_GL_SwapWindow(sdlWindow);
+    SDL_GL_SwapWindow(m_window);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

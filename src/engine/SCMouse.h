@@ -24,10 +24,11 @@ typedef struct MouseButton{
 class SCMouse{
 public:
     enum Mode {CURSOR, VISOR };
-private:
-    RLEShape* appearances[4];
-    Mode mode;
     Point2D position;
+    RLEShape* appearances[4];
+private:
+    
+    Mode mode;
     bool visible;
     inline static std::unique_ptr<SCMouse> s_instance{};
     RSVGA &VGA = RSVGA::getInstance();

@@ -8,6 +8,7 @@
       ]
     },
     "opengl",
+    "openxr-loader",
     "sdl2",
     "sdl2-mixer-ext",
     {

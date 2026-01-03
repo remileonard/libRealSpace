@@ -156,6 +156,7 @@ protected:
     float mouseAxisAccumY = 0.0f;
     SCState &GameState = SCState::getInstance();
     void renderVirtualCockpit();
+    FrameBuffer *virtual_mouse_cockpit_buffer{nullptr};
 public:
     float verticalOffset{0.45f};
     /**

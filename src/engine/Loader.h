@@ -11,6 +11,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include "RSScreen.h"
 class Loader {
 private:
     std::thread loadingThread;
