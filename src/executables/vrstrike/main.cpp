@@ -13,8 +13,6 @@
 #define FLOPPY 0
 
 int main(int argc, char* argv[]) {
-    GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
-    
     RSScreen::setInstance(std::make_unique<VRScreen>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
 

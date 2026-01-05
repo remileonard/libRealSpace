@@ -1,5 +1,6 @@
 #include "VRScreen.h"
-
+#include "../../engine/gametimer.h"
+#include "vrtimer.h"
 #include <cmath>
 
 #include <algorithm>
@@ -157,7 +158,7 @@ void VRScreen::setTitle(const char* title) {
 void VRScreen::init(int width, int height, bool fullscreen) {
 	// 1) Initialiser SDL + créer le contexte OpenGL via l'impl existante.
 	RSScreen::init(width, height, false);
-
+	GameTimer::getInstance().setTimer(std::make_unique<VRTimer>());
 	// 2) Initialiser OpenXR en réutilisant le contexte courant.
 	if (!initOpenXR()) {
 		std::printf("[OpenXR] initOpenXR() a échoué, fallback vers RSScreen.\n");
@@ -918,6 +919,9 @@ void VRScreen::refresh(void) {
 		return;
 	}
 
+	
+
+	
 	ensureSessionRunning();
 	if (!m_sessionRunning) {
 		// Mirror window update.
@@ -963,6 +967,9 @@ void VRScreen::refresh(void) {
 		RSScreen::refresh();
 		return;
 	}
+	// Mettre à jour le timer VR avec le temps OpenXR
+	VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
+	vrTimer->updateWithXrTime(frameState.predictedDisplayTime);
 
 	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO, nullptr};
 	xrCheck(xrBeginFrame(m_xrSession, &beginInfo), "xrBeginFrame");
