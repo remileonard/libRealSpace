@@ -1,4 +1,6 @@
 #include "precomp.h"
+#include "../engine/gametimer.h"
+
 const float GRAVITY = 9.80f; // m/s^2
 const float AIR_DENSITY = 1.225f; // kg/m^3
 const float DRAG_COEFFICIENT = 0.47f;
@@ -72,7 +74,6 @@ SCJdynPlane::SCJdynPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, f
     this->ie_pi_AR = 0.83f * this->ipi_AR;
     this->wheels = 1;
     this->on_ground = 1;
-    this->gravity = GRAVITY / tps / tps;
     this->status = 580000;
     this->alive = 1;
     this->tilt_factor = 0.17f;
@@ -86,20 +87,18 @@ SCJdynPlane::~SCJdynPlane() {
 void SCJdynPlane::Simulate() {
     int itemp;
     float elevtemp = 0.0f;
-
-    uint32_t current_time = SDL_GetTicks();
-    uint32_t elapsed_time = (current_time - this->last_time) / 1000;
-    int newtps = 0;
-    if (elapsed_time > 1) {
-        uint32_t ticks = this->tick_counter - this->last_tick;
-        newtps = ticks / elapsed_time;
-        this->last_time = current_time;
-        this->last_tick = this->tick_counter;
-        if (newtps > this->tps / 2) {    
-            this->tps = newtps;
-        }
+    float dt = GameTimer::getInstance().getDeltaTime();
+    if (dt <= 0.0f) {
+        dt = 0.016f; // Approx 60 FPS
     }
-    this->fps_knots = this->tps * 1.944f;
+    float ftps = (1.0f / dt);
+    if (ftps < 1.0f) {
+        ftps = 1.0f;
+    }
+    this->tps = (uint32_t)(ftps + 0.5f);
+
+    this->gravity = GRAVITY * dt * dt;
+    this->fps_knots = 1.944f / dt;
 
     this->computeGravity();
     this->processInput();
@@ -113,9 +112,11 @@ void SCJdynPlane::Simulate() {
     this->updateAcceleration();
     this->updateVelocity();
 
-    float vitesse_ms = abs(this->vz) * this->tps;
-    this->airspeed = (int) (vitesse_ms * 1.944f);
-    this->climbspeed = (short)(this->tps * (this->y - this->last_py));
+    // Calculer la distance parcourue depuis la dernière frame
+    
+    float vitesse_ms = abs(this->vz) / dt;
+    this->airspeed = (int)(vitesse_ms * 1.944f);
+    this->climbspeed = (short)(dt / (this->y - this->last_py));
     this->g_load = (this->lift_force*this->inverse_mass) / this->gravity;
     this->ax = this->acceleration.x;
     this->ay = this->acceleration.y;
@@ -308,11 +309,14 @@ void SCJdynPlane::updatePosition() {
 
 }
 void SCJdynPlane::processInput() {
+    float dt = GameTimer::getInstance().getDeltaTime();
+    
     int itemp {0};
     float temp {0.0f};
     float elevtemp{0.0f};
-    int DELAY = tps/4;
-    float DELAYF = tps/4.0f;
+    int DELAY = (int)(0.25f / dt);  // 1/4 de seconde
+    
+    float DELAYF = dt * 0.25f;
 
     /* tenths of degrees per tick	*/
     this->rollers = (this->ROLLF * ((this->control_stick_x + 8) >> 4));
@@ -352,7 +356,7 @@ void SCJdynPlane::processInput() {
     this->pitch_speed += itemp;
 
     float max_turnrate = 0.0f;
-    max_turnrate = 600.0f / tps;
+    max_turnrate = 600.0f * dt;
     temp = this->rudder * (this->vz*3.2f) - (4.0f) * (this->vx*3.2f);
     if (this->on_ground) {
         itemp = (int)(16.0f * temp);
@@ -364,9 +368,9 @@ void SCJdynPlane::processInput() {
                 itemp = (int)max_turnrate;
             }
             /* decrease with velocity */
-            if (fabs(this->vz*3.2) > 10.0f / this->tps) {
+            if (fabs(this->vz*3.2) > 10.0f *dt) {
                 /* skid effect */
-                temp = 0.4f * this->tps * (this->rudder * (this->vz*3.2f) - .75f);
+                temp = 0.4f / dt * (this->rudder * (this->vz*3.2f) - .75f);
                 if (temp < -max_turnrate || temp > max_turnrate) {
                     temp = (float)itemp;
                 }
@@ -398,7 +402,7 @@ void SCJdynPlane::processInput() {
             }
         } else {
             /* mimic gravitational torque	*/
-            elevtemp = -((this->vz*3.2f) * this->tps + this->MIN_LIFT_SPEED) / 4.0f;
+            elevtemp = -((this->vz*3.2f) / dt + this->MIN_LIFT_SPEED) / 4.0f;
             if (elevtemp < 0 && this->pitch <= 0) {
                 elevtemp = 0.0f;
             }
@@ -413,11 +417,12 @@ void SCJdynPlane::processInput() {
 }
 void SCJdynPlane::updateSpeedOfSound() {
     int itemp {0};
-    /* compute speed of sound	*/
+    float dt = GameTimer::getInstance().getDeltaTime();
+    
     if (this->y <= 11000.0f) {
-        this->sos = -340.3f / this->tps + (340.3f - 295.0f) / this->tps / 11000.0f * this->y;
+        this->sos = -340.3f * dt + (340.3f - 295.0f) * dt / 11000.0f * this->y;
     } else {
-        this->sos = -295.0f / this->tps;
+        this->sos = -295.0f * dt;
     }
     itemp = ((int)this->y) >> 10;
     if (itemp > 74) {
@@ -442,6 +447,7 @@ void SCJdynPlane::updateSpeedOfSound() {
     this->mratio = this->mach / this->mcc;
 }
 void SCJdynPlane::checkStatus() {
+    float dt = GameTimer::getInstance().getDeltaTime();
     float groundlevel = this->area->getY(this->x, this->z);
     /****************************************************************/
     /*	check altitude for too high, and landing/takeoff            */
@@ -474,7 +480,7 @@ void SCJdynPlane::checkStatus() {
                 this->Cdp = 0.085f;
                 /* allow reverse engines*/
                 this->min_throttle = -this->max_throttle;
-                rating = report_card(-this->climbspeed, this->roll, (int)(this->vx * this->tps),
+                rating = report_card(-this->climbspeed, this->roll, (int)(this->vx / dt),
                                         (int)(-this->vz * this->fps_knots), this->wheels);
                 /* oops - you crashed	*/
                 if (this->nocrash) {
@@ -639,13 +645,15 @@ void SCJdynPlane::computeDrag() {
     this->drag_force = this->vz * this->drag ;
 }
 void SCJdynPlane::computeGravity() {
+    float dt = GameTimer::getInstance().getDeltaTime();
+    
     this->inverse_mass = 1.0f / (this->W + (this->fuel));
-    this->gravity = GRAVITY / this->tps / this->tps;
+    this->gravity = GRAVITY *dt *dt;
     this->gravity_force = this->gravity * (this->W + (this->fuel));
 }
 void SCJdynPlane::computeThrust() {
-    this->thrust_force = .01f / this->tps / this->tps * this->thrust * this->Mthrust;
-    
+    float dt = GameTimer::getInstance().getDeltaTime();
+    this->thrust_force = 0.01f * dt * dt * this->thrust * this->Mthrust;
 }
 void SCJdynPlane::updateAcceleration() {
     if (this->acceleration.x != 0.0f) {
@@ -666,6 +674,7 @@ void SCJdynPlane::updateForces() {
 }
 void SCJdynPlane::updateVelocity() {
     float temp{0.0f};
+    float dt = GameTimer::getInstance().getDeltaTime();
     this->vx += this->acceleration.x;
     this->vz += this->acceleration.z;
     

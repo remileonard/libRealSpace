@@ -21,7 +21,7 @@
 #include "DebugPSGameFlow.h"
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
-
+#include "../../engine/gametimer.h"
 #include "../../strike_commander/precomp.h"
 
 
@@ -518,6 +518,7 @@ void DebugGame::run() {
     IActivity *currentActivity;
     while (activities.size() > 0) {
         pumpEvents();
+        GameTimer::getInstance().update();
         if (!loader.isLoadingComplete()) {
             loader.runFrame();
             SDL_Delay(10);

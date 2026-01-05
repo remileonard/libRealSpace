@@ -14,7 +14,7 @@
 #include "InputActionSystem.h"  
 #include "EventManager.h"
 #include "keyboard.h" 
-
+#include "gametimer.h"
 
 GameEngine::GameEngine() {
 }
@@ -292,7 +292,7 @@ void GameEngine::run() {
 
     IActivity *currentActivity;
     while (activities.size() > 0) {
-
+        GameTimer::getInstance().update();
         pumpEvents();
 
         currentActivity = activities.top();

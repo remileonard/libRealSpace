@@ -10,10 +10,13 @@
 #include "DebugGame.h"
 #include "DebugScreen.h"
 #include "DebugEmptyActivity.h"
+#include "../../engine/gametimer.h"
+#include "../../engine/desktoptimer.h"
 #define FLOPPY 0
 
 
 int main(int argc, char* argv[]) {
+    GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
     
     RSScreen::setInstance(std::make_unique<DebugScreen>());
     GameEngine::setInstance(std::make_unique<DebugGame>());
