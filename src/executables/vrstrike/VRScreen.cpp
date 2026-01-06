@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl2.h"
 
 // Windows <GL/gl.h> est souvent limité à OpenGL 1.1.
 // Définir quelques constantes (valeurs standard) si elles ne sont pas exposées.
@@ -29,6 +32,7 @@
 
 namespace {
 	PFNGLGENFRAMEBUFFERSEXTPROC pglGenFramebuffersEXT = nullptr;
+	PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC pglCheckFramebufferStatusEXT = nullptr;
 	PFNGLDELETEFRAMEBUFFERSEXTPROC pglDeleteFramebuffersEXT = nullptr;
 	PFNGLBINDFRAMEBUFFEREXTPROC pglBindFramebufferEXT = nullptr;
 	PFNGLFRAMEBUFFERTEXTURE2DEXTPROC pglFramebufferTexture2DEXT = nullptr;
@@ -53,11 +57,12 @@ namespace {
 		pglDeleteRenderbuffersEXT = loadGlProc<PFNGLDELETERENDERBUFFERSEXTPROC>("glDeleteRenderbuffersEXT");
 		pglBindRenderbufferEXT = loadGlProc<PFNGLBINDRENDERBUFFEREXTPROC>("glBindRenderbufferEXT");
 		pglRenderbufferStorageEXT = loadGlProc<PFNGLRENDERBUFFERSTORAGEEXTPROC>("glRenderbufferStorageEXT");
+		pglCheckFramebufferStatusEXT = loadGlProc<PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC>("glCheckFramebufferStatusEXT");
 
 		return pglGenFramebuffersEXT && pglDeleteFramebuffersEXT && pglBindFramebufferEXT &&
 			pglFramebufferTexture2DEXT && pglFramebufferRenderbufferEXT &&
 			pglGenRenderbuffersEXT && pglDeleteRenderbuffersEXT && pglBindRenderbufferEXT &&
-			pglRenderbufferStorageEXT;
+			pglRenderbufferStorageEXT && pglCheckFramebufferStatusEXT;
 	}
 }
 static void drawMirrorTextureToWindow(GLuint tex, int winW, int winH)
@@ -159,10 +164,228 @@ void VRScreen::init(int width, int height, bool fullscreen) {
 	// 1) Initialiser SDL + créer le contexte OpenGL via l'impl existante.
 	RSScreen::init(width, height, false);
 	GameTimer::getInstance().setTimer(std::make_unique<VRTimer>());
-	// 2) Initialiser OpenXR en réutilisant le contexte courant.
+
+	// 2) Initialiser ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    
+    // Setup ImGui style
+    ImGui::StyleColorsDark();
+    
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForOpenGL(m_window, SDL_GL_GetCurrentContext());
+    ImGui_ImplOpenGL2_Init();
+
+
+	// 3) Initialiser OpenXR en réutilisant le contexte courant.
 	if (!initOpenXR()) {
 		std::printf("[OpenXR] initOpenXR() a échoué, fallback vers RSScreen.\n");
 	}
+}
+void VRScreen::ensureImGuiFbo(int32_t w, int32_t h) {
+    if (!m_hasGlFbo) {
+        return;
+    }
+    if (!m_imguiFbo) {
+        pglGenFramebuffersEXT(1, &m_imguiFbo);
+    }
+    if (!m_imguiDepthRb) {
+        pglGenRenderbuffersEXT(1, &m_imguiDepthRb);
+        m_imguiFboW = 0;
+        m_imguiFboH = 0;
+    }
+    if (m_imguiFboW != w || m_imguiFboH != h) {
+        pglBindRenderbufferEXT(GL_RENDERBUFFER_EXT, m_imguiDepthRb);
+        pglRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, w, h);
+        pglBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+        m_imguiFboW = w;
+        m_imguiFboH = h;
+    }
+}
+
+void VRScreen::renderImGuiToTexture() {
+    if (!m_showTimingDebug || m_imguiSwapchain.handle == XR_NULL_HANDLE) {
+        return;
+    }
+    
+    auto& sc = m_imguiSwapchain;
+    
+    // Acquérir une image
+    uint32_t imageIndex = 0;
+    XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
+    if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage(imgui)")) {
+        return;
+    }
+    
+    XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
+    waitImg.timeout = XR_INFINITE_DURATION;
+    xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage(imgui)");
+    
+    // Sauvegarder l'état OpenGL complet
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
+    
+    GLint oldFbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &oldFbo);
+    
+    GLint oldViewport[4];
+    glGetIntegerv(GL_VIEWPORT, oldViewport);
+    
+    GLint oldScissor[4];
+    glGetIntegerv(GL_SCISSOR_BOX, oldScissor);
+    
+    // Sauvegarder matrices
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glMatrixMode(GL_TEXTURE);
+    glPushMatrix();
+    
+    // Bind FBO
+    ensureImGuiFbo(sc.width, sc.height);
+    pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_imguiFbo);
+    pglFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
+        GL_TEXTURE_2D, sc.images[imageIndex].image, 0);
+    pglFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, 
+        GL_RENDERBUFFER_EXT, m_imguiDepthRb);
+    
+    // Vérifier que le FBO est complet
+    GLenum status = pglCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+        printf("[ImGui] FBO incomplete: 0x%x\n", status);
+        goto cleanup;
+    }
+    
+    // Configurer viewport ET scissor pour le FBO
+    glViewport(0, 0, sc.width, sc.height);
+    glScissor(0, 0, sc.width, sc.height);
+    
+    // Clear
+    glClearColor(0.1f, 0.1f, 0.1f, 0.9f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    // Configure ImGui pour ce rendu off-screen
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        io.DisplaySize = ImVec2((float)sc.width, (float)sc.height);
+        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+        
+        // Rendu ImGui
+        ImGui_ImplOpenGL2_NewFrame();
+        ImGui::NewFrame();
+        
+        // Fenêtre plein écran
+        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2((float)sc.width, (float)sc.height), ImGuiCond_Always);
+        renderTimingDebugWindow();
+        
+        ImGui::Render();
+        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+    }
+    
+    glFlush();
+    glFinish();
+    
+cleanup:
+    // Restaurer matrices
+    glMatrixMode(GL_TEXTURE);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    
+    // Restaurer viewport et scissor
+    glViewport(oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
+    glScissor(oldScissor[0], oldScissor[1], oldScissor[2], oldScissor[3]);
+    
+    // Restaurer FBO
+    pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, oldFbo);
+    
+    // Restaurer attributs
+    glPopClientAttrib();
+    glPopAttrib();
+    
+    // Release swapchain
+    XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
+    xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage(imgui)");
+}
+
+void VRScreen::renderTimingDebugWindow() {
+    if (!m_showTimingDebug) {
+        return;
+    }
+    if (ImGui::Begin("VR Timing Debug", &m_showTimingDebug)) {
+		ImGui::SetWindowFontScale(2.0f);
+        VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
+        
+        // Informations OpenXR
+        ImGui::SeparatorText("OpenXR Status");
+        ImGui::Text("Session Running: %s", m_sessionRunning ? "Yes" : "No");
+        ImGui::Text("Session State: %d", (int)m_sessionState);
+        ImGui::Text("Present Mode: %s", 
+            m_presentMode == PresentMode::StereoProjection ? "Stereo Projection" : "Quad Layer");
+        
+        // Informations de timing
+        ImGui::SeparatorText("Frame Timing");
+        if (m_stereoFrameBegun || m_sessionRunning) {
+            ImGui::Text("Predicted Display Time: %.3f ms", 
+                vrTimer->getLastXrTime() / 1e6);
+            ImGui::Text("Frame Delta: %.2f ms (%.1f FPS)", 
+                vrTimer->getDeltaTime() * 1000.0f,
+                1.0f / vrTimer->getDeltaTime());
+            
+            // Historique des frame times
+            m_frameTimeHistory[m_frameHistoryIndex] = vrTimer->getDeltaTime() * 1000.0f;
+            m_frameHistoryIndex = (m_frameHistoryIndex + 1) % FRAME_HISTORY_SIZE;
+            
+            ImGui::PlotLines("Frame Time (ms)", m_frameTimeHistory, FRAME_HISTORY_SIZE, 
+                m_frameHistoryIndex, nullptr, 0.0f, 33.33f, ImVec2(0, 80));
+        } else {
+            ImGui::TextDisabled("Session not running");
+        }
+        
+        // Informations de rendu stéréo
+        if (m_presentMode == PresentMode::StereoProjection && !m_projectionSwapchains.empty()) {
+            ImGui::SeparatorText("Stereo Rendering");
+            ImGui::Text("Should Render: %s", m_stereoShouldRender ? "Yes" : "No");
+            ImGui::Text("Frame Begun: %s", m_stereoFrameBegun ? "Yes" : "No");
+            ImGui::Text("Eye Count: %zu", m_projectionSwapchains.size());
+            
+            for (size_t i = 0; i < m_projectionSwapchains.size() && i < 2; ++i) {
+                ImGui::Text("Eye %zu: %dx%d", i, 
+                    m_projectionSwapchains[i].width,
+                    m_projectionSwapchains[i].height);
+            }
+            
+            ImGui::Text("Mirror Valid: %s", m_mirrorValid ? "Yes" : "No");
+            if (m_mirrorValid) {
+                ImGui::Text("Mirror: %dx%d", m_mirrorW, m_mirrorH);
+            }
+        }
+        
+        // Swapchains QUAD
+        if (!m_swapchains.empty()) {
+            ImGui::SeparatorText("Quad Layer");
+            ImGui::Text("Swapchain: %dx%d", m_swapchains[0].width, m_swapchains[0].height);
+            ImGui::Text("Cinema Pose Valid: %s", m_cinemaPoseValid ? "Yes" : "No");
+            if (m_cinemaPoseValid) {
+                ImGui::Text("Position: (%.2f, %.2f, %.2f)", 
+                    m_cinemaPose.position.x, 
+                    m_cinemaPose.position.y, 
+                    m_cinemaPose.position.z);
+            }
+        }
+        
+        // Bouton pour reset le cinema pose
+        if (ImGui::Button("Reset Cinema Pose")) {
+            m_cinemaPoseValid = false;
+        }
+    }
+    ImGui::End();
 }
 
 void VRScreen::pollXrEvents() {
@@ -626,6 +849,47 @@ bool VRScreen::initOpenXR() {
 		}
 	}
 
+	{
+        Swapchain sc;
+        sc.width = 800;
+        sc.height = 600;
+        
+        XrSwapchainCreateInfo scInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO, nullptr};
+        scInfo.arraySize = 1;
+        scInfo.mipCount = 1;
+        scInfo.faceCount = 1;
+        scInfo.format = m_colorSwapchainFormat;
+        scInfo.width = sc.width;
+        scInfo.height = sc.height;
+        scInfo.sampleCount = 1;
+        scInfo.usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+        
+        if (xrCheck(xrCreateSwapchain(m_xrSession, &scInfo, &sc.handle), "xrCreateSwapchain(imgui)")) {
+            uint32_t imageCount = 0;
+            if (xrCheck(xrEnumerateSwapchainImages(sc.handle, 0, &imageCount, nullptr), "xrEnumerateSwapchainImages(imgui,count)")) {
+                sc.images.assign(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR, nullptr});
+                if (xrCheck(xrEnumerateSwapchainImages(sc.handle, imageCount, &imageCount,
+                                        reinterpret_cast<XrSwapchainImageBaseHeader*>(sc.images.data())),
+                         "xrEnumerateSwapchainImages(imgui,list)")) {
+                    
+                    // Configuration des textures
+                    for (const auto& img : sc.images) {
+                        if (img.image == 0) continue;
+                        glBindTexture(GL_TEXTURE_2D, img.image);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+                        glBindTexture(GL_TEXTURE_2D, 0);
+                    }
+                    
+                    m_imguiSwapchain = std::move(sc);
+                }
+            }
+        }
+    }
 	m_stereoAcquiredImageIndex.assign(m_viewConfigs.size(), 0);
 	m_stereoImageAcquired.assign(m_viewConfigs.size(), false);
 	m_projectionViews.assign(m_viewConfigs.size(), {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW, nullptr});
@@ -636,6 +900,21 @@ bool VRScreen::initOpenXR() {
 }
 
 void VRScreen::shutdownOpenXR() {
+	// Nettoyage ImGui FBO
+    if (m_hasGlFbo && m_imguiFbo) {
+        pglDeleteFramebuffersEXT(1, &m_imguiFbo);
+        m_imguiFbo = 0;
+    }
+    if (m_hasGlFbo && m_imguiDepthRb) {
+        pglDeleteRenderbuffersEXT(1, &m_imguiDepthRb);
+        m_imguiDepthRb = 0;
+    }
+    
+    // Détruire swapchain ImGui
+    if (m_imguiSwapchain.handle != XR_NULL_HANDLE) {
+        xrDestroySwapchain(m_imguiSwapchain.handle);
+        m_imguiSwapchain.handle = XR_NULL_HANDLE;
+    }
 	if (m_hasGlFbo && m_stereoFbo) {
 		pglDeleteFramebuffersEXT(1, &m_stereoFbo);
 		m_stereoFbo = 0;
@@ -810,106 +1089,112 @@ bool VRScreen::prepareStereoFrame() {
 }
 
 bool VRScreen::beginStereoEye(uint32_t eye,
-						const Matrix& worldFromLocal,
-						float metersToWorld,
-						float zNear,
-						float zFar,
-						Matrix& outProjection,
-						Matrix& outView) {
-	if (!m_hasGlFbo) {
-		return false;
-	}
-	if (!m_stereoFrameBegun || !m_stereoShouldRender) {
-		return false;
-	}
-	if (eye >= m_projectionSwapchains.size() || eye >= m_views.size()) {
-		return false;
-	}
+                        const Matrix& worldFromLocal,
+                        float metersToWorld,
+                        float zNear,
+                        float zFar,
+                        Matrix& outProjection,
+                        Matrix& outView) {
+    if (!m_hasGlFbo) {
+        return false;
+    }
+    if (!m_stereoFrameBegun || !m_stereoShouldRender) {
+        return false;
+    }
+    if (eye >= m_projectionSwapchains.size() || eye >= m_views.size()) {
+        return false;
+    }
 
-	auto& sc = m_projectionSwapchains[eye];
-	uint32_t imageIndex = 0;
-	XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
-	if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage(stereo)")) {
-		return false;
-	}
+    auto& sc = m_projectionSwapchains[eye];
+    uint32_t imageIndex = 0;
+    XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
+    if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage(stereo)")) {
+        return false;
+    }
 
-	XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
-	waitImg.timeout = XR_INFINITE_DURATION;
-	xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage(stereo)");
+    XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
+    waitImg.timeout = XR_INFINITE_DURATION;
+    xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage(stereo)");
 
-	m_stereoAcquiredImageIndex[eye] = imageIndex;
-	m_stereoImageAcquired[eye] = true;
+    m_stereoAcquiredImageIndex[eye] = imageIndex;
+    m_stereoImageAcquired[eye] = true;
 
-	// Matrices
-	outProjection = makeProjectionFromFov(m_views[eye].fov, zNear, zFar);
-	const Matrix localFromEye = makeTransformFromPose(m_views[eye].pose, metersToWorld);
-	const Matrix worldFromEye = mul(worldFromLocal, localFromEye);
-	outView = invertRigidBody(worldFromEye);
+    // Matrices
+    outProjection = makeProjectionFromFov(m_views[eye].fov, zNear, zFar);
+    const Matrix localFromEye = makeTransformFromPose(m_views[eye].pose, metersToWorld);
+    const Matrix worldFromEye = mul(worldFromLocal, localFromEye);
+    outView = invertRigidBody(worldFromEye);
 
-	// Bind FBO
-	ensureStereoFbo(sc.width, sc.height);
-	pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_stereoFbo);
-	pglFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, sc.images[imageIndex].image, 0);
-	pglFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_stereoDepthRb);
+    // Bind FBO
+    ensureStereoFbo(sc.width, sc.height);
+    pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_stereoFbo);
+    pglFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, sc.images[imageIndex].image, 0);
+    pglFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_stereoDepthRb);
 
-	if (eye == 0) {
+    if (eye == 0) {
         m_mirrorTex = sc.images[imageIndex].image;
         m_mirrorW = sc.width;
         m_mirrorH = sc.height;
         m_mirrorValid = (m_mirrorTex != 0);
     }
 
-	// Nettoyage minimal (le renderer fera son clear si nécessaire)
-	glViewport(0, 0, sc.width, sc.height);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Nettoyage minimal (le renderer fera son clear si nécessaire)
+    glViewport(0, 0, sc.width, sc.height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	return true;
+    return true;
 }
 
+
+
 void VRScreen::endStereoFrame() {
-	if (!m_stereoFrameBegun) {
-		return;
-	}
+    if (!m_stereoFrameBegun) {
+        return;
+    }
 
-	if (m_stereoShouldRender) {
-		for (uint32_t eye = 0; eye < (uint32_t)m_projectionSwapchains.size(); ++eye) {
-			if (!m_stereoImageAcquired[eye]) continue;
-			auto& sc = m_projectionSwapchains[eye];
-			XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
-			xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage(stereo)");
-			m_stereoImageAcquired[eye] = false;
-		}
-	}
+    // PAS DE RENDU IMGUI ICI EN MODE STEREO
+    // ImGui sera rendu comme un QUAD layer séparé
 
-	// Unbind FBO
-	if (m_hasGlFbo) {
-		pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-	}
+    // Release des swapchains
+    if (m_stereoShouldRender) {
+        for (uint32_t eye = 0; eye < (uint32_t)m_projectionSwapchains.size(); ++eye) {
+            if (!m_stereoImageAcquired[eye]) continue;
+            auto& sc = m_projectionSwapchains[eye];
+            XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
+            xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage(stereo)");
+            m_stereoImageAcquired[eye] = false;
+        }
+    }
 
-	// Préparer layer projection pour refresh().
-	if (m_stereoShouldRender && m_projectionSwapchains.size() == m_views.size()) {
-		m_projectionLayer = {XR_TYPE_COMPOSITION_LAYER_PROJECTION, nullptr};
-		m_projectionLayer.space = m_xrAppSpace;
-		m_projectionLayer.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
-		m_projectionLayer.next = nullptr;
+    // Unbind FBO
+    if (m_hasGlFbo) {
+        pglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    }
+
+    // Préparer layer projection pour refresh().
+    if (m_stereoShouldRender && m_projectionSwapchains.size() == m_views.size()) {
+        m_projectionLayer = {XR_TYPE_COMPOSITION_LAYER_PROJECTION, nullptr};
+        m_projectionLayer.space = m_xrAppSpace;
+        m_projectionLayer.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
+        m_projectionLayer.next = nullptr;
         m_projectionLayer.layerFlags = 0;
 
-		for (uint32_t eye = 0; eye < (uint32_t)m_views.size(); ++eye) {
-			XrCompositionLayerProjectionView pv{XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW, nullptr};
-			pv.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
-			pv.next = nullptr;
-			pv.pose = m_views[eye].pose;
-			pv.fov = m_views[eye].fov;
-			pv.subImage.swapchain = m_projectionSwapchains[eye].handle;
-			pv.subImage.imageArrayIndex = 0;
-			pv.subImage.imageRect.offset = {0, 0};
-			pv.subImage.imageRect.extent = {m_projectionSwapchains[eye].width, m_projectionSwapchains[eye].height};
-			m_projectionViews[eye] = pv;
-		}
-		m_projectionLayer.viewCount = (uint32_t)m_projectionViews.size();
-		m_projectionLayer.views = m_projectionViews.data();
-		m_projectionLayerReady = true;
-	}
+        for (uint32_t eye = 0; eye < (uint32_t)m_views.size(); ++eye) {
+            XrCompositionLayerProjectionView pv{XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW, nullptr};
+            pv.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
+            pv.next = nullptr;
+            pv.pose = m_views[eye].pose;
+            pv.fov = m_views[eye].fov;
+            pv.subImage.swapchain = m_projectionSwapchains[eye].handle;
+            pv.subImage.imageArrayIndex = 0;
+            pv.subImage.imageRect.offset = {0, 0};
+            pv.subImage.imageRect.extent = {m_projectionSwapchains[eye].width, m_projectionSwapchains[eye].height};
+            m_projectionViews[eye] = pv;
+        }
+        m_projectionLayer.viewCount = (uint32_t)m_projectionViews.size();
+        m_projectionLayer.views = m_projectionViews.data();
+        m_projectionLayerReady = true;
+    }
 }
 
 void VRScreen::refresh(void) {
@@ -931,36 +1216,148 @@ void VRScreen::refresh(void) {
 
 	// Mode stéréo: si une frame a été commencée dans l'activité, on finalise ici.
 	if (m_presentMode == PresentMode::StereoProjection && m_stereoFrameBegun) {
-		VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
+        VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
         vrTimer->updateWithXrTime(m_stereoFrameState.predictedDisplayTime);
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
+        
+        // Calculer la pose du panneau ImGui si pas encore fait
+        if (!m_imguiPoseValid && m_xrViewSpace != XR_NULL_HANDLE && m_xrAppSpace != XR_NULL_HANDLE) {
+            XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION, nullptr};
+            if (xrCheck(xrLocateSpace(m_xrViewSpace, m_xrAppSpace, m_stereoFrameState.predictedDisplayTime, &viewInApp),
+                        "xrLocateSpace(VIEW->LOCAL,imgui)")) {
+                const XrSpaceLocationFlags need = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+                if ((viewInApp.locationFlags & need) == need) {
+                    const XrVector3f p = viewInApp.pose.position;
+                    const XrQuaternionf q = viewInApp.pose.orientation;
+
+                    const float x = q.x, y = q.y, z = q.z, w = q.w;
+                    const float vx = 0.0f, vy = 0.0f, vz = -1.0f;
+                    const float cx1 = y * vz - z * vy;
+                    const float cy1 = z * vx - x * vz;
+                    const float cz1 = x * vy - y * vx;
+                    const float cx2 = y * cz1 - z * cy1;
+                    const float cy2 = z * cx1 - x * cz1;
+                    const float cz2 = x * cy1 - y * cx1;
+                    float fx = vx + 2.0f * (w * cx1 + cx2);
+                    float fz = vz + 2.0f * (w * cz1 + cz2);
+
+                    float len = std::sqrt(fx * fx + fz * fz);
+                    if (len < 1e-4f) {
+                        fx = 0.0f;
+                        fz = -1.0f;
+                        len = 1.0f;
+                    }
+                    fx /= len;
+                    fz /= len;
+
+                    // Position du panneau
+					const float distance = 1.0f;        // Distance devant
+					const float rightOffset = 0.8f;     // Décalage à droite
+					const float downOffset = -2.0f;     // Décalage vers le bas
+					
+					// Calculer le vecteur right (perpendiculaire à forward dans le plan XZ)
+					float rx = fz;
+					float rz = -fx;
+					
+					m_imguiPanelPose.position = {
+						p.x + fx * distance + rx * rightOffset, 
+						p.y + downOffset,
+						p.z + fz * distance + rz * rightOffset
+					};
+
+					// Orientation pour un panneau incliné
+					const float tiltAngle = -45.0f * 3.14159f / 180.0f; // 45 degrés d'inclinaison
+					
+					// Quaternion pour rotation autour de Y (yaw - direction)
+					const float dirX = -fx;
+					const float dirZ = -fz;
+					const float yaw = std::atan2(dirX, dirZ);
+					const float halfYaw = 0.5f * yaw;
+					const float sinYaw = std::sin(halfYaw);
+					const float cosYaw = std::cos(halfYaw);
+					
+					// Quaternion pour rotation autour de X (pitch - inclinaison)
+					const float halfTilt = 0.5f * tiltAngle;
+					const float sinTilt = std::sin(halfTilt);
+					const float cosTilt = std::cos(halfTilt);
+					
+					// Combiner les deux rotations: d'abord yaw (Y), puis tilt (X)
+					m_imguiPanelPose.orientation.x = sinTilt * cosYaw;
+					m_imguiPanelPose.orientation.y = sinYaw * cosTilt;
+					m_imguiPanelPose.orientation.z = cosTilt * cosYaw * sinYaw - sinTilt * cosYaw * sinYaw;
+					m_imguiPanelPose.orientation.w = cosTilt * cosYaw;
+					
+					// Normaliser le quaternion
+					float qlen = std::sqrt(
+						m_imguiPanelPose.orientation.x * m_imguiPanelPose.orientation.x +
+						m_imguiPanelPose.orientation.y * m_imguiPanelPose.orientation.y +
+						m_imguiPanelPose.orientation.z * m_imguiPanelPose.orientation.z +
+						m_imguiPanelPose.orientation.w * m_imguiPanelPose.orientation.w
+					);
+					if (qlen > 1e-6f) {
+						m_imguiPanelPose.orientation.x /= qlen;
+						m_imguiPanelPose.orientation.y /= qlen;
+						m_imguiPanelPose.orientation.z /= qlen;
+						m_imguiPanelPose.orientation.w /= qlen;
+					}
+
+					m_imguiPoseValid = true;
+                }
+            }
+        }
+        
+        // Rendre ImGui dans sa texture
+        renderImGuiToTexture();
+        
+        // Préparer les layers pour xrEndFrame
+        std::vector<const XrCompositionLayerBaseHeader*> layers;
+        
+        // Layer principal (projection stéréo)
+        if (m_stereoShouldRender && m_projectionLayerReady) {
+            layers.push_back(reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_projectionLayer));
+        }
+        
+        // Layer ImGui (QUAD)
+        XrCompositionLayerQuad imguiQuad{XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
+        if (m_showTimingDebug && m_imguiPoseValid && m_imguiSwapchain.handle != XR_NULL_HANDLE) {
+            imguiQuad.space = m_xrAppSpace;
+            imguiQuad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+            imguiQuad.pose = m_imguiPanelPose;
+            
+            // Taille du panneau (en mètres)
+            float aspect = (m_imguiSwapchain.height > 0) ? 
+                (m_imguiSwapchain.width / (float)m_imguiSwapchain.height) : 1.3333f;
+            float panelHeight = 0.5f; // Petit panneau
+            float panelWidth = panelHeight * aspect;
+            imguiQuad.size = {panelWidth, panelHeight};
+            
+            imguiQuad.subImage.swapchain = m_imguiSwapchain.handle;
+            imguiQuad.subImage.imageRect.offset = {0, 0};
+            imguiQuad.subImage.imageRect.extent = {m_imguiSwapchain.width, m_imguiSwapchain.height};
+            imguiQuad.subImage.imageArrayIndex = 0;
+            
+            layers.push_back(reinterpret_cast<const XrCompositionLayerBaseHeader*>(&imguiQuad));
+        }
+        
+        XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
         endInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
         endInfo.environmentBlendMode = m_environmentBlendMode;
-		endInfo.layerCount = 0;
-		endInfo.layers = nullptr;
-		const XrCompositionLayerBaseHeader* layers[1] = {nullptr};
+        endInfo.layerCount = (uint32_t)layers.size();
+        endInfo.layers = layers.empty() ? nullptr : layers.data();
 
-        if (!m_stereoShouldRender || !m_projectionLayerReady) {
-            endInfo.layerCount = 0;
-            endInfo.layers = nullptr;
-        } else {
-            layers[0] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_projectionLayer);
-            endInfo.layerCount = 1;
-            endInfo.layers = layers;
-        }
-
-		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(stereo)");
-		m_stereoFrameBegun = false;
-		m_projectionLayerReady = false;
-		// Mirror desktop: afficher l'œil gauche
+        xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(stereo)");
+        m_stereoFrameBegun = false;
+        m_projectionLayerReady = false;
+        
+        // Mirror desktop: afficher l'œil gauche
         if (m_mirrorValid && m_window) {
             int winW = 0, winH = 0;
             SDL_GL_GetDrawableSize(m_window, &winW, &winH);
             drawMirrorTextureToWindow(m_mirrorTex, winW, winH);
         }
-		RSScreen::refresh();
-		return;
-	}
+        
+        RSScreen::refresh();
+        return;
+    }
 
 	// Frame timing
 	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO, nullptr};
@@ -1125,6 +1522,14 @@ void VRScreen::refresh(void) {
 	endInfo.layerCount = 1;
 	endInfo.layers = layers;
 	xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
+
+	// Rendu ImGui avant le swap pour mode QUAD
+    ImGui_ImplOpenGL2_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+    renderTimingDebugWindow();
+    ImGui::Render();
+    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
 	// Mirror window update (swap + clear)
 	RSScreen::refresh();

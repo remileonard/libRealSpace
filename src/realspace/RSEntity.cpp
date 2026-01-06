@@ -779,7 +779,9 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM(uint8_t *data, size_t size) {
         this->sysm[main_system][sub_system] = pv;
     }
 }
-void RSEntity::parseREAL_OBJT_EXTE(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_EXTE(uint8_t *data, size_t size) {
+    
+}
 void RSEntity::parseREAL_APPR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 

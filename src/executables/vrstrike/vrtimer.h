@@ -1,77 +1,111 @@
 #pragma once
 #include "../engine/timer.h"
 #include <openxr/openxr.h>
+#include <chrono>
+#include <thread>
 
 class VRTimer : public Timer {
 public:
     VRTimer() {
         m_lastXrTime = 0;
         m_lastFPSUpdate = 0;
-        m_smoothedDeltaTime = 1.0f / 90.0f; // VR est généralement à 90 ou 120 FPS
+        m_targetFrameTime = 1.0f / 30.0f; // 30 FPS = 33.33ms par frame
+        m_smoothedDeltaTime = m_targetFrameTime;
         m_framesSinceLastUpdate = 0;
-        m_expectedFPS = 90.0f;
+        m_expectedFPS = 30.0f;
         m_hadSpikeThisSecond = false;
+        m_lastFrameStart = std::chrono::high_resolution_clock::now();
     }
     
     void updateWithXrTime(XrTime predictedDisplayTime) {
+        // Attendre pour atteindre 30 FPS avec précision
+        auto now = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> elapsed = now - m_lastFrameStart;
+        float elapsedSeconds = elapsed.count();
+        
+        // Si on est en avance, on attend
+        if (elapsedSeconds < m_targetFrameTime) {
+            float remainingTime = m_targetFrameTime - elapsedSeconds;
+            
+            // Sleep pour la majorité du temps (moins précis mais économe en CPU)
+            if (remainingTime > 0.002f) { // 2ms de marge
+                std::this_thread::sleep_for(std::chrono::duration<float>(remainingTime - 0.002f));
+            }
+            
+            // Spin-wait pour les dernières millisecondes (précis mais utilise CPU)
+            do {
+                now = std::chrono::high_resolution_clock::now();
+                elapsed = now - m_lastFrameStart;
+                elapsedSeconds = elapsed.count();
+            } while (elapsedSeconds < m_targetFrameTime);
+        }
+        
+        // Calculer le vrai deltaTime mesuré
+        now = std::chrono::high_resolution_clock::now();
+        elapsed = now - m_lastFrameStart;
+        float rawDeltaTime = elapsed.count();
+        
+        // Clamp pour éviter les valeurs aberrantes
+        const float minFrameTime = 0.001f; // 1ms min
+        const float maxFrameTime = 0.1f;   // 100ms max
+        if (rawDeltaTime < minFrameTime || rawDeltaTime > maxFrameTime) {
+            rawDeltaTime = m_targetFrameTime;
+        }
+        
+        m_lastFrameStart = now;
+        
+        // Initialisation
         if (m_lastXrTime == 0) {
             m_lastXrTime = predictedDisplayTime;
             m_lastFPSUpdate = predictedDisplayTime;
-            m_deltaTime = m_smoothedDeltaTime;
+            m_deltaTime = m_targetFrameTime; // Utiliser la valeur cible
+            m_smoothedDeltaTime = m_targetFrameTime;
+            m_framesSinceLastUpdate = 0;
             return;
         }
         
-        // XrTime est en nanosecondes
-        float rawDeltaTime = (float)(predictedDisplayTime - m_lastXrTime) / 1e9f;
-        
-        // Détecter les spikes : plus de 3x le temps normal attendu
-        const float maxReasonableDeltaTime = m_smoothedDeltaTime * 3.0f;
+        // Détecter les spikes : plus de 50% au-dessus du temps cible
+        const float maxReasonableDeltaTime = m_targetFrameTime * 1.5f;
         if (rawDeltaTime > maxReasonableDeltaTime) {
-            // Frame anormale détectée
             m_hadSpikeThisSecond = true;
-            rawDeltaTime = m_smoothedDeltaTime;
-        }
-        
-        const float maxDeltaTime = 0.25f;
-        if (rawDeltaTime > maxDeltaTime) {
-            rawDeltaTime = maxDeltaTime;
+            rawDeltaTime = m_targetFrameTime;
         }
         
         m_lastXrTime = predictedDisplayTime;
         m_framesSinceLastUpdate++;
         
-        // Recalculer le deltaTime moyenné toutes les secondes (1e9 nanosecondes)
-        uint64_t timeSinceLastFPSUpdate = predictedDisplayTime - m_lastFPSUpdate;
-        if (timeSinceLastFPSUpdate >= 1000000000) { // 1 seconde en nanosecondes
-            // Calculer le FPS moyen sur la dernière seconde
-            float avgFPS = (float)m_framesSinceLastUpdate / ((float)timeSinceLastFPSUpdate / 1e9f);
+        // Lissage sur une seconde
+        XrTime elapsed_ns = predictedDisplayTime - m_lastFPSUpdate;
+        float elapsedTimeSec = (float)elapsed_ns / 1e9f;
+        
+        if (elapsedTimeSec >= 1.0f) {
+            // Calcul du FPS réel mesuré sur 1 seconde
+            float measuredFPS = (float)m_framesSinceLastUpdate / elapsedTimeSec;
             
-            // Ne mettre à jour que si :
-            // 1. Pas de spike pendant cette période
-            // 2. FPS raisonnable (pas trop bas, pas trop haut)
-            // 3. Pas trop loin du FPS attendu (tolérance de 50%)
-            bool isReasonable = avgFPS >= 30.0f && avgFPS <= 200.0f;
-            bool isCloseToExpected = avgFPS > (m_expectedFPS * 0.5f);
-            
-            if (!m_hadSpikeThisSecond && isReasonable && isCloseToExpected) {
-                m_smoothedDeltaTime = 1.0f / avgFPS;
-                m_expectedFPS = avgFPS;
+            // Si on a eu un spike cette seconde, on garde l'ancien smoothedDeltaTime
+            if (!m_hadSpikeThisSecond && measuredFPS > 15.0f && measuredFPS < 60.0f) {
+                // Seulement si le FPS mesuré est raisonnable
+                m_smoothedDeltaTime = 1.0f / measuredFPS;
+            } else {
+                // Sinon on reste proche de la cible
+                m_smoothedDeltaTime = m_targetFrameTime;
             }
-            // Sinon on garde l'ancien smoothedDeltaTime
             
             m_lastFPSUpdate = predictedDisplayTime;
             m_framesSinceLastUpdate = 0;
             m_hadSpikeThisSecond = false;
         }
         
-        m_deltaTime = m_smoothedDeltaTime;
+        // Utiliser directement le targetFrameTime pour un deltaTime constant
+        m_deltaTime = m_targetFrameTime;
+        
         m_totalTime += m_deltaTime;
         m_accumulator += m_deltaTime;
         m_frameCount++;
     }
     
     void update() override {
-        // Pas utilisé en mode VR, on utilise updateWithXrTime
+        // Pas utilisé en mode VR
     }
     
     bool shouldSimulate() override {
@@ -88,12 +122,16 @@ public:
     float getFixedDeltaTime() const override { return m_fixedDeltaTime; }
     
     XrTime getLastXrTime() const { return m_lastXrTime; }
+    float getSmoothedFPS() const { return 1.0f / m_smoothedDeltaTime; }
+    float getTargetFPS() const { return m_expectedFPS; }
     
 private:
     XrTime m_lastXrTime;
     XrTime m_lastFPSUpdate;
     uint32_t m_framesSinceLastUpdate;
+    float m_targetFrameTime;
     float m_smoothedDeltaTime;
     float m_expectedFPS;
     bool m_hadSpikeThisSecond;
+    std::chrono::high_resolution_clock::time_point m_lastFrameStart;
 };

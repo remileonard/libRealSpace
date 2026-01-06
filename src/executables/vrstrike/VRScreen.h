@@ -105,6 +105,14 @@ private:
 
     int64_t m_colorSwapchainFormat{0};
 
+    // ...existing code...
+    bool m_showTimingDebug = true;
+    
+    // Historique pour graphiques
+    static constexpr int FRAME_HISTORY_SIZE = 120;
+    float m_frameTimeHistory[FRAME_HISTORY_SIZE] = {};
+    int m_frameHistoryIndex = 0;
+
     void pollXrEvents();
     bool initOpenXR();
     void shutdownOpenXR();
@@ -116,6 +124,24 @@ private:
     static Matrix makeTransformFromPose(const XrPosef& pose, float metersToWorld);
     static Matrix mul(const Matrix& a, const Matrix& b);
     static Matrix invertRigidBody(const Matrix& m);
+    void renderTimingDebugWindow();
+    // Créer un FBO séparé pour ImGui
+    void ensureImGuiFbo(int32_t w, int32_t h);
+    void renderImGuiToTexture();
+    
+    // Swapchain dédié pour ImGui
+    Swapchain m_imguiSwapchain;
+    
+    // FBO pour ImGui
+    GLuint m_imguiFbo = 0;
+    GLuint m_imguiDepthRb = 0;
+    int32_t m_imguiFboW = 0;
+    int32_t m_imguiFboH = 0;
+    
+    // Pose du panneau ImGui dans l'espace
+    XrPosef m_imguiPanelPose = {{0,0,0,1}, {0,0,0}};
+    bool m_imguiPoseValid = false;
+
 
 public:
     
@@ -138,6 +164,8 @@ public:
                           float zFar,
                           VRStereoEyeRenderInfo& out) override;
     void vrEndStereoFrame() override;
+    void setShowTimingDebug(bool show) { m_showTimingDebug = show; }
+    bool getShowTimingDebug() const { return m_showTimingDebug; }
 
     // Stéréo: à appeler depuis l'activité (ex: SCStrike) avant de rendre les deux yeux.
     // refresh() se chargera du xrEndFrame correspondant.
