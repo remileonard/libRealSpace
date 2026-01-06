@@ -931,6 +931,8 @@ void VRScreen::refresh(void) {
 
 	// Mode stéréo: si une frame a été commencée dans l'activité, on finalise ici.
 	if (m_presentMode == PresentMode::StereoProjection && m_stereoFrameBegun) {
+		VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
+        vrTimer->updateWithXrTime(m_stereoFrameState.predictedDisplayTime);
 		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
         endInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
         endInfo.environmentBlendMode = m_environmentBlendMode;
