@@ -391,31 +391,73 @@ void DebugGameFlow::renderMissionInfos() {
                         }
                         if (sprite->requ != nullptr && sprite->requ->size() > 0) {
                             if (ImGui::TreeNodeEx("Required Flags", tflag)) {
-                                for (auto requ : *sprite->requ) {
-                                    bool isActive = false;
-                                    switch (requ->op) {
+                                std::unordered_map<uint8_t, bool> *requierd_flags = &GameState.requierd_flags;
+                                bool nextOpIsOr = false;
+                                bool isFirst = true;
+                                bool isActive = false;
+                                for (auto requ_flag : *sprite->requ) {
+                                    switch (requ_flag->op) {
                                         case 0:
-                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
-                                                isActive = !GameState.requierd_flags[requ->value];
+                                            if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
+                                                if (isFirst) {
+                                                    isActive = !requierd_flags->at(requ_flag->value);
+                                                    isFirst = false;
+                                                } else {
+                                                    if (nextOpIsOr) {
+                                                        isActive = isActive || !requierd_flags->at(requ_flag->value);
+                                                    } else {
+                                                        isActive = isActive && !requierd_flags->at(requ_flag->value);
+                                                    }
+                                                }
+                                                nextOpIsOr = false;
                                             }
                                             break;
                                         case 1:
-                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
-                                                isActive = GameState.requierd_flags[requ->value];
+                                            if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
+                                                if (isFirst) {
+                                                    isActive = requierd_flags->at(requ_flag->value);
+                                                    isFirst = false;
+                                                } else {
+                                                    if (nextOpIsOr) {
+                                                        isActive = isActive || requierd_flags->at(requ_flag->value);
+                                                    } else {
+                                                        isActive = isActive && requierd_flags->at(requ_flag->value);
+                                                    }
+                                                }
+                                                nextOpIsOr = false;
                                             }
                                             break;
                                         case 2:
-                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
-                                                isActive = !GameState.requierd_flags[requ->value];
+                                            if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
+                                                if (isFirst) {
+                                                    isActive = !requierd_flags->at(requ_flag->value);
+                                                    isFirst = false;
+                                                } else {
+                                                    if (nextOpIsOr) {
+                                                        isActive = isActive || !requierd_flags->at(requ_flag->value);
+                                                    } else {
+                                                        isActive = isActive && !requierd_flags->at(requ_flag->value);
+                                                    }
+                                                }
+                                                nextOpIsOr = true;
                                             }
                                             break;
                                         case 3:
-                                            if (GameState.requierd_flags.find(requ->value) != GameState.requierd_flags.end()) {
-                                                isActive = GameState.requierd_flags[requ->value];
+                                            if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
+                                                if (isFirst) {
+                                                    isActive = requierd_flags->at(requ_flag->value);
+                                                    isFirst = false;
+                                                } else {
+                                                    if (nextOpIsOr) {
+                                                        isActive = isActive || requierd_flags->at(requ_flag->value);
+                                                    } else {
+                                                        isActive = isActive && requierd_flags->at(requ_flag->value);
+                                                    }
+                                                }
+                                                nextOpIsOr = true;
                                             }
                                             break;
                                         default:
-                                            isActive = false;
                                             break;
                                     }
                                     if (isActive) { // your condition here
@@ -423,7 +465,7 @@ void DebugGameFlow::renderMissionInfos() {
                                     } else {
                                         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
                                     }
-                                    ImGui::Text("OPC: %03d\tVAL: %03d", requ->op, requ->value);
+                                    ImGui::Text("OPC: %03d\tVAL: %03d", requ_flag->op, requ_flag->value);
                                     ImGui::PopStyleColor();
                                 }
                                 ImGui::TreePop();

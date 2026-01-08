@@ -39,9 +39,12 @@ void SCPilot::SetTargetWaypoint(Vector3D waypoint) {
     }
     this->target_azimut = az*10.0f;
     float ground_y = this->plane->area->getY(waypoint.x, waypoint.z);
+    if (waypoint.y < ground_y) {
+        waypoint.y = ground_y+1000;
+    }
     float ground_level = this->plane->area->getY(this->plane->x, this->plane->z);
-    if (this->plane->y < ground_y + 500) {
-        waypoint.y = ground_y + 500;
+    if (this->plane->y < ground_y + 1000) {
+        waypoint.y = ground_y + 1000;
     }
     target_climb = (int) waypoint.y;
     if (waypoint.y > plane->y || this->land) {

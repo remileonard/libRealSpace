@@ -504,6 +504,9 @@ bool SCMissionActors::followAlly(uint8_t arg) {
             if (actor->is_destroyed || (!actor->is_active && (actor->actor_name != "PLAYER"))) {
                 return false; // Actor not found or plane not alive
             }
+            if (actor->plane == nullptr) {
+                return false;
+            }
             wp.x = actor->plane->x;
             wp.y = actor->plane->y;
             wp.z = actor->plane->z;

@@ -384,20 +384,24 @@ void SCMission::update() {
                                     if (actor->object->area_id != 255) {
                                         actor->object->position += correction;
                                     }
-                                    if (actor->object->position.y < this->area->getY(actor->object->position.x, actor->object->position.z)) {
-                                        actor->object->position.y = this->area->getY(actor->object->position.x, actor->object->position.z);
-                                    }
+                                    float ground_y = this->area->getY(actor->object->position.x, actor->object->position.z);
+                                    
                                     if (actor->plane != nullptr) {
                                         actor->plane->on_ground = false;
                                         actor->plane->x = actor->object->position.x;
                                         actor->plane->y = actor->object->position.y;
                                         actor->plane->z = actor->object->position.z;
-                                        if (abs(this->area->getY(actor->object->position.x, actor->object->position.z) - actor->object->position.y) <= 10 ) {
-                                            actor->object->position.y = this->area->getY(actor->object->position.x, actor->object->position.z);
+                                        if (abs(ground_y - actor->object->position.y) <= 10 ) {
+                                            actor->object->position.y = ground_y;
                                             actor->plane->on_ground = true;
                                         } else {
                                             actor->plane->on_ground = false;
                                         }
+                                        if (actor->object->position.y < ground_y) {
+                                            actor->plane->position.y += ground_y;
+                                        }
+                                    } else if (actor->object->position.y < ground_y) {
+                                        actor->object->position.y = ground_y;
                                     }
                                 }
                                 

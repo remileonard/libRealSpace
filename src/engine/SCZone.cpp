@@ -41,30 +41,76 @@ bool  SCZone::isActive(std::unordered_map<uint8_t, bool> *requierd_flags) {
         return this->active;
     }
     bool isActive = true;
+    bool nextOpIsOr = false;
+    bool isFirst = true;
     for (auto requ_flag: *this->sprite->requ) {
         switch (requ_flag->op) {
             case 0:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    isActive = isActive && !requierd_flags->at(requ_flag->value);
+                    if (isFirst) {
+                        isActive = !requierd_flags->at(requ_flag->value);
+                        isFirst = false;
+                    } else {
+                        if (nextOpIsOr) {
+                            isActive = isActive || !requierd_flags->at(requ_flag->value);
+                        } else {
+                            isActive = isActive && !requierd_flags->at(requ_flag->value);
+                        }
+                    }
+                    nextOpIsOr = false;
                 }
                 break;
             case 1:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    isActive = isActive && requierd_flags->at(requ_flag->value);
+                    if (isFirst) {
+                        isActive = requierd_flags->at(requ_flag->value);
+                        isFirst = false;
+                    } else {
+                        if (nextOpIsOr) {
+                            isActive = isActive || requierd_flags->at(requ_flag->value);
+                        } else {
+                            isActive = isActive && requierd_flags->at(requ_flag->value);
+                        }
+                    }
+                    nextOpIsOr = false;
                 }
                 break;
             case 2:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    isActive = isActive || requierd_flags->at(requ_flag->value);
+                    if (isFirst) {
+                        isActive = !requierd_flags->at(requ_flag->value);
+                        isFirst = false;
+                    } else {
+                        if (nextOpIsOr) {
+                            isActive = isActive || !requierd_flags->at(requ_flag->value);
+                        } else {
+                            isActive = isActive && !requierd_flags->at(requ_flag->value);
+                        }
+                    }
+                    nextOpIsOr = true;
                 }
                 break;
             case 3:
                 if (requierd_flags->find(requ_flag->value) != requierd_flags->end()) {
-                    isActive = isActive || !requierd_flags->at(requ_flag->value);
+                    if (isFirst) {
+                        isActive = requierd_flags->at(requ_flag->value);
+                        isFirst = false;
+                    } else {
+                        if (nextOpIsOr) {
+                            isActive = isActive || requierd_flags->at(requ_flag->value);
+                        } else {
+                            isActive = isActive && requierd_flags->at(requ_flag->value);
+                        }
+                    }
+                    nextOpIsOr = true;
                 }
                 break;
             default:
                 break;
+        }
+        if (!isActive) {
+            // Not sure about it
+            break;
         }
     }
     this->active = isActive;
