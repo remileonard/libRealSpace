@@ -108,7 +108,7 @@ bool  SCZone::isActive(std::unordered_map<uint8_t, bool> *requierd_flags) {
             default:
                 break;
         }
-        if (!isActive) {
+        if (!isActive && !nextOpIsOr) {
             // Not sure about it
             break;
         }
