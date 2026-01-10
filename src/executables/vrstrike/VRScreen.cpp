@@ -322,24 +322,19 @@ void VRScreen::renderTimingDebugWindow() {
 		ImGui::SetWindowFontScale(2.0f);
         VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
         
-        // Informations OpenXR
-        ImGui::SeparatorText("OpenXR Status");
-        ImGui::Text("Session Running: %s", m_sessionRunning ? "Yes" : "No");
-        ImGui::Text("Session State: %d", (int)m_sessionState);
-        ImGui::Text("Present Mode: %s", 
-            m_presentMode == PresentMode::StereoProjection ? "Stereo Projection" : "Quad Layer");
-        
         // Informations de timing
         ImGui::SeparatorText("Frame Timing");
         if (m_stereoFrameBegun || m_sessionRunning) {
             ImGui::Text("Predicted Display Time: %.3f ms", 
                 vrTimer->getLastXrTime() / 1e6);
-            ImGui::Text("Frame Delta: %.2f ms (%.1f FPS)", 
+            ImGui::Text("Real Frame Delta: %.2f ms (%.1f FPS)", 
+                vrTimer->m_realDeltaTime * 1000.0f,
+                1.0f / vrTimer->m_realDeltaTime);
+			ImGui::Text("Limit Frame Delta: %.2f ms (%.1f FPS)", 
                 vrTimer->getDeltaTime() * 1000.0f,
                 1.0f / vrTimer->getDeltaTime());
-            
             // Historique des frame times
-            m_frameTimeHistory[m_frameHistoryIndex] = vrTimer->getDeltaTime() * 1000.0f;
+            m_frameTimeHistory[m_frameHistoryIndex] = vrTimer->m_realDeltaTime * 1000.0f;
             m_frameHistoryIndex = (m_frameHistoryIndex + 1) % FRAME_HISTORY_SIZE;
             
             ImGui::PlotLines("Frame Time (ms)", m_frameTimeHistory, FRAME_HISTORY_SIZE, 

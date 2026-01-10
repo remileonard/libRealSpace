@@ -21,6 +21,7 @@ public:
         // Attendre pour atteindre 30 FPS avec précision
         auto now = std::chrono::high_resolution_clock::now();
         std::chrono::duration<float> elapsed = now - m_lastFrameStart;
+        m_realDeltaTime = elapsed.count();
         float elapsedSeconds = elapsed.count();
         
         // Si on est en avance, on attend
@@ -124,7 +125,7 @@ public:
     XrTime getLastXrTime() const { return m_lastXrTime; }
     float getSmoothedFPS() const { return 1.0f / m_smoothedDeltaTime; }
     float getTargetFPS() const { return m_expectedFPS; }
-    
+    float m_realDeltaTime;
 private:
     XrTime m_lastXrTime;
     XrTime m_lastFPSUpdate;
@@ -132,6 +133,7 @@ private:
     float m_targetFrameTime;
     float m_smoothedDeltaTime;
     float m_expectedFPS;
+    
     bool m_hadSpikeThisSecond;
     std::chrono::high_resolution_clock::time_point m_lastFrameStart;
 };
