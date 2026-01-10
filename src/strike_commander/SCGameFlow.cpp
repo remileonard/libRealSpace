@@ -227,6 +227,7 @@ void SCGameFlow::runEffect() {
             case EFECT_OPT_MISS_REJECTED:
             case EFECT_OPT_IF_NOT_FLAG:
             case EFFCT_OPT_IF_MISS_SUCCESS:
+            case EFECT_IF_LAST_MISS_FAILED:
                 // Pour les if imbriqués dans un bloc ignoré
                 ifDepth++;
                 if (ifDepth < MAX_IF_DEPTH) {
@@ -331,7 +332,13 @@ void SCGameFlow::runEffect() {
                 elseEncountered[ifDepth] = false;
             }
             break;
-            
+        case EFECT_IF_LAST_MISS_FAILED:
+            ifDepth++;
+            if (ifDepth < MAX_IF_DEPTH) {
+                executeStack[ifDepth] = !GameState.mission_flyed_success[GameState.mission_flyed];
+                elseEncountered[ifDepth] = false;
+            }
+            break;
         case EFECT_OPT_MISS_ELSE:
             if (ifDepth >= 0 && !elseEncountered[ifDepth]) {
                 executeStack[ifDepth] = !executeStack[ifDepth];

@@ -263,7 +263,7 @@ enum GameFlowOpCode {
     EFECT_OPT_U11 = 27,
     EFECT_OPT_U12 = 29,
     EFECT_OPT_U14 = 36,
-    EFECT_OPT_U15 = 37,
+    EFECT_IF_LAST_MISS_FAILED = 37,
     EFECT_OPT_U16 = 27,
     EFFCT_OPT_U17 = 35,
     EFFCT_OPT_U18 = 11,
@@ -303,6 +303,6 @@ static std::unordered_map<GameFlowOpCode, std::string> game_flow_op_name = {
     {EFECT_OPT_U11, "EFECT_OPT_U11"},
     {EFECT_OPT_U12, "EFECT_OPT_U12"},
     {EFECT_OPT_U14, "EFECT_OPT_U14"},
-    {EFECT_OPT_U15, "EFECT_OPT_U15"},
+    {EFECT_IF_LAST_MISS_FAILED, "IF_LAST_MISS_FAILED"},
     {EFECT_OPT_U16, "EFECT_OPT_U16"}
 };
