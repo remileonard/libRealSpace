@@ -1245,9 +1245,9 @@ void VRScreen::refresh(void) {
                     fz /= len;
 
                     // Position du panneau
-					const float distance = 1.0f;        // Distance devant
-					const float rightOffset = 0.8f;     // Décalage à droite
-					const float downOffset = -2.0f;     // Décalage vers le bas
+					const float distance = 0.8f;        // Distance devant
+					const float rightOffset = 0.0f;     // Décalage à droite
+					const float downOffset = -1.7f;     // Décalage vers le bas
 					
 					// Calculer le vecteur right (perpendiculaire à forward dans le plan XZ)
 					float rx = fz;

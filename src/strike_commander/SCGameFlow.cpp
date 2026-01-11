@@ -764,6 +764,11 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
         {3, "./assets/MID_3.IFF"},
         {34, "./assets/MID_4.IFF"},
         {5, "./assets/MID_5.IFF"},
+        {12, "./assets/MID_12.IFF"},
+        {14, "./assets/MID_14.IFF"},
+        {15, "./assets/MID_15.IFF"},
+        {17, "./assets/MID_17.IFF"},
+        {20, "./assets/MID_20.IFF"},
     };
     if (midgame_file_map.find(midGameId) != midgame_file_map.end()) {
         std::string filepath = midgame_file_map[midGameId];
