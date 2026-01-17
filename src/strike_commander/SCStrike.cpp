@@ -1039,6 +1039,14 @@ void SCStrike::checkKeyboard(void) {
         Mixer.stopSound();
         Mixer.stopSound(5);
     }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1))) {
+        this->current_mission->gameflow_registers[0] = 1;
+        this->current_mission->mission_ended = true;
+    }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_2))) {
+        this->current_mission->gameflow_registers[0] = 0;
+        this->current_mission->mission_ended = true;
+    }
     float lx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X)); 
     float ly = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y)); 
 

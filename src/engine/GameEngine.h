@@ -89,7 +89,9 @@ enum SimActionOfst {
     CONTROLLER_STICK_LEFT_Y = 56,
     CONTROLLER_STICK_RIGHT_X = 57,
     CONTROLLER_STICK_RIGHT_Y = 58,
-    RADAR_MODE_TOGGLE = 59
+    RADAR_MODE_TOGGLE = 59,
+    SPEC_KEY_1 = 60,
+    SPEC_KEY_2 = 61
 };
 
 class GameEngine{

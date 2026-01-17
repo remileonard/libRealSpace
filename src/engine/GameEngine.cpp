@@ -174,6 +174,8 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT), SDL_SCANCODE_F6);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_WEAPONS), SDL_SCANCODE_F8);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_TARGET_CAMERA), SDL_SCANCODE_F9);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1), SDL_SCANCODE_F10);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_2), SDL_SCANCODE_F11);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE), SDL_SCANCODE_P);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::EYES_ON_TARGET), SDL_SCANCODE_Y);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION), SDL_SCANCODE_ESCAPE);

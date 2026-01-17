@@ -318,6 +318,9 @@ void SCMission::update() {
             this->tps = newtps;
         }
     }
+    if (this->mission_ended) {
+        return;
+    }
     this->tick_counter++;
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
     float yawRad = this->player->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
