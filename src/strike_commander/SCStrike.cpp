@@ -1041,6 +1041,7 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1))) {
         this->current_mission->gameflow_registers[0] = 1;
+        this->current_mission->gameflow_registers[1] = 2;
         this->current_mission->mission_ended = true;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_2))) {
