@@ -34,7 +34,7 @@ void PSGameFlowParser::parseOpCode(uint8_t *data, size_t size, std::vector<EFCT 
         {GameFlowOpCode::EFECT_OPT_U11                  ,1},
         {GameFlowOpCode::EFECT_OPT_U12                  ,1},
         {GameFlowOpCode::EFECT_OPT_U14                  ,2},
-        {GameFlowOpCode::EFECT_IF_LAST_MISS_FAILED      ,1},
+        {GameFlowOpCode::EFECT_IF_LAST_MISS_SUCCESS      ,1},
         {GameFlowOpCode::EFECT_OPT_U16                  ,1},
         {GameFlowOpCode::EFFCT_OPT_U17                  ,2},
         {GameFlowOpCode::EFFCT_OPT_U18                  ,1},
