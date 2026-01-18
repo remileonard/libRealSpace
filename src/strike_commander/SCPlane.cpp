@@ -119,22 +119,28 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
     // Prédiction pour les tirs IA comme dans Shoot()
     if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
         Vector3D targetVelocity = {0, 0, 0};
+        Vector3D predictedPosition = { 0, 0, 0 };
+        float distance = direction.Length();
+        float timeToTarget = distance / -thrustMagnitude;
+
         if (target->plane != nullptr) {
             targetVelocity = {
                 target->plane->x - target->plane->last_px,
                 target->plane->y - target->plane->last_py,
                 target->plane->z - target->plane->last_pz
             };
+            predictedPosition = {
+                target->plane->x + targetVelocity.x * timeToTarget,
+                target->plane->y + targetVelocity.y * timeToTarget,
+                target->plane->z + targetVelocity.z * timeToTarget
+            };
+        } else {
+            predictedPosition = {
+                target->object->position.x,
+                target->object->position.y,
+                target->object->position.z
+            };
         }
-        
-        float distance = direction.Length();
-        float timeToTarget = distance / -thrustMagnitude;
-        
-        Vector3D predictedPosition = {
-            target->plane->x + targetVelocity.x * timeToTarget,
-            target->plane->y + targetVelocity.y * timeToTarget,
-            target->plane->z + targetVelocity.z * timeToTarget
-        };
         
         direction = {
             predictedPosition.x - this->x,
@@ -147,11 +153,13 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
             distance = direction.Length();
             timeToTarget = distance / -thrustMagnitude;
             
-            predictedPosition = {
-                target->plane->x + targetVelocity.x * timeToTarget,
-                target->plane->y + targetVelocity.y * timeToTarget,
-                target->plane->z + targetVelocity.z * timeToTarget
-            };
+            if (target->plane != nullptr) {
+                predictedPosition = {
+                    target->plane->x + targetVelocity.x * timeToTarget,
+                    target->plane->y + targetVelocity.y * timeToTarget,
+                    target->plane->z + targetVelocity.z * timeToTarget
+                };
+            }
             
             direction = {
                 predictedPosition.x - this->x,

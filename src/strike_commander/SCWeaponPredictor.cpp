@@ -73,15 +73,24 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
             has_hit_ground = true;
             break;
         }
-        
-        // Si une cible est définie, calculer la distance
+
+        Vector3D target_pos = {0.0f, 0.0f, 0.0f};
         if (target && target->plane) {
-            Vector3D target_pos = {
+            target_pos = {
                 target->plane->x, 
                 target->plane->y, 
                 target->plane->z
             };
-            
+        } else if (target) {
+            target_pos = {
+                target->object->position.x,
+                target->object->position.y,
+                target->object->position.z
+            };
+        }
+        // Si une cible est définie, calculer la distance
+        if (target ) {
+
             Vector3D current_pos = {this->sim_object->x, this->sim_object->y, this->sim_object->z};
             float distance = (target_pos - current_pos).Norm();
             
@@ -100,16 +109,25 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
     }
     
     // Calcul de la probabilité d'impact
-    if (target && target->plane) {
+    if (target) {
+        Vector3D target_pos = {0.0f, 0.0f, 0.0f};
+        if (target->plane) {
+            target_pos = {
+                target->plane->x, 
+                target->plane->y, 
+                target->plane->z
+            };
+        } else {
+            target_pos = {
+                target->object->position.x,
+                target->object->position.y,
+                target->object->position.z
+            };
+        }
         if (obj->entity_type == EntityType::bomb) {
             // Pour les bombes, la probabilité dépend de l'impact au sol et du rayon d'explosion
             if (has_hit_ground) {
                 Vector3D impact_pos = this->trajectory.back();
-                Vector3D target_pos = {
-                    target->plane->x, 
-                    target->plane->y, 
-                    target->plane->z
-                };
                 float distance = (target_pos - impact_pos).Norm();
                 this->hit_probability = 1.0f - (distance / (obj->wdat->radius * 1.5f));
                 if (this->hit_probability < 0.0f) this->hit_probability = 0.0f;
@@ -128,14 +146,25 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
     // Calculer le vecteur de direction ajusté
     Vector3D adjusted_direction = initial_direction;
     
-    if (target && target->plane && !has_hit && closest_distance < 50.0f) {
+    if (target && !has_hit && closest_distance < 50.0f) {
         // Ajustement basé sur le point le plus proche atteint
+
         Vector3D target_pos = {
-            target->plane->x, 
-            target->plane->y, 
-            target->plane->z
+            0.0f, 0.0f, 0.0f
         };
-        
+        if (target->plane) {
+            target_pos = {
+                target->plane->x, 
+                target->plane->y, 
+                target->plane->z
+            };
+        } else {
+            target_pos = {
+                target->object->position.x,
+                target->object->position.y,
+                target->object->position.z
+            };
+        }
         // Vecteur d'erreur: différence entre la cible et le point le plus proche
         Vector3D error_vector = target_pos - closest_point;
         

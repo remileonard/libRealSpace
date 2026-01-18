@@ -284,12 +284,87 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                 }
             }
         } else {
-            wp.x = actor->object->position.x;
-            wp.y = this->plane->y;
-            wp.z = actor->object->position.z;
-            this->pilot->SetTargetWaypoint(wp);
-            this->pilot->target_speed = -10;
             is_ground_target = true;
+            wp.x = actor->object->position.x;
+            wp.y = actor->object->position.y + 300.0f; // Altitude d'attaque
+            wp.z = actor->object->position.z;
+            
+            this->pilot->SetTargetWaypoint(wp);
+            Vector3D diff = wp - position;
+            float dist = diff.Length();
+            
+            // Trouver l'arme appropriée pour attaquer la cible au sol
+            int hpt_id = 0;
+            int attack_range = 0;
+            int max_weap = 1;
+            bool can_attack = false;
+            
+            for (auto weap : this->plane->weaps_load) {
+                if (weap == nullptr) {
+                    hpt_id++;
+                    continue;
+                }
+                
+                // Les armes efficaces contre les cibles au sol (catégories 0=guns, 1=rockets, 2=missiles)
+                int effective_range = weap->objct->wdat->effective_range + 500 * (this->profile->ai.atrb.AG / 16);
+                
+                if (effective_range >= dist) {
+                    if (weap->nb_weap > 0) {
+                        attack_range = weap->objct->wdat->target_range;
+                        can_attack = true;
+                        
+                        if (current_weapon_index != weap->objct->wdat->weapon_category) {
+                            current_weapon_index = weap->objct->wdat->weapon_category;
+                            this->plane->wp_cooldown = 0;
+                        }
+                        
+                        if (weap->objct->wdat->weapon_category == 0) {
+                            max_weap = 40;
+                        }
+                        break;
+                    }
+                }
+                hpt_id++;
+            }
+            
+            // Ajuster la vitesse et l'altitude en fonction de la distance
+            if (dist > attack_range) {
+                this->pilot->target_speed = -40;
+                this->pilot->target_climb = (int) wp.y;
+            } else if (dist < attack_range && can_attack) {
+                this->pilot->target_speed = -20;
+                this->pilot->target_climb = (int) wp.y;
+                
+                // Calculer l'azimut vers la cible
+                Vector3D target_dir = {actor->object->position.x - this->plane->x,
+                                      0.0f,
+                                      actor->object->position.z - this->plane->z};
+                
+                float target_azimuth = atan2f(target_dir.z, target_dir.x) * 180.0f / M_PI;
+                target_azimuth -= 360.0f;
+                target_azimuth += 90.0f;
+                if (target_azimuth > 360.0f) {
+                    target_azimuth -= 360.0f;
+                }
+                while (target_azimuth < 0.0f) {
+                    target_azimuth += 360.0f;
+                }
+                target_azimuth = 360.0f - target_azimuth;
+                
+                float target_diff = target_azimuth - (this->plane->yaw / 10.0f);
+                while (target_diff > 180.0f) target_diff -= 360.0f;
+                while (target_diff < -180.0f) target_diff += 360.0f;
+                
+                // Tirer si la cible est dans l'arc de tir (arc plus large pour les cibles au sol)
+                if (std::abs(target_diff) < 45.0f) {
+                    if (this->plane->weaps_object.size() < max_weap) {
+                        int should_shoot = std::rand() % 16;
+                        if (should_shoot <= this->profile->ai.atrb.AG) { // Utiliser AG au lieu de TH
+                            this->plane->Shoot(hpt_id, actor, this->mission);
+                        }
+                    }
+                }
+            }
         }
         if (should_talk) {
             std::srand(static_cast<unsigned int>(std::time(nullptr)));
