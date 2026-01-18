@@ -20,6 +20,7 @@ typedef struct MapObject{
     
     RSEntity* entity{nullptr};
     std::vector<uint16_t> progs_id;
+    std::vector<uint8_t> unknowns;
     
 } MapObject;
 

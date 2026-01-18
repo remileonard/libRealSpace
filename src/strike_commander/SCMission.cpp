@@ -251,6 +251,7 @@ void SCMission::loadMission() {
         actor->profile = nullptr;
         actor->is_active = true;
         actor->is_hidden = false;
+        actor->team_id = 255; // by default set it to enemy
         if (area_actor.entity == nullptr) {
             continue;
         }

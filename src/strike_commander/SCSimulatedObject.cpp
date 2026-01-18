@@ -144,6 +144,9 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
 }
 bool SCSimulatedObject::CheckCollision(SCMissionActors *entity) { 
     BoudingBox *bb{nullptr};
+    if (entity->team_id == this->shooter->team_id) {
+        return false;
+    }
     if (entity == shooter) {
         return false;
     }

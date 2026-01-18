@@ -66,26 +66,25 @@ void RSArea::ParseObjects() {
                 mapObject.name[k] = reader.ReadByte();
             mapObject.name[8] = 0;
 
-            uint8_t unknown09 = reader.ReadByte();
-            uint8_t unknown10 = reader.ReadByte();
-            uint8_t unknown11 = reader.ReadByte();
-            uint8_t unknown12 = reader.ReadByte();
-            uint8_t unknown13 = reader.ReadByte();
+            mapObject.unknowns.push_back(reader.ReadByte());
+            mapObject.unknowns.push_back(reader.ReadByte());
+            mapObject.unknowns.push_back(reader.ReadByte());
+            mapObject.unknowns.push_back(reader.ReadByte());
+            mapObject.unknowns.push_back(reader.ReadByte());
 
             for (int k = 0; k < 8; k++)
                 mapObject.destroyedName[k] = reader.ReadByte();
             mapObject.destroyedName[8] = 0;
 
-            uint8_t unknown14 = reader.ReadByte();
-            uint8_t unknown15 = reader.ReadByte();
+            mapObject.unknowns.push_back(reader.ReadByte());
+            mapObject.unknowns.push_back(reader.ReadByte());
             mapObject.position.x = reader.ReadInt24LE() * BLOCK_COORD_SCALE;
             mapObject.position.z = -reader.ReadInt24LE() * BLOCK_COORD_SCALE;
             mapObject.position.y = reader.ReadInt24LE() * HEIGH_MAP_SCALE;
 
-            uint8_t unknowns[3];
 
             for (int k = 0; k < 2; k++)
-                unknowns[k] = reader.ReadByte();
+                mapObject.unknowns.push_back(reader.ReadByte());
 
             mapObject.progs_id.push_back(reader.ReadUShort());
             mapObject.progs_id.push_back(reader.ReadUShort());

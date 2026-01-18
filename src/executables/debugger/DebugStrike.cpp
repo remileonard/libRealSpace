@@ -1203,6 +1203,9 @@ void DebugStrike::renderMenu() {
                 if (ImGui::TreeNode((void *)(intptr_t)g, "Object id %d", g)) {
                     ImGui::Text("Object name %s", obj->name);
                     ImGui::Text("Object x %.3f y %.3f z %.3f", obj->position.x, obj->position.y, obj->position.z);
+                    for (auto unknown_byte : obj->unknowns) {
+                        ImGui::Text("ub %d", unknown_byte);
+                    }
                     ImGui::TreePop();
                 }
             }

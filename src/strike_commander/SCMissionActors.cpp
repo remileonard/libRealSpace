@@ -793,6 +793,9 @@ int SCMissionActors::getDistanceToSpot(uint8_t arg) {
 }
 void SCMissionActors::shootWeapon(SCMissionActors *target) {
     static int shoot_cooldown = 0;
+    if (this->is_destroyed || !this->is_active) {
+        return;
+    }
     if (shoot_cooldown > 0) {
         shoot_cooldown--;
         return;
