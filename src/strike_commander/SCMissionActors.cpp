@@ -436,7 +436,10 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
     }
     this->current_objective = OP_SET_OBJ_DEFEND_TARGET;
     Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    for (auto actor: this->mission->enemies) {
+    for (auto actor: this->mission->actors) {
+        if (actor->team_id == this->team_id) {
+            continue;
+        }
         if (actor->plane != nullptr) {
             if (actor->is_active && actor->target != nullptr && actor->target->actor_id == arg) {
                 if (actor->plane != nullptr && actor->plane->object->alive == 0) {
@@ -452,7 +455,10 @@ bool SCMissionActors::defendTarget(uint8_t arg) {
             }
         }
     }
-    for (auto actor: this->mission->enemies) {
+    for (auto actor: this->mission->actors) {
+        if (actor->team_id == this->team_id) {
+            continue;
+        }
         if (actor->plane != nullptr) {
             if (actor->is_active && actor->target != nullptr && actor->target->actor_id == this->actor_id) {
                 if (actor->plane != nullptr && actor->plane->object->alive == 0) {
@@ -496,28 +502,12 @@ bool SCMissionActors::defendArea(uint8_t arg) {
             return this->flyToArea(arg);
         }
         if (this->current_target == 0) {
-            bool is_enemy = false;
-            for (auto actor: this->mission->enemies) {
+            for (auto actor: this->mission->actors) {
+                if (actor->team_id == this->team_id) {
+                    continue;
+                }
                 if (actor->plane != nullptr) {
-                    if (actor->actor_id == this->actor_id) {
-                        is_enemy = true;
-                        break;
-                    }
-                }
-            }
-            if (is_enemy) {
-                for (auto actor: this->mission->friendlies) {
-                    if (actor->plane != nullptr) {
-                        uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
-                        if (actor_area_id == area_id) {
-                            this->current_target = actor->actor_id;
-                            break;
-                        }
-                    }
-                }
-            } else {
-                for (auto actor: this->mission->enemies) {
-                    if (actor->plane != nullptr) {
+                    if (actor->team_id != this->team_id) {
                         uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
                         if (actor_area_id == area_id) {
                             this->current_target = actor->actor_id;
@@ -656,13 +646,14 @@ bool SCMissionActors::ifTargetInSameArea(uint8_t arg) {
             if (actor->is_active == true && !actor->is_destroyed) {
                 return true;
             }
-            /*if (actor->plane == nullptr) {
+
+            if (actor->plane == nullptr) {
                 return (area_id == actor->object->area_id);
             }
             Uint8 target_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
             if (area_id == target_area_id) {
                 return true;
-            }*/
+            }
         }
     }
     return false;
