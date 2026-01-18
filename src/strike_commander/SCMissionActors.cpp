@@ -309,32 +309,31 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                 int effective_range = weap->objct->wdat->effective_range + 500 * (this->profile->ai.atrb.AG / 16);
                 bool is_bomb = false;
                 const float desired_drop_height = this->plane->y;
+                if (weap->objct->wdat->weapon_id == ID_MK82 || weap->objct->wdat->weapon_id == ID_MK20) {
+                    is_bomb = true;
+                    // Calculer la vitesse horizontale de l'avion (en m/s)
+                    float horizontal_speed = std::sqrt(this->plane->vx * this->plane->vx + this->plane->vz * this->plane->vz);
+                    const float gravity = 9.81f;
+                    if (horizontal_speed > 0.1f) {
+                        // Temps de chute depuis l'altitude de largage prévue
+                        float fall_time = std::sqrt(2.0f * desired_drop_height / gravity);
+                        
+                        // Distance horizontale parcourue pendant la chute
+                        attack_range = (int)(horizontal_speed * fall_time);
+                        
+                        // Ajouter une marge de sécurité
+                        attack_range += (int)(desired_drop_height * 0.1f);
+                        
+                        effective_range = attack_range + 3000; // Zone d'approche large
+                    }
+                }
                 if (effective_range >= dist) {
                     if (weap->nb_weap > 0) {
-                        attack_range = weap->objct->wdat->target_range;
-                        if (weap->objct->wdat->weapon_id == ID_MK82 || weap->objct->wdat->weapon_id == ID_MK20) {
-                            is_bomb = true;
-                            // Calculer la vitesse horizontale de l'avion (en m/s)
-                            float horizontal_speed = std::sqrt(this->plane->vx * this->plane->vx + this->plane->vz * this->plane->vz);
-                            const float gravity = 9.81f;
-                            if (horizontal_speed > 0.1f) {
-                                // Temps de chute depuis l'altitude de largage prévue
-                                float fall_time = std::sqrt(2.0f * desired_drop_height / gravity);
-                                
-                                // Distance horizontale parcourue pendant la chute
-                                attack_range = (int)(horizontal_speed * fall_time);
-                                
-                                // Ajouter une marge de sécurité
-                                attack_range += (int)(desired_drop_height * 0.1f);
-                                
-                                effective_range = attack_range + 3000; // Zone d'approche large
-                            } else {
-                                hpt_id++;
-                                continue;
-                            }
+                        if (attack_range == 0 && !is_bomb) {
+                            attack_range = weap->objct->wdat->target_range;
                         }
                         can_attack = true;
-                        
+
                         if (current_weapon_index != weap->objct->wdat->weapon_category) {
                             current_weapon_index = weap->objct->wdat->weapon_category;
                             this->plane->wp_cooldown = 0;
