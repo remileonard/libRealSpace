@@ -1214,12 +1214,14 @@ void SCPlane::RenderSimulatedObject() {
     }
 }
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
-    if (this->weaps_load[weapon_hard_point_id] == nullptr) {
+    SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
+    weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (weap_loadout == nullptr) {
         return;
     }
     if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
         int precision = std::rand() % 16;
-        if (precision <= this->pilot->profile->ai.atrb.AA) {
+        if (precision <= this->pilot->profile->ai.atrb.AA || weap_loadout->objct->wdat->weapon_id == ID_MK20 || weap_loadout->objct->wdat->weapon_id == ID_MK82) {
             this->ShootWithPrediction(weapon_hard_point_id, target, mission);
             return;
         }

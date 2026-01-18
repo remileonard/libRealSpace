@@ -154,6 +154,12 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
     bool should_talk = false;
     bool is_new_target = false;
     bool is_ground_target = false;
+    if (this->is_destroyed) {
+        return false;
+    }
+    if (this->plane != nullptr && this->plane->alive == 0) {
+        return false;
+    }
     if (this->pilot == nullptr) {
         return false;
     }
@@ -1159,6 +1165,9 @@ bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {
         this->mission->mission_over = true;
         this->mission->mission_won = true;
     } else if (arg == 21) {
+        this->mission->mission_over = true;
+        this->mission->mission_won = false;
+    } else if (arg == 22) {
         this->mission->mission_over = true;
         this->mission->mission_won = false;
     }
