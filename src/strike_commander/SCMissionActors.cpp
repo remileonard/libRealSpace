@@ -286,7 +286,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
         } else {
             is_ground_target = true;
             wp.x = actor->object->position.x;
-            wp.y = actor->object->position.y + 300.0f; // Altitude d'attaque
+            wp.y = this->plane->y; // Garder l'altitude actuelle
             wp.z = actor->object->position.z;
             
             this->pilot->SetTargetWaypoint(wp);
@@ -307,10 +307,32 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                 
                 // Les armes efficaces contre les cibles au sol (catégories 0=guns, 1=rockets, 2=missiles)
                 int effective_range = weap->objct->wdat->effective_range + 500 * (this->profile->ai.atrb.AG / 16);
-                
+                bool is_bomb = false;
+                const float desired_drop_height = this->plane->y;
                 if (effective_range >= dist) {
                     if (weap->nb_weap > 0) {
                         attack_range = weap->objct->wdat->target_range;
+                        if (weap->objct->wdat->weapon_id == ID_MK82 || weap->objct->wdat->weapon_id == ID_MK20) {
+                            is_bomb = true;
+                            // Calculer la vitesse horizontale de l'avion (en m/s)
+                            float horizontal_speed = std::sqrt(this->plane->vx * this->plane->vx + this->plane->vz * this->plane->vz);
+                            const float gravity = 9.81f;
+                            if (horizontal_speed > 0.1f) {
+                                // Temps de chute depuis l'altitude de largage prévue
+                                float fall_time = std::sqrt(2.0f * desired_drop_height / gravity);
+                                
+                                // Distance horizontale parcourue pendant la chute
+                                attack_range = (int)(horizontal_speed * fall_time);
+                                
+                                // Ajouter une marge de sécurité
+                                attack_range += (int)(desired_drop_height * 0.1f);
+                                
+                                effective_range = attack_range + 3000; // Zone d'approche large
+                            } else {
+                                hpt_id++;
+                                continue;
+                            }
+                        }
                         can_attack = true;
                         
                         if (current_weapon_index != weap->objct->wdat->weapon_category) {
@@ -329,11 +351,11 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             
             // Ajuster la vitesse et l'altitude en fonction de la distance
             if (dist > attack_range) {
-                this->pilot->target_speed = -40;
                 this->pilot->target_climb = (int) wp.y;
+                this->pilot->target_speed = -60;
             } else if (dist < attack_range && can_attack) {
                 this->pilot->target_speed = -20;
-                this->pilot->target_climb = (int) wp.y;
+                this->pilot->target_climb = (int) actor->object->position.y + 500.0f;
                 
                 // Calculer l'azimut vers la cible
                 Vector3D target_dir = {actor->object->position.x - this->plane->x,

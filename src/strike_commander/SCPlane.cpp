@@ -218,12 +218,12 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     MemSound *sound = nullptr;
     
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
-        case 12:
+        case weapon_ids::ID_20MM:
             weap = new GunSimulatedObject();
             this->wp_cooldown = 30;
             break;
-        case 5:
-        case 6:
+        case weapon_ids::ID_MK20:
+        case weapon_ids::ID_MK82:
             weap = new GunSimulatedObject();
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
@@ -250,11 +250,11 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     
     float thrustMagnitude = planeSpeed;
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
-        case 12: // Gun
+        case weapon_ids::ID_20MM: // Gun
             thrustMagnitude = planeSpeed * 250.0f * (this->tps / 60.0f);
             break;
-        case 5:
-        case 6: // Bombs
+        case weapon_ids::ID_MK20:
+        case weapon_ids::ID_MK82: // Bombs
             thrustMagnitude = planeSpeed * 50.0f * (this->tps / 60.0f);
             break;
         default: // Missiles
