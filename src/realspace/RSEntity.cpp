@@ -248,6 +248,7 @@ void RSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
     handlers["GRND"] = std::bind(&RSEntity::parseREAL_OBJT_GRND, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ORNT"] = std::bind(&RSEntity::parseREAL_OBJT_ORNT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["EXTE"] = std::bind(&RSEntity::parseREAL_OBJT_EXTE, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["RNWY"] = std::bind(&RSEntity::parseREAL_OBJT_RNWY, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MISS"] = std::bind(&RSEntity::parseREAL_OBJT_MISS, this, std::placeholders::_1, std::placeholders::_2);
     handlers["BOMB"] = std::bind(&RSEntity::parseREAL_OBJT_BOMB, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TRCR"] = std::bind(&RSEntity::parseREAL_OBJT_TRCR, this, std::placeholders::_1, std::placeholders::_2);
@@ -781,6 +782,9 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_OBJT_EXTE(uint8_t *data, size_t size) {
     
+}
+void RSEntity::parseREAL_OBJT_RNWY(uint8_t *data, size_t size) {
+    this->entity_type = EntityType::rnwy;
 }
 void RSEntity::parseREAL_APPR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;

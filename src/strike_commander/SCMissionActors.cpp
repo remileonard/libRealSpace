@@ -850,6 +850,37 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                 SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);
                 p->execute();
             }
+            if (actor->object->entity->entity_type == EntityType::rnwy) {
+                for (auto runway: this->mission->area->objectOverlay) {
+                    Vector3D pos = actor->object->position;
+                    
+                    // Vérifier si la position de l'objet est à l'intérieur de la piste
+                    if (pos.x >= runway.lx && pos.x <= runway.hx && 
+                        pos.z <= -runway.ly && pos.z >= -runway.hy) {
+                        
+                        // Calculer les dimensions de la piste
+                        float width = (float)std::abs(runway.lx - runway.hx); 
+                        float length = (float)std::abs(runway.ly - runway.hy);
+                        
+                        // Calculer l'orientation (angle) de la piste
+                        float angle = (float)std::atan2(runway.ly - runway.hy, 
+                                                runway.lx - runway.hx);
+                        
+                        // Recalculer la bounding box
+                        actor->object->entity->bb.min.x = -width / 2.0f;
+                        actor->object->entity->bb.max.x = width / 2.0f;
+                        actor->object->entity->bb.min.y = -5;
+                        actor->object->entity->bb.max.y = 5;
+                        actor->object->entity->bb.min.z = -length / 2.0f;
+                        actor->object->entity->bb.max.z = length / 2.0f;
+                        
+                        // Appliquer l'orientation à l'objet
+                        actor->object->azymuth = angle * 180.0f / M_PI;
+                        
+                        break;
+                    }
+                }
+            }
             return true;
         }
     }

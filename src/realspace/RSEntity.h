@@ -108,6 +108,7 @@ enum EntityType {
     object_mobile = 10,
     debris = 11,
     destroyed_object = 12,
+    rnwy = 13,
 };
 class RSImage;
 
@@ -265,8 +266,8 @@ public:
     EntityType entity_type;
     void parseREAL_OBJT_JETP(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size);
-private:
     BoudingBox bb;
+private:
     void CalcBoundingBox(void);
     void calcWingArea(void);
     void AddImage(RSImage *image);
@@ -280,6 +281,7 @@ private:
     void parseREAL_OBJT_INFO(uint8_t *data, size_t size);
     void parseREAL_OBJT_GRND(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN(uint8_t *data, size_t size);
+    void parseREAL_OBJT_RNWY(uint8_t *data, size_t size);
     void parseREAL_OBJT_ORNT(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS(uint8_t *data, size_t size);
     void parseREAL_OBJT_BOMB(uint8_t *data, size_t size);
