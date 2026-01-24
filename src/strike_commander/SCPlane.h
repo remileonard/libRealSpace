@@ -305,7 +305,8 @@ public:
     
     // Visualisation de la trajectoire projetée
     void RenderWeaponTrajectories();
-    
+
+    Vector3D getWeaponIntialVector(float speedFactor);
 };
 
 #endif

@@ -738,28 +738,13 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     }
 
     GunSimulatedObject *weap = new GunSimulatedObject();
-
-    Vector3D direction = {this->player_plane->x - this->player_plane->last_px,
-                          this->player_plane->y - this->player_plane->last_py,
-                          this->player_plane->z - this->player_plane->last_pz};
-
-    float planeSpeed = direction.Length();
-    float thrustMagnitude = -planeSpeed;
-    thrustMagnitude = -planeSpeed * 250.0f * (60 / this->player_plane->tps); // coefficient ajustable
-
-    float yawRad = tenthOfDegreeToRad(this->player_plane->yaw);
-    float pitchRad = tenthOfDegreeToRad(-this->player_plane->pitch);
-    float rollRad = tenthOfDegreeToRad(0.0f);
-
-    float cosRoll = cosf(rollRad);
-    float sinRoll = sinf(rollRad);
-
     Vector3D initial_trust{0, 0, 0};
-    initial_trust.x =
-        thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
-    initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
-    initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
-
+    Vector3D direction       = {
+        this->player_plane->x - this->player_plane->last_px,
+        this->player_plane->y - this->player_plane->last_py,
+        this->player_plane->z - this->player_plane->last_pz
+    };
+    initial_trust = this->player_plane->getWeaponIntialVector(250.0f * (this->player_plane->tps / 60.0f));
     weap->obj = this->player_plane->weaps_load[0]->objct;
     weap->x = this->player_plane->x;
     weap->y = this->player_plane->y;
