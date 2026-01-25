@@ -180,6 +180,13 @@ public:
     float elevation_speedf{0.0f};
     float azimuth_speedf{0.0f};
 
+
+    float m_old_yaw{0.0f};
+    float m_old_pitch{0.0f};
+
+    float m_yaw_var{0.0f};
+    float m_pitch_var{0.0f};
+
     float lift_force {0.0f};
     float drag_force {0.0f};
     float gravity_drag_force {0.0f};

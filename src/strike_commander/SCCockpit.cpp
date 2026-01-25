@@ -760,6 +760,21 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     Vector3D target{0, 0, 0};
     Vector3D velo{0, 0, 0};
+    Vector3D avion_pos {
+        this->player_plane->x,
+        this->player_plane->y,
+        this->player_plane->z
+    };
+
+    // Vitesses angulaires actuelles
+    float yaw_speed = this->player_plane->m_yaw_var;   // en dixièmes de degré/tick
+    float pitch_speed = this->player_plane->m_pitch_var;
+    float roll_speed = this->player_plane->roll_speed;
+
+    // Orientation actuelle
+    float yaw_future = this->player_plane->yaw;
+    float pitch_future = this->player_plane->pitch;
+    float roll_future = this->player_plane->roll;
 
     for (int i = 0; i < 150; i++) {
         std::tie(target, velo) = weap->ComputeTrajectory(this->player_plane->tps);
@@ -770,15 +785,31 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         weap->vx = velo.x;
         weap->vy = velo.y;
         weap->vz = velo.z;
+
+        avion_pos.x += direction.x;
+        avion_pos.y += direction.y;
+        avion_pos.z += direction.z;
+
+        yaw_future += yaw_speed;
+        pitch_future += pitch_speed;
+        roll_future += roll_speed;
     }
 
+    Matrix plane_future_transform;
+    plane_future_transform.Identity();
+    plane_future_transform.translateM(avion_pos.x, avion_pos.y, avion_pos.z);
+    plane_future_transform.rotateM(tenthOfDegreeToRad(yaw_future), 0, 1, 0);
+    plane_future_transform.rotateM(tenthOfDegreeToRad(pitch_future), 1, 0, 0);
+    plane_future_transform.rotateM(tenthOfDegreeToRad(roll_future), 0, 0, 1);
+
+    
     // ---- Projection HUD pour cockpit 3D ----
     // target est le point d'impact prédit en coordonnées monde
     const Vector3D targetWorld = {target.x, target.y, target.z};
 
     // Monde -> repère avion (plane local)
-    const Matrix planeFromWorld = invertRigidBodyMatrixLocal(this->player_plane->ptw);
-
+    Matrix planeFromWorld = invertRigidBodyMatrixLocal(plane_future_transform);
+    
     // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
     int Ydraw = 0;

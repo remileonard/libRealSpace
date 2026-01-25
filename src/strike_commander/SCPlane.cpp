@@ -590,7 +590,9 @@ void SCPlane::updatePosition() {
         this->ptw.rotateM(tenthOfDegreeToRad((float)this->roll_speed), 0, 0, 1);
 
     temp = 0.0f;
+    this->m_old_pitch = this->pitch;
     this->pitch = (-asinf(this->ptw.v[2][1]) * 180.0f / (float)M_PI) * 10;
+    this->m_pitch_var = this->m_old_pitch - this->pitch;
 
     float ascos = 0.0f;
 
@@ -605,6 +607,7 @@ void SCPlane::updatePosition() {
         } else if (sincosas < -1) {
             sincosas = -1;
         }
+        this->m_old_yaw = this->yaw;
         this->yaw = asinf(sincosas) / (float)M_PI * 1800.0f;
         if (this->ptw.v[2][2] < 0.0) {
             /* if heading into z	*/
@@ -614,6 +617,7 @@ void SCPlane::updatePosition() {
             /* then adjust		*/
             this->yaw += 3600;
         }
+        this->m_yaw_var = this->m_old_yaw - this->yaw;
         float a = this->ptw.v[0][1] / temp;
         if (a > 1.0f) {
             a = 1.0f;

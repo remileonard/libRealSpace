@@ -53,6 +53,7 @@ void DebugStrike::simInfo() {
     ImGui::Text("Pitch %.3f, Yaw %.3f, roll %.3f", this->player_plane->elevationf, this->player_plane->azimuthf,
                 this->player_plane->twist);
     ImGui::Text("Pich input %.3f, Roll input %d, Yaw input %.3f", this->player_plane->elevation_speedf, this->player_plane->roll_speed, this->player_plane->azimuth_speedf);
+    ImGui::Text("CCIRP pitch[%.3f] yaw[%.3f]", this->player_plane->m_pitch_var, this->player_plane->m_yaw_var);
     ImGui::Text("Y %.3f, On ground %d", this->player_plane->y, this->player_plane->on_ground);
     ImGui::Text("flight [roller:%4f, elevator:%4f, rudder:%4f]", this->player_plane->rollers,
                 this->player_plane->elevator, this->player_plane->rudder);
