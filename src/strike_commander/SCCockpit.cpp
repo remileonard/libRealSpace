@@ -699,8 +699,8 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 
     // Calcul des angles azimut (horizontal) et élévation (vertical)
     // depuis l'axe de visée (-Z) du cockpit
-    float az = atan2f(toTarget.x, forward); // Angle horizontal (X = droite/gauche)
-    float el = atan2f(toTarget.y, forward); // Angle vertical (Y = haut/bas)
+    float az = atan2f(-toTarget.x, forward); // Angle horizontal (X = droite/gauche)
+    float el = atan2f(-toTarget.y, forward); // Angle vertical (Y = haut/bas)
 
     // Appliquer l'offset angulaire du cannon
     // Le cannon pointe légèrement différemment de l'axe de l'avion
@@ -767,20 +767,21 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     };
 
     // Vitesses angulaires actuelles
-    float yaw_speed = this->player_plane->m_yaw_var;   // en dixièmes de degré/tick
-    float pitch_speed = this->player_plane->m_pitch_var;
-    float roll_speed = this->player_plane->roll_speed;
+    float delta_time = 1.0f / (float)this->player_plane->tps;
+    float yaw_speed = this->player_plane->m_yaw_var * delta_time;   // en dixièmes de degré/tick
+    float pitch_speed = this->player_plane->m_pitch_var * delta_time;
+    float roll_speed = this->player_plane->roll_speed * delta_time;
 
     // Orientation actuelle
     float yaw_future = this->player_plane->yaw;
     float pitch_future = this->player_plane->pitch;
     float roll_future = this->player_plane->roll;
 
-    for (int i = 0; i < 150; i++) {
+    for (int i = 0; i < 250; i++) {
         std::tie(target, velo) = weap->ComputeTrajectory(this->player_plane->tps);
-        weap->x = target.x + direction.x;
-        weap->y = target.y + direction.y;
-        weap->z = target.z + direction.z;
+        weap->x = target.x ;
+        weap->y = target.y ;
+        weap->z = target.z ;
 
         weap->vx = velo.x;
         weap->vy = velo.y;
