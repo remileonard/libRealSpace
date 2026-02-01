@@ -197,7 +197,7 @@ int32_t ByteStream::ReadInt32LE(void) {
 	return *i;
 }
 float ByteStream::ReadFixedFloatLE(void) {
-	uint32_t integer_value = this->ReadUInt32LE();
+	int32_t integer_value = this->ReadInt32LE();
 	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x000000FF) / 255.0f;
 	return float_value;
 }

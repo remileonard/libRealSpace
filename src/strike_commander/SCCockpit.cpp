@@ -628,8 +628,8 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 
     // Calcul des angles azimut (horizontal) et élévation (vertical)
     // depuis l'axe de visée (-Z) du cockpit
-    float az = atan2f(-toTarget.x, forward); // Angle horizontal (X = droite/gauche)
-    float el = atan2f(-toTarget.y, forward); // Angle vertical (Y = haut/bas)
+    float az = atan2f(toTarget.x, forward); // Angle horizontal (X = droite/gauche)
+    float el = atan2f(toTarget.y, forward); // Angle vertical (Y = haut/bas)
 
     // Appliquer l'offset angulaire du cannon
     // Le cannon pointe légèrement différemment de l'axe de l'avion
@@ -668,11 +668,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     GunSimulatedObject *weap = new GunSimulatedObject();
     Vector3D initial_trust{0, 0, 0};
-    Vector3D direction       = {
-        this->player_plane->x - this->player_plane->last_px,
-        this->player_plane->y - this->player_plane->last_py,
-        this->player_plane->z - this->player_plane->last_pz
-    };
     initial_trust = this->player_plane->getWeaponIntialVector(250.0f * (this->player_plane->tps / 60.0f));
     weap->obj = this->player_plane->weaps_load[0]->objct;
     weap->x = this->player_plane->x;
@@ -687,7 +682,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     weap->elevationf = this->player_plane->elevationf;
     weap->target = nullptr;
 
-    Vector3D target{0, 0, 0};
+    Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
     Vector3D avion_pos {
         this->player_plane->x,
@@ -695,55 +690,30 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         this->player_plane->z
     };
 
-    // Vitesses angulaires actuelles
-    float delta_time = 1.0f / (float)this->player_plane->tps;
-    float yaw_speed = this->player_plane->m_yaw_var * delta_time;   // en dixièmes de degré/tick
-    float pitch_speed = this->player_plane->m_pitch_var * delta_time;
-    float roll_speed = this->player_plane->roll_speed * delta_time;
-
-    // Orientation actuelle
-    float yaw_future = this->player_plane->yaw;
-    float pitch_future = this->player_plane->pitch;
-    float roll_future = this->player_plane->roll;
 
     for (int i = 0; i < 250; i++) {
-        std::tie(target, velo) = weap->ComputeTrajectory(this->player_plane->tps);
-        weap->x = target.x ;
-        weap->y = target.y ;
-        weap->z = target.z ;
+        std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
+        weap->x = impact.x ;
+        weap->y = impact.y ;
+        weap->z = impact.z ;
 
         weap->vx = velo.x;
         weap->vy = velo.y;
         weap->vz = velo.z;
-
-        avion_pos.x += direction.x;
-        avion_pos.y += direction.y;
-        avion_pos.z += direction.z;
-
-        yaw_future += yaw_speed;
-        pitch_future += pitch_speed;
-        roll_future += roll_speed;
     }
-
-    Matrix plane_future_transform;
-    plane_future_transform.Identity();
-    plane_future_transform.translateM(avion_pos.x, avion_pos.y, avion_pos.z);
-    plane_future_transform.rotateM(tenthOfDegreeToRad(yaw_future), 0, 1, 0);
-    plane_future_transform.rotateM(tenthOfDegreeToRad(pitch_future), 1, 0, 0);
-    plane_future_transform.rotateM(tenthOfDegreeToRad(roll_future), 0, 0, 1);
 
     
     // ---- Projection HUD pour cockpit 3D ----
     // target est le point d'impact prédit en coordonnées monde
-    const Vector3D targetWorld = {target.x, target.y, target.z};
+    const Vector3D impactWorld = {weap->x, weap->y, weap->z};
 
     // Monde -> repère avion (plane local)
-    Matrix planeFromWorld = plane_future_transform.invertRigidBodyMatrixLocal();
+    Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
     
     // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
     int Ydraw = 0;
-    if (projectCannonSightToHUD(targetWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
+    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
                                 Ydraw)) {
         fb->plot_pixel(Xdraw, Ydraw, 223);
         fb->circle_slow(Xdraw, Ydraw, 6, 90);
@@ -772,30 +742,13 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
 
     GunSimulatedObject *weap = new GunSimulatedObject();
 
-    Vector3D direction = {this->player_plane->x - this->player_plane->last_px,
-                          this->player_plane->y - this->player_plane->last_py,
-                          this->player_plane->z - this->player_plane->last_pz};
-
-    float planeSpeed = direction.Length();
-    float thrustMagnitude = -planeSpeed;
-    thrustMagnitude = -planeSpeed * 50.0f * ((float)this->player_plane->tps / 60.0f); // comme avant
-
-    float yawRad = tenthOfDegreeToRad(this->player_plane->yaw);
-    float pitchRad = tenthOfDegreeToRad(-this->player_plane->pitch);
-    float rollRad = tenthOfDegreeToRad(0.0f);
-
-    float cosRoll = cosf(rollRad);
-    float sinRoll = sinf(rollRad);
+    
+    float thrustMagnitude = 50.0f * ((float)this->player_plane->tps / 60.0f); // comme avant
 
     Vector3D initial_trust{0, 0, 0};
-    initial_trust.x =
-        thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
-    initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
-    initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
-
+    initial_trust = this->player_plane->getWeaponIntialVector(thrustMagnitude);
     weap->obj = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
 
-    // IMPORTANT: départ bombe = position avion (pas camera)
     weap->x = this->player_plane->x;
     weap->y = this->player_plane->y;
     weap->z = this->player_plane->z;
@@ -809,20 +762,17 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
     weap->target = nullptr;
     weap->mission = this->current_mission;
 
-    Vector3D target{0, 0, 0};
+    Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
-    std::tie(target, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
+    std::tie(impact, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
 
-    // Utiliser la nouvelle fonction de projection pour cockpit 3D
-    Vector3D targetWorld = {target.x, target.y, target.z};
+    Vector3D impactWorld = {impact.x, impact.y, impact.z};
     const Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
 
-    // Offset angulaire pour les bombes (en radians)
-    // Les bombes suivent une trajectoire balistique, pas besoin d'offset angulaire
     const Vector2D bombAngularOffset = {0.0f, 0.0f};
 
     int Xhud = 0, Yhud = 0;
-    if (projectCannonSightToHUD(targetWorld, planeFromWorld, this->hud_eye_world, bombAngularOffset, fb, Xhud, Yhud)) {
+    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, bombAngularOffset, fb, Xhud, Yhud)) {
         fb->plot_pixel(center.x, center.y, 223);
         fb->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
         fb->plot_pixel(Xhud, Yhud, 223);
