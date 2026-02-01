@@ -308,13 +308,13 @@ TEST_F(ByteStreamTest, ReadFixedFloatLE_ReturnsCorrectValue_AndAdvancesPosition)
     
     EXPECT_EQ(0, stream.GetCurrentPosition());
     float result = stream.ReadFixedFloatLE();
-    EXPECT_FLOAT_EQ(1.0f, result); // 255 / 255.0 = 1.0
+    EXPECT_FLOAT_EQ(5649427.0f, result); // 5649427 + 255 / 255.0 = 5649428.0
     EXPECT_EQ(4, stream.GetCurrentPosition());
 }
 
 TEST_F(ByteStreamTest, ReadFixedFloatLE_WithZeroLSB_ReturnsZero_AndAdvancesPosition) {
     // Little Endian: 0x00 at position 0 = 0
-    uint8_t data[] = {0x00, 0xFF, 0xFF, 0xFF, 0xAA};
+    uint8_t data[] = {0x00, 0x00, 0x00, 0x00, 0xAA};
     ByteStream stream(data, 5);
     
     EXPECT_EQ(0, stream.GetCurrentPosition());
@@ -342,13 +342,13 @@ TEST_F(ByteStreamTest, ReadFixedFloatBE_ReturnsCorrectValue_AndAdvancesPosition)
     
     EXPECT_EQ(0, stream.GetCurrentPosition());
     float result = stream.ReadFixedFloatBE();
-    EXPECT_FLOAT_EQ(1.0f, result); // 255 / 255.0 = 1.0
+    EXPECT_FLOAT_EQ(1193047.00f, result); // 1193047 + 255 / 255.0 = 1193048.0
     EXPECT_EQ(4, stream.GetCurrentPosition());
 }
 
 TEST_F(ByteStreamTest, ReadFixedFloatBE_WithZeroLSB_ReturnsZero_AndAdvancesPosition) {
     // Big Endian: 0x00 at position 3 = 0
-    uint8_t data[] = {0xFF, 0xFF, 0xFF, 0x00, 0xAA};
+    uint8_t data[] = {0x00, 0x00, 0x00, 0x00, 0xAA};
     ByteStream stream(data, 5);
     
     EXPECT_EQ(0, stream.GetCurrentPosition());

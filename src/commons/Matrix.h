@@ -37,7 +37,7 @@ public:
     void Clear(void);
     void Identity(void);
     
-    void Multiply(Matrix* other);
+    
     
     void Print(void);
     
@@ -53,8 +53,10 @@ public:
     void SetRotationZ(float angle);
     void translateM(float x, float y, float z);
     void rotateM(float angle, float x, float y, float z);
+    void Multiply(Matrix* other);
     void Multiply(Vector3DHomogeneous other);
     Vector3DHomogeneous multiplyMatrixVector(Vector3DHomogeneous v);
+    Matrix invertRigidBodyMatrixLocal();
 private:
 };
 class Vector3D{
@@ -161,13 +163,6 @@ public:
         this->z = this-> z + other.z;
         return *this;
     };
-    inline Vector3D applyRotation(Matrix matrix) {
-        Vector3D result;
-        result.x = matrix.v[0][0] * this->x + matrix.v[0][1] * this->y + matrix.v[0][2] * this->z;
-        result.y = matrix.v[1][0] * this->x + matrix.v[1][1] * this->y + matrix.v[1][2] * this->z;
-        result.z = matrix.v[2][0] * this->x + matrix.v[2][1] * this->y + matrix.v[2][2] * this->z;
-        return result;
-    };
     inline Vector3D operator+(const Vector3D& other) {
         return Vector3D(this->x + other.x, this->y + other.y, this->z + other.z);
     };
@@ -198,6 +193,7 @@ public:
     int operator==(const Vector3D& other) const {
         return this->x == other.x && this->y == other.y && this->z == other.z;
     };
+    Vector3D transformPoint(const Matrix &m);
     float x;
     float y;
     float z;

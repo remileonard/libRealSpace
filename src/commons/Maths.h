@@ -12,10 +12,24 @@
 #include <math.h>
 #include <stdint.h>
 
-typedef struct Point2D{
+class Point2D{
+public:
     int32_t x;
     int32_t y;
-} Point2D;
+
+    Point2D rotateAroundPoint(Point2D center, float angle) {
+        float x = this->x - center.x;
+        float y = this->y - center.y;
+        float newx = x * cos(angle) - y * sin(angle) + center.x;
+        float newy = x * sin(angle) + y * cos(angle) + center.y;
+        return {(int)newx, (int)newy};
+    };
+    Point2D rotate(float angle) {
+        float newx = this->x * cos(angle) - this->y * sin(angle);
+        float newy = this->x * sin(angle) + this->y * cos(angle);
+        return {(int)newx, (int)newy};
+    };
+};
 
 class Point2Df {
 public:
@@ -54,6 +68,13 @@ public:
             this->x /= len;
             this->y /= len;
         }
+    };
+    Vector2D rotateAroundPoint(Vector2D center, float angle) {
+        float x = this->x - center.x;
+        float y = this->y - center.y;
+        float newx = x * cos(angle) - y * sin(angle) + center.x;
+        float newy = x * sin(angle) + y * cos(angle) + center.y;
+        return {newx, newy};
     };
 };
 

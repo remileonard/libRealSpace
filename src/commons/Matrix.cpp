@@ -200,6 +200,35 @@ Vector3DHomogeneous Matrix::multiplyMatrixVector(Vector3DHomogeneous v) {
     
     return result;
 }
+Matrix Matrix::invertRigidBodyMatrixLocal() { 
+    Matrix inv;
+
+    // Rotation inverse = transpose
+    inv.v[0][0] = this->v[0][0];
+    inv.v[0][1] = this->v[1][0];
+    inv.v[0][2] = this->v[2][0];
+    inv.v[0][3] = 0.0f;
+    inv.v[1][0] = this->v[0][1];
+    inv.v[1][1] = this->v[1][1];
+    inv.v[1][2] = this->v[2][1];
+    inv.v[1][3] = 0.0f;
+    inv.v[2][0] = this->v[0][2];
+    inv.v[2][1] = this->v[1][2];
+    inv.v[2][2] = this->v[2][2];
+    inv.v[2][3] = 0.0f;
+
+    // Translation inverse = -R^T * t
+    const float tx = this->v[3][0];
+    const float ty = this->v[3][1];
+    const float tz = this->v[3][2];
+
+    inv.v[3][0] = -(inv.v[0][0] * tx + inv.v[1][0] * ty + inv.v[2][0] * tz);
+    inv.v[3][1] = -(inv.v[0][1] * tx + inv.v[1][1] * ty + inv.v[2][1] * tz);
+    inv.v[3][2] = -(inv.v[0][2] * tx + inv.v[1][2] * ty + inv.v[2][2] * tz);
+    inv.v[3][3] = 1.0f;
+
+    return inv;
+}
 void Matrix::Multiply(Vector3DHomogeneous other) {
     for (int i=0; i<4; i++) {
         this->v[i][0] = this->v[i][0] * other.x + this->v[i][0] * other.y + this->v[i][0] * other.z + this->v[i][0] * other.w;
@@ -207,4 +236,12 @@ void Matrix::Multiply(Vector3DHomogeneous other) {
         this->v[i][2] = this->v[i][2] * other.x + this->v[i][2] * other.y + this->v[i][2] * other.z + this->v[i][2] * other.w;
         this->v[i][3] = this->v[i][3] * other.x + this->v[i][3] * other.y + this->v[i][3] * other.z + this->v[i][3] * other.w;
     }
+}
+
+Vector3D Vector3D::transformPoint(const Matrix &m) { 
+    Vector3D out;
+    out.x = this->x * m.v[0][0] + this->y * m.v[1][0] + this->z * m.v[2][0] + m.v[3][0];
+    out.y = this->x * m.v[0][1] + this->y * m.v[1][1] + this->z * m.v[2][1] + m.v[3][1];
+    out.z = this->x * m.v[0][2] + this->y * m.v[1][2] + this->z * m.v[2][2] + m.v[3][2];
+    return out;    
 }

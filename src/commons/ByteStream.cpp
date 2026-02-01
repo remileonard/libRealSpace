@@ -121,7 +121,7 @@ void ByteStream::MoveBackward(int bytes) {
 }
 
 uint8_t ByteStream::ReadByte(void) { 
-	if (this->position > this->size) {
+	if (this->position >= this->size) {
 		printf("ByteStream: Attempt to read past end of stream (%zu >= %zu)\n", this->position, this->size);
 		return 0;
 	}
@@ -197,12 +197,12 @@ int32_t ByteStream::ReadInt32LE(void) {
 	return *i;
 }
 float ByteStream::ReadFixedFloatLE(void) {
-	int32_t integer_value = this->ReadInt32LE();
+	uint32_t integer_value = this->ReadUInt32LE();
 	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x000000FF) / 255.0f;
 	return float_value;
 }
 float ByteStream::ReadFixedFloatBE(void) {
-	int32_t integer_value = this->ReadUInt32BE();
+	uint32_t integer_value = this->ReadUInt32BE();
 	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x000000FF) / 255.0f;
 	return float_value;
 }

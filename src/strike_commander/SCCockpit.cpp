@@ -8,38 +8,6 @@
 #include "precomp.h"
 #include "SCCockpit.h"
 
-
-Point2D rotateAroundPoint(Vector2D point, Point2D center, float angle) {
-    float x = point.x - center.x;
-    float y = point.y - center.y;
-    float newx = x * cos(angle) - y * sin(angle) + center.x;
-    float newy = x * sin(angle) + y * cos(angle) + center.y;
-    return {(int)newx, (int)newy};
-}
-Vector2D rotateAroundPoint(Vector2D point, Vector2D center, float angle) {
-    float x = point.x - center.x;
-    float y = point.y - center.y;
-    float newx = x * cos(angle) - y * sin(angle) + center.x;
-    float newy = x * sin(angle) + y * cos(angle) + center.y;
-    return {newx, newy};
-}
-Point2D rotateAroundPoint(Point2D point, Point2D center, float angle) {
-    float x = (float)(point.x - center.x);
-    float y = (float)(point.y - center.y);
-    float newx = x * cos(angle) - y * sin(angle) + center.x;
-    float newy = x * sin(angle) + y * cos(angle) + center.y;
-    return {(int)newx, (int)newy};
-}
-Point2D rotate(Vector2D point, float angle) {
-    float newx = point.x * cos(angle) - point.y * sin(angle);
-    float newy = point.x * sin(angle) + point.y * cos(angle);
-    return {(int)newx, (int)newy};
-}
-Point2D rotate(Point2D point, float angle) {
-    float newx = point.x * cos(angle) - point.y * sin(angle);
-    float newy = point.x * sin(angle) + point.y * cos(angle);
-    return {(int)newx, (int)newy};
-}
 SCCockpit::SCCockpit() {}
 SCCockpit::~SCCockpit() {
     if (this->hud_framebuffer) {
@@ -366,11 +334,11 @@ void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuff
         l2.end.y = l2.end.y - dec;
         l2.end.x = l.start.x + ligne_width;
 
-        l.start = rotateAroundPoint(l.start, center, this->roll * (float)M_PI / 180.0f);
-        l.end = rotateAroundPoint(l.end, center, this->roll * (float)M_PI / 180.0f);
+        l.start = l.start.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
+        l.end = l.end.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
 
-        l2.start = rotateAroundPoint(l2.start, center, this->roll * (float)M_PI / 180.0f);
-        l2.end = rotateAroundPoint(l2.end, center, this->roll * (float)M_PI / 180.0f);
+        l2.start = l2.start.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
+        l2.end = l2.end.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
         txt = std::to_string(ladder);
         if (l.start.x > bx1 && l.start.x < bx2 && l.start.y > by1 && l.start.y < by2) {
             Point2D p = l.start;
@@ -390,8 +358,8 @@ void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuff
             l3.start.y = l3.start.y - dec;
             l3.end.y = l3.end.y - dec;
             l3.end.x = l3.start.x + ligne_width + 10;
-            l3.start = rotateAroundPoint(l3.start, center, this->roll * (float)M_PI / 180.0f);
-            l3.end = rotateAroundPoint(l3.end, center, this->roll * (float)M_PI / 180.0f);
+            l3.start = l3.start.rotateAroundPoint( center, this->roll * (float)M_PI / 180.0f);
+            l3.end = l3.end.rotateAroundPoint( center, this->roll * (float)M_PI / 180.0f);
             fb->lineWithBox(l3.start.x, l3.start.y, l3.end.x, l3.end.y, color, bx1, bx2, by1, by2);
         } else {
             int skip = 1;
@@ -481,46 +449,6 @@ void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb
             }
         }
     }
-}
-
-static Matrix invertRigidBodyMatrixLocal(const Matrix &m) {
-    // m: rotation + translation, stockage m.v[col][row]
-    Matrix inv;
-
-    // Rotation inverse = transpose
-    inv.v[0][0] = m.v[0][0];
-    inv.v[0][1] = m.v[1][0];
-    inv.v[0][2] = m.v[2][0];
-    inv.v[0][3] = 0.0f;
-    inv.v[1][0] = m.v[0][1];
-    inv.v[1][1] = m.v[1][1];
-    inv.v[1][2] = m.v[2][1];
-    inv.v[1][3] = 0.0f;
-    inv.v[2][0] = m.v[0][2];
-    inv.v[2][1] = m.v[1][2];
-    inv.v[2][2] = m.v[2][2];
-    inv.v[2][3] = 0.0f;
-
-    // Translation inverse = -R^T * t
-    const float tx = m.v[3][0];
-    const float ty = m.v[3][1];
-    const float tz = m.v[3][2];
-
-    inv.v[3][0] = -(inv.v[0][0] * tx + inv.v[1][0] * ty + inv.v[2][0] * tz);
-    inv.v[3][1] = -(inv.v[0][1] * tx + inv.v[1][1] * ty + inv.v[2][1] * tz);
-    inv.v[3][2] = -(inv.v[0][2] * tx + inv.v[1][2] * ty + inv.v[2][2] * tz);
-    inv.v[3][3] = 1.0f;
-
-    return inv;
-}
-
-static Vector3D transformPoint(const Matrix &m, const Vector3D &p) {
-    // m.v[col][row] et point w=1
-    Vector3D out;
-    out.x = p.x * m.v[0][0] + p.y * m.v[1][0] + p.z * m.v[2][0] + m.v[3][0];
-    out.y = p.x * m.v[0][1] + p.y * m.v[1][1] + p.z * m.v[2][1] + m.v[3][1];
-    out.z = p.x * m.v[0][2] + p.y * m.v[1][2] + p.z * m.v[2][2] + m.v[3][2];
-    return out;
 }
 
 static bool projectLocalAnglesToHud(const Vector3D &vLocal, FrameBuffer *fb, int &outX, int &outY) {
@@ -682,7 +610,8 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
                                     const Vector2D &cannonAngularOffset, // (azimut_offset, elevation_offset) en radians
                                     FrameBuffer *fb, int &outX, int &outY) {
     // Transformer la cible dans le repère local de l'avion
-    Vector3D targetLocal = transformPoint(planeFromWorld, targetWorld);
+    Vector3D worldPos = targetWorld;
+    Vector3D targetLocal = worldPos.transformPoint(planeFromWorld);
 
     // Direction depuis l'origine de l'avion vers la cible dans le repère local
     Vector3D toTarget = targetLocal;
@@ -809,7 +738,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     const Vector3D targetWorld = {target.x, target.y, target.z};
 
     // Monde -> repère avion (plane local)
-    Matrix planeFromWorld = invertRigidBodyMatrixLocal(plane_future_transform);
+    Matrix planeFromWorld = plane_future_transform.invertRigidBodyMatrixLocal();
     
     // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
@@ -886,7 +815,7 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
 
     // Utiliser la nouvelle fonction de projection pour cockpit 3D
     Vector3D targetWorld = {target.x, target.y, target.z};
-    const Matrix planeFromWorld = invertRigidBodyMatrixLocal(this->player_plane->ptw);
+    const Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
 
     // Offset angulaire pour les bombes (en radians)
     // Les bombes suivent une trajectoire balistique, pas besoin d'offset angulaire
@@ -1119,7 +1048,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         Vector2D objPos = {object->object->position.x, object->object->position.z};
 
         // Rotation selon le heading du joueur
-        Vector2D rotatedPos = rotateAroundPoint(objPos, center, headingRad);
+        Vector2D rotatedPos = objPos.rotateAroundPoint(center, headingRad);
         Vector2D relativePos = {rotatedPos.x - center.x, rotatedPos.y - center.y};
 
         // Vérification de la distance
@@ -1212,7 +1141,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = null
                 scale = (distance / max_range) * this->cockpit->MONI.INST.RAWS.NORM.GetWidth() /
                         2; // Ajustement de l'échelle
                 Point2D p = {(int)(roa_dir.x * scale), (int)(roa_dir.y * scale)};
-                Point2D rotatedPos = rotateAroundPoint(p, {0, 0}, headingRad);
+                Point2D rotatedPos = p.rotateAroundPoint({0, 0}, headingRad);
                 Point2D raw_pos = {pmfd_left.x + (raws_size.x / 2) + rotatedPos.x,
                                    pmfd_left.y + (raws_size.y / 2) + rotatedPos.y};
                 this->cockpit->MONI.INST.RAWS.SYMB.GetShape(29)->SetPosition(&raw_pos);
