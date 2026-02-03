@@ -693,9 +693,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     for (int i = 0; i < 250; i++) {
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
-        weap->x = impact.x ;
-        weap->y = impact.y ;
-        weap->z = impact.z ;
+        weap->x = impact.x + i * this->player_plane->angular_velocity.x;
+        weap->y = impact.y + i * this->player_plane->angular_velocity.y;
+        weap->z = impact.z + i * this->player_plane->angular_velocity.z;
 
         weap->vx = velo.x;
         weap->vy = velo.y;
