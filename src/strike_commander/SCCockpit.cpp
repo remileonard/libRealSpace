@@ -666,55 +666,66 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         return;
     }
 
+    // 1. Calculer le temps de vol total
+    float timeOfFlight = 250.0f / this->player_plane->tps; // en secondes
+    
+    // 2. Obtenir le vecteur directeur initial de l'obus (dans le repère monde)
+    float muzzleVelocity = 250.0f * (this->player_plane->tps / 60.0f);
+    Vector3D initialDirection = this->player_plane->getWeaponIntialVector(muzzleVelocity);
+    
+    // 3. Normaliser le vecteur directeur initial
+    Vector3D shootingDir = initialDirection;
+    float initialSpeed = shootingDir.Length();
+    shootingDir.Normalize();
+    
+    // 4. Calculer le déplacement angulaire de l'avion pendant le temps de vol
+    //    angular_velocity est déjà un vecteur directionnel représentant la rotation
+    Vector3D angularDisplacement = this->player_plane->angular_velocity * timeOfFlight;
+    
+    // 5. Ajouter ce déplacement au vecteur directeur
+    //    (approximation linéaire pour de petits angles)
+    Vector3D correctedDir = shootingDir + angularDisplacement;
+    correctedDir.Normalize();
+    
+    // 6. Recalculer le vecteur vitesse avec la direction corrigée
+    Vector3D correctedVelocity = correctedDir * initialSpeed;
+    
+    // 7. Setup de la simulation
     GunSimulatedObject *weap = new GunSimulatedObject();
-    Vector3D initial_trust{0, 0, 0};
-    initial_trust = this->player_plane->getWeaponIntialVector(250.0f * (this->player_plane->tps / 60.0f));
     weap->obj = this->player_plane->weaps_load[0]->objct;
     weap->x = this->player_plane->x;
     weap->y = this->player_plane->y;
     weap->z = this->player_plane->z;
-    weap->vx = initial_trust.x;
-    weap->vy = initial_trust.y;
-    weap->vz = initial_trust.z;
-
+    weap->vx = correctedVelocity.x;
+    weap->vy = correctedVelocity.y;
+    weap->vz = correctedVelocity.z;
     weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg * 2.205f;
     weap->azimuthf = this->player_plane->azimuthf;
     weap->elevationf = this->player_plane->elevationf;
     weap->target = nullptr;
 
+    // 8. Simulation de la trajectoire
     Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
-    Vector3D avion_pos {
-        this->player_plane->x,
-        this->player_plane->y,
-        this->player_plane->z
-    };
-
-
+    
     for (int i = 0; i < 250; i++) {
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
-        weap->x = impact.x + i * this->player_plane->angular_velocity.x;
-        weap->y = impact.y + i * this->player_plane->angular_velocity.y;
-        weap->z = impact.z + i * this->player_plane->angular_velocity.z;
-
+        weap->x = impact.x;
+        weap->y = impact.y;
+        weap->z = impact.z;
         weap->vx = velo.x;
         weap->vy = velo.y;
         weap->vz = velo.z;
     }
-
     
-    // ---- Projection HUD pour cockpit 3D ----
-    // target est le point d'impact prédit en coordonnées monde
+    // 9. Projection sur le HUD
     const Vector3D impactWorld = {weap->x, weap->y, weap->z};
-
-    // Monde -> repère avion (plane local)
     Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
     
-    // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
     int Ydraw = 0;
-    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
-                                Ydraw)) {
+    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, 
+                                this->cannonAngularOffset, fb, Xdraw, Ydraw)) {
         fb->plot_pixel(Xdraw, Ydraw, 223);
         fb->circle_slow(Xdraw, Ydraw, 6, 90);
     }
