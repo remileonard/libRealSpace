@@ -1223,6 +1223,7 @@ Vector3D SCPlane::getWeaponIntialVector(float speedFactor) {
         this->x - this->last_px, this->y - this->last_py,
         this->z - this->last_pz
     };
+    float dt = 1.0f / this->tps;
     float planeSpeed      = direction.Length();
     float thrustMagnitude = -planeSpeed * speedFactor;
     float yawRad   = tenthOfDegreeToRad(this->yaw);

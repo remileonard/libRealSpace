@@ -312,7 +312,7 @@ void SCJdynPlane::updatePosition() {
     this->vz = this->incremental.v[3][2];
 
     float deltaTime = 1.0f / this->tps;
-    float yawRad   = tenthOfDegreeToRad(this->m_yaw_var*deltaTime);
+    float yawRad   = tenthOfDegreeToRad(-this->m_yaw_var*deltaTime);
     float pitchRad = tenthOfDegreeToRad(this->m_pitch_var*deltaTime);
     float rollRad  = 0.0;
     // Calcul du vecteur de poussée initiale dans la direction avant de l'avion.

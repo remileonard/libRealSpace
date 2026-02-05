@@ -666,30 +666,51 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         return;
     }
 
-    // 1. Calculer le temps de vol total
-    float timeOfFlight = 250.0f / this->player_plane->tps; // en secondes
-    
-    // 2. Obtenir le vecteur directeur initial de l'obus (dans le repère monde)
-    float muzzleVelocity = 250.0f * (this->player_plane->tps / 60.0f);
+    // 1. Temps de vol (s)
+    const float timeOfFlight = 500.0f / this->player_plane->tps;
+
+    // 2. Vitesse initiale (monde)
+    const float muzzleVelocity = 250.0f * (this->player_plane->tps / 60.0f);
     Vector3D initialDirection = this->player_plane->getWeaponIntialVector(muzzleVelocity);
-    
-    // 3. Normaliser le vecteur directeur initial
+
+    // 3. Direction initiale normalisée
     Vector3D shootingDir = initialDirection;
-    float initialSpeed = shootingDir.Length();
+    const float initialSpeed = shootingDir.Length();
     shootingDir.Normalize();
-    
-    // 4. Calculer le déplacement angulaire de l'avion pendant le temps de vol
-    //    angular_velocity est déjà un vecteur directionnel représentant la rotation
-    Vector3D angularDisplacement = this->player_plane->angular_velocity * timeOfFlight;
-    
-    // 5. Ajouter ce déplacement au vecteur directeur
-    //    (approximation linéaire pour de petits angles)
-    Vector3D correctedDir = shootingDir + angularDisplacement;
+
+    // 4. Convertir vitesses angulaires en rad/s puis en delta d’angle (rad)
+    // Hypothèse: m_*_var = dixième de degré par tick
+    const float yawRateRad   = tenthOfDegreeToRad(this->player_plane->m_yaw_var);
+    const float pitchRateRad = tenthOfDegreeToRad(this->player_plane->m_pitch_var);
+    const float rollRateRad  = 0.0f;
+
+    const float dYaw   = yawRateRad * timeOfFlight;
+    const float dPitch = -pitchRateRad * timeOfFlight;
+    const float dRoll  = rollRateRad * timeOfFlight;
+
+    // 5. Appliquer la rotation (yaw->pitch->roll) au vecteur directionnel
+    auto rotateYawPitchRoll = [](const Vector3D& v, float yaw, float pitch, float roll) -> Vector3D {
+        // yaw (autour Y), pitch (autour X), roll (autour Z) — adapter si axes diffèrent
+        const float cy = cosf(yaw),   sy = sinf(yaw);
+        const float cp = cosf(pitch), sp = sinf(pitch);
+        const float cr = cosf(roll),  sr = sinf(roll);
+
+        // Yaw
+        Vector3D r1{ v.x * cy + v.z * sy, v.y, -v.x * sy + v.z * cy };
+        // Pitch
+        Vector3D r2{ r1.x, r1.y * cp - r1.z * sp, r1.y * sp + r1.z * cp };
+        // Roll
+        Vector3D r3{ r2.x * cr - r2.y * sr, r2.x * sr + r2.y * cr, r2.z };
+        return r3;
+    };
+
+    Vector3D correctedDir = rotateYawPitchRoll(shootingDir, dYaw, dPitch, dRoll);
     correctedDir.Normalize();
-    
-    // 6. Recalculer le vecteur vitesse avec la direction corrigée
+
+    // 6. Recalcule vitesse corrigée
     Vector3D correctedVelocity = correctedDir * initialSpeed;
-    
+
+    // ...existing code...
     // 7. Setup de la simulation
     GunSimulatedObject *weap = new GunSimulatedObject();
     weap->obj = this->player_plane->weaps_load[0]->objct;
