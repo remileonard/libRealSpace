@@ -667,7 +667,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     }
 
     // 1. Temps de vol (s)
-    const float timeOfFlight = 500.0f / this->player_plane->tps;
+    const float timeOfFlight = 1000.0f / this->player_plane->tps;
 
     // 2. Vitesse initiale (monde)
     const float muzzleVelocity = 250.0f * (this->player_plane->tps / 60.0f);
@@ -728,7 +728,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     // 8. Simulation de la trajectoire
     Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
-    
+    trajectory_points.clear();
     for (int i = 0; i < 250; i++) {
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
         weap->x = impact.x;
@@ -737,6 +737,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         weap->vx = velo.x;
         weap->vy = velo.y;
         weap->vz = velo.z;
+        trajectory_points.push_back({impact.x, impact.y, impact.z});
     }
     
     // 9. Projection sur le HUD

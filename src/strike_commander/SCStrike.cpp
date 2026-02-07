@@ -1621,6 +1621,11 @@ void SCStrike::runFrame(void) {
         }
 
         this->player_plane->RenderSimulatedObject();
+        if (this->cockpit->trajectory_points.size() > 0) {
+            for(auto point: this->cockpit->trajectory_points) {
+                Renderer.drawPoint({0,0,0}, {1.0f, 0.0f, 0.0f}, point, {0.0f, 0.0f, 0.0f});
+            }
+        }
         this->cockpit->cam = camera;
 
         switch (this->camera_mode) {
@@ -1662,7 +1667,7 @@ void SCStrike::runFrame(void) {
             break;
         }
     };
-
+    
     // VR stéréo: rendu par oeil + cockpit VR uniquement.
     bool vrShouldRender = false;
     const uint32_t eyeCount = Screen ? Screen->vrStereoEyeCount() : 0;

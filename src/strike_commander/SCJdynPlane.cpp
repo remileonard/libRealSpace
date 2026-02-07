@@ -251,7 +251,14 @@ void SCJdynPlane::updatePosition() {
     temp = 0.0f;
     this->m_old_pitch = this->pitch;
     this->pitch = (-asinf(this->ptw.v[2][1]) * 180.0f / (float)M_PI) * 10;
-    this->m_pitch_var = this->m_old_pitch - this->pitch;
+    float pitchv = this->m_old_pitch - this->pitch;
+    if (this->m_pitch_var > pitchv) {
+        this->m_pitch_var -= 0.1f;
+    } else if (this->m_pitch_var < pitchv) {
+        this->m_pitch_var += 0.1f;
+    } else if (std::fabs(this->m_pitch_var - pitchv) <= 1.0f) {
+        this->m_pitch_var = pitchv;
+    }
     
     temp = cosf(tenthOfDegreeToRad(this->pitch));
 
@@ -274,7 +281,14 @@ void SCJdynPlane::updatePosition() {
             /* then adjust		*/
             this->yaw += 3600;
         }
-        this->m_yaw_var = this->m_old_yaw - this->yaw;
+        float yawv = this->m_old_yaw - this->yaw;
+        if (this->m_yaw_var > yawv) {
+            this->m_yaw_var -= 0.1f;
+        } else if (this->m_yaw_var < yawv) {
+            this->m_yaw_var += 0.1f;
+        } else if (std::fabs(this->m_yaw_var - yawv) <= 0.5f) {
+            this->m_yaw_var = yawv;
+        }
         float a = this->ptw.v[0][1] / temp;
         if (a > 1.0f) {
             a = 1.0f;

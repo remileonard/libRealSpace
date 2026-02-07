@@ -100,7 +100,7 @@ public:
     // x = azimut, y = élévation
     // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
     Vector2D cannonAngularOffset = {0.0f, 0.0f};
-
+    std::vector<Vector3D> trajectory_points;
     SCCockpit();
     ~SCCockpit();
     void init( );
