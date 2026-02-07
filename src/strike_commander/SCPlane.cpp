@@ -1228,7 +1228,7 @@ Vector3D SCPlane::getWeaponIntialVector(float speedFactor) {
     float thrustMagnitude = -planeSpeed * speedFactor;
     float yawRad   = tenthOfDegreeToRad(this->yaw);
     float pitchRad = tenthOfDegreeToRad(-this->pitch);
-    float rollRad  = 0.0;
+    float rollRad  = 0.0f;
     // Calcul du vecteur de poussée initiale dans la direction avant de l'avion.
     // On considère que le vecteur avant s'exprime en coordonnées :
     // x = cos(pitch)*sin(yaw), y = sin(pitch), z = cos(pitch)*cos(yaw)

@@ -214,7 +214,7 @@ void DebugGame::testMissionSC() {
         Assets.convpak_filename = Assets.gameflow_root_path+"CONV.PAK";
         SCMouse::getInstance().init();
         FontManager.init();
-        RSSound::getInstance().init();
+        //RSSound::getInstance().init();
         RSMixer::getInstance().init();
         //Add MainMenu activity on the game stack.
         loader->setProgress(100.0f);

@@ -482,7 +482,26 @@ static bool projectLocalAnglesToHud(const Vector3D &vLocal, FrameBuffer *fb, int
     outY = (int)(cy - ny * cy);
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
+static bool projectWithCam(Camera *cam, Vector3D &target, int &outX, int &outY) {
+    Vector3DHomogeneous v = {target.x, target.y, target.z, 1.0f};
 
+    Matrix *mproj = cam->getProjectionMatrix();
+    Matrix *mview = cam->getViewMatrix();
+
+    Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
+    Vector3DHomogeneous result    = mproj->multiplyMatrixVector(mcombined);
+    
+    if (result.z > 0.0f) {
+        float x = result.x / result.w;
+        float y = result.y / result.w;
+
+        int Xhud = (int)((x + 1.0f) * 160.0f);
+        int Yhud = (int)((1.0f - y) * 100.0f) - 1;
+        outX = Xhud;
+        outY = Yhud;
+        return (Xhud >= 0 && Xhud < 320 && Yhud >= 0 && Yhud < 200);
+    }
+}
 /**
  * projectToHUD3D - Projette un point 3D monde sur le HUD virtuel du cockpit 3D
  *
@@ -606,12 +625,11 @@ static bool projectToHUD3D(const Vector3D &targetLocal, const Vector3D &eyeLocal
  * @param outX, outY      Coordonnées de sortie en pixels
  * @return true si le point est visible sur le HUD
  */
-static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &planeFromWorld, const Vector3D &eyeLocal,
+static bool projectCannonSightToHUD(Vector3D &targetWorld, Matrix &planeFromWorld, const Vector3D &eyeLocal,
                                     const Vector2D &cannonAngularOffset, // (azimut_offset, elevation_offset) en radians
                                     FrameBuffer *fb, int &outX, int &outY) {
     // Transformer la cible dans le repère local de l'avion
-    Vector3D worldPos = targetWorld;
-    Vector3D targetLocal = worldPos.transformPoint(planeFromWorld);
+    Vector3D targetLocal = targetWorld.transformPoint(planeFromWorld);
 
     // Direction depuis l'origine de l'avion vers la cible dans le repère local
     Vector3D toTarget = targetLocal;
@@ -640,8 +658,15 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
     // du HUD tel que défini dans renderVirtualCockpit
     // HUD coords: TopLeft(5.8, 2.0, -1.22) à BottomRight(6.0, -0.8, 1.35)
     // Distance œil-HUD environ 6 unités, largeur HUD ~2.57, hauteur ~2.8
-    const float hudFovX = 24.0f * (float)M_PI / 180.0f; // ~24° horizontal
-    const float hudFovY = 26.0f * (float)M_PI / 180.0f; // ~26° vertical
+
+    /*
+        * Calcul du FOV angulaire à partir de la géométrie du HUD:
+        * FOV = 2 * atan((taille / 2) / distance)
+    */
+    float fovX = 2*atanf((1.35f - (-1.22f))/2.0f / 8.0f); 
+    float fovY = 2*atanf((2.0f - (-0.8f))/2.0f / 8.0f);
+    const float hudFovX = fovX; // ~24° horizontal
+    const float hudFovY = fovY; // ~26° vertical
 
     // Normaliser les angles dans [-1, 1]
     const float nx = az / (hudFovX * 0.5f);
@@ -658,10 +683,38 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
+static bool projectWorldToScreen320x200(Vector3D& targetWorld,
+                                        Matrix& planeFromWorld,
+                                        int& outX, int& outY,
+                                        float fovYDeg = 60.0f,
+                                        float nearZ = 0.01f) {
+    // Monde -> local avion (caméra à l'origine)
+    const Vector3D targetLocal = targetWorld.transformPoint(planeFromWorld);
+
+    // Convention: -Z = devant
+    const float forward = -targetLocal.z;
+    if (forward <= nearZ) return false;
+
+    const float fovY = fovYDeg * (float)M_PI / 180.0f;
+    const float f = 1.0f / tanf(fovY * 0.5f);
+    const float aspect = 320.0f / 200.0f;
+
+    const float ndcX = (targetLocal.x / forward) * f / aspect;
+    const float ndcY = (targetLocal.y / forward) * f;
+
+    const float cx = (320.0f - 1.0f) * 0.5f;
+    const float cy = (200.0f - 1.0f) * 0.5f;
+
+    outX = (int)(cx + ndcX * cx);
+    outY = (int)(cy - ndcY * cy);
+
+    return (outX >= 0 && outX < 320 && outY >= 0 && outY < 200);
+}
 void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
+
     if (!this->player_plane) {
         return;
     }
@@ -716,9 +769,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     // 7. Setup de la simulation
     GunSimulatedObject *weap = new GunSimulatedObject();
     weap->obj = this->player_plane->weaps_load[0]->objct;
-    weap->x = this->player_plane->x;
-    weap->y = this->player_plane->y;
-    weap->z = this->player_plane->z;
+    weap->x = this->player_plane->x+this->hud_eye_world.x;
+    weap->y = this->player_plane->y+this->hud_eye_world.y;
+    weap->z = this->player_plane->z+this->hud_eye_world.z;
     weap->vx = correctedVelocity.x;
     weap->vy = correctedVelocity.y;
     weap->vz = correctedVelocity.z;
@@ -747,7 +800,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     }
     
     // 9. Projection sur le HUD
-    const Vector3D impactWorld = {weap->x, weap->y, weap->z};
+    Vector3D impactWorld = {weap->x, weap->y, weap->z};
     Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
     
     int Xdraw = 0;
@@ -788,9 +841,9 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
     initial_trust = this->player_plane->getWeaponIntialVector(thrustMagnitude);
     weap->obj = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
 
-    weap->x = this->player_plane->x;
-    weap->y = this->player_plane->y;
-    weap->z = this->player_plane->z;
+    weap->x = this->player_plane->x+this->hud_eye_world.x;
+    weap->y = this->player_plane->y+this->hud_eye_world.y;
+    weap->z = this->player_plane->z+this->hud_eye_world.z;
     weap->vx = initial_trust.x;
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
@@ -803,10 +856,34 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
 
     Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
-    std::tie(impact, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
+    //std::tie(impact, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
 
-    Vector3D impactWorld = {impact.x, impact.y, impact.z};
-    const Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
+    Vector3D position{0,0,0};
+    Vector3D velocity{0,0,0};
+    Vector3D oldpos{0,0,0};
+    std::tie(position, velocity) = weap->ComputeTrajectory(this->player_plane->tps);
+    int cpt_iteration = 0;
+    this->trajectory_points.clear();
+    this->trajectory_points.push_back(position);
+    while (position.y > weap->mission->area->getY(position.x, position.z) == true && cpt_iteration<100000) {
+        oldpos = position;
+        std::tie(position, velocity) = weap->ComputeTrajectory(this->player_plane->tps);
+        weap->x = position.x;
+        weap->y = position.y;
+        weap->z = position.z;
+        weap->vx = velocity.x;
+        weap->vy = velocity.y;
+        weap->vz = velocity.z;
+        this->trajectory_points.push_back(position);
+        if (oldpos.x == position.x && oldpos.y == position.y && oldpos.z == position.z && cpt_iteration>1000) {
+            printf("should not happen\n");
+            break;
+        }
+        cpt_iteration++;
+    }
+
+    Vector3D impactWorld = {weap->x, weap->y, weap->z};
+    Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
 
     const Vector2D bombAngularOffset = {0.0f, 0.0f};
 
@@ -817,6 +894,24 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
         fb->plot_pixel(Xhud, Yhud, 223);
         fb->circle_slow(Xhud, Yhud, 6, 90);
     }
+    /*if (projectWorldToScreen320x200(impactWorld, planeFromWorld, Xhud, Yhud)) {
+        FrameBuffer *fbv = VGA.getFrameBuffer();
+        fbv->plot_pixel(160, 100, 46);
+        fbv->lineWithBox(160, 100, Xhud, Yhud, 46, bx1, bx2, by1, by2);
+        fbv->plot_pixel(Xhud, Yhud, 46);
+        fbv->circle_slow(Xhud, Yhud, 6, 46);
+    }*/
+    /*if (projectWithCam(this->cam, impactWorld, Xhud, Yhud)) {
+        int XinHud = Xhud - 114;
+        int YinHud = Yhud - 6;
+        std::string debug = "X:" + std::to_string(XinHud) + " Y:" + std::to_string(YinHud);
+        Point2D txtdeb = {10, 10};
+        VGA.getFrameBuffer()->printText(this->big_font, &txtdeb, (char*)debug.c_str(), 0, 0, (uint32_t)debug.length(), 2, 2);
+        fb->plot_pixel(center.x, center.y, 64);
+        fb->lineWithBox(center.x, center.y, XinHud, YinHud, 64, bx1, bx2, by1, by2);
+        fb->plot_pixel(XinHud, YinHud, 64);
+        fb->circle_slow(XinHud, YinHud, 6, 64);
+    }*/
 
     delete weap;
 }

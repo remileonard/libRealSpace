@@ -143,14 +143,18 @@ void SCStrike::renderVirtualCockpit() {
     if (this->camera->isUsingCustomMatrices()) {
         const float cockpitScale = 1.0f; // ajuste: 0.7 .. 0.95
         //cockpit_ajustement = { -0.225f,-(float) this->eye_y+2.35f,0.0f};
-        cockpit_ajustement = { -0.55f,-(float) this->eye_y,0.0f};
+        cockpit_ajustement = { 0.0f,-(float) this->eye_y,0.0f};
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
     } else {
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
 
-    this->cockpit->hud_eye_world = -cockpit_ajustement;
-    this->cockpit->cannonAngularOffset = {-0.005f, -0.140f};
+    this->cockpit->hud_eye_world = {
+        0.0f,
+        0.0f,
+        0.0f
+    };
+    this->cockpit->cannonAngularOffset = {-0.000f, -0.140f};
     this->cockpit->RenderHUD();
     if (this->cockpit->hud != nullptr) {
         Texture *hud_texture = new Texture();
@@ -168,8 +172,8 @@ void SCStrike::renderVirtualCockpit() {
             {
                 {5.8f, 2.0f, -1.22f}, 
                 {5.8f, 2.0f, 1.35f},
-                {6.0f, -0.8f, 1.35f},
-                {6.0f, -0.8f, -1.22f}
+                {5.8f, -0.8f, 1.35f},
+                {5.8f, -0.8f, -1.22f}
             },
             hud_texture
         );

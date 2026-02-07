@@ -64,8 +64,58 @@ void FrameBuffer::lineWithBox(int x1, int y1, int x2, int y2, uint8_t color, int
 
 void FrameBuffer::lineWithBoxWithSkip(int x1, int y1, int x2, int y2, uint8_t color, int bx1, int bx2, int by1, int by2,
                                       int skip) {
-    if (x1 > this->width || x2 > this->width || y1 > this->height || y2 > this->height)
-        return;
+    
+    // Cohen-Sutherland line clipping algorithm
+    auto outcode = [&](int x, int y) -> int {
+        int code = 0;
+        if (x < bx1) code |= 1;      // LEFT
+        if (x > bx2) code |= 2;      // RIGHT
+        if (y < by1) code |= 4;      // BOTTOM
+        if (y > by2) code |= 8;      // TOP
+        return code;
+    };
+    
+    int outcode1 = outcode(x1, y1);
+    int outcode2 = outcode(x2, y2);
+    
+    while (true) {
+        if (!(outcode1 | outcode2)) {
+            // Both points inside
+            break;
+        } else if (outcode1 & outcode2) {
+            // Both points on same side outside
+            return;
+        } else {
+            // Line crosses boundary
+            int x, y;
+            int outcodeOut = outcode1 ? outcode1 : outcode2;
+            
+            if (outcodeOut & 8) {       // TOP
+                x = x1 + (x2 - x1) * (by2 - y1) / (y2 - y1);
+                y = by2;
+            } else if (outcodeOut & 4) { // BOTTOM
+                x = x1 + (x2 - x1) * (by1 - y1) / (y2 - y1);
+                y = by1;
+            } else if (outcodeOut & 2) { // RIGHT
+                y = y1 + (y2 - y1) * (bx2 - x1) / (x2 - x1);
+                x = bx2;
+            } else if (outcodeOut & 1) { // LEFT
+                y = y1 + (y2 - y1) * (bx1 - x1) / (x2 - x1);
+                x = bx1;
+            }
+            
+            if (outcodeOut == outcode1) {
+                x1 = x;
+                y1 = y;
+                outcode1 = outcode(x1, y1);
+            } else {
+                x2 = x;
+                y2 = y;
+                outcode2 = outcode(x2, y2);
+            }
+        }
+    }
+    
     int i, dx, dy, sdx, sdy, dxabs, dyabs, x, y, px, py;
 
     dx = x2 - x1; /* the horizontal distance of the line */

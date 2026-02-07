@@ -511,6 +511,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position,
     glPushMatrix();
     glTranslatef(static_cast<GLfloat>(position.x), static_cast<GLfloat>(position.y),
                 static_cast<GLfloat>(position.z));
+    
     glRotatef(orientation.x, 0, 1, 0);
     glRotatef(orientation.y, 0, 0, 1);
     glRotatef(orientation.z, 1, 0, 0);
