@@ -665,10 +665,12 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!this->player_plane) {
         return;
     }
-
+    int nbsteps = 1;
     // 1. Temps de vol (s)
-    const float timeOfFlight = 1000.0f / this->player_plane->tps;
-
+    float timeOfFlight = 40;
+    timeOfFlight = 4.0f; 
+    nbsteps = (int)(timeOfFlight * this->player_plane->tps);
+    
     // 2. Vitesse initiale (monde)
     const float muzzleVelocity = 250.0f * (this->player_plane->tps / 60.0f);
     Vector3D initialDirection = this->player_plane->getWeaponIntialVector(muzzleVelocity);
@@ -729,8 +731,12 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
     trajectory_points.clear();
-    for (int i = 0; i < 250; i++) {
+    trajectory_points.push_back({weap->x, weap->y, weap->z});
+    for (int i = 0; i < nbsteps; i++) {
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
+        weap->last_px = weap->x;
+        weap->last_py = weap->y;
+        weap->last_pz = weap->z;
         weap->x = impact.x;
         weap->y = impact.y;
         weap->z = impact.z;

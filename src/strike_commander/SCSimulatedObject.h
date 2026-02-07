@@ -7,9 +7,7 @@ class SCSimulatedObject {
 
 protected:
 
-    float last_px{0.0f};
-    float last_py{0.0f};
-    float last_pz{0.0f};
+    
 
     Vector3D calculate_drag(Vector3D velocity);
     Vector3D calculate_lift(Vector3D velocity);
@@ -21,6 +19,9 @@ protected:
     SCSmokeSet &SmokeSet = SCSmokeSet::getInstance();
 public:
     bool is_simulated{false};
+    float last_px{0.0f};
+    float last_py{0.0f};
+    float last_pz{0.0f};
     float x{0.0f};
     float y{0.0f};
     float z{0.0f};
