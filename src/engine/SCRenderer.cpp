@@ -178,7 +178,7 @@ void SCRenderer::bindCameraProjectionAndViewViewport(int32_t viewportW, int32_t 
     glViewport(0, 0, viewportW, viewportH);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    //glTranslatef(0.0f, verticalOffset, 0.0f);
+    glTranslatef(0.0f, verticalOffset, 0.0f);
     glMultMatrixf(camera.getProjectionMatrix()->ToGL());
 
     glMatrixMode(GL_MODELVIEW);
