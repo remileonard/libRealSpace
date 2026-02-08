@@ -760,11 +760,12 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     };
 
     Vector3D correctedDir = rotateYawPitchRoll(shootingDir, dYaw, dPitch, dRoll);
+    
     correctedDir.Normalize();
 
     // 6. Recalcule vitesse corrigée
     Vector3D correctedVelocity = correctedDir * initialSpeed;
-
+    
     // ...existing code...
     // 7. Setup de la simulation
     GunSimulatedObject *weap = new GunSimulatedObject();

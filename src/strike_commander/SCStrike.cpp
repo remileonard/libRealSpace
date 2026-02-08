@@ -707,7 +707,8 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
         if (target != nullptr) {
-            this->player_plane->Shoot(this->player_plane->selected_weapon, target, this->current_mission);
+            //this->player_plane->Shoot(this->player_plane->selected_weapon, target, this->current_mission);
+            this->shooting = true;
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_MOUSE))) {
@@ -1645,19 +1646,6 @@ void SCStrike::runFrame(void) {
             }
             expl->render();
         }
-
-        this->player_plane->RenderSimulatedObject();
-        if (this->cockpit->trajectory_points.size() > 0) {
-            for(auto point: this->cockpit->trajectory_points) {
-                Renderer.drawPoint(point, {1.0f, 0.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f });
-            }
-        }
-        Vector3D centerPoint = {0,0,-10};
-        
-        centerPoint = camera->getPosition()+camera->getForward()*10.0f;
-        Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
-        
-        // Point devant l'avion (axe forward) à 10 unités
         Vector3D planeForward = {
             -this->player_plane->ptw.v[2][0],
             -this->player_plane->ptw.v[2][1],
@@ -1670,6 +1658,30 @@ void SCStrike::runFrame(void) {
             this->player_plane->y + planeForward.y * 10.0f,
             this->player_plane->z + planeForward.z * 10.0f
         };
+        if (this->shooting) {
+            this->shooting = false;
+            this->player_plane->Shoot(this->player_plane->selected_weapon, target, this->current_mission);
+            if (this->player_plane->weaps_object.size() > 0) {
+                SCSimulatedObject *weap = this->player_plane->weaps_object.back();
+                Vector3D weap_pos;
+                weap->GetPosition(&weap_pos);
+                Renderer.drawPoint(weap_pos, {1.0f, 0.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+                if (this->player_plane->wp_cooldown == 3 && (weap_pos.x != planeCenterPoint.x || weap_pos.y != planeCenterPoint.y || weap_pos.z != planeCenterPoint.z)) {
+                    printf("shouldn't happen\n");
+                }
+            }
+        }
+        this->player_plane->RenderSimulatedObject();
+        
+        Vector3D centerPoint = {0,0,-10};
+        
+        centerPoint = camera->getPosition()+camera->getForward()*10.0f;
+        Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+        
+        // Point devant l'avion (axe forward) à 10 unités
+        
+        
+        
         Renderer.drawPoint(planeCenterPoint, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0,0,0});
         
         this->cockpit->cam = camera;
@@ -1689,6 +1701,17 @@ void SCStrike::runFrame(void) {
         case View::FRONT:
             if (!forceVirtualCockpit) {
                 this->cockpit->Render(0);
+                Renderer.bindCameraProjectionAndViewViewport(viewportW, viewportH, projVerticalOffset);
+                if (this->cockpit->trajectory_points.size() > 0) {
+                    for(auto point: this->cockpit->trajectory_points) {
+                        Renderer.drawPoint(point, {1.0f, 0.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f });
+                    }
+                }
+                if (this->cockpit->trajectory_points.size() > 0) {
+                    if (this->cockpit->trajectory_points[0].x != planeCenterPoint.x || this->cockpit->trajectory_points[0].y != planeCenterPoint.y || this->cockpit->trajectory_points[0].z != planeCenterPoint.z) {
+                        printf("shoudn't happen\n");
+                    }    
+                }
                 break;
             }
         case View::RIGHT:
