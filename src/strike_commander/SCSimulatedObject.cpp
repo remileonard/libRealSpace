@@ -368,5 +368,5 @@ void GunSimulatedObject::Render() {
         Vector3D orient = {this->azimuthf, this->elevationf, 0.0f};
         Renderer.drawModel(this->obj, pos, orient);
     }
-    Renderer.drawPoint({0,0,0}, {1.0f, 1.0f, 0.0f}, {this->x, this->y, this->z}, {0.0f, 0.0f, 0.0f});
+    Renderer.drawPoint({this->x, this->y, this->z}, {1.0f, 1.0f, 0.0f},{0,0,0} , {0.0f, 0.0f, 0.0f});
 }

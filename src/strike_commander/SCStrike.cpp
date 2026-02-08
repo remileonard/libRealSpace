@@ -1237,14 +1237,36 @@ void SCStrike::setMission(char const *missionName) {
     Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
 }
 void SCStrike::setCameraFront() {
-    Vector3D pos = {this->new_position.x, this->new_position.y, this->new_position.z};
+    /*Vector3D pos = {this->new_position.x, this->new_position.y, this->new_position.z};
     camera->SetPosition(&pos);
     camera->resetRotate();
     camera->rotate(
         -tenthOfDegreeToRad(this->player_plane->elevationf),
         -tenthOfDegreeToRad(this->player_plane->azimuthf),
         -tenthOfDegreeToRad(this->player_plane->twist)
-    );
+    );*/
+
+    Vector3D pos = {this->player_plane->x, this->player_plane->y, this->player_plane->z};
+    camera->SetPosition(&pos);
+
+    // Forward = axe Z local (forward = {0,0,-1})
+    Vector3D forward = {
+        -this->player_plane->ptw.v[2][0],
+        -this->player_plane->ptw.v[2][1],
+        -this->player_plane->ptw.v[2][2]
+    };
+    Vector3D up = {
+        this->player_plane->ptw.v[1][0],
+        this->player_plane->ptw.v[1][1],
+        this->player_plane->ptw.v[1][2]
+    };
+
+    if (forward.Length() > 0.0001f) forward.Normalize();
+    if (up.Length() > 0.0001f) up.Normalize();
+
+    Vector3D target = pos + forward;
+    camera->lookAt(&target, &up);
+
 }
 void SCStrike::setCameraFollow(SCPlane *plane) {
     const float distanceBehind = -60.0f;
@@ -1627,9 +1649,29 @@ void SCStrike::runFrame(void) {
         this->player_plane->RenderSimulatedObject();
         if (this->cockpit->trajectory_points.size() > 0) {
             for(auto point: this->cockpit->trajectory_points) {
-                Renderer.drawPoint({0,0,0}, {1.0f, 0.0f, 0.0f}, point, {0.0f, 0.0f, 0.0f});
+                Renderer.drawPoint(point, {1.0f, 0.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f });
             }
         }
+        Vector3D centerPoint = {0,0,-10};
+        
+        centerPoint = camera->getPosition()+camera->getForward()*10.0f;
+        Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+        
+        // Point devant l'avion (axe forward) à 10 unités
+        Vector3D planeForward = {
+            -this->player_plane->ptw.v[2][0],
+            -this->player_plane->ptw.v[2][1],
+            -this->player_plane->ptw.v[2][2]
+        };
+        if (planeForward.Length() > 0.0001f) planeForward.Normalize();
+
+        Vector3D planeCenterPoint = {
+            this->player_plane->x + planeForward.x * 10.0f,
+            this->player_plane->y + planeForward.y * 10.0f,
+            this->player_plane->z + planeForward.z * 10.0f
+        };
+        Renderer.drawPoint(planeCenterPoint, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0,0,0});
+        
         this->cockpit->cam = camera;
 
         switch (this->camera_mode) {

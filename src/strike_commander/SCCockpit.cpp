@@ -769,9 +769,22 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     // 7. Setup de la simulation
     GunSimulatedObject *weap = new GunSimulatedObject();
     weap->obj = this->player_plane->weaps_load[0]->objct;
-    weap->x = this->player_plane->x+this->hud_eye_world.x;
-    weap->y = this->player_plane->y+this->hud_eye_world.y;
-    weap->z = this->player_plane->z+this->hud_eye_world.z;
+    // Point devant l'avion (axe forward) à 10 unités
+    Vector3D planeForward = {
+        -this->player_plane->ptw.v[2][0],
+        -this->player_plane->ptw.v[2][1],
+        -this->player_plane->ptw.v[2][2]
+    };
+    if (planeForward.Length() > 0.0001f) planeForward.Normalize();
+
+    Vector3D planeCenterPoint = {
+        this->player_plane->x + planeForward.x * 10.0f,
+        this->player_plane->y + planeForward.y * 10.0f,
+        this->player_plane->z + planeForward.z * 10.0f
+    };
+    weap->x = planeCenterPoint.x;
+    weap->y = planeCenterPoint.y;
+    weap->z = planeCenterPoint.z;
     weap->vx = correctedVelocity.x;
     weap->vy = correctedVelocity.y;
     weap->vz = correctedVelocity.z;
@@ -1352,7 +1365,7 @@ void SCCockpit::Render(int face) {
 
                 fb->plot_pixel(161, 50, 223);
             }
-            fb->drawShape(this->cockpit->ARTP.GetShape(face));
+            //fb->drawShape(this->cockpit->ARTP.GetShape(face));
             if (face == 0) {
                 this->RenderRAWS({84, 112}, fb);
                 this->RenderAlti({161, 166}, fb);

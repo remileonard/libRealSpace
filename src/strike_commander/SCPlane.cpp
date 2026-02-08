@@ -1218,28 +1218,37 @@ void SCPlane::RenderSimulatedObject() {
     }
 }
 Vector3D SCPlane::getWeaponIntialVector(float speedFactor) {
-    Vector3D initial_trust = {0,0,0};
-    Vector3D direction       = {
+    Vector3D initial_trust = {0, 0, 0};
+
+    // Vitesse de l'avion (magnitude)
+    Vector3D delta = {
         this->x - this->last_px, this->y - this->last_py,
         this->z - this->last_pz
     };
-    float dt = 1.0f / this->tps;
-    float planeSpeed      = direction.Length();
-    float thrustMagnitude = -planeSpeed * speedFactor;
-    float yawRad   = tenthOfDegreeToRad(this->yaw);
-    float pitchRad = tenthOfDegreeToRad(-this->pitch);
-    float rollRad  = 0.0f;
-    // Calcul du vecteur de poussée initiale dans la direction avant de l'avion.
-    // On considère que le vecteur avant s'exprime en coordonnées :
-    // x = cos(pitch)*sin(yaw), y = sin(pitch), z = cos(pitch)*cos(yaw)
-    float cosRoll = cosf(rollRad);
-    float sinRoll = sinf(rollRad);
-    initial_trust.x = thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
-    initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
-    initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
+    float planeSpeed = delta.Length();
 
+    // Direction avant depuis la matrice ptw (forward = {0,0,-1})
+    Vector3D forward = {
+        -this->ptw.v[2][0],
+        -this->ptw.v[2][1],
+        -this->ptw.v[2][2]
+    };
+
+    if (forward.Length() > 0.0001f) {
+        forward.Normalize();
+    } else {
+        // Fallback: direction basée sur le déplacement
+        if (planeSpeed > 0.0001f) {
+            forward = delta;
+            forward.Normalize();
+        } else {
+            forward = {0, 0, -1};
+        }
+    }
+
+    float thrustMagnitude = planeSpeed * speedFactor;
+    initial_trust = forward * thrustMagnitude;
     return initial_trust;
-
 }
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
@@ -1306,12 +1315,26 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             return;
         }
     }
+    // Point devant l'avion (axe forward) à 10 unités
+    Vector3D planeForward = {
+        -this->ptw.v[2][0],
+        -this->ptw.v[2][1],
+        -this->ptw.v[2][2]
+    };
+    if (planeForward.Length() > 0.0001f) planeForward.Normalize();
+
+    Vector3D planeCenterPoint = {
+        this->x + planeForward.x * 10.0f,
+        this->y + planeForward.y * 10.0f,
+        this->z + planeForward.z * 10.0f
+    };
+
     this->weaps_load[weapon_hard_point_id]->nb_weap--;
     weap->obj = this->weaps_load[weapon_hard_point_id]->objct;
 
-    weap->x = this->x;
-    weap->y = this->y;
-    weap->z = this->z;
+    weap->x = planeCenterPoint.x;
+    weap->y = planeCenterPoint.y;
+    weap->z = planeCenterPoint.z;
     weap->azimuthf = this->yaw;
     weap->elevationf = this->pitch;
     weap->vx = initial_trust.x;
@@ -1615,8 +1638,8 @@ void SCPlane::renderPlaneLined() {
         };
         ptw_down.Normalize();
         Vector3D ptw_forward = {
-            this->ptw.v[0][2],
-            this->ptw.v[1][2],
+            this->ptw.v[2][0],
+            this->ptw.v[2][1],
             this->ptw.v[2][2]
         };
         ptw_forward.Normalize();
