@@ -1305,7 +1305,9 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             return;
         }
     }
-    this->weaps_load[weapon_hard_point_id]->nb_weap--;
+    if (!this->infinite_ammo) {
+        this->weaps_load[weapon_hard_point_id]->nb_weap--;
+    }
     weap->obj = this->weaps_load[weapon_hard_point_id]->objct;
 
     weap->x = this->x;

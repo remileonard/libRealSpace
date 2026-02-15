@@ -32,6 +32,8 @@ static int mission_idx = 0;
  */
 class SCStrike : public IActivity {
 protected:
+
+    bool air_weapons_mode{false};
     /**
      * @brief Path to current mission file
      */

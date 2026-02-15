@@ -188,6 +188,10 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M7),SDL_SCANCODE_7);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M8),SDL_SCANCODE_8);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE), SDL_SCANCODE_V);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::WEAPON_MODE_TOGGLE), SDL_SCANCODE_G);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::INFINIT_AMMO_TOGGLE), SDL_SCANCODE_I);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::SINGLE_TARGET_MODE), SDL_SCANCODE_K);
+    
     m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY), 0, SDL_CONTROLLER_BUTTON_A);
     m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::TARGET_NEAREST), 0, SDL_CONTROLLER_BUTTON_B);
     m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_RADAR), 0, SDL_CONTROLLER_BUTTON_X);
@@ -213,7 +217,7 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_B, 0, SDL_CONTROLLER_BUTTON_B);
     m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_BACK, 0, SDL_CONTROLLER_BUTTON_BACK);
     m_keyboard->bindGamepadButtonToAction(InputAction::CONTROLLER_BUTTON_START, 0, SDL_CONTROLLER_BUTTON_START);
-
+    
     m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_X, 0, 1.0f);
     m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_Y, 1, 1.0f);
 }

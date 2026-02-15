@@ -259,7 +259,7 @@ public:
     float rudder{0.0f};
     float elevator{0.0f};
     RSArea *area{nullptr};
-    
+    bool infinite_ammo{false};
     float lift{0.0f};
     std::vector <SCWeaponLoadoutHardPoint *> weaps_load;
     std::vector <SCSimulatedObject *> weaps_object;

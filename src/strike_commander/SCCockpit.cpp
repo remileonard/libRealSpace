@@ -972,6 +972,7 @@ void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameB
         this->RenderMFDSRadarImplementation(pmfd_left, range, "GROUND", false, fb);
         break;
     case RadarMode::ASST:
+        this->RenderMFDSRadarImplementation(pmfd_left, range, "SINGLE", false, fb);
         break;
     case RadarMode::AFRD:
         break;
@@ -1268,28 +1269,30 @@ void SCCockpit::Render(int face) {
                 }
                 if (this->player_plane->weaps_load.size() > 0 &&
                     this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
-                    switch (
-                        this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
-                    case ID_20MM:
-                        this->radar_mode = RadarMode::AARD;
-                        break;
-                    case ID_AIM9J:
-                    case ID_AIM9M:
-                    case ID_AIM120:
-                        this->radar_mode = RadarMode::AARD;
-                        break;
-                    case ID_MK20:
-                    case ID_MK82:
-                    case ID_DURANDAL:
-                        this->radar_mode = RadarMode::AGRD;
-                        break;
-                    case ID_AGM65D:
-                    case ID_GBU15:
-                        this->radar_mode = RadarMode::AGRD;
-                        break;
-                    case ID_LAU3:
-                        this->radar_mode = RadarMode::AGRD;
-                        break;
+                    if (this->radar_mode != RadarMode::ASST) {
+                        switch (
+                            this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
+                        case ID_20MM:
+                            this->radar_mode = RadarMode::AARD;
+                            break;
+                        case ID_AIM9J:
+                        case ID_AIM9M:
+                        case ID_AIM120:
+                            this->radar_mode = RadarMode::AARD;
+                            break;
+                        case ID_MK20:
+                        case ID_MK82:
+                        case ID_DURANDAL:
+                            this->radar_mode = RadarMode::AGRD;
+                            break;
+                        case ID_AGM65D:
+                        case ID_GBU15:
+                            this->radar_mode = RadarMode::AGRD;
+                            break;
+                        case ID_LAU3:
+                            this->radar_mode = RadarMode::AGRD;
+                            break;
+                        }
                     }
                 }
 

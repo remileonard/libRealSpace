@@ -742,7 +742,20 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_WEAPONS))) {
         if (this->cockpit->show_weapons) {
             int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 +1;
-            this->player_plane->selected_weapon = (this->player_plane->selected_weapon+1) % nb_hardpoint;
+            int next_weapon = (this->player_plane->selected_weapon + 1) % nb_hardpoint;
+            if (this->air_weapons_mode) {
+                while (this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_20MM &&
+                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM120 &&
+                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM9J &&
+                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM9M) {
+                    next_weapon = (next_weapon + 1) % nb_hardpoint;
+                    if (next_weapon == this->player_plane->selected_weapon) {
+                        break;
+                    }
+                }
+            }
+            this->player_plane->selected_weapon = next_weapon;
+            
             this->player_plane->wp_cooldown = 0;
             this->mfd_timeout = 400;
         } else {
@@ -835,6 +848,19 @@ void SCStrike::checkKeyboard(void) {
             this->camera_mode = View::OBJECT;
         } else {
             this->current_object_to_view = (this->current_object_to_view + 1) % this->current_mission->actors.size();
+        }
+    }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::WEAPON_MODE_TOGGLE))) {
+        this->air_weapons_mode = !this->air_weapons_mode;
+    }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::INFINIT_AMMO_TOGGLE))) {
+        this->player_plane->infinite_ammo = !this->player_plane->infinite_ammo;
+    }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SINGLE_TARGET_MODE))) {
+        if (this->cockpit->radar_mode != RadarMode::ASST && this->target != nullptr) {
+            this->cockpit->radar_mode = RadarMode::ASST;
+        } else {
+            this->cockpit->radar_mode = RadarMode::AARD;
         }
     }
     if (!this->cockpit->show_comm) {
