@@ -663,7 +663,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!this->player_plane) {
         return;
     }
-    int timeOfFlight = 2;
+    int timeOfFlight = 1;
     int nbsteps = timeOfFlight * this->player_plane->tps;
     GunSimulatedObject *weap = new GunSimulatedObject();
 
@@ -746,8 +746,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         s->SetPosition(&gun_piper);
         fb->drawShapeWithBox(s, 0, 320, 0,
                              200);
-        //fb->plot_pixel(Xdraw, Ydraw, 223);
-        //fb->circle_slow(Xdraw, Ydraw, 6, 90);
     }
 
     delete weap;
