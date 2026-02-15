@@ -735,6 +735,11 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
     int Ydraw = 0;
+    float target_distance = 0.0f;
+    if (this->target != nullptr) {
+        Vector3D toTarget = {this->target->position.x - avion_pos.x, this->target->position.y - avion_pos.y, this->target->position.z - avion_pos.z};
+        target_distance = toTarget.Length();
+    }
     if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
                                 Ydraw)) {
         Point2D gun_piper= {Xdraw, Ydraw};
@@ -746,6 +751,49 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         s->SetPosition(&gun_piper);
         fb->drawShapeWithBox(s, 0, 320, 0,
                              200);
+        int distance_to_target_index = target_distance / 1000;
+        if (distance_to_target_index > 12 ) {
+            distance_to_target_index = 12;
+        }
+        std::unordered_map<int, int> distance_to_target_shape = {
+            {0, 0},
+            {1, 1},
+            {2, 2},
+            {3, 3},
+            {4, 4},
+            {5, 5},
+            {6, 6},
+            {7, 7},
+            {8, 8},
+            {9, 10},
+            {10, 11},
+            {11, 12},
+            {12, 9}
+        };
+        std::unordered_map<int, int> distance_shape_offset = {
+            {2, 6},
+            {4, 6},
+            {6, 4},
+            {8, 2}
+        };
+        if (distance_to_target_index > 0) {
+            RLEShape *distance = this->hud->small_hud->LCOS->SHAPSET->GetShape(distance_to_target_shape[distance_to_target_index]);
+            gun_piper= {Xdraw, Ydraw};
+            int shapeWidth = s->GetWidth();
+            int shapeHeight = s->GetHeight();
+            int dwidth = distance->GetWidth();
+            int dheight = distance->GetHeight();
+            int distanceShapeWidth = distance->GetWidth();
+            
+            gun_piper.x -= shapeWidth / 2;
+            gun_piper.y -= shapeHeight / 2;
+            gun_piper.x += distance_shape_offset[dwidth];
+            gun_piper.y += 2;
+            distance->SetPosition(&gun_piper);
+            fb->drawShapeWithBox(distance, 0, 320, 0,
+                                 200);
+        }
+
     }
 
     delete weap;
