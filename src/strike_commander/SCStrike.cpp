@@ -1623,6 +1623,11 @@ void SCStrike::runFrame(void) {
         this->player_plane->RenderSimulatedObject();
         this->cockpit->cam = camera;
 
+        Vector3D centerPoint = {0,0,-10};
+        
+        centerPoint = camera->getPosition()+camera->getForward()*10.0f;
+        Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+        
         switch (this->camera_mode) {
         case View::MISSILE_CAM:
         case View::TARGET:

@@ -1207,7 +1207,7 @@ void SCCockpit::Render(int face) {
             if (face == 0) {
                 if (this->hud != nullptr) {
                     this->RenderHUD();
-                    fb->blit(this->hud_framebuffer->framebuffer, 114, 6, this->hud_framebuffer->width,
+                    fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
                              this->hud_framebuffer->height);
                 }
                 if (this->target != this->player) {
@@ -1240,7 +1240,7 @@ void SCCockpit::Render(int face) {
                     }
                 }
 
-                fb->plot_pixel(161, 50, 223);
+                fb->plot_pixel(161, 50, 46);
             }
             fb->drawShape(this->cockpit->ARTP.GetShape(face));
             if (face == 0) {
