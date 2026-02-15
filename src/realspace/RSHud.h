@@ -4,6 +4,7 @@
 
 
 struct CHUD_SHAPE {
+    RSImageSet *SHAPSET;
     RLEShape *SHAP;
     RLEShape *SHP2;
     std::vector<uint8_t> INFO;

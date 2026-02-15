@@ -636,12 +636,10 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
     az += cannonAngularOffset.x; // Correction azimut
     el += cannonAngularOffset.y; // Correction élévation (cannon plus bas = élévation négative)
 
-    // FOV angulaire du HUD - ces valeurs correspondent à la géométrie réelle
-    // du HUD tel que défini dans renderVirtualCockpit
-    // HUD coords: TopLeft(5.8, 2.0, -1.22) à BottomRight(6.0, -0.8, 1.35)
-    // Distance œil-HUD environ 6 unités, largeur HUD ~2.57, hauteur ~2.8
-    const float hudFovX = 24.0f * (float)M_PI / 180.0f; // ~24° horizontal
-    const float hudFovY = 26.0f * (float)M_PI / 180.0f; // ~26° vertical
+    float fovX = 2*atanf((1.35f - (-1.22f))/2.0f / 8.0f); 
+    float fovY = 2*atanf((2.0f - (-0.8f))/2.0f / 8.0f);
+    const float hudFovX = fovX; // ~24° horizontal
+    const float hudFovY = fovY; // ~26° vertical
 
     // Normaliser les angles dans [-1, 1]
     const float nx = az / (hudFovX * 0.5f);
@@ -665,7 +663,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!this->player_plane) {
         return;
     }
-    int timeOfFlight = 4;
+    int timeOfFlight = 2;
     int nbsteps = timeOfFlight * this->player_plane->tps;
     GunSimulatedObject *weap = new GunSimulatedObject();
 
@@ -739,8 +737,17 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     int Ydraw = 0;
     if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
                                 Ydraw)) {
-        fb->plot_pixel(Xdraw, Ydraw, 223);
-        fb->circle_slow(Xdraw, Ydraw, 6, 90);
+        Point2D gun_piper= {Xdraw, Ydraw};
+        RLEShape *s = this->hud->small_hud->LCOS->SHAPSET->GetShape(0);
+        int shapeWidth = s->GetWidth();
+        int shapeHeight = s->GetHeight();
+        gun_piper.x -= shapeWidth / 2;
+        gun_piper.y -= shapeHeight / 2;
+        s->SetPosition(&gun_piper);
+        fb->drawShapeWithBox(s, 0, 320, 0,
+                             200);
+        //fb->plot_pixel(Xdraw, Ydraw, 223);
+        //fb->circle_slow(Xdraw, Ydraw, 6, 90);
     }
 
     delete weap;
