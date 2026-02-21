@@ -844,11 +844,7 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = 180;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_TARGET_CAMERA))) {
-        if (this->camera_mode != View::OBJECT) {
-            this->camera_mode = View::OBJECT;
-        } else {
-            this->current_object_to_view = (this->current_object_to_view + 1) % this->current_mission->actors.size();
-        }
+        this->cockpit->show_cam = !this->cockpit->show_cam;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::WEAPON_MODE_TOGGLE))) {
         this->air_weapons_mode = !this->air_weapons_mode;
@@ -1401,7 +1397,6 @@ void SCStrike::runFrame(void) {
             Renderer.initRenderCameraView();
             Renderer.renderWorldToTexture(area);
             
-            this->player_plane->Render();
             if (this->target->plane != nullptr) {
                 this->target->plane->Render();    
             } else {

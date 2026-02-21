@@ -115,6 +115,7 @@ public:
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);
     void RenderSpeedOmetter(Point2D speed_top_left, FrameBuffer *fb);
     bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
+    void RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb);
     void SetCommActorTarget(int target);
 };
 #endif

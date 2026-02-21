@@ -1349,6 +1349,15 @@ void SCCockpit::Render(int face) {
                     }
                     this->RenderMFDSComm(pmfd, this->comm_target);
                 }
+                if (this->show_cam) {
+                    if (!mfds) {
+                        pmfd = pmfd_left;
+                        mfds = true;
+                    } else {
+                        pmfd = pmfd_right;
+                    }
+                    this->RenderMFDSCamera(pmfd, fb);
+                }
             }
             this->RenderCommMessages({0,200}, fb);
         }
@@ -1607,6 +1616,81 @@ bool SCCockpit::RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb) {
         }
     }
     return hasMessage;
+}
+
+void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
+    SCRenderer &renderer = SCRenderer::getInstance();
+    
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+
+    this->RenderMFDS(pmfd_left, fb);
+
+    // Récupérer les dimensions de la texture
+    int texWidth  = 128;
+    int texHeight = 128;
+
+    int mdfs_height = this->cockpit->MONI.SHAP.GetHeight()-2;
+    int mdfs_width = this->cockpit->MONI.SHAP.GetHeight()-2;
+    if (texWidth <= 0 || texHeight <= 0) {
+        return;
+    }
+
+    // Lire les pixels RGBA depuis la texture OpenGL
+    std::vector<uint8_t> rgbaPixels(texWidth * texHeight * 4);
+    
+    glBindTexture(GL_TEXTURE_2D, renderer.texture);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Créer un buffer RGBA redimensionné (nearest-neighbor)
+    std::vector<uint8_t> resizedRGBA(mdfs_width * mdfs_height * 4);
+    for (int dy = 0; dy < mdfs_height; dy++) {
+        for (int dx = 0; dx < mdfs_width; dx++) {
+            // Coordonnées source par ratio
+            int sx = (int)(dx * texWidth  / (float)mdfs_width);
+            int sy = (int)(dy * texHeight / (float)mdfs_height);
+            sx = (std::min)(sx, texWidth  - 1);
+            sy = (std::min)(sy, texHeight - 1);
+
+            int srcIdx = (sy * texWidth + sx) * 4;
+            int dstIdx = (dy * mdfs_width + dx) * 4;
+            resizedRGBA[dstIdx + 0] = rgbaPixels[srcIdx + 0];
+            resizedRGBA[dstIdx + 1] = rgbaPixels[srcIdx + 1];
+            resizedRGBA[dstIdx + 2] = rgbaPixels[srcIdx + 2];
+            resizedRGBA[dstIdx + 3] = rgbaPixels[srcIdx + 3];
+        }
+    }
+
+    // Convertir le buffer RGBA redimensionné en buffer indexé palette 8 bits
+    std::vector<uint8_t> indexedBuffer(mdfs_width * mdfs_height);
+    VGAPalette &pal = this->palette;
+
+    for (int i = 0; i < mdfs_width * mdfs_height; i++) {
+        uint8_t r = resizedRGBA[i * 4 + 0];
+        uint8_t g = resizedRGBA[i * 4 + 1];
+        uint8_t b = resizedRGBA[i * 4 + 2];
+
+        int bestIndex = 0;
+        int bestDist  = INT_MAX;
+        for (int c = 0; c < 256; c++) {
+            int dr = (int)r - (int)pal.colors[c].r;
+            int dg = (int)g - (int)pal.colors[c].g;
+            int db = (int)b - (int)pal.colors[c].b;
+            int dist = dr * dr + dg * dg + db * db;
+            if (dist < bestDist) {
+                bestDist  = dist;
+                bestIndex = c;
+                if (dist == 0) break;
+            }
+        }
+        indexedBuffer[i] = (uint8_t)bestIndex;
+    }
+
+    // Blitter le buffer indexé dans le FrameBuffer à la position pmfd_left
+    fb->blit(indexedBuffer.data(), pmfd_left.x+2, pmfd_left.y+2, mdfs_width, mdfs_height);
+
 }
 
 void SCCockpit::SetCommActorTarget(int target) {
