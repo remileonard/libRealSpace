@@ -4,22 +4,6 @@ void gl_sincos(float a, float *b, float *c);
 class SCJdynPlane : public SCPlane {
 protected:
 
-    float pitch_speed{0.0f};
-    float roll_speed{0.0f};
-    float yaw_speed{0.0f};
-
-    Vector3D up {0.0f, 0.0f, 0.0f};
-    Vector3D forward {0.0f, 0.0f, 0.0f};
-
-    Vector3D thrust_vector {0.0f, 0.0f, 0.0f};
-    Vector3D lift_vector {0.0f, 0.0f, 0.0f};
-    Vector3D gravity_vector {0.0f, 0.0f, 0.0f};
-    Vector3D drag_vector {0.0f, 0.0f, 0.0f};
-
-
-    Vector3D acceleration {0.0f, 0.0f, 0.0f};
-    Vector3D velocity {0.0f, 0.0f, 0.0f};
-
     float fuel_max {0.0f};
 
     float airspeed_in_ms {0.0f};

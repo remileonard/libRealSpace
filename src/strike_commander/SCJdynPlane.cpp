@@ -118,8 +118,8 @@ void SCJdynPlane::Simulate() {
     this->airspeed = (int)(vitesse_ms * 1.944f);
     this->climbspeed = (short)(dt / (this->y - this->last_py));
     this->g_load = (this->lift_force*this->inverse_mass) / this->gravity;
-    this->ax = this->acceleration.x;
-    this->ay = this->acceleration.y;
+    this->ax = this->acceleration.x*10.0f;
+    this->ay = this->acceleration.y*10.0f;
     this->az = this->acceleration.z;
 
     if (this->thrust > 0) {
