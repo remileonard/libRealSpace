@@ -1187,7 +1187,9 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
-    this->RenderMFDS(pmfd_left);
+    for (int i = 0; i < this->cockpit->MONI.SHAP.GetHeight(); i++) {
+        fb->line(pmfd_left.x, pmfd_left.y + i, pmfd_left.x + this->cockpit->MONI.SHAP.GetWidth(), pmfd_left.y + i, 2);
+    }
     Vector2D center = {this->player->position.x, this->player->position.y};
     Point2D pmfd_text = {pmfd_left.x + 20, pmfd_left.y + 20};
     Point2D pfmd_title = {pmfd_text.x + 12, pmfd_text.y};
@@ -1234,6 +1236,8 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
             }
         }
     }
+    this->cockpit->MONI.SHAP.SetPosition(&pmfd_left);
+    fb->drawShape(&this->cockpit->MONI.SHAP);
 }
 
 /**
@@ -1625,14 +1629,13 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
         fb = VGA.getFrameBuffer();
     }
 
-    this->RenderMFDS(pmfd_left, fb);
 
     // Récupérer les dimensions de la texture
     int texWidth  = 128;
     int texHeight = 128;
 
-    int mdfs_height = this->cockpit->MONI.SHAP.GetHeight()-2;
-    int mdfs_width = this->cockpit->MONI.SHAP.GetHeight()-2;
+    int mdfs_height = this->cockpit->MONI.SHAP.GetHeight()-20;
+    int mdfs_width = this->cockpit->MONI.SHAP.GetHeight()-8;
     if (texWidth <= 0 || texHeight <= 0) {
         return;
     }
@@ -1684,8 +1687,9 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     }
 
     // Blitter le buffer indexé dans le FrameBuffer à la position pmfd_left
-    fb->blit(indexedBuffer.data(), pmfd_left.x+2, pmfd_left.y+2, mdfs_width, mdfs_height);
-
+    fb->blit(indexedBuffer.data(), pmfd_left.x+13, pmfd_left.y+11, mdfs_width, mdfs_height);
+    this->cockpit->MONI.SHAP.SetPosition(&pmfd_left);
+    fb->drawShape(&this->cockpit->MONI.SHAP);
 }
 void SCCockpit::BuildPaletteLUT() {
     VGAPalette &pal = this->palette;

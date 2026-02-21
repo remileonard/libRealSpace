@@ -182,7 +182,12 @@ void SCStrike::renderVirtualCockpit() {
         mfd_right_texture->animated = true;
         RSImage *mfd_right_image = new RSImage();
         mfd_right_image->palette = &this->cockpit->palette;
-        cockpit->RenderMFDSWeapon({0,0}, cockpit->mfd_right_framebuffer);
+        if (this->cockpit->show_cam) {
+            cockpit->RenderMFDSCamera({0,0}, cockpit->mfd_right_framebuffer);
+        } else {
+            cockpit->RenderMFDSWeapon({0,0}, cockpit->mfd_right_framebuffer);
+        }
+        
         mfd_right_image->data = this->cockpit->mfd_right_framebuffer->framebuffer;
         mfd_right_image->width = this->cockpit->mfd_right_framebuffer->width;
         mfd_right_image->height = this->cockpit->mfd_right_framebuffer->height;
@@ -1304,12 +1309,51 @@ void SCStrike::setCameraRLR() {
 }
 void SCStrike::setCameraLookat(Vector3D obj_pos) {
     Vector3D pos = {
-        obj_pos.x + this->camera_pos.x,
-        obj_pos.y + this->camera_pos.y,
-        obj_pos.z + this->camera_pos.z
+        this->player_plane->x,
+        this->player_plane->y,
+        this->player_plane->z
     };
-    camera->SetPosition(&pos);
-    camera->lookAt(&obj_pos);
+    Vector3D dir = {
+        obj_pos.x - pos.x,
+        obj_pos.y - pos.y,
+        obj_pos.z - pos.z
+    };
+    float len = dir.Length();
+    dir.Normalize();
+
+    // Calcul de la taille réelle de la cible via sa BoundingBox
+    float targetSize = 30.0f; // valeur par défaut
+    if (this->target != nullptr && this->target->object != nullptr && this->target->object->entity != nullptr) {
+        BoudingBox *bb = this->target->object->entity->GetBoudingBpx();
+        if (bb != nullptr) {
+            float sizeX = bb->max.x - bb->min.x;
+            float sizeY = bb->max.y - bb->min.y;
+            float sizeZ = bb->max.z - bb->min.z;
+            // On prend la diagonale de la bounding box comme taille de référence
+            targetSize = sqrt(sizeX*sizeX + sizeY*sizeY + sizeZ*sizeZ);
+        }
+    }
+
+    // On veut que la cible occupe toujours TARGET_ANGULAR_SIZE degrés à l'écran
+    // d = targetSize / (2 * tan(angle/2))
+    const float TARGET_ANGULAR_SIZE = 15.0f; // degrés
+    float camDist = targetSize / (2.0f * tan(TARGET_ANGULAR_SIZE * ((float)M_PI / 180.0f) / 2.0f));
+
+    camDist = (std::max)(camDist, 10.0f); // pas trop près
+    camDist = (std::min)(camDist, len);   // pas au-delà de la cible
+
+    Vector3D camPos = {
+        obj_pos.x - dir.x * camDist,
+        obj_pos.y - dir.y * camDist,
+        obj_pos.z - dir.z * camDist
+    };
+    Vector3D lookAt = {
+        obj_pos.x,
+        obj_pos.y + 10.0f,
+        obj_pos.z
+    };
+    camera->SetPosition(&camPos);
+    camera->lookAt(&lookAt);
 }
 /**
  * @brief Executes a single frame of the game simulation.

@@ -8,6 +8,7 @@
 
 #pragma once
 #include <math.h>
+#include <algorithm>
 
 #include "../commons/Maths.h"
 #include "../commons/Matrix.h"
@@ -23,7 +24,7 @@ private:
     float aspect;
     float zNear;
     float zFar;
-    
+    float zoom{1.0f};
     Point3D position;
     Quaternion orientation;
     
@@ -74,6 +75,8 @@ public:
     void moveBackward(void);
     void moveStrafLeft(void);
     void moveStrafRight(void);
+    void SetZoom(float z) { zoom = (std::max)(0.1f, z); }
+    float GetZoom() const { return zoom; }
 
 };
 

@@ -14,8 +14,8 @@ void Camera::setPersective(float fovy, float aspect, float zNear, float zFar) {
     this->zNear = zNear;
     this->zFar = zFar;
 
-    float f = (float)(1 / tan(fovy * DEG_TO_RAD / 2));
-
+    float zoomedFovy = fovy / zoom;  // <-- application du zoom
+    float f = (float)(1 / tan(zoomedFovy * DEG_TO_RAD / 2));
     mproj.v[0][0] = f / aspect;
     mproj.v[1][0] = 0;
     mproj.v[2][0] = 0;
