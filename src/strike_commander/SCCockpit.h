@@ -34,11 +34,12 @@ private:
     void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
-    
+    void BuildPaletteLUT();
     RSFont *font;
     RSFont *big_font;
     int radio_mission_timer{0};
-    
+    std::unordered_map<uint32_t, uint8_t> palette_lut;
+    bool palette_lut_dirty = true;
 public:
     VGAPalette palette;
     RSCockpit* cockpit{nullptr};

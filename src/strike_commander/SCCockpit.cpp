@@ -1648,13 +1648,15 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     std::vector<uint8_t> resizedRGBA(mdfs_width * mdfs_height * 4);
     for (int dy = 0; dy < mdfs_height; dy++) {
         for (int dx = 0; dx < mdfs_width; dx++) {
-            // Coordonnées source par ratio
             int sx = (int)(dx * texWidth  / (float)mdfs_width);
             int sy = (int)(dy * texHeight / (float)mdfs_height);
             sx = (std::min)(sx, texWidth  - 1);
             sy = (std::min)(sy, texHeight - 1);
 
-            int srcIdx = (sy * texWidth + sx) * 4;
+            // Inverser l'axe Y : OpenGL a l'origine en bas, le FrameBuffer en haut
+            int sy_flipped = (texHeight - 1) - sy;
+
+            int srcIdx = (sy_flipped * texWidth + sx) * 4;
             int dstIdx = (dy * mdfs_width + dx) * 4;
             resizedRGBA[dstIdx + 0] = rgbaPixels[srcIdx + 0];
             resizedRGBA[dstIdx + 1] = rgbaPixels[srcIdx + 1];
@@ -1663,36 +1665,56 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
         }
     }
 
-    // Convertir le buffer RGBA redimensionné en buffer indexé palette 8 bits
+    // Construire la LUT si la palette a changé
+    if (this->palette_lut_dirty) {
+        this->BuildPaletteLUT();
+    }
+
+    // Convertir le buffer RGBA redimensionné en buffer indexé palette 8 bits via LUT
     std::vector<uint8_t> indexedBuffer(mdfs_width * mdfs_height);
-    VGAPalette &pal = this->palette;
 
     for (int i = 0; i < mdfs_width * mdfs_height; i++) {
         uint8_t r = resizedRGBA[i * 4 + 0];
         uint8_t g = resizedRGBA[i * 4 + 1];
         uint8_t b = resizedRGBA[i * 4 + 2];
 
-        int bestIndex = 0;
-        int bestDist  = INT_MAX;
-        for (int c = 0; c < 256; c++) {
-            int dr = (int)r - (int)pal.colors[c].r;
-            int dg = (int)g - (int)pal.colors[c].g;
-            int db = (int)b - (int)pal.colors[c].b;
-            int dist = dr * dr + dg * dg + db * db;
-            if (dist < bestDist) {
-                bestDist  = dist;
-                bestIndex = c;
-                if (dist == 0) break;
-            }
-        }
-        indexedBuffer[i] = (uint8_t)bestIndex;
+        // Quantifier sur 5 bits et former la clé
+        uint32_t key = (((uint32_t)r >> 3) << 10) | (((uint32_t)g >> 3) << 5) | ((uint32_t)b >> 3);
+        indexedBuffer[i] = this->palette_lut[key];
     }
 
     // Blitter le buffer indexé dans le FrameBuffer à la position pmfd_left
     fb->blit(indexedBuffer.data(), pmfd_left.x+2, pmfd_left.y+2, mdfs_width, mdfs_height);
 
 }
-
+void SCCockpit::BuildPaletteLUT() {
+    VGAPalette &pal = this->palette;
+    this->palette_lut.clear();
+    // Précalcule pour chaque combinaison r,g,b réduite (5 bits par composante = 32768 entrées)
+    for (int r = 0; r < 256; r += 8) {
+        for (int g = 0; g < 256; g += 8) {
+            for (int b = 0; b < 256; b += 8) {
+                int bestIndex = 0;
+                int bestDist  = INT_MAX;
+                for (int c = 0; c < 256; c++) {
+                    int dr = r - (int)pal.colors[c].r;
+                    int dg = g - (int)pal.colors[c].g;
+                    int db = b - (int)pal.colors[c].b;
+                    int dist = dr * dr + dg * dg + db * db;
+                    if (dist < bestDist) {
+                        bestDist  = dist;
+                        bestIndex = c;
+                        if (dist == 0) break;
+                    }
+                }
+                // Clé = r5g5b5 packed sur 15 bits
+                uint32_t key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+                this->palette_lut[key] = (uint8_t)bestIndex;
+            }
+        }
+    }
+    this->palette_lut_dirty = false;
+}
 void SCCockpit::SetCommActorTarget(int target) {
     if (target == 0) {
         this->comm_actor = nullptr;
