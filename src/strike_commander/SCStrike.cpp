@@ -184,7 +184,7 @@ void SCStrike::renderVirtualCockpit() {
         mfd_right_image->palette = &this->cockpit->palette;
         if (this->cockpit->show_cam) {
             cockpit->RenderMFDSCamera({0,0}, cockpit->mfd_right_framebuffer);
-        } if (this->cockpit->show_damage) {
+        } else if (this->cockpit->show_damage) {
             cockpit->RenderMFDSDamage({0,0}, cockpit->mfd_right_framebuffer);
         }else {
             cockpit->RenderMFDSWeapon({0,0}, cockpit->mfd_right_framebuffer);
