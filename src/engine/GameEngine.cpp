@@ -15,6 +15,7 @@
 #include "EventManager.h"
 #include "keyboard.h" 
 #include "gametimer.h"
+#include <fstream>
 
 GameEngine::GameEngine() {
 }
@@ -42,6 +43,12 @@ void GameEngine::init() {
 
 void GameEngine::initKeyboard() {
     m_keyboard = new Keyboard();
+    std::ifstream f("default_bindings.cfg");
+    if (f.good()) {
+        f.close();
+        m_keyboard->loadActionBindings("default_bindings.cfg");
+        return;
+    }
     // Enregistrer actions souris (position + boutons)
     m_keyboard->registerAction(InputAction::MOUSE_POS_X);
     m_keyboard->registerAction(InputAction::MOUSE_POS_Y);
@@ -220,6 +227,7 @@ void GameEngine::initKeyboard() {
     
     m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_X, 0, 1.0f);
     m_keyboard->bindMouseAxisToAction(InputAction::MOUSE_DIFF_Y, 1, 1.0f);
+    m_keyboard->saveActionBindings("default_bindings.cfg");
 }
 
 void GameEngine::pumpEvents(void) {

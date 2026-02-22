@@ -25,6 +25,7 @@ private:
     RSVGA &VGA = RSVGA::getInstance();
     SCMouse &Mouse = SCMouse::getInstance();
     std::vector<HudLine> horizon;
+    bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
     
@@ -77,6 +78,7 @@ public:
     bool show_damage{false};
     bool show_comm{false};
     bool show_cam{false};
+    bool target_in_range{false};
     RadarMode radar_mode{RadarMode::AARD};
     int radar_zoom{1};
     int throttle{0};
@@ -101,7 +103,7 @@ public:
     // x = azimut, y = élévation
     // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
     Vector2D cannonAngularOffset = {0.0f, 0.0f};
-
+    Vector3D targetImpactPointWorld = {0.0f, 0.0f, 0.0f};
     SCCockpit();
     ~SCCockpit();
     void init( );
@@ -111,6 +113,7 @@ public:
     void RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb);
     void RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb);
     void RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb);
+    void RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb);
     void RenderRAWS(Point2D pmfd_left, FrameBuffer *fb);
     void RenderTargetWithCam(Point2D top_left, FrameBuffer *fb);
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);

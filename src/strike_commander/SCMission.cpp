@@ -529,6 +529,7 @@ void SCMission::update() {
             }
         }
         if (ai_actor->object->entity != nullptr && ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {
+            
             if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == false) {
                 if (ai_actor->retarget_cooldown > 0) {
                     ai_actor->shootWeapon(ai_actor->target);
@@ -585,6 +586,7 @@ void SCMission::update() {
         }
         
         if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
+            this->in_combat = ai_actor->target != nullptr && ai_actor->target == this->player;
             SCProg *p = new SCProg(ai_actor, ai_actor->on_update, this, ai_actor->object->on_mission_update);
             p->execute();
             delete p;

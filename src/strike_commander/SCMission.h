@@ -51,6 +51,7 @@ public:
     RSMission *mission{nullptr};
     RSWorld *world{nullptr};
     RSSound &sound = RSSound::getInstance();
+    bool in_combat{false};
     std::vector<RadioMessages*> radio_messages;
     bool mission_over{false};
     bool mission_won{false};

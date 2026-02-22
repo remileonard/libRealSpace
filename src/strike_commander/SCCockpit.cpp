@@ -8,6 +8,25 @@
 #include "precomp.h"
 #include "SCCockpit.h"
 
+bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
+    Vector3D campos = this->cam->getPosition();
+    Vector3DHomogeneous v = {coord.x, coord.y, coord.z, 1.0f};
+
+    Matrix *mproj = this->cam->getProjectionMatrix();
+    Matrix *mview = this->cam->getViewMatrix();
+
+    Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
+    Vector3DHomogeneous result = mproj->multiplyMatrixVector(mcombined);
+    if (result.z > 0.0f) {
+        float x = result.x / result.w;
+        float y = result.y / result.w;
+
+        Xout = (int)((x + 1.0f) * 160.0f);
+        Yout = (int)((1.0f - y - 0.45f) * 100.0f) - 1;
+        return true;
+    }
+    return false;
+}
 SCCockpit::SCCockpit() {}
 SCCockpit::~SCCockpit() {
     if (this->hud_framebuffer) {
@@ -397,55 +416,31 @@ void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb
     Point2D bottom_right = {top_left.x + hud_size.x, top_left.y + hud_size.y};
 
     if (this->target != nullptr) {
-        Vector3D campos = this->cam->getPosition();
-        Vector3DHomogeneous v = {this->target->position.x, this->target->position.y, this->target->position.z, 1.0f};
-
-        Matrix *mproj = this->cam->getProjectionMatrix();
-        Matrix *mview = this->cam->getViewMatrix();
-
-        Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
-        Vector3DHomogeneous result = mproj->multiplyMatrixVector(mcombined);
-        if (result.z > 0.0f) {
-            float x = result.x / result.w;
-            float y = result.y / result.w;
-
-            int Xhud = (int)((x + 1.0f) * 160.0f);
-            int Yhud = (int)((1.0f - y - 0.45f) * 100.0f) - 1;
-
-            // Calculate HUD coordinates relative to the HUD's frame of reference
-            int hudX = Xhud - top_left.x;
-            int hudY = Yhud - top_left.y;
+        int Xhud, Yhud;
+        if (project_to_screen(this->target->position, Xhud, Yhud)) {
 
             // Check if the target is within HUD boundaries
             bool isInHud = (Xhud >= top_left.x && Xhud < bottom_right.x && Yhud >= top_left.y && Yhud < bottom_right.y);
-
+            int hudX = Xhud - top_left.x;
+            int hudY = Yhud - top_left.y;
             isInHud = (hudX >= 0 && hudX < fb->width && hudX >= 0 && hudX < fb->height);
             // If the target is within the HUD boundaries, draw a targeting indicator
             if (isInHud) {
                 // Draw a targeting reticle at the position
                 Point2D targetPoint = {hudX + top_left.x, hudY + top_left.y};
-
-                // Draw target reticle using HUD coordinates
-                fb->lineWithBox(targetPoint.x - 5, targetPoint.y - 5, targetPoint.x + 5, targetPoint.y - 5, 223, 0,
-                                fb->width, 0, fb->height);
-                fb->lineWithBox(targetPoint.x + 5, targetPoint.y - 5, targetPoint.x + 5, targetPoint.y + 5, 223, 0,
-                                fb->width, 0, fb->height);
-                fb->lineWithBox(targetPoint.x + 5, targetPoint.y + 5, targetPoint.x - 5, targetPoint.y + 5, 223, 0,
-                                fb->width, 0, fb->height);
-                fb->lineWithBox(targetPoint.x - 5, targetPoint.y + 5, targetPoint.x - 5, targetPoint.y - 5, 223, 0,
-                                fb->width, 0, fb->height);
-            }
-
-            if (Xhud > 0 && Xhud < 320 && Yhud > 0 && Yhud < 200) {
-                Point2D p = {Xhud, Yhud};
-                fb->lineWithBox((int)p.x - 5, (int)p.y - 5, (int)p.x + 5, (int)p.y - 5, 223, top_left.x, bottom_right.x,
-                                top_left.y, bottom_right.y);
-                fb->lineWithBox((int)p.x + 5, (int)p.y - 5, (int)p.x + 5, (int)p.y + 5, 223, top_left.x, bottom_right.x,
-                                top_left.y, bottom_right.y);
-                fb->lineWithBox((int)p.x + 5, (int)p.y + 5, (int)p.x - 5, (int)p.y + 5, 223, top_left.x, bottom_right.x,
-                                top_left.y, bottom_right.y);
-                fb->lineWithBox((int)p.x - 5, (int)p.y + 5, (int)p.x - 5, (int)p.y - 5, 223, top_left.x, bottom_right.x,
-                                top_left.y, bottom_right.y);
+                RLEShape *targetShape = this->hud->small_hud->TARG->SHAPSET->GetShape(1);
+                targetPoint.x = targetPoint.x - targetShape->GetWidth() / 2;
+                targetPoint.y = targetPoint.y - targetShape->GetHeight() / 2;
+                targetShape->SetPosition(&targetPoint);
+                fb->drawShape(targetShape);
+                if (this->target_in_range) {
+                    RLEShape *inRangeShape = this->hud->small_hud->MISD->SHAP;
+                    Point2D inRangePos = {hudX + top_left.x, hudY + top_left.y};
+                    inRangePos.x = inRangePos.x - inRangeShape->GetWidth() / 2;
+                    inRangePos.y = inRangePos.y - inRangeShape->GetHeight() / 2;
+                    inRangeShape->SetPosition(&inRangePos);
+                    fb->drawShape(inRangeShape);
+                }
             }
         }
     }
@@ -728,7 +723,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     // ---- Projection HUD pour cockpit 3D ----
     // target est le point d'impact prédit en coordonnées monde
     const Vector3D impactWorld = {weap->x, weap->y, weap->z};
-
+    this->targetImpactPointWorld = impactWorld;
     // Monde -> repère avion (plane local)
     Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
     
@@ -740,6 +735,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         Vector3D toTarget = {this->target->position.x - avion_pos.x, this->target->position.y - avion_pos.y, this->target->position.z - avion_pos.z};
         target_distance = toTarget.Length();
     }
+    int Xhud, Yhud;
+    
     if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
                                 Ydraw)) {
         Point2D gun_piper= {Xdraw, Ydraw};
@@ -796,6 +793,11 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     }
 
+    if (project_to_screen(impactWorld, Xhud, Yhud)) {
+        Xhud -= 2;
+        Yhud -= 2;
+        fb->circle_slow(Xhud, Yhud, 4, 223);
+    }
     delete weap;
 }
 void SCCockpit::RenderBombSight(FrameBuffer *fb) {
@@ -1240,6 +1242,17 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
     fb->drawShape(&this->cockpit->MONI.SHAP);
 }
 
+void SCCockpit::RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    this->RenderMFDS(pmfd_left, fb);
+    Point2D damage_pos = {pmfd_left.x +25, pmfd_left.y +15};
+    RLEShape *damage_shape = this->cockpit->MONI.MFDS.DAMG.ARTS.GetShape(0);
+    damage_shape->SetPosition(&damage_pos);
+    fb->drawShape(damage_shape);
+}
+
 /**
  * Render the cockpit in its current state.
  *
@@ -1353,6 +1366,15 @@ void SCCockpit::Render(int face) {
                     }
                     this->RenderMFDSComm(pmfd, this->comm_target);
                 }
+                if (this->show_damage) {
+                    if (!mfds) {
+                        pmfd = pmfd_left;
+                        mfds = true;
+                    } else {
+                        pmfd = pmfd_right;
+                    }
+                    this->RenderMFDSDamage(pmfd, fb);
+                }
                 if (this->show_cam) {
                     if (!mfds) {
                         pmfd = pmfd_left;
@@ -1449,7 +1471,7 @@ void SCCockpit::RenderHUD() {
                 Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
                 float distance = dist_to_target.Length();
                 if (distance <= weap_range) {
-                    in_range = true;
+                    this->target_in_range = true;
                 }
             }
             if (weapon_names.find(weapon_id) != weapon_names.end()) {
@@ -1476,7 +1498,7 @@ void SCCockpit::RenderHUD() {
         txt = "0";
     }
     hud->printText(this->font, &weapons_count_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-    if (in_range) {
+    if (this->target_in_range) {
         hud->printText(this->font, &inrange_text, const_cast<char *>("IN RANGE"), 0, 0, 8, 2, 2);
     }
     Point2D gear = {75, 9};

@@ -897,7 +897,7 @@ void DebugStrike::renderMenu() {
     static bool show_offcam = false;
     static bool show_load_plane = false;
     static bool show_radar = false;
-
+    static bool show_gunsight_hud_offset = false;
     if (ImGui::BeginMenu("SCStrike")) {
         ImGui::MenuItem("Mission", NULL, &show_mission);
         ImGui::MenuItem("Mission part and Area", NULL, &show_mission_parts_and_areas);
@@ -908,6 +908,7 @@ void DebugStrike::renderMenu() {
         ImGui::MenuItem("Simulation", NULL, &show_simulation);
         ImGui::MenuItem("Simulation config", NULL, &show_simulation_config);
         ImGui::MenuItem("Camera", NULL, &show_camera);
+        ImGui::MenuItem("GunSight HUD angular offset", NULL, &show_gunsight_hud_offset);
         ImGui::MenuItem("Cockpit", NULL, &show_cockpit);
         ImGui::MenuItem("Show BBox", NULL, &this->show_bbox);
         ImGui::MenuItem("Ai pilot", NULL, &show_ai);
@@ -1058,6 +1059,14 @@ void DebugStrike::renderMenu() {
         ImGui::SliderFloat("Light x", &this->light.x, -150.0f, 150.0f);
         ImGui::SliderFloat("Light y", &this->light.y, -150.0f, 150.0f);
         ImGui::SliderFloat("Light z", &this->light.z, -150.0f, 150.0f);
+        ImGui::End();
+    }
+    if (show_gunsight_hud_offset) {
+        ImGui::Begin("GunSight HUD angular offset", &show_gunsight_hud_offset);
+        ImGui::Text("Current offset: [%.2f, %.2f]", this->gunsight_hud_offset.x,
+                    this->gunsight_hud_offset.y);
+        ImGui::SliderFloat("Offset X", &this->gunsight_hud_offset.x, -1.0f, 1.0f);
+        ImGui::SliderFloat("Offset Y", &this->gunsight_hud_offset.y, -1.0f, 1.0f);
         ImGui::End();
     }
     if (show_cockpit) {

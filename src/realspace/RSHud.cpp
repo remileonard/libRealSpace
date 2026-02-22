@@ -378,19 +378,18 @@ void RSHud::parseREAL_CHUD_LARG_TARG_INFO(uint8_t* data, size_t size){
 }
 void RSHud::parseREAL_CHUD_LARG_TARG_SHAP(uint8_t* data, size_t size){
     uint8_t *tmpdata = data;
-    if (data[0] == 'L' && data[1] == 'Z') {
-        LZBuffer lzbuffer;
-        lzbuffer.init(data+6, size-6);
-        size_t csize = 0;
-        tmpdata = lzbuffer.DecodeLZW(data+6, size-6, csize);
-        data = tmpdata;
-        size = csize;
+    RSImageSet *img_set = new RSImageSet();
+    PakArchive pak;
+    uint8_t* data2 = (uint8_t*) malloc(size);
+    memcpy(data2, data, size);
+    if (data2[0]=='L' && data2[1]=='Z'){
+        pak.InitFromRAM("SHAPE", data2, size);
+        img_set->InitFromSubPakEntry(&pak);
+    } else {
+        pak.InitFromRAM("SHAPE", data2, size);
+        img_set->InitFromSubPakEntry(&pak);    
     }
-    uint8_t* tmp = new uint8_t[size];
-    memcpy(tmp, data+8, size-8);
-    RLEShape* shape = new RLEShape();
-    shape->init(tmp, size-8);
-    this->tmp_hud->TARG->SHAP = shape;
+    this->tmp_hud->TARG->SHAPSET = img_set;
 }
 void RSHud::parseREAL_CHUD_LARG_MISD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;

@@ -149,8 +149,8 @@ void SCStrike::renderVirtualCockpit() {
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
 
-    this->cockpit->hud_eye_world = -cockpit_ajustement;
-    this->cockpit->cannonAngularOffset = {-0.005f, -0.140f};
+    this->cockpit->hud_eye_world = {0.0f,0.0f,0.0f};
+    this->cockpit->cannonAngularOffset = gunsight_hud_offset;
     this->cockpit->RenderHUD();
     if (this->cockpit->hud != nullptr) {
         Texture *hud_texture = new Texture();
@@ -184,7 +184,9 @@ void SCStrike::renderVirtualCockpit() {
         mfd_right_image->palette = &this->cockpit->palette;
         if (this->cockpit->show_cam) {
             cockpit->RenderMFDSCamera({0,0}, cockpit->mfd_right_framebuffer);
-        } else {
+        } if (this->cockpit->show_damage) {
+            cockpit->RenderMFDSDamage({0,0}, cockpit->mfd_right_framebuffer);
+        }else {
             cockpit->RenderMFDSWeapon({0,0}, cockpit->mfd_right_framebuffer);
         }
         
@@ -1105,38 +1107,66 @@ void SCStrike::checkKeyboard(void) {
     this->cockpit->mouse_control = this->mouse_control;
 }
 void SCStrike::findTarget() {
-    float minDistSq = (std::numeric_limits<float>::max)();
-    int nearestIndex = -1;
-    for (size_t i = 0; i < this->current_mission->enemies.size(); i++) {
-        if (i == this->current_target) {
-            continue;
-        }
+    const float target_range = 30000.0f;
+    const float target_range_sq = target_range * target_range;
+
+    // 1. Collecter tous les ennemis valides dans la portée
+    std::vector<int> candidates;
+    for (int i = 0; i < (int)this->current_mission->enemies.size(); i++) {
         auto enemy = this->current_mission->enemies[i];
         if (enemy->team_id == this->current_mission->player->team_id) {
             continue;
         }
-        if (enemy->is_active && !enemy->is_destroyed) {
-            float dx = enemy->object->position.x - this->player_plane->x;
-            float dy = enemy->object->position.y - this->player_plane->y;
-            float dz = enemy->object->position.z - this->player_plane->z;
-            float distSq = dx * dx + dy * dy + dz * dz;
-            if (distSq < minDistSq) {
-                minDistSq = distSq;
-                nearestIndex = static_cast<int>(i);
-            }
+        if (!enemy->is_active || enemy->is_destroyed) {
+            continue;
+        }
+        float dx = enemy->object->position.x - this->player_plane->x;
+        float dy = enemy->object->position.y - this->player_plane->y;
+        float dz = enemy->object->position.z - this->player_plane->z;
+        float distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq <= target_range_sq) {
+            candidates.push_back(i);
         }
     }
-    if (nearestIndex != -1) {
-        this->current_target = nearestIndex;
-        this->target = this->current_mission->enemies[nearestIndex];
-        this->current_mission->player->target = this->target;
-        this->cockpit->target = this->target->object;
-    } else {
-        this->current_target = 0;
+
+    if (candidates.empty()) {
+        // Aucune cible disponible
+        this->current_target = -1;
         this->target = nullptr;
         this->current_mission->player->target = nullptr;
         this->cockpit->target = nullptr;
+        return;
     }
+
+    // 2. Trier les candidats par distance croissante
+    std::sort(candidates.begin(), candidates.end(), [&](int a, int b) {
+        auto ea = this->current_mission->enemies[a];
+        auto eb = this->current_mission->enemies[b];
+        float dxa = ea->object->position.x - this->player_plane->x;
+        float dya = ea->object->position.y - this->player_plane->y;
+        float dza = ea->object->position.z - this->player_plane->z;
+        float dxb = eb->object->position.x - this->player_plane->x;
+        float dyb = eb->object->position.y - this->player_plane->y;
+        float dzb = eb->object->position.z - this->player_plane->z;
+        return (dxa*dxa + dya*dya + dza*dza) < (dxb*dxb + dyb*dyb + dzb*dzb);
+    });
+
+    // 3. Trouver la position de la cible actuelle dans la liste
+    int nextIndex = 0; // Par défaut: premier candidat (le plus proche)
+    for (int i = 0; i < (int)candidates.size(); i++) {
+        if (candidates[i] == this->current_target) {
+            // Cycler vers le suivant
+            nextIndex = (i + 1) % (int)candidates.size();
+            break;
+        }
+    }
+
+    // 4. Appliquer la nouvelle cible
+    int selectedEnemyIndex = candidates[nextIndex];
+    this->current_target = selectedEnemyIndex;
+    this->target = this->current_mission->enemies[selectedEnemyIndex];
+    this->current_mission->player->target = this->target;
+    this->cockpit->target = this->target->object;
 }
 /**
  * SCStrike::Init
@@ -1318,40 +1348,57 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
         obj_pos.y - pos.y,
         obj_pos.z - pos.z
     };
+    Vector3D lookAt;
+    Vector3D camPos;
+
     float len = dir.Length();
-    dir.Normalize();
+    if (len > 20000.0f) {
+        dir={
+            this->player_plane->x - this->player_plane->last_px,
+            this->player_plane->y - this->player_plane->last_py,
+            this->player_plane->z - this->player_plane->last_pz
+        };
+        dir.Normalize();
+        lookAt = {
+            pos.x + dir.x * 10000.0f,
+            pos.y + dir.y * 10000.0f,
+            pos.z + dir.z * 10000.0f
+        };
+    } else {
+        dir.Normalize();
 
-    // Calcul de la taille réelle de la cible via sa BoundingBox
-    float targetSize = 30.0f; // valeur par défaut
-    if (this->target != nullptr && this->target->object != nullptr && this->target->object->entity != nullptr) {
-        BoudingBox *bb = this->target->object->entity->GetBoudingBpx();
-        if (bb != nullptr) {
-            float sizeX = bb->max.x - bb->min.x;
-            float sizeY = bb->max.y - bb->min.y;
-            float sizeZ = bb->max.z - bb->min.z;
-            // On prend la diagonale de la bounding box comme taille de référence
-            targetSize = sqrt(sizeX*sizeX + sizeY*sizeY + sizeZ*sizeZ);
+        // Calcul de la taille réelle de la cible via sa BoundingBox
+        float targetSize = 30.0f; // valeur par défaut
+        if (this->target != nullptr && this->target->object != nullptr && this->target->object->entity != nullptr) {
+            BoudingBox *bb = this->target->object->entity->GetBoudingBpx();
+            if (bb != nullptr) {
+                float sizeX = bb->max.x - bb->min.x;
+                float sizeY = bb->max.y - bb->min.y;
+                float sizeZ = bb->max.z - bb->min.z;
+                // On prend la diagonale de la bounding box comme taille de référence
+                targetSize = sqrt(sizeX*sizeX + sizeY*sizeY + sizeZ*sizeZ);
+            }
         }
+
+        // On veut que la cible occupe toujours TARGET_ANGULAR_SIZE degrés à l'écran
+        // d = targetSize / (2 * tan(angle/2))
+        const float TARGET_ANGULAR_SIZE = 15.0f; // degrés
+        float camDist = targetSize / (2.0f * tan(TARGET_ANGULAR_SIZE * ((float)M_PI / 180.0f) / 2.0f));
+
+        camDist = (std::max)(camDist, 10.0f); // pas trop près
+        camDist = (std::min)(camDist, len);   // pas au-delà de la cible
+
+        camPos = {
+            obj_pos.x - dir.x * camDist,
+            obj_pos.y - dir.y * camDist,
+            obj_pos.z - dir.z * camDist
+        };
+        lookAt = {
+            obj_pos.x,
+            obj_pos.y + 10.0f,
+            obj_pos.z
+        };
     }
-
-    // On veut que la cible occupe toujours TARGET_ANGULAR_SIZE degrés à l'écran
-    // d = targetSize / (2 * tan(angle/2))
-    const float TARGET_ANGULAR_SIZE = 15.0f; // degrés
-    float camDist = targetSize / (2.0f * tan(TARGET_ANGULAR_SIZE * ((float)M_PI / 180.0f) / 2.0f));
-
-    camDist = (std::max)(camDist, 10.0f); // pas trop près
-    camDist = (std::min)(camDist, len);   // pas au-delà de la cible
-
-    Vector3D camPos = {
-        obj_pos.x - dir.x * camDist,
-        obj_pos.y - dir.y * camDist,
-        obj_pos.z - dir.z * camDist
-    };
-    Vector3D lookAt = {
-        obj_pos.x,
-        obj_pos.y + 10.0f,
-        obj_pos.z
-    };
     camera->SetPosition(&camPos);
     camera->lookAt(&lookAt);
 }
@@ -1383,6 +1430,10 @@ void SCStrike::runFrame(void) {
             this->Mixer.playMusic(13); // play victory music
         } else if (this->current_mission->mission_over && !this->current_mission->mission_won) {
             this->Mixer.playMusic(12); // play victory music
+        } else if (this->current_mission->in_combat) {
+            this->Mixer.playMusic(5);
+        } else {
+            this->Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
         }
         if (this->current_mission->mission_ended) {
             GameState.missions_flags.clear();
@@ -1692,7 +1743,7 @@ void SCStrike::runFrame(void) {
         
         centerPoint = camera->getPosition()+camera->getForward()*10.0f;
         Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
-        
+        Renderer.drawPoint(this->cockpit->targetImpactPointWorld, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
         switch (this->camera_mode) {
         case View::MISSILE_CAM:
         case View::TARGET:
