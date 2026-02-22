@@ -851,12 +851,13 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
     std::tie(impact, velo) = weap->ComputeTrajectoryUntilGround(this->player_plane->tps);
 
     Vector3D impactWorld = {impact.x, impact.y, impact.z};
+    this->targetImpactPointWorld = impactWorld;
     const Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
 
     const Vector2D bombAngularOffset = {0.0f, 0.0f};
 
     int Xhud = 0, Yhud = 0;
-    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, bombAngularOffset, fb, Xhud, Yhud)) {
+    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xhud, Yhud)) {
         fb->plot_pixel(center.x, center.y, 223);
         fb->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
         fb->plot_pixel(Xhud, Yhud, 223);
