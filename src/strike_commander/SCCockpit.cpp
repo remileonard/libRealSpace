@@ -110,6 +110,7 @@ void SCCockpit::init() {
             this->big_font = FontManager.GetFont("..\\..\\DATA\\FONTS\\HUDFONT.SHP");
         }
     }
+    debug_framebuffer = new FrameBuffer(320, 200);
 }
 /**
  * SCCockpit::RenderAltitude
@@ -675,14 +676,26 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     Vector3D initial_trust{0, 0, 0};
     initial_trust = this->player_plane->getWeaponIntialVector(nbsteps * (this->player_plane->tps / 60.0f));
+    Vector3D planeDispAccum{0, 0, 0};
+    planeDispAccum = planeDispAccum + planeVelWorld;
+    auto rotateByOmegaStep = [](const Vector3D &v, const Vector3D &w) -> Vector3D {
+        // Approx petit angle: v' = v + (w x v)
+        Vector3D cross{
+            w.y * v.z - w.z * v.y,
+            w.z * v.x - w.x * v.z,
+            w.x * v.y - w.y * v.x
+        };
+        return {v.x + cross.x, v.y + cross.y, v.z + cross.z};
+    };
+
     weap->obj = this->player_plane->weaps_load[0]->objct;
-    weap->x = this->player_plane->x;
-    weap->y = this->player_plane->y;
-    weap->z = this->player_plane->z;
+    weap->x = this->player_plane->x+planeDispAccum.x;
+    weap->y = this->player_plane->y+planeDispAccum.y;
+    weap->z = this->player_plane->z+planeDispAccum.z;
     weap->vx = initial_trust.x;
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
-
+    planeVelWorld = rotateByOmegaStep(planeVelWorld, omegaStep);
     weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg * 2.205f;
     weap->azimuthf = this->player_plane->azimuthf;
     weap->elevationf = this->player_plane->elevationf;
@@ -695,16 +708,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         this->player_plane->y,
         this->player_plane->z
     };
-    Vector3D planeDispAccum{0, 0, 0};
-    auto rotateByOmegaStep = [](const Vector3D &v, const Vector3D &w) -> Vector3D {
-        // Approx petit angle: v' = v + (w x v)
-        Vector3D cross{
-            w.y * v.z - w.z * v.y,
-            w.z * v.x - w.x * v.z,
-            w.x * v.y - w.y * v.x
-        };
-        return {v.x + cross.x, v.y + cross.y, v.z + cross.z};
-    };
+    
     for (int i = 0; i < nbsteps; i++) {
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
         planeDispAccum = planeDispAccum + planeVelWorld;
@@ -713,9 +717,11 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         weap->y = impact.y;
         weap->z = impact.z;
 
+        velo = rotateByOmegaStep(velo, omegaStep);
         weap->vx = velo.x;
         weap->vy = velo.y;
         weap->vz = velo.z;
+        
         planeVelWorld = rotateByOmegaStep(planeVelWorld, omegaStep);
     }
 
@@ -748,7 +754,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         s->SetPosition(&gun_piper);
         fb->drawShapeWithBox(s, 0, 320, 0,
                              200);
-        int distance_to_target_index = target_distance / 1000;
+        int distance_to_target_index = target_distance*3.2808399f / 1000;
         if (distance_to_target_index > 12 ) {
             distance_to_target_index = 12;
         }
@@ -792,11 +798,10 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         }
 
     }
-
-    if (project_to_screen(impactWorld, Xhud, Yhud)) {
-        Xhud -= 2;
-        Yhud -= 2;
-        fb->circle_slow(Xhud, Yhud, 4, 223);
+    int RX = 0, RY = 0;
+    if (project_to_screen(impactWorld, RX, RY)) {
+        debug_framebuffer->plot_pixel(RX, RY, 46);
+        debug_framebuffer->circle_slow(RX, RY, 4, 223);
     }
     delete weap;
 }
@@ -974,12 +979,143 @@ void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameB
         this->RenderMFDSRadarImplementation(pmfd_left, range, "GROUND", false, fb);
         break;
     case RadarMode::ASST:
-        this->RenderMFDSRadarImplementation(pmfd_left, range, "SINGLE", false, fb);
+        this->RenderMFDSRadarSingleTargetImplementation(pmfd_left, range, "SINGLE", false, fb);
         break;
     case RadarMode::AFRD:
         break;
     default:
         break;
+    }
+}
+
+void SCCockpit::RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode,
+                                              FrameBuffer *fb = nullptr) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    // Calcul des positions et dimensions
+    Point2D pmfd_center = {
+        pmfd_left.x + this->cockpit->MONI.SHAP.GetWidth() / 2,
+        pmfd_left.y + this->cockpit->MONI.SHAP.GetHeight() / 2,
+    };
+    this->RenderMFDS(pmfd_left, fb);
+
+    // Dimensions du radar
+    Point2D radar_size = {100, 80};
+    Point2D bottom_right = {pmfd_left.x + radar_size.x, pmfd_left.y + radar_size.y};
+
+    // Choisir les ressources en fonction du mode
+    auto &radar_arts = this->cockpit->MONI.MFDS.AARD.ARTS;
+    int bg_shape_index = 3;
+
+    // Position du fond du radar
+    Point2D radar_bg_pos = pmfd_left;
+
+    
+    radar_bg_pos.x += this->cockpit->MONI.SHAP.GetWidth() / 2 - radar_arts.GetShape(bg_shape_index)->GetWidth() / 2;
+    
+    radar_bg_pos.y += this->cockpit->MONI.SHAP.GetHeight() / 2 - radar_arts.GetShape(bg_shape_index)->GetHeight() / 2;
+
+    // Dessine le fond du radar
+    radar_arts.GetShape(bg_shape_index)->SetPosition(&radar_bg_pos);
+    fb->drawShape(radar_arts.GetShape(bg_shape_index));
+
+    // Affiche les infos textuelles
+    Point2D pmfd_text = {radar_bg_pos.x + 10, radar_bg_pos.y + 2};
+    std::string rzoom_str = "10";
+    switch (this->radar_zoom) {
+    case 1:
+        rzoom_str = "10";
+        break;
+    case 2:
+        rzoom_str = "20";
+        break;
+    case 3:
+        rzoom_str = "40";
+        break;
+    case 4:
+        rzoom_str = "80";
+        break;
+    default:
+        rzoom_str = "10";
+        break;
+    }
+    fb->printText(this->big_font, &pmfd_text, (char *)rzoom_str.c_str(), 0, 0, 2, 2, 2);
+
+    std::string mode_text = " " + std::string(mode_name) + " ";
+    fb->printText(this->big_font, &pmfd_text, const_cast<char *>(mode_text.c_str()), 0, 0, (int)mode_text.length(), 2,
+                  2);
+
+    // Position du joueur comme centre du radar
+    Vector2D center = {this->player->position.x, this->player->position.z};
+
+    // Préparation pour la rotation
+    int heading = (int)this->heading;
+    heading = (heading + 360) % 360; // Normalisation entre 0-359
+    float headingRad = heading / 180.0f * (float)M_PI;
+
+    // Fonction pour dessiner un contact sur le radar
+    auto drawContact = [&](SCMissionActors *object, bool isFriendly, bool isDestroyed) {
+        // Vérifier si l'entité correspond au mode actuel
+        bool valid_entity;
+        if (!object->is_active)
+            return;
+
+        Vector2D objPos = {object->object->position.x, object->object->position.z};
+
+        // Rotation selon le heading du joueur
+        Vector2D rotatedPos = objPos.rotateAroundPoint(center, headingRad);
+        Vector2D relativePos = {rotatedPos.x - center.x, rotatedPos.y - center.y};
+
+        // Vérification de la distance
+        float distance = sqrtf(relativePos.x * relativePos.x + relativePos.y * relativePos.y);
+        if (distance >= range)
+            return;
+
+        // Échelle et position sur l'écran
+        float scale = 60.0f / range;
+        Point2D screenPos = {pmfd_center.x + (int)(relativePos.x * scale),
+                             pmfd_center.y + (int)(relativePos.y * scale)};
+
+        // Vérifie si le contact est dans les limites du MFD
+        if (screenPos.x <= pmfd_left.x || screenPos.x >= pmfd_left.x + this->cockpit->MONI.SHAP.GetWidth() ||
+            screenPos.y <= pmfd_left.y || screenPos.y >= pmfd_left.y + this->cockpit->MONI.SHAP.GetHeight())
+            return;
+
+        // Sélectionne l'icône appropriée
+        int iconIndex;
+        
+        iconIndex = 10;
+    
+        // Dessine l'icône
+        radar_arts.GetShape(iconIndex)->SetPosition(&screenPos);
+        fb->drawShapeWithBox(radar_arts.GetShape(iconIndex), pmfd_left.x, bottom_right.x, pmfd_left.y, bottom_right.y);
+        Point2D targetPos = {screenPos.x - 2, screenPos.y - 1};
+        std::string altitude_str = std::to_string((int)object->object->position.y);
+        std::string heading_str = std::to_string((int)object->object->azymuth);
+        std::string speed_str = std::to_string(object->plane != nullptr ? (int)object->plane->airspeed: 0);
+        Point2D textPos = {targetPos.x + 10, targetPos.y};
+        fb->printText(this->big_font, &textPos, (char *)altitude_str.c_str(), 0, 0, (uint32_t)altitude_str.length(), 1, 1);
+        textPos.x = targetPos.x + 10;
+        textPos.y = textPos.y + 6;
+        fb->printText(this->big_font, &textPos, (char *)heading_str.c_str(), 0, 0, (uint32_t)heading_str.length(), 1, 1);
+        textPos.x = targetPos.x + 10;
+        textPos.y = textPos.y + 6;
+        fb->printText(this->big_font, &textPos, (char *)speed_str.c_str(), 0, 0, (uint32_t)speed_str.length(), 1, 1);
+    };
+
+    // Dessine les ennemis 
+    for (auto actor : this->current_mission->enemies) {
+        if (actor->object == this->target) {
+            drawContact(actor, false, actor->is_destroyed);
+        }
+    }
+
+    // Dessine les alliés (sauf le joueur)
+    for (auto actor : this->current_mission->friendlies) {
+        if (actor->object == this->target) {
+            drawContact(actor, true, actor->is_destroyed);
+        }
     }
 }
 
@@ -1123,7 +1259,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         }
     };
 
-    // Dessine les ennemis
+    // Dessine les ennemis 
     for (auto actor : this->current_mission->enemies) {
         drawContact(actor, false, actor->is_destroyed);
     }
@@ -1273,6 +1409,7 @@ void SCCockpit::Render(int face) {
         VGA.upscale = false;
         fb = VGA.getFrameBuffer();
         fb->clear();
+        debug_framebuffer->clear();
         this->cannonAngularOffset = {0.0f, 0.0f};
         if (cockpit != nullptr) {
             if (face == 0) {
@@ -1390,6 +1527,7 @@ void SCCockpit::Render(int face) {
         if (this->mouse_control) {
             Mouse.draw();
         }
+        VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
         VGA.vSync();
         VGA.upscale = upscale;
     }
@@ -1657,7 +1795,7 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     int texHeight = 128;
 
     int mdfs_height = this->cockpit->MONI.SHAP.GetHeight()-20;
-    int mdfs_width = this->cockpit->MONI.SHAP.GetHeight()-8;
+    int mdfs_width = this->cockpit->MONI.SHAP.GetWidth()-8;
     if (texWidth <= 0 || texHeight <= 0) {
         return;
     }
@@ -1712,6 +1850,9 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     fb->blit(indexedBuffer.data(), pmfd_left.x+13, pmfd_left.y+11, mdfs_width, mdfs_height);
     this->cockpit->MONI.SHAP.SetPosition(&pmfd_left);
     fb->drawShape(&this->cockpit->MONI.SHAP);
+    Point2D center = {pmfd_left.x + mdfs_width / 2, pmfd_left.y + mdfs_height / 2};
+    this->cockpit->MONI.MFDS.GCAM.ARTS.GetShape(0)->SetPosition(&center);
+    fb->drawShape(this->cockpit->MONI.MFDS.GCAM.ARTS.GetShape(0));
 }
 void SCCockpit::BuildPaletteLUT() {
     VGAPalette &pal = this->palette;
@@ -1720,9 +1861,14 @@ void SCCockpit::BuildPaletteLUT() {
     for (int r = 0; r < 256; r += 8) {
         for (int g = 0; g < 256; g += 8) {
             for (int b = 0; b < 256; b += 8) {
-                int bestIndex = 0;
+                int bestIndex = 128; // Index de départ dans la plage verte
                 int bestDist  = INT_MAX;
-                for (int c = 0; c < 256; c++) {
+
+                // Convertir RGB en luminosité
+                float luminance = 0.299f * r + 0.587f * g + 0.114f * b;
+
+                // Chercher uniquement dans la plage [128-159] (dégradé de vert)
+                for (int c = 128; c <= 159; c++) {
                     int dr = r - (int)pal.colors[c].r;
                     int dg = g - (int)pal.colors[c].g;
                     int db = b - (int)pal.colors[c].b;

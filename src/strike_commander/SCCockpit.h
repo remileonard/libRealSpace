@@ -35,6 +35,7 @@ private:
     void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
+    void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
     void BuildPaletteLUT();
     RSFont *font;
     RSFont *big_font;
@@ -53,7 +54,7 @@ public:
     FrameBuffer *alti_framebuffer{nullptr};
     FrameBuffer *speed_framebuffer{nullptr};
     FrameBuffer *comm_framebuffer{nullptr};
-
+    FrameBuffer *debug_framebuffer{nullptr};
     float pitch{0.0f};
     float roll{0.0f};
     float yaw{0.0f};

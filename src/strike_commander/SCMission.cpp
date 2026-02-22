@@ -502,6 +502,7 @@ void SCMission::update() {
         }
         
     }
+    this->in_combat = false;
     for (auto ai_actor : this->actors) {
         if (ai_actor->object->alive == false && ai_actor->is_destroyed == false) {
             ai_actor->is_destroyed = true;
