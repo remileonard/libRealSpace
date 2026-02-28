@@ -1451,7 +1451,7 @@ void SCCockpit::Render(int face) {
                     }
                 }
 
-                fb->plot_pixel(161, 50, 46);
+                //fb->plot_pixel(161, 50, 46);
             }
             fb->drawShape(this->cockpit->ARTP.GetShape(face));
             if (face == 0) {
@@ -1528,7 +1528,7 @@ void SCCockpit::Render(int face) {
         if (this->mouse_control) {
             Mouse.draw();
         }
-        VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
+        //VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
         VGA.vSync();
         VGA.upscale = upscale;
     }
