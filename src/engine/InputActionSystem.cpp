@@ -212,6 +212,33 @@ bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outV
             }
             return false;
         }
+        case InputType::JOYSTICK_AXIS: {
+            int joystickId = (binding.deviceId >= 0) ? binding.deviceId : 0;
+            SDL_Joystick* joy = SDL_JoystickFromInstanceID(joystickId);
+            if (!joy) return false;
+
+            Sint16 raw = SDL_JoystickGetAxis(joy, binding.code);
+            float value = (raw / 32767.0f) * binding.scale;
+
+            if (std::abs(value) < m_axisDeadZone) {
+                value = 0.0f;
+            } else {
+                float sign = (value > 0) ? 1.0f : -1.0f;
+                value = sign * (std::abs(value) - m_axisDeadZone) / (1.0f - m_axisDeadZone);
+            }
+            outValue = value;
+            return std::abs(value) > 0.0f;
+        }
+
+        case InputType::JOYSTICK_BUTTON: {
+            int joystickId = (binding.deviceId >= 0) ? binding.deviceId : 0;
+            SDL_Joystick* joy = SDL_JoystickFromInstanceID(joystickId);
+            if (!joy) return false;
+
+            bool isPressed = SDL_JoystickGetButton(joy, binding.code) != 0;
+            outValue = isPressed ? 1.0f : 0.0f;
+            return isPressed;
+        }
     }
     
     return false;

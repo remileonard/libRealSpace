@@ -61,7 +61,9 @@ enum class InputType {
     MOUSE_AXIS,
     MOUSE_POSITION,
     GAMEPAD_BUTTON,
-    GAMEPAD_AXIS
+    GAMEPAD_AXIS,
+    JOYSTICK_BUTTON,
+    JOYSTICK_AXIS
 };
 
 // Structure pour représenter une entrée spécifique

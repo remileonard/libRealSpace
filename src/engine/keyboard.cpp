@@ -42,12 +42,20 @@ void Keyboard::bindMouseButtonToAction(const InputAction actionId, int button) {
     m_inputSystem->bindInput(actionId, InputBinding(InputType::MOUSE_BUTTON, -1, button));
 }
 
-void Keyboard::bindGamepadButtonToAction(const InputAction actionId, int gamepadIndex, SDL_GameControllerButton button) {
+void Keyboard::bindGamepadButtonToAction(const InputAction actionId, int gamepadIndex, int button) {
     m_inputSystem->bindInput(actionId, InputBinding(InputType::GAMEPAD_BUTTON, gamepadIndex, static_cast<int>(button)));
 }
 
-void Keyboard::bindGamepadAxisToAction(const InputAction actionId, int gamepadIndex, SDL_GameControllerAxis axis, float scale) {
+void Keyboard::bindGamepadAxisToAction(const InputAction actionId, int gamepadIndex, int axis, float scale) {
     m_inputSystem->bindInput(actionId, InputBinding(InputType::GAMEPAD_AXIS, gamepadIndex, static_cast<int>(axis), scale));
+}
+
+void Keyboard::bindJoystickButtonToAction(const InputAction actionId, int gamepadIndex, int button) {
+    m_inputSystem->bindInput(actionId, InputBinding(InputType::JOYSTICK_BUTTON, gamepadIndex, static_cast<int>(button)));
+}
+
+void Keyboard::bindJoystickAxisToAction(const InputAction actionId, int gamepadIndex, int axis, float scale) {
+    m_inputSystem->bindInput(actionId, InputBinding(InputType::JOYSTICK_AXIS, gamepadIndex, static_cast<int>(axis), scale));
 }
 
 bool Keyboard::saveActionBindings(const std::string& filename) const {

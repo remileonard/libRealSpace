@@ -42,7 +42,7 @@ private:
     struct AxisBinding {
         const char* label;
         DebugAct act;
-        SDL_GameControllerAxis axis;
+        int axis;
         float scale;
         bool zeroToOne;
         float value = 0.0f;
@@ -50,12 +50,13 @@ private:
     struct ButtonBinding {
         const char* label;
         DebugAct act;
-        SDL_GameControllerButton btn;
+        int btn;
         bool pressed = false;
     };
 
     int m_padIndex = 0;
     std::vector<AxisBinding> m_axes;
+    std::vector<AxisBinding> m_joy_axes;
     std::vector<ButtonBinding> m_buttons;
 
     void setupGamepadDebugBindings();

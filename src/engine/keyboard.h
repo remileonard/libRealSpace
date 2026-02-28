@@ -23,8 +23,11 @@ public:
     void registerAction(const InputAction actionId);
     void bindKeyToAction(const InputAction actionId, SDL_Scancode key);
     void bindMouseButtonToAction(const InputAction actionId, int button);
-    void bindGamepadButtonToAction(const InputAction actionId, int gamepadIndex, SDL_GameControllerButton button);
-    void bindGamepadAxisToAction(const InputAction actionId, int gamepadIndex, SDL_GameControllerAxis axis, float scale = 1.0f);
+    void bindGamepadButtonToAction(const InputAction actionId, int gamepadIndex, int button);
+    void bindGamepadAxisToAction(const InputAction actionId, int gamepadIndex, int axis, float scale = 1.0f);
+    void bindJoystickButtonToAction(const InputAction actionId, int gamepadIndex, int button);
+    void bindJoystickAxisToAction(const InputAction actionId, int gamepadIndex, int axis, float scale = 1.0f);
+    
     void bindMouseAxisToAction(const InputAction actionId, int axis, float scale = 1.0f);
     void bindMousePositionToAction(const InputAction actionId, int axis, float scale = 1.0f);
     void getMouseAbsolutePosition(int& x, int& y) const;

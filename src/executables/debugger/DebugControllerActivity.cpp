@@ -159,43 +159,76 @@ void DebugControllerActivity::renderUI(void) {
 }
 
 void DebugControllerActivity::setupGamepadDebugBindings() {
-    // Définition des axes que l’on veut suivre
-    m_axes = {
-        { "LX", DebugAct::GP_LX, SDL_CONTROLLER_AXIS_LEFTX,  1.0f, false },
-        { "LY", DebugAct::GP_LY, SDL_CONTROLLER_AXIS_LEFTY, -1.0f, false },
-        { "RX", DebugAct::GP_RX, SDL_CONTROLLER_AXIS_RIGHTX, 1.0f, false },
-        { "RY", DebugAct::GP_RY, SDL_CONTROLLER_AXIS_RIGHTY,-1.0f, false },
-        { "LT", DebugAct::GP_LT, SDL_CONTROLLER_AXIS_TRIGGERLEFT,  1.0f, true },
-        { "RT", DebugAct::GP_RT, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 1.0f, true },
-    };
+    bool isGamepad = SDL_IsGameController(m_padIndex);
 
-    // Définition des boutons
-    m_buttons = {
-        { "A",     DebugAct::GP_A,     SDL_CONTROLLER_BUTTON_A,     false },
-        { "B",     DebugAct::GP_B,     SDL_CONTROLLER_BUTTON_B,     false },
-        { "X",     DebugAct::GP_X,     SDL_CONTROLLER_BUTTON_X,     false },
-        { "Y",     DebugAct::GP_Y,     SDL_CONTROLLER_BUTTON_Y,     false },
-        { "LB",    DebugAct::GP_LB,    SDL_CONTROLLER_BUTTON_LEFTSHOULDER,  false },
-        { "RB",    DebugAct::GP_RB,    SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false },
-        { "Back",  DebugAct::GP_BACK,  SDL_CONTROLLER_BUTTON_BACK,  false },
-        { "Start", DebugAct::GP_START, SDL_CONTROLLER_BUTTON_START, false },
-        { "LS",    DebugAct::GP_LS,    SDL_CONTROLLER_BUTTON_LEFTSTICK,  false },
-        { "RS",    DebugAct::GP_RS,    SDL_CONTROLLER_BUTTON_RIGHTSTICK, false },
-        { "Up",    DebugAct::GP_DU,    SDL_CONTROLLER_BUTTON_DPAD_UP,    false },
-        { "Down",  DebugAct::GP_DD,    SDL_CONTROLLER_BUTTON_DPAD_DOWN,  false },
-        { "Left",  DebugAct::GP_DL,    SDL_CONTROLLER_BUTTON_DPAD_LEFT,  false },
-        { "Right", DebugAct::GP_DR,    SDL_CONTROLLER_BUTTON_DPAD_RIGHT, false },
-    };
+    /*if (isGamepad) {
+        m_axes = {
+            { "LX", DebugAct::GP_LX, SDL_CONTROLLER_AXIS_LEFTX,         1.0f, false },
+            { "LY", DebugAct::GP_LY, SDL_CONTROLLER_AXIS_LEFTY,         -1.0f, false },
+            { "RX", DebugAct::GP_RX, SDL_CONTROLLER_AXIS_RIGHTX,         1.0f, false },
+            { "RY", DebugAct::GP_RY, SDL_CONTROLLER_AXIS_RIGHTY,        -1.0f, false },
+            { "LT", DebugAct::GP_LT, SDL_CONTROLLER_AXIS_TRIGGERLEFT,    1.0f, true  },
+            { "RT", DebugAct::GP_RT, SDL_CONTROLLER_AXIS_TRIGGERRIGHT,   1.0f, true  },
+        };
+        m_buttons = {
+            { "A",     DebugAct::GP_A,     SDL_CONTROLLER_BUTTON_A,                false },
+            { "B",     DebugAct::GP_B,     SDL_CONTROLLER_BUTTON_B,                false },
+            { "X",     DebugAct::GP_X,     SDL_CONTROLLER_BUTTON_X,                false },
+            { "Y",     DebugAct::GP_Y,     SDL_CONTROLLER_BUTTON_Y,                false },
+            { "LB",    DebugAct::GP_LB,    SDL_CONTROLLER_BUTTON_LEFTSHOULDER,     false },
+            { "RB",    DebugAct::GP_RB,    SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,    false },
+            { "Back",  DebugAct::GP_BACK,  SDL_CONTROLLER_BUTTON_BACK,             false },
+            { "Start", DebugAct::GP_START, SDL_CONTROLLER_BUTTON_START,            false },
+            { "LS",    DebugAct::GP_LS,    SDL_CONTROLLER_BUTTON_LEFTSTICK,        false },
+            { "RS",    DebugAct::GP_RS,    SDL_CONTROLLER_BUTTON_RIGHTSTICK,       false },
+            { "Up",    DebugAct::GP_DU,    SDL_CONTROLLER_BUTTON_DPAD_UP,          false },
+            { "Down",  DebugAct::GP_DD,    SDL_CONTROLLER_BUTTON_DPAD_DOWN,        false },
+            { "Left",  DebugAct::GP_DL,    SDL_CONTROLLER_BUTTON_DPAD_LEFT,        false },
+            { "Right", DebugAct::GP_DR,    SDL_CONTROLLER_BUTTON_DPAD_RIGHT,       false },
+        };
+        // Enregistrer et binder toutes les actions via Keyboard
+        for (const auto& a : m_axes) {
+            auto act = static_cast<InputAction>(static_cast<int>(a.act));
+            m_keyboard->registerAction(act);
+            m_keyboard->bindGamepadAxisToAction(act, m_padIndex, a.axis, a.scale);
+        }
+        for (const auto& b : m_buttons) {
+            auto act = static_cast<InputAction>(static_cast<int>(b.act));
+            m_keyboard->registerAction(act);
+            m_keyboard->bindGamepadButtonToAction(act, m_padIndex, b.btn);
+        }
+    } else {*/
+        // Joystick brut : axes et boutons par index
+        SDL_Joystick* joy = SDL_JoystickOpen(m_padIndex);
+        int numAxes    = joy ? SDL_JoystickNumAxes(joy)    : 0;
+        int numButtons = joy ? SDL_JoystickNumButtons(joy) : 0;
 
-    // Enregistrer et binder toutes les actions via Keyboard
-    for (const auto& a : m_axes) {
-        auto act = static_cast<InputAction>(static_cast<int>(a.act));
-        m_keyboard->registerAction(act);
-        m_keyboard->bindGamepadAxisToAction(act, m_padIndex, a.axis, a.scale);
-    }
-    for (const auto& b : m_buttons) {
-        auto act = static_cast<InputAction>(static_cast<int>(b.act));
-        m_keyboard->registerAction(act);
-        m_keyboard->bindGamepadButtonToAction(act, m_padIndex, b.btn);
-    }
+        m_axes.clear();
+        m_axes.shrink_to_fit();
+        for (int i = 0; i < numAxes; i++) {
+            char *label;
+            label = new char[16];
+            snprintf(label, sizeof(label), "Axis%d", i);
+            m_axes.push_back({ label, static_cast<DebugAct>(static_cast<int>(DebugAct::GP_LX) + i), i, 1.0f, false });
+        }
+
+        m_buttons.clear();
+        for (int i = 0; i < numButtons; i++) {
+            char *label;
+            label = new char[16];
+            snprintf(label, sizeof(label), "Btn%d", i);
+            m_buttons.push_back({ label, static_cast<DebugAct>(static_cast<int>(DebugAct::GP_A) + i), i, false });
+        }
+        // Enregistrer et binder toutes les actions via Keyboard
+        for (const auto& a : m_axes) {
+            auto act = static_cast<InputAction>(static_cast<int>(a.act));
+            m_keyboard->registerAction(act);
+            m_keyboard->bindJoystickAxisToAction(act, m_padIndex, a.axis, a.scale);
+        }
+        for (const auto& b : m_buttons) {
+            auto act = static_cast<InputAction>(static_cast<int>(b.act));
+            m_keyboard->registerAction(act);
+            m_keyboard->bindJoystickButtonToAction(act, m_padIndex, b.btn);
+        }
+    //}
 }
