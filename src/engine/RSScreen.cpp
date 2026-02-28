@@ -26,12 +26,13 @@ void RSScreen::init(int width, int height, bool fullscreen){
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2"); // ou "permonitor" si votre SDL est plus ancienne
     SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 
+    
     // 1. Initialiser SDL AVANT toute création de fenêtre
-    if (SDL_Init(SDL_INIT_VIDEO |SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO |SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
         printf("Unable to initialize SDL: %s\n", SDL_GetError());
         return;
     }
-
+    
 #ifdef SDL_HINT_IME_SHOW_UI
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 #endif
@@ -46,7 +47,7 @@ void RSScreen::init(int width, int height, bool fullscreen){
 
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (fullscreen) {
-        window_flags = (SDL_WindowFlags)(SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+        window_flags = (SDL_WindowFlags)(SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     }
 
     // 3. UNE seule création de fenêtre

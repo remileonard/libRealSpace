@@ -12,6 +12,8 @@
 #define FLOPPY 0
 
 int main(int argc, char* argv[]) {
+    Config &config = Config::getInstance();
+    config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
     
     RSScreen::setInstance(std::make_unique<RSScreen>());
@@ -20,7 +22,11 @@ int main(int argc, char* argv[]) {
     RSScreen &screen = RSScreen::instance();
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
-    screen.init(WIDTH,HEIGHT,false);
+    
+    int width = config.getInt("Window", "width", 800);
+    int height = config.getInt("Window", "height", 600);
+    bool fullscreen = config.getBool("Window", "fullscreen", false);
+    screen.init(width,height,fullscreen);
     screen.is_spfx_finished = false;
     while (!screen.is_spfx_finished) {
         screen.fxTurnOnTv();

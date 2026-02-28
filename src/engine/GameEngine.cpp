@@ -31,9 +31,11 @@ GameEngine::~GameEngine() {
 void GameEngine::init() {
 
     // Load Main Palette and Initialize the GL
-
-    VGA.init(WIDTH,HEIGHT);
-    Renderer.init(WIDTH,HEIGHT);
+    Config &config = Config::getInstance();
+    int width = config.getInt("Window", "width", 1200);
+    int height = config.getInt("Window", "height", 800);
+    VGA.init(width,height);
+    Renderer.init(width,height);
     // Load the Mouse Cursor
     Mouse.init();
     // Crée le clavier (abstraction)

@@ -48,5 +48,6 @@ extern "C" {
     #include "RSScreen.h"
     #include "FrameBuffer.h"
     #include "RSVGA.h"
+    #include "Config.hpp"
 #endif
 

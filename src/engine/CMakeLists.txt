@@ -1,9 +1,10 @@
 file(GLOB LIBRARY_SOURCES "*.cpp")
 file(GLOB LIBRARY_HEADERS "*.h")
-
+find_path(SIMPLEINI_INCLUDE_DIRS "ConvertUTF.c")
 
 add_library(engine STATIC ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})
 
+target_include_directories(engine PUBLIC ${SIMPLEINI_INCLUDE_DIRS})
 target_include_directories(engine PUBLIC ${SDL2_INCLUDE_DIRS})
 target_include_directories(engine PUBLIC ${OPENGL_INCLUDE_DIR})
 target_link_libraries(engine PRIVATE $<IF:$<TARGET_EXISTS:SDL2_mixer_ext::SDL2_mixer_ext>,SDL2_mixer_ext::SDL2_mixer_ext,SDL2_mixer_ext::SDL2_mixer_ext_Static>)

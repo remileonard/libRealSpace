@@ -23,7 +23,11 @@ int main(int argc, char* argv[]) {
     RSScreen &screen = RSScreen::instance();  
     Loader& loader = Loader::getInstance();
     AssetManager& assets = AssetManager::getInstance();
-    screen.init(1200,800,0);
+    Config &config = Config::getInstance();
+    config.load("./assets/config.ini");
+    int width = config.getInt("Display", "Width", 1200);
+    int height = config.getInt("Display", "Height", 800);
+    screen.init(width,height,0);
     assets.SetBase("./assets");
     loader.init();
     screen.is_spfx_finished = false;
