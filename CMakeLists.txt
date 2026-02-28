@@ -65,6 +65,8 @@ file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_14.IFF" DESTINATION "${ASSETS_DIR}"
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_15.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_17.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_20.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_36.IFF" DESTINATION "${ASSETS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/config.ini" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${FONTS_DIR}")
 
 # Installation des exécutables et des DLLs
