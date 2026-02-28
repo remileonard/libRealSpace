@@ -112,7 +112,6 @@ void RSPalette::parsePALT_PALT(uint8_t *data, size_t size){
         texel.a = 255;
         if (i == 255) {
             texel.a = 0;
-            printf("PALT color 255 (%d,%d,%d) is transparent\n",texel.r,texel.g,texel.b);
         } else {
             texel.a = 255;
         }

@@ -277,6 +277,7 @@ private:
     void AddTriangle(Triangle *triangle);
 
     void parseREAL(uint8_t *data, size_t size);
+    void parseREAL_INFO(uint8_t *data, size_t size);
     void parseREAL_OBJT(uint8_t *data, size_t size);
     void parseREAL_OBJT_INFO(uint8_t *data, size_t size);
     void parseREAL_OBJT_GRND(uint8_t *data, size_t size);
@@ -291,6 +292,7 @@ private:
     void parseREAL_OBJT_SMKG(uint8_t *data, size_t size);
     void parseREAL_OBJT_OMOB(uint8_t *data, size_t size);
     void parseREAL_OBJT_DEBR(uint8_t *data, size_t size);
+    
     void parseREAL_OBJT_AFTB_APPR(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS_EXPL(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS_SIGN(uint8_t *data, size_t size);
@@ -301,9 +303,13 @@ private:
     void parseREAL_OBJT_MISS_DATA(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS_DYNM(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS_DYNM_MISS(uint8_t *data, size_t size);
+    void parseREAL_OBJT_MISS_DYNM_ATMO(uint8_t *data, size_t size);
+    void parseREAL_OBJT_MISS_DYNM_AGRV(uint8_t *data, size_t size);
+    void parseREAL_OBJT_MISS_DYNM_GRAV(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN_DYNM(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN_ALGN(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_INFO(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_EXPL(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_DEBR(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_DEST(uint8_t *data, size_t size);
@@ -340,7 +346,9 @@ private:
     void parseREAL_APPR_POLY_DETA(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_DETA_LVLX(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_ATTR(uint8_t *data, size_t size);
+    
     void parseREAL_APPR_POLY_TRIS(uint8_t *data, size_t size);
+    void parseREAL_APPR_POLY_TRIS_LNTH(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_TRIS_VTRI(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_TRIS_FACE(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_TRIS_TXMS(uint8_t *data, size_t size);

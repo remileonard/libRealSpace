@@ -136,7 +136,7 @@ protected:
     void parseMISN_TEAM(uint8_t *data, size_t size);
     void parseMISN_PLAY(uint8_t *data, size_t size);
     void parseMISN_LOAD(uint8_t *data, size_t size);
-
+    void parseMISN_CACH(uint8_t *data, size_t size);
     void parseMISN_PLAY_SCEN(uint8_t *data, size_t size);
     void parseMISN_WRLD_FILE(uint8_t *data, size_t size);
 };

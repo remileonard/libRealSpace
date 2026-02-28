@@ -1353,16 +1353,10 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
 
     float len = dir.Length();
     if (len > 20000.0f) {
-        dir={
-            this->player_plane->x - this->player_plane->last_px,
-            this->player_plane->y - this->player_plane->last_py,
-            this->player_plane->z - this->player_plane->last_pz
-        };
-        dir.Normalize();
         lookAt = {
-            pos.x + dir.x * 10000.0f,
-            pos.y + dir.y * 10000.0f,
-            pos.z + dir.z * 10000.0f
+            pos.x + this->player_plane->forward.x * 10.0f,
+            pos.y + this->player_plane->forward.y * 10.0f,
+            pos.z + this->player_plane->forward.z * 10.0f
         };
     } else {
         dir.Normalize();
@@ -1399,8 +1393,19 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
             obj_pos.z
         };
     }
+    Vector3D up;
+
+    float r_twist = -tenthOfDegreeToRad(this->player_plane->twist);
+    float r_elev  = tenthOfDegreeToRad(this->player_plane->elevationf);
+    float r_azim  = tenthOfDegreeToRad(this->player_plane->azimuthf);
+    float cosT = cos(r_twist), sinT = sin(r_twist);
+    float cosE = cos(r_elev), sinE = sin(r_elev);
+    float cosA = cos(r_azim), sinA = sin(r_azim);
+    up.x = -cosA * sinT + sinA * sinE * cosT;
+    up.y = cosE * cosT;
+    up.z = sinA * sinT + cosA * sinE * cosT;
     camera->SetPosition(&camPos);
-    camera->lookAt(&lookAt);
+    camera->lookAt(&lookAt ,&up);
 }
 /**
  * @brief Executes a single frame of the game simulation.
@@ -1487,8 +1492,10 @@ void SCStrike::runFrame(void) {
                 this->target->object->position.y, 
                 this->target->object->position.z
             };
+            
             this->setCameraLookat(target_position);
             Renderer.initRenderToTexture();
+            Renderer.verticalOffset = 0.0f;
             Renderer.initRenderCameraView();
             Renderer.renderWorldToTexture(area);
             
@@ -1499,6 +1506,8 @@ void SCStrike::runFrame(void) {
             }
             
             Renderer.getRenderToTexture();
+            Renderer.verticalOffset = -0.45f;
+            Renderer.initRenderCameraView();
         }
     }
     
@@ -1589,12 +1598,7 @@ void SCStrike::runFrame(void) {
             break;
         }
         Vector3D pos = {this->new_position.x, this->new_position.y + this->eye_y, this->new_position.z};
-        float r_twist = tenthOfDegreeToRad(this->player_plane->twist);
-        float r_elev  = tenthOfDegreeToRad(this->player_plane->elevationf);
-        float r_azim  = tenthOfDegreeToRad(this->player_plane->azimuthf);
-        float cosT = cos(r_twist), sinT = sin(r_twist);
-        float cosE = cos(r_elev), sinE = sin(r_elev);
-        float cosA = cos(r_azim), sinA = sin(r_azim);
+        
 
         Vector3D camPos;
         camPos.x = this->new_position.x;
@@ -1604,6 +1608,13 @@ void SCStrike::runFrame(void) {
         // Compute the up vector as the second column of the composite rotation matrix
         // R = Ry(azim) * Rx(elev) * Rz(twist)
         Vector3D up;
+
+        float r_twist = tenthOfDegreeToRad(this->player_plane->twist);
+        float r_elev  = tenthOfDegreeToRad(this->player_plane->elevationf);
+        float r_azim  = tenthOfDegreeToRad(this->player_plane->azimuthf);
+        float cosT = cos(r_twist), sinT = sin(r_twist);
+        float cosE = cos(r_elev), sinE = sin(r_elev);
+        float cosA = cos(r_azim), sinA = sin(r_azim);
         up.x = -cosA * sinT + sinA * sinE * cosT;
         up.y = cosE * cosT;
         up.z = sinA * sinT + cosA * sinE * cosT;

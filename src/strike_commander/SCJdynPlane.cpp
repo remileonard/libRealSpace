@@ -317,6 +317,13 @@ void SCJdynPlane::updatePosition() {
     this->angular_velocity.y = tenthOfDegreeToRad(this->pitch_speed);
     this->angular_velocity.z = tenthOfDegreeToRad(this->roll_speed);
 
+    
+    this->forward = {
+        cosf(tenthOfDegreeToRad(this->yaw)) * cosf(tenthOfDegreeToRad(this->pitch)),
+        sinf(tenthOfDegreeToRad(this->pitch)),
+        sinf(tenthOfDegreeToRad(this->yaw)) * cosf(tenthOfDegreeToRad(this->pitch))
+    };
+     
 
 }
 void SCJdynPlane::processInput() {

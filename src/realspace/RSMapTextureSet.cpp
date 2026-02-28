@@ -44,9 +44,6 @@ void RSMapTextureSet::Parse(PakArchive* archive){
     
     for(size_t i = 0 ; i < archive->GetNumEntries() ; i++){
         
-        if (i == 229 || i ==  230)
-            printf("Intersest !\n");
-        
         PakEntry* entry = archive->GetEntry(i);
         
         if (entry->size == 0) {
@@ -71,13 +68,10 @@ void RSMapTextureSet::Parse(PakArchive* archive){
             image->Create("MAP_TEXTURE",width,height, 1);
             image->UpdateContent(stream.GetPosition());
             images.push_back(image);
-            printf("RSMapTextureSet img [%3zu] is %lux%lu.\n",i,(unsigned long)image->width,(unsigned long)image->height);
         }
         else
             printf("Cannot make sense of entry %zu:\n REASON: (entry size is %zu but advertised is %d).\n",i,entry->size,size);
     }
-    
-    printf("RSMapTextureSet found %zu textures in %s.\n", archive->GetNumEntries(), archive->GetName());
 }
 
 void RSMapTextureSet::List(FILE* output){

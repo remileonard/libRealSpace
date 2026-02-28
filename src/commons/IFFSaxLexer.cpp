@@ -73,8 +73,22 @@ void IFFSaxLexer::Parse(std::unordered_map<std::string, std::function<void(uint8
             if (chunk_size % 2 != 0) {
                 chunk_size++;
             }
+            if ((chunk_size + 8 > this->size) && (read == 4)) {
+                uint8_t *fixed_data = new uint8_t[chunk_size + 8];
+                memset(fixed_data, 0, chunk_size + 8);
+                memcpy(fixed_data, this->data, this->size);
+                //uint8_t *dt = this->data;
+                size_t currentPos = this->stream->GetCurrentPosition(); 
+                this->data = fixed_data;
+                this->size = chunk_size + 8;
+                delete this->stream;
+                this->stream = new ByteStream();
+                this->stream->Set(this->data, this->size);
+                this->stream->MoveForward(currentPos);
+            }
             std::vector<uint8_t> bname = this->stream->ReadBytes(4);
             chunk_stype.assign(bname.begin(), bname.end());
+            
             read += 8;
             if (events.count(chunk_stype) > 0) {
                 uint8_t * chunk_data = (uint8_t *)calloc(chunk_size + size_offset, sizeof(uint8_t));

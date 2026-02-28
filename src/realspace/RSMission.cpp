@@ -68,7 +68,7 @@ void RSMission::parseMISN(uint8_t *data, size_t size) {
     handlers["TEAM"] = std::bind(&RSMission::parseMISN_TEAM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["PLAY"] = std::bind(&RSMission::parseMISN_PLAY, this, std::placeholders::_1, std::placeholders::_2);
     handlers["LOAD"] = std::bind(&RSMission::parseMISN_LOAD, this, std::placeholders::_1, std::placeholders::_2);
-
+    handlers["CACH"] = std::bind(&RSMission::parseMISN_CACH, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 
@@ -306,8 +306,6 @@ void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
     this->paseMissionScript(data, size);
 }
 void RSMission::parseMISN_PART(uint8_t *data, size_t size) {
-    printf("PARSING PART\n");
-    printf("Number of entries %zu\n", size / 62);
     ByteStream stream(data, size);
     size_t numParts = size / 62;
     for (int i = 0; i < numParts; i++) {
@@ -397,7 +395,8 @@ void RSMission::parseMISN_PLAY_SCEN(uint8_t *data, size_t size) {
     this->mission_data.scenes.push_back(scen);
 }
 void RSMission::parseMISN_LOAD(uint8_t *data, size_t size) {
-    for (int i = 0; i < size; i++) {
-        this->mission_data.load.push_back(data[i]);
-    }
+    
+}
+void RSMission::parseMISN_CACH(uint8_t *data, size_t size) {
+    
 }

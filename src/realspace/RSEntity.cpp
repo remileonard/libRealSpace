@@ -234,10 +234,11 @@ void RSEntity::parseREAL(uint8_t *data, size_t size) {
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["OBJT"] = std::bind(&RSEntity::parseREAL_OBJT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["APPR"] = std::bind(&RSEntity::parseREAL_APPR, this, std::placeholders::_1, std::placeholders::_2);
-    
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_INFO, this, std::placeholders::_1, std::placeholders::_2);
     
     lexer.InitFromRAM(data, size, handlers);
 }
+void RSEntity::parseREAL_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
@@ -313,6 +314,7 @@ void RSEntity::parseREAL_OBJT_TRCR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::tracer;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_TRGT, this, std::placeholders::_1, std::placeholders::_2);
@@ -325,6 +327,7 @@ void RSEntity::parseREAL_OBJT_TRCR(uint8_t *data, size_t size) {
 
     lexer.InitFromRAM(data, size, handlers);
 }
+void RSEntity::parseREAL_OBJT_JETP_INFO(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_EXPL(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_SIGN(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_TRGT(uint8_t *data, size_t size){}
@@ -357,9 +360,14 @@ void RSEntity::parseREAL_OBJT_MISS_DYNM(uint8_t *data, size_t size){
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MISS"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM_MISS, this, std::placeholders::_1, std::placeholders::_2);
-
+    handlers["ATMO"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM_ATMO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["GRAV"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM_GRAV, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["AGRV"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM_AGRV, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
+void RSEntity::parseREAL_OBJT_MISS_DYNM_AGRV(uint8_t *data, size_t size){}
+void RSEntity::parseREAL_OBJT_MISS_DYNM_GRAV(uint8_t *data, size_t size){}
+void RSEntity::parseREAL_OBJT_MISS_DYNM_ATMO(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_DYNM_MISS(uint8_t *data, size_t size){
     ByteStream bs(data, size);
     DYNN_MISS *dynn_miss = new DYNN_MISS();
@@ -428,7 +436,8 @@ void RSEntity::parseREAL_OBJT_ORNT(uint8_t *data, size_t size) {
         std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DAMG"] =
         std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-
+    handlers["SIGN"] =
+        std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_GRND(uint8_t *data, size_t size) {
@@ -813,9 +822,11 @@ void RSEntity::parseREAL_APPR_POLY(uint8_t *data, size_t size) {
         std::bind(&RSEntity::parseREAL_APPR_POLY_ATTR, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TXMS"] =
         std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS, this, std::placeholders::_1, std::placeholders::_2);
-    
+    handlers["LNTH"] =
+        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_LNTH, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
+void RSEntity::parseREAL_APPR_POLY_TRIS_LNTH(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_POLY_INFO(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_POLY_VERT(uint8_t *data, size_t size) {
     if (size < 12)
@@ -1048,9 +1059,6 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA(uint8_t *data, size_t size) {
         size_t remain = size - ((src+4) - data);
         size_t byte_read = 0;
         pic_data = lzbuffer.DecodeLZW(src+4,remain,csize);
-        if (csize == width * height * nbframe) {
-            printf("Image %s decoded successfully with size %zu\n", name, csize);
-        }
         if (pic_data == nullptr) {
             printf("Error decoding image %s\n", name);
             return;

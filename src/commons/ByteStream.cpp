@@ -26,7 +26,7 @@ ByteStream::ByteStream() {
 }
 
 ByteStream::~ByteStream() {
-
+	this->cursor = nullptr;
 }
 void ByteStream::dump(size_t lenght, int hexonly) {
 	uint8_t byte;
