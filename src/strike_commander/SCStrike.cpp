@@ -1353,11 +1353,14 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
 
     float len = dir.Length();
     if (len > 20000.0f) {
+        Vector3D forward = this->player_plane->forward;
+        forward.Normalize();
         lookAt = {
-            pos.x + this->player_plane->forward.x * 10.0f,
-            pos.y + this->player_plane->forward.y * 10.0f,
-            pos.z + this->player_plane->forward.z * 10.0f
+            pos.x + forward.x * 10.0f,
+            pos.y + forward.y * 10.0f,
+            pos.z + forward.z * 10.0f
         };
+        camPos = pos;
     } else {
         dir.Normalize();
 
@@ -1395,7 +1398,7 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
     }
     Vector3D up;
 
-    float r_twist = -tenthOfDegreeToRad(this->player_plane->twist);
+    float r_twist = tenthOfDegreeToRad(this->player_plane->twist);
     float r_elev  = tenthOfDegreeToRad(this->player_plane->elevationf);
     float r_azim  = tenthOfDegreeToRad(this->player_plane->azimuthf);
     float cosT = cos(r_twist), sinT = sin(r_twist);

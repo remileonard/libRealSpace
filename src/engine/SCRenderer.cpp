@@ -1700,6 +1700,14 @@ void SCRenderer::renderWorldToTexture(RSArea *area) {
     // Render your scene here
     glBegin(GL_TRIANGLES);
     renderBlock(area, 0, block_id, false);
+    renderBlock(area, 0, block_id+1, false);
+    renderBlock(area, 0, block_id-1, false);
+    renderBlock(area, 0, block_id+1*18, false);
+    renderBlock(area, 0, block_id-1*18, false);
+    renderBlock(area, 0, block_id+1+1*18, false);
+    renderBlock(area, 0, block_id+1-1*18, false);
+    renderBlock(area, 0, block_id-1+1*18, false);
+    renderBlock(area, 0, block_id-1-1*18, false);
     glEnd();
     glEnable(GL_TEXTURE_2D);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
