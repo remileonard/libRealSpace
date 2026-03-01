@@ -665,7 +665,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         this->player_plane->y,
         this->player_plane->z
     };
-    int timeOfFlight = 3;
+    float timeOfFlight = 3;
+    float debutTimeOfFlight = timeOfFlight;
+    const float dt = (this->player_plane->tps > 0) ? (1.0f / (float)this->player_plane->tps) : (1.0f / 60.0f);
     float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
     
     // === LEAD ANGLE: vitesse de la cible ===
@@ -673,7 +675,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     Vector3D predictedTargetPos = (this->target != nullptr) 
         ? this->target->position 
         : avion_pos;
-
+    float newDist = 0.0f;
     if (this->target != nullptr) {
         Vector3D toTarget = {
             this->target->position.x - avion_pos.x,
@@ -686,8 +688,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         float tof = (projectile_speed > 0.0f) 
             ? (target_distance / projectile_speed) 
             : 0.0f;
-        timeOfFlight = (int)tof;
-
+        timeOfFlight = tof;
+        debutTimeOfFlight = timeOfFlight;
         // Récupérer la vitesse de la cible depuis l'acteur mission
         // On cherche l'acteur correspondant à this->target
         SCMissionActors *targetActor = nullptr;
@@ -707,18 +709,24 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         }
 
         if (targetActor != nullptr && targetActor->plane != nullptr) {
-            // Vitesse de la cible en unités/s (depuis les données de vol)
-            // On reconstitue le vecteur vitesse monde depuis azimuth + élévation + airspeed
-            float tgt_yaw   = targetActor->plane->azimuthf / 10.0f * (float)M_PI / 180.0f;
-            float tgt_pitch = targetActor->plane->elevationf / 10.0f * (float)M_PI / 180.0f;
-            float tgt_speed = targetActor->plane->airspeed;
-
-            // Vecteur vitesse monde de la cible
-            targetVelocityWorld = {
-                tgt_speed * cosf(tgt_pitch) * sinf(tgt_yaw),
-                tgt_speed * sinf(tgt_pitch),
-                tgt_speed * cosf(tgt_pitch) * cosf(tgt_yaw)
+            
+            float yaw_rad = this->player_plane->azimuthf * (float)M_PI / 180.0f;
+            float pitch_rad = this->player_plane->elevationf * (float)M_PI / 180.0f;
+            float cos_yaw = cosf(yaw_rad);
+            float sin_yaw = sinf(yaw_rad);
+            Vector3D forward = {
+                -cos_yaw * cosf(pitch_rad),
+                sinf(pitch_rad),
+                -sin_yaw * cosf(pitch_rad)
             };
+            Vector3D velocityLocal = {
+                targetActor->plane->x - targetActor->plane->last_px,
+                targetActor->plane->y - targetActor->plane->last_py,
+                targetActor->plane->z - targetActor->plane->last_pz,
+            };
+            // Vecteur vitesse monde de la cible
+            targetVelocityWorld = forward * velocityLocal.Length();
+            
         } else {
             // Fallback: estimation par différence de position si disponible
             // (nécessite de stocker la position précédente de la cible)
@@ -740,16 +748,16 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
                 predictedTargetPos.y - avion_pos.y,
                 predictedTargetPos.z - avion_pos.z
             };
-            float newDist = toPredict.Length();
+            newDist = toPredict.Length();
             tof = (projectile_speed > 0.0f) ? (newDist / projectile_speed) : 0.0f;
         }
-        timeOfFlight = (int)tof;
+        timeOfFlight = tof;
     }
 
     int nbsteps = timeOfFlight * this->player_plane->tps;
     GunSimulatedObject *weap = new GunSimulatedObject();
     
-    const float dt = (this->player_plane->tps > 0) ? (1.0f / (float)this->player_plane->tps) : (1.0f / 60.0f);
+    
 
     Vector3D planeVelWorld = {
         (this->player_plane->x - this->player_plane->last_px) * dt,
@@ -766,7 +774,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     if (this->target != nullptr) {
         // Itération avec la vitesse relative
-        for (int iter = 0; iter < 3; iter++) {
+        /*for (int iter = 0; iter < 3; iter++) {
             predictedTargetPos = {
                 this->target->position.x + relativeVelocity.x * timeOfFlight,
                 this->target->position.y + relativeVelocity.y * timeOfFlight,
@@ -775,7 +783,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             Vector3D toPredict = predictedTargetPos - avion_pos;
             float newDist = toPredict.Length();
             timeOfFlight = (projectile_speed > 0.0f) ? (newDist / projectile_speed) : 0.0f;
-        }
+        }*/
     }
 
     Vector3D omegaStep = this->player_plane->angular_velocity * dt * -1.0f;
@@ -908,6 +916,17 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         debug_framebuffer->plot_pixel(RX, RY, 46);
         debug_framebuffer->circle_slow(RX, RY, 4, 223);
     }
+    std::string debugTxt = "TOF: " + std::to_string(timeOfFlight) + "s";
+    Point2D debugPos = {5, 10};
+    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt.c_str(), 0, 0, (uint32_t)debugTxt.length(), 2, 2);
+    std::string debugTxt2 = "Dist: " + std::to_string((int)target_distance) + "m predict: " + std::to_string((int)newDist) + "m";
+    debugPos.x = 5;
+    debugPos.y += 8;
+    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt2.c_str(), 0, 0, (uint32_t)debugTxt2.length(), 2, 2);
+    std::string debugTxt3 = "Debug TOF: " + std::to_string(debutTimeOfFlight) + "s";
+    debugPos.x = 5;
+    debugPos.y += 8;
+    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt3.c_str(), 0, 0, (uint32_t)debugTxt3.length(), 2, 2);
     delete weap;
 }
 void SCCockpit::RenderBombSight(FrameBuffer *fb) {
@@ -1633,7 +1652,7 @@ void SCCockpit::Render(int face) {
         if (this->mouse_control) {
             Mouse.draw();
         }
-        //VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
+        VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
         VGA.vSync();
         VGA.upscale = upscale;
     }
