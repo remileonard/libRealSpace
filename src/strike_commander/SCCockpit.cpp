@@ -692,9 +692,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         target_distance = toTarget.Length();
         
         // Temps de vol vers la cible courante
-        float tof = (projectile_speed_world > 0.0f) 
-            ? (target_distance / projectile_speed_world) 
-            : 0.0f;
+        float tof = target_distance / projectile_speed_world;
         timeOfFlight = tof;
         debutTimeOfFlight = timeOfFlight;
         // Récupérer la vitesse de la cible depuis l'acteur mission
@@ -734,10 +732,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             // Vecteur vitesse monde de la cible
             targetVelocityWorld = forward * velocityLocal.Length() * dt;
             
-        } else {
-            // Fallback: estimation par différence de position si disponible
-            // (nécessite de stocker la position précédente de la cible)
-            // Ici on laisse velocity à zéro si on ne peut pas la calculer
         }
 
         // Position prédite de la cible à l'instant d'impact (lead)
@@ -759,20 +753,12 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             tof = (projectile_speed_world > 0.0f) ? (newDist / projectile_speed_world) : 0.0f;
         }
         timeOfFlight = tof;
-    }
-
-    int nbsteps = timeOfFlight * this->player_plane->tps;
-    GunSimulatedObject *weap = new GunSimulatedObject();
-    
-    // Vitesse RELATIVE de la cible par rapport à l'avion
-    Vector3D relativeVelocity = {
-        targetVelocityWorld.x - planeVelWorld.x * dt,
-        targetVelocityWorld.y - planeVelWorld.y * dt,
-        targetVelocityWorld.z - planeVelWorld.z * dt
-    };
-
-    if (this->target != nullptr) {
-        // Itération avec la vitesse relative
+        // Vitesse RELATIVE de la cible par rapport à l'avion
+        Vector3D relativeVelocity = {
+            targetVelocityWorld.x - planeVelWorld.x * dt,
+            targetVelocityWorld.y - planeVelWorld.y * dt,
+            targetVelocityWorld.z - planeVelWorld.z * dt
+        };
         for (int iter = 0; iter < 3; iter++) {
             predictedTargetPos = {
                 this->target->position.x + relativeVelocity.x * timeOfFlight,
@@ -781,10 +767,13 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             };
             Vector3D toPredict = predictedTargetPos - avion_pos;
             float newDist = toPredict.Length();
-            timeOfFlight = (projectile_speed_world > 0.0f) ? (newDist / projectile_speed_world) : 0.0f;
+            timeOfFlight = newDist / projectile_speed_world;
         }
     }
 
+    int nbsteps = timeOfFlight * this->player_plane->tps;
+    GunSimulatedObject *weap = new GunSimulatedObject();
+    
     Vector3D omegaStep = this->player_plane->angular_velocity * dt * -1.0f;
 
     Vector3D initial_trust{0, 0, 0};
@@ -909,12 +898,11 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         }
     }
 
-    // ...existing code... (debug circle, delete weap)
-    int RX = 0, RY = 0;
+    /*int RX = 0, RY = 0;
     if (project_to_screen(impactWorld, RX, RY)) {
         debug_framebuffer->plot_pixel(RX, RY, 46);
         debug_framebuffer->circle_slow(RX, RY, 4, 223);
-    }
+    }*/
     std::string debugTxt = "TOF: " + std::to_string(timeOfFlight) + "s";
     Point2D debugPos = {5, 10};
     debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt.c_str(), 0, 0, (uint32_t)debugTxt.length(), 2, 2);
