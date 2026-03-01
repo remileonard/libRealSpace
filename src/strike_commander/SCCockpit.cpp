@@ -659,17 +659,24 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!this->player_plane) {
         return;
     }
-        float target_distance = 0.0f;
+    float target_distance = 0.0f;
+    const float dt = (this->player_plane->tps > 0) ? (1.0f / (float)this->player_plane->tps) : (1.0f / 60.0f);
+
     Vector3D avion_pos {
         this->player_plane->x,
         this->player_plane->y,
         this->player_plane->z
     };
+    Vector3D planeVelWorld = {
+        (this->player_plane->x - this->player_plane->last_px) * dt,
+        (this->player_plane->y - this->player_plane->last_py) * dt,
+        (this->player_plane->z - this->player_plane->last_pz) * dt
+    };
     float timeOfFlight = 3;
     float debutTimeOfFlight = timeOfFlight;
-    const float dt = (this->player_plane->tps > 0) ? (1.0f / (float)this->player_plane->tps) : (1.0f / 60.0f);
-    float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
     
+    float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
+    float projectile_speed_world = projectile_speed + planeVelWorld.Length();
     // === LEAD ANGLE: vitesse de la cible ===
     Vector3D targetVelocityWorld = {0.0f, 0.0f, 0.0f};
     Vector3D predictedTargetPos = (this->target != nullptr) 
@@ -685,8 +692,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         target_distance = toTarget.Length();
         
         // Temps de vol vers la cible courante
-        float tof = (projectile_speed > 0.0f) 
-            ? (target_distance / projectile_speed) 
+        float tof = (projectile_speed_world > 0.0f) 
+            ? (target_distance / projectile_speed_world) 
             : 0.0f;
         timeOfFlight = tof;
         debutTimeOfFlight = timeOfFlight;
@@ -725,7 +732,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
                 targetActor->plane->z - targetActor->plane->last_pz,
             };
             // Vecteur vitesse monde de la cible
-            targetVelocityWorld = forward * velocityLocal.Length();
+            targetVelocityWorld = forward * velocityLocal.Length() * dt;
             
         } else {
             // Fallback: estimation par différence de position si disponible
@@ -749,7 +756,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
                 predictedTargetPos.z - avion_pos.z
             };
             newDist = toPredict.Length();
-            tof = (projectile_speed > 0.0f) ? (newDist / projectile_speed) : 0.0f;
+            tof = (projectile_speed_world > 0.0f) ? (newDist / projectile_speed_world) : 0.0f;
         }
         timeOfFlight = tof;
     }
@@ -757,24 +764,16 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     int nbsteps = timeOfFlight * this->player_plane->tps;
     GunSimulatedObject *weap = new GunSimulatedObject();
     
-    
-
-    Vector3D planeVelWorld = {
-        (this->player_plane->x - this->player_plane->last_px) * dt,
-        (this->player_plane->y - this->player_plane->last_py) * dt,
-        (this->player_plane->z - this->player_plane->last_pz) * dt
-    };
-
     // Vitesse RELATIVE de la cible par rapport à l'avion
     Vector3D relativeVelocity = {
-        targetVelocityWorld.x - planeVelWorld.x,
-        targetVelocityWorld.y - planeVelWorld.y,
-        targetVelocityWorld.z - planeVelWorld.z
+        targetVelocityWorld.x - planeVelWorld.x * dt,
+        targetVelocityWorld.y - planeVelWorld.y * dt,
+        targetVelocityWorld.z - planeVelWorld.z * dt
     };
 
     if (this->target != nullptr) {
         // Itération avec la vitesse relative
-        /*for (int iter = 0; iter < 3; iter++) {
+        for (int iter = 0; iter < 3; iter++) {
             predictedTargetPos = {
                 this->target->position.x + relativeVelocity.x * timeOfFlight,
                 this->target->position.y + relativeVelocity.y * timeOfFlight,
@@ -782,8 +781,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             };
             Vector3D toPredict = predictedTargetPos - avion_pos;
             float newDist = toPredict.Length();
-            timeOfFlight = (projectile_speed > 0.0f) ? (newDist / projectile_speed) : 0.0f;
-        }*/
+            timeOfFlight = (projectile_speed_world > 0.0f) ? (newDist / projectile_speed_world) : 0.0f;
+        }
     }
 
     Vector3D omegaStep = this->player_plane->angular_velocity * dt * -1.0f;
