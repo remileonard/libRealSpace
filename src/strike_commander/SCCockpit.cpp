@@ -659,7 +659,22 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     if (!this->player_plane) {
         return;
     }
-    int timeOfFlight = 1;
+    float target_distance = 0.0f;
+    Vector3D avion_pos {
+        this->player_plane->x,
+        this->player_plane->y,
+        this->player_plane->z
+    };
+    int timeOfFlight = 3;
+    float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
+    if (this->target != nullptr) {
+        Vector3D toTarget = {this->target->position.x - avion_pos.x, this->target->position.y - avion_pos.y, this->target->position.z - avion_pos.z};
+        target_distance = toTarget.Length();
+        timeOfFlight = (int)(target_distance / projectile_speed);
+    }
+
+    
+    
     int nbsteps = timeOfFlight * this->player_plane->tps;
     GunSimulatedObject *weap = new GunSimulatedObject();
 
@@ -675,7 +690,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     Vector3D omegaStep = this->player_plane->angular_velocity * dt * -1.0f;
 
     Vector3D initial_trust{0, 0, 0};
-    initial_trust = this->player_plane->getWeaponIntialVector(nbsteps * (this->player_plane->tps / 60.0f));
+    initial_trust = this->player_plane->getWeaponIntialVector(projectile_speed);
     Vector3D planeDispAccum{0, 0, 0};
     planeDispAccum = planeDispAccum + planeVelWorld;
     auto rotateByOmegaStep = [](const Vector3D &v, const Vector3D &w) -> Vector3D {
@@ -703,11 +718,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     Vector3D impact{0, 0, 0};
     Vector3D velo{0, 0, 0};
-    Vector3D avion_pos {
-        this->player_plane->x,
-        this->player_plane->y,
-        this->player_plane->z
-    };
+    
     
     for (int i = 0; i < nbsteps; i++) {
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
@@ -736,11 +747,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     // Utiliser l'offset angulaire paramétrable (0 en 2D, ajusté en 3D)
     int Xdraw = 0;
     int Ydraw = 0;
-    float target_distance = 0.0f;
-    if (this->target != nullptr) {
-        Vector3D toTarget = {this->target->position.x - avion_pos.x, this->target->position.y - avion_pos.y, this->target->position.z - avion_pos.z};
-        target_distance = toTarget.Length();
-    }
+    
     int Xhud, Yhud;
     
     if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw,
