@@ -14,6 +14,7 @@
 #include "DebugGameFlow.h"
 #include "DebugObjectViewer.h"
 #include "DebugControllerActivity.h"
+#include "DebugControlMapping.h"
 #include "DebugAnimationPlayer.h"
 #include "DebugConvPlayer.h"
 #include "DebugPacificStrikeMISN.h"
@@ -333,6 +334,13 @@ void DebugGame::testObjects() {
 
 void DebugGame::testController() {
     DebugControllerActivity* main = new DebugControllerActivity();
+    main->init();
+    GameEngine *Game = &GameEngine::instance();
+    Game->addActivity(main);
+}
+
+void DebugGame::setupMapping() {
+    DebugControlMapping* main = new DebugControlMapping();
     main->init();
     GameEngine *Game = &GameEngine::instance();
     Game->addActivity(main);

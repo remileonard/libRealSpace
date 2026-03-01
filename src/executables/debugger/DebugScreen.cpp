@@ -212,6 +212,11 @@ void DebugScreen::refresh(void){
                         debugGameInstance->testController();
                     }
                     
+                    if (ImGui::MenuItem("Setup Mapping")) {
+                        this->show_ui = true;
+                        this->show_mouse = true;
+                        debugGameInstance->setupMapping();
+                    }
                     if (VGA != nullptr) {
                         if (ImGui::MenuItem("Toggle upscale", nullptr, VGA->upscale)) {
                             VGA->upscale = !VGA->upscale;

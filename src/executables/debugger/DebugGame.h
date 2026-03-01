@@ -33,5 +33,6 @@ public:
     void testObjects();
     void testController();
     void testMidGames();
+    void setupMapping();
     void loadWingsOfGlory();
 };

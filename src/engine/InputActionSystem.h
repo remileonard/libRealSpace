@@ -144,6 +144,13 @@ public:
     bool saveBindings(const std::string &filename) const;
     bool loadBindings(const std::string &filename);
     
+    // Introspection des bindings (pour UI de debug)
+    const std::vector<InputBinding>* getBindings(InputAction actionId) const {
+        auto it = m_actions.find(actionId);
+        if (it == m_actions.end()) return nullptr;
+        return &it->second.bindings;
+    };
+
 private:
     InputActionSystem();
     ~InputActionSystem();

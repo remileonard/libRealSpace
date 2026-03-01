@@ -231,4 +231,5 @@ void DebugControllerActivity::setupGamepadDebugBindings() {
             m_keyboard->bindJoystickButtonToAction(act, m_padIndex, b.btn);
         }
     //}
+    m_keyboard->saveActionBindings("debug_controller_bindings.json");
 }

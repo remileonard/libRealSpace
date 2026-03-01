@@ -48,7 +48,7 @@ public:
     void startTextInput(const SDL_Rect* inputRect = nullptr);
     void stopTextInput();
     bool isTextInputActive() const;
-    
+    const InputActionSystem* getInputSystem() const { return m_inputSystem; };
     // Structure pour représenter un éditeur de texte simple
     class TextEditor {
     public:

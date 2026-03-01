@@ -45,12 +45,17 @@ void GameEngine::init() {
 
 void GameEngine::initKeyboard() {
     m_keyboard = new Keyboard();
-    std::ifstream f("default_bindings.cfg");
-    if (f.good()) {
-        f.close();
-        m_keyboard->loadActionBindings("default_bindings.cfg");
-        return;
+    Config &config = Config::getInstance();
+    std::string bindingsFile = config.getString("Input", "bindings_file", "none");
+    if (bindingsFile != "none") {
+        std::ifstream f(bindingsFile);
+        if (f.good()) {
+            f.close();
+            m_keyboard->loadActionBindings(bindingsFile);
+            return;
+        }
     }
+    
     // Enregistrer actions souris (position + boutons)
     m_keyboard->registerAction(InputAction::MOUSE_POS_X);
     m_keyboard->registerAction(InputAction::MOUSE_POS_Y);
