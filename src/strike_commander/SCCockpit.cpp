@@ -693,6 +693,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         
         // Temps de vol vers la cible courante
         float tof = target_distance / projectile_speed_world;
+        int nbsteps_predict = tof * this->player_plane->tps;
         timeOfFlight = tof;
         debutTimeOfFlight = timeOfFlight;
         // Récupérer la vitesse de la cible depuis l'acteur mission
@@ -715,8 +716,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
         if (targetActor != nullptr && targetActor->plane != nullptr) {
             
-            float yaw_rad = this->player_plane->azimuthf * (float)M_PI / 180.0f;
-            float pitch_rad = this->player_plane->elevationf * (float)M_PI / 180.0f;
+            float yaw_rad = tenthOfDegreeToRad(this->player_plane->azimuthf);
+            float pitch_rad = tenthOfDegreeToRad(this->player_plane->elevationf);
             float cos_yaw = cosf(yaw_rad);
             float sin_yaw = sinf(yaw_rad);
             Vector3D forward = {
@@ -739,9 +740,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         // 2-3 itérations suffisent pour converger
         for (int iter = 0; iter < 3; iter++) {
             predictedTargetPos = {
-                this->target->position.x + targetVelocityWorld.x * tof,
-                this->target->position.y + targetVelocityWorld.y * tof,
-                this->target->position.z + targetVelocityWorld.z * tof
+                this->target->position.x + targetVelocityWorld.x * nbsteps_predict,
+                this->target->position.y + targetVelocityWorld.y * nbsteps_predict,
+                this->target->position.z + targetVelocityWorld.z * nbsteps_predict
             };
             // Recalcul du ToF avec la nouvelle distance prédite
             Vector3D toPredict = {
@@ -753,22 +754,23 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             tof = (projectile_speed_world > 0.0f) ? (newDist / projectile_speed_world) : 0.0f;
         }
         timeOfFlight = tof;
+        //nbsteps_predict = timeOfFlight * this->player_plane->tps;
         // Vitesse RELATIVE de la cible par rapport à l'avion
-        Vector3D relativeVelocity = {
+        /*Vector3D relativeVelocity = {
             targetVelocityWorld.x - planeVelWorld.x * dt,
             targetVelocityWorld.y - planeVelWorld.y * dt,
             targetVelocityWorld.z - planeVelWorld.z * dt
         };
         for (int iter = 0; iter < 3; iter++) {
             predictedTargetPos = {
-                this->target->position.x + relativeVelocity.x * timeOfFlight,
-                this->target->position.y + relativeVelocity.y * timeOfFlight,
-                this->target->position.z + relativeVelocity.z * timeOfFlight
+                this->target->position.x + relativeVelocity.x * nbsteps_predict,
+                this->target->position.y + relativeVelocity.y * nbsteps_predict,
+                this->target->position.z + relativeVelocity.z * nbsteps_predict
             };
             Vector3D toPredict = predictedTargetPos - avion_pos;
             float newDist = toPredict.Length();
             timeOfFlight = newDist / projectile_speed_world;
-        }
+        }*/
     }
 
     int nbsteps = timeOfFlight * this->player_plane->tps;
