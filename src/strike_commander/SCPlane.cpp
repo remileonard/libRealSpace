@@ -1606,30 +1606,38 @@ void SCPlane::renderPlaneLined() {
             this->forward.y,
             this->forward.z
         };
-        scaled_forward.Scale(5.0f);
-        Renderer.drawLine(pos, scaled_forward, {1.0f, 0.0f, 1.0f});
+        scaled_forward.Scale(10.0f);
+        Renderer.drawLine(pos, scaled_forward, {0.0f, 0.0f, 1.0f});
         
-        Vector3D ptw_down = {
-            -this->ptw.v[0][1],
-            -this->ptw.v[1][1],
-            -this->ptw.v[2][1]
+        Vector3D ptw_up = {
+            this->ptw.v[1][0],
+            this->ptw.v[1][1],
+            this->ptw.v[1][2]
         };
-        ptw_down.Normalize();
+        ptw_up.Normalize();
         Vector3D ptw_forward = {
-            this->ptw.v[0][2],
-            this->ptw.v[1][2],
-            this->ptw.v[2][2]
+            -this->ptw.v[2][0],
+            -this->ptw.v[2][1],
+            -this->ptw.v[2][2]
         };
+        Vector3D ptw_right = {
+            this->ptw.v[0][0],
+            this->ptw.v[0][1],
+            this->ptw.v[0][2]
+        };
+
         ptw_forward.Normalize();
-        ptw_down.Scale(5.0f);
-        ptw_forward.Scale(5.0f);
-        Renderer.drawLine(pos, ptw_down, {0.0f, 1.0f, 1.0f});
-        Renderer.drawLine(pos, {this->vx*10.0f, this->vy*10.0f, this->vz*10.0f}, {1.0f, 1.0f, 0.0f});
-        Renderer.drawLine(pos, ptw_forward, {1.0f, 1.0f, 0.0f});
-        Renderer.drawLine(pos, {
+        ptw_up.Scale(10.0f);
+        ptw_forward.Scale(10.0f);
+        ptw_right.Scale(10.0f);
+        Renderer.drawLine(pos, ptw_up, {0.0f, 1.0f, 1.0f});
+        Renderer.drawLine(pos, ptw_forward, {0.0f, 1.0f, 0.0f});
+        Renderer.drawLine(pos, ptw_right, {1.0f, 0.0f, 0.0f});
+
+        /*Renderer.drawLine(pos, {
             this->acceleration.x * 10.0f,
             this->acceleration.y * 10.0f,
             this->acceleration.z * 10.0f
-        }, {0.0f, 1.0f, 0.0f});
+        }, {0.0f, 1.0f, 0.0f});*/
     }
 }

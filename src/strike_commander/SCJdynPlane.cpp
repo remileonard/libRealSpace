@@ -316,18 +316,11 @@ void SCJdynPlane::updatePosition() {
     this->angular_velocity.x = tenthOfDegreeToRad(this->yaw_speed);
     this->angular_velocity.y = tenthOfDegreeToRad(this->pitch_speed);
     this->angular_velocity.z = tenthOfDegreeToRad(this->roll_speed);
-
-    float yawRad   = tenthOfDegreeToRad(this->yaw);
-    float pitchRad = tenthOfDegreeToRad(-this->pitch);
-    float rollRad  = 0.0;
-    // Calcul du vecteur de poussée initiale dans la direction avant de l'avion.
-    // On considère que le vecteur avant s'exprime en coordonnées :
-    // x = cos(pitch)*sin(yaw), y = sin(pitch), z = cos(pitch)*cos(yaw)
-    float cosRoll = cosf(rollRad);
-    float sinRoll = sinf(rollRad);
-    this->forward.x =  -1*(cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
-    this->forward.y =  -1*(sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
-    this->forward.z =  -1*cosf(pitchRad) * cosf(yawRad);
+    this->forward = {
+        -this->ptw.v[2][0],
+        -this->ptw.v[2][1],
+        -this->ptw.v[2][2],
+    };
     
 }
 void SCJdynPlane::processInput() {

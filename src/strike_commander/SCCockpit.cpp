@@ -716,23 +716,18 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
         if (targetActor != nullptr && targetActor->plane != nullptr) {
             
-            float yaw_rad = tenthOfDegreeToRad(this->player_plane->azimuthf);
-            float pitch_rad = tenthOfDegreeToRad(this->player_plane->elevationf);
-            float cos_yaw = cosf(yaw_rad);
-            float sin_yaw = sinf(yaw_rad);
-            Vector3D forward = {
-                -cos_yaw * cosf(pitch_rad),
-                sinf(pitch_rad),
-                -sin_yaw * cosf(pitch_rad)
-            };
+            /**/
             Vector3D velocityLocal = {
                 targetActor->plane->x - targetActor->plane->last_px,
                 targetActor->plane->y - targetActor->plane->last_py,
                 targetActor->plane->z - targetActor->plane->last_pz,
             };
-            // Vecteur vitesse monde de la cible
-            targetVelocityWorld = forward * velocityLocal.Length() * dt;
-            
+            float thrustMagnitude = velocityLocal.Length() * dt;
+            targetVelocityWorld = {
+                targetActor->plane->forward.x * thrustMagnitude,
+                targetActor->plane->forward.y * thrustMagnitude,
+                targetActor->plane->forward.z * thrustMagnitude
+            };
         }
 
         // Position prédite de la cible à l'instant d'impact (lead)
@@ -753,6 +748,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             newDist = toPredict.Length();
             tof = (projectile_speed_world > 0.0f) ? (newDist / projectile_speed_world) : 0.0f;
         }
+        this->targetImpactPointWorld = predictedTargetPos;
         timeOfFlight = tof;
         //nbsteps_predict = timeOfFlight * this->player_plane->tps;
         // Vitesse RELATIVE de la cible par rapport à l'avion
@@ -826,7 +822,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     // Point d'impact prédit en monde
     const Vector3D impactWorld = {weap->x, weap->y, weap->z};
-    this->targetImpactPointWorld = impactWorld;
+    //this->targetImpactPointWorld = impactWorld;
 
     // === Affichage du réticule LCOS (point d'impact balistique) ===
     Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();

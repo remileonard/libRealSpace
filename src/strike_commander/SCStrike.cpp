@@ -1488,32 +1488,33 @@ void SCStrike::runFrame(void) {
         }
     }
 
+    Vector3D target_position = {0,0,0};
     if (this->target != nullptr) {
         if (this->target->object != nullptr) {
-            Vector3D target_position = {
+            target_position = {
                 this->target->object->position.x, 
                 this->target->object->position.y, 
                 this->target->object->position.z
             };
-            
-            this->setCameraLookat(target_position);
-            Renderer.initRenderToTexture();
-            Renderer.verticalOffset = 0.0f;
-            Renderer.initRenderCameraView();
-            Renderer.renderWorldToTexture(area);
-            
-            if (this->target->plane != nullptr) {
-                this->target->plane->Render();    
-            } else {
-                Renderer.drawModel(this->target->object->entity, target_position, {0.0f, 0.0f, 0.0f});
-            }
-            
-            Renderer.getRenderToTexture();
-            Renderer.verticalOffset = -0.45f;
-            Renderer.initRenderCameraView();
+        }
+    }
+    this->setCameraLookat(target_position);
+    Renderer.initRenderToTexture();
+    Renderer.verticalOffset = 0.0f;
+    Renderer.initRenderCameraView();
+    Renderer.renderWorldToTexture(area);
+    
+    if (this->target != nullptr) {
+        if (this->target->plane != nullptr) {
+            this->target->plane->Render();    
+        } else {
+            Renderer.drawModel(this->target->object->entity, target_position, {0.0f, 0.0f, 0.0f});
         }
     }
     
+    Renderer.getRenderToTexture();
+    Renderer.verticalOffset = -0.45f;
+    Renderer.initRenderCameraView();
     switch (this->camera_mode) {
     case View::AUTO_PILOT: {
         if (this->autopilot_timeout > -AUTOPILOTE_TIMEOUT) {
