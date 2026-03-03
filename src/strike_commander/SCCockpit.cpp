@@ -718,11 +718,11 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             
             /**/
             Vector3D velocityLocal = {
-                targetActor->plane->x - targetActor->plane->last_px,
-                targetActor->plane->y - targetActor->plane->last_py,
-                targetActor->plane->z - targetActor->plane->last_pz,
+                (targetActor->plane->x - targetActor->plane->last_px) * dt,
+                (targetActor->plane->y - targetActor->plane->last_py) * dt,
+                (targetActor->plane->z - targetActor->plane->last_pz) * dt,
             };
-            float thrustMagnitude = velocityLocal.Length() * dt;
+            float thrustMagnitude = velocityLocal.Length();
             targetVelocityWorld = {
                 targetActor->plane->forward.x * thrustMagnitude,
                 targetActor->plane->forward.y * thrustMagnitude,
