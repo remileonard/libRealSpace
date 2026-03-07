@@ -905,34 +905,29 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         }
     }
 
-    /*int RX = 0, RY = 0;
-    if (project_to_screen(impactWorld, RX, RY)) {
-        debug_framebuffer->plot_pixel(RX, RY, 46);
-        debug_framebuffer->circle_slow(RX, RY, 4, 223);
-    }*/
-    
-    Point2D debugPos = {5, 10};
-    std::string debugTxt5 = "Angular speed: " + std::to_string(this->player_plane->angular_velocity.x) + ", " + std::to_string(this->player_plane->angular_velocity.y) + ", " + std::to_string(this->player_plane->angular_velocity.z);
-    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt5.c_str(), 0, 0, (uint32_t)debugTxt5.length(), 2, 2);
+    if (debug_print) {
+        Point2D debugPos = {5, 10};
+        std::string debugTxt5 = "Angular speed: " + std::to_string(this->player_plane->angular_velocity.x) + ", " + std::to_string(this->player_plane->angular_velocity.y) + ", " + std::to_string(this->player_plane->angular_velocity.z);
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt5.c_str(), 0, 0, (uint32_t)debugTxt5.length(), 2, 2);
 
-    std::string debugTxt = "TOF: " + std::to_string(timeOfFlight) + "s nbsteps: " + std::to_string(nbsteps);
-    debugPos.x = 5;
-    debugPos.y += 8;
-    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt.c_str(), 0, 0, (uint32_t)debugTxt.length(), 2, 2);
-    std::string debugTxt2 = "Dist: " + std::to_string((int)target_distance) + "m predict: " + std::to_string((int)newDist) + "m";
-    debugPos.x = 5;
-    debugPos.y += 8;
-    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt2.c_str(), 0, 0, (uint32_t)debugTxt2.length(), 2, 2);
-    std::string debugTxt3 = "Debug TOF: " + std::to_string(debutTimeOfFlight) + "s";
-    debugPos.x = 5;
-    debugPos.y += 8;
-    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt3.c_str(), 0, 0, (uint32_t)debugTxt3.length(), 2, 2);
-    float predictedImpactDistance = (this->targetImpactPointWorld - avion_pos).Length();
-    std::string debugTxt4 = "Predicted Impact Dist: " + std::to_string((int)predictedImpactDistance) + "m bullet speed: " + std::to_string((int)projectile_speed_world) + " m/s after shot: " + std::to_string((int)bulletSpeedAfterShot) + " m/s";
-    debugPos.x = 5;
-    debugPos.y += 8;
-    debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt4.c_str(), 0, 0, (uint32_t)debugTxt4.length(), 2, 2);
-    
+        std::string debugTxt = "TOF: " + std::to_string(timeOfFlight) + "s nbsteps: " + std::to_string(nbsteps);
+        debugPos.x = 5;
+        debugPos.y += 8;
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt.c_str(), 0, 0, (uint32_t)debugTxt.length(), 2, 2);
+        std::string debugTxt2 = "Dist: " + std::to_string((int)target_distance) + "m predict: " + std::to_string((int)newDist) + "m";
+        debugPos.x = 5;
+        debugPos.y += 8;
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt2.c_str(), 0, 0, (uint32_t)debugTxt2.length(), 2, 2);
+        std::string debugTxt3 = "Debug TOF: " + std::to_string(debutTimeOfFlight) + "s";
+        debugPos.x = 5;
+        debugPos.y += 8;
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt3.c_str(), 0, 0, (uint32_t)debugTxt3.length(), 2, 2);
+        float predictedImpactDistance = (this->targetImpactPointWorld - avion_pos).Length();
+        std::string debugTxt4 = "Predicted Impact Dist: " + std::to_string((int)predictedImpactDistance) + "m bullet speed: " + std::to_string((int)projectile_speed_world) + " m/s after shot: " + std::to_string((int)bulletSpeedAfterShot) + " m/s";
+        debugPos.x = 5;
+        debugPos.y += 8;
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt4.c_str(), 0, 0, (uint32_t)debugTxt4.length(), 2, 2);
+    }
     delete weap;
 }
 void SCCockpit::RenderBombSight(FrameBuffer *fb) {
@@ -1540,7 +1535,9 @@ void SCCockpit::Render(int face) {
         VGA.upscale = false;
         fb = VGA.getFrameBuffer();
         fb->clear();
-        debug_framebuffer->clear();
+        if (debug_print) {
+            debug_framebuffer->clear();
+        }
         this->cannonAngularOffset = {0.0f, 0.0f};
         if (cockpit != nullptr) {
             if (face == 0) {
@@ -1658,7 +1655,9 @@ void SCCockpit::Render(int face) {
         if (this->mouse_control) {
             Mouse.draw();
         }
-        VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
+        if (debug_print) {  
+            VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
+        }
         VGA.vSync();
         VGA.upscale = upscale;
     }
