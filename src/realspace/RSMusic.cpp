@@ -86,6 +86,33 @@ void RSMusic::init() {
             }
         }
     }
+    TreEntry *soundfx = assetManager.GetEntryByName("..\\..\\DATA\\SOUND\\SOUNDFX.ADL");
+    pak = new PakArchive();
+    pak->InitFromRAM("..\\..\\DATA\\SOUND\\SOUNDFX.ADL", combat->data, combat->size);
+    for (size_t i = 0; i < pak->GetNumEntries(); i++) {
+        PakEntry *e = pak->GetEntry(i);
+        PakArchive *subpak = new PakArchive();
+        subpak->InitFromRAM("..\\..\\DATA\\SOUND\\SOUNDFX", e->data, e->size);
+        for (size_t j = 0; j < subpak->GetNumEntries(); j++) {
+            PakEntry *sub = subpak->GetEntry(j);
+            PakArchive *subsubpak = new PakArchive();
+            if (sub->data[0] == 'F')
+                continue;
+            subsubpak->InitFromRAM("..\\..\\DATA\\SOUND\\SOUNDFX.ADL", sub->data, sub->size);
+            for (size_t k = 0; k < subsubpak->GetNumEntries(); k++) {
+                PakEntry *subsub = subpak->GetEntry(k);
+                if (subsub != NULL) {
+                    uint8_t *data = new uint8_t[subsub->size];
+                    memcpy(data, subsub->data, subsub->size);
+                    MemMusic *music = new MemMusic();
+                    music->data = data;
+                    music->size = subsub->size;
+                    musics[2].push_back(music);
+                    soundfx_musics[i].push_back(music); 
+                }
+            }
+        }
+    }
 }
 
 void RSMusic::SwitchBank(uint8_t bank) {

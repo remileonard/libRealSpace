@@ -28,6 +28,7 @@ public:
     std::unordered_map<uint8_t, std::vector<MemMusic *>> combat_musics;
     std::unordered_map<uint8_t, std::vector<MemMusic *>> gameflow_musics;
     std::unordered_map<uint8_t, std::vector<MemMusic *>> musics;
+    std::unordered_map<uint8_t, std::vector<MemMusic *>> soundfx_musics;
     void init();
     void SwitchBank(uint8_t bank);
     MemMusic *GetMusic(uint32_t index);

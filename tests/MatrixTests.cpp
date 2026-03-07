@@ -101,7 +101,7 @@ TEST_F(MatrixTest, Vector3D_Length_Norm) {
     Vector3D v(3.0f, 0.0f, 4.0f);
     // Sqrt(9 + 0 + 16) = 5
     EXPECT_FLOAT_EQ(5.0f, v.Length());
-    EXPECT_FLOAT_EQ(5.0f, v.Norm());
+    EXPECT_FLOAT_EQ(5.0f, v.Length());
 }
 
 TEST_F(MatrixTest, Vector3D_Normalize) {

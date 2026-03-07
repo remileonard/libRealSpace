@@ -313,9 +313,9 @@ void SCJdynPlane::updatePosition() {
 
     float deltaTime = 1.0f / this->tps;
     
-    this->angular_velocity.x = tenthOfDegreeToRad(this->yaw_speed);
-    this->angular_velocity.y = tenthOfDegreeToRad(this->pitch_speed);
-    this->angular_velocity.z = tenthOfDegreeToRad(this->roll_speed);
+    this->angular_velocity.x = tenthOfDegreeToRad(-this->pitch_speed);  // pitch autour de X
+    this->angular_velocity.y = tenthOfDegreeToRad(-this->yaw_speed);    // yaw autour de Y
+    this->angular_velocity.z = tenthOfDegreeToRad(-this->roll_speed);   // roll autour de Z
     this->forward = {
         -this->ptw.v[2][0],
         -this->ptw.v[2][1],

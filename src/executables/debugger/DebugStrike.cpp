@@ -1162,7 +1162,7 @@ void DebugStrike::renderMenu() {
                 for (auto missils : this->player_plane->weaps_object) {
                     ImGui::Text("VX:%.3f\tVY:%.3f\tVZ:%.3f\televation:%.3f\tazimut:%.3f\tspeed%.3f", missils->vx,
                                 missils->vy, missils->vz, missils->elevationf, missils->azimuthf,
-                                Vector3D(missils->vx, missils->vy, missils->vz).Norm());
+                                Vector3D(missils->vx, missils->vy, missils->vz).Length());
                     ImGui::Text("X:%.3f\tY:%.3f\tZ:%.3f", missils->x + 180000.0f, missils->y, missils->z + 180000.0f);
                     if (missils->target != nullptr) {
                         ImGui::Text("Target X:%.0f\tY:%.0f\tZ:%.0f", missils->target->object->position.x,

@@ -94,27 +94,19 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
     // Ajuster le thrust selon le type d'arme
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case 12: // Gun
-            thrustMagnitude = -planeSpeed * 250.0f * (this->tps / 60.0f);
+            thrustMagnitude = planeSpeed * 250.0f * (this->tps / 60.0f);
             break;
         case 5:
         case 6: // Bombs
-            thrustMagnitude = -planeSpeed * 50.0f * (this->tps / 60.0f);
+            thrustMagnitude = planeSpeed * 50.0f * (this->tps / 60.0f);
             break;
         default: // Missiles
-            thrustMagnitude = -planeSpeed * 100.0f * (this->tps / 60.0f);
+            thrustMagnitude = planeSpeed * 100.0f * (this->tps / 60.0f);
             break;
     }
     
-    // Calcul de la direction comme dans Shoot()
-    float yawRad = tenthOfDegreeToRad(this->yaw);
-    float pitchRad = tenthOfDegreeToRad(-this->pitch);
-    float rollRad = 0.0f;
-    float cosRoll = cosf(rollRad);
-    float sinRoll = sinf(rollRad);
+    initial_trust = this->forward * thrustMagnitude;
     
-    initial_trust.x = thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
-    initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
-    initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
     
     // Prédiction pour les tirs IA comme dans Shoot()
     if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
@@ -655,6 +647,12 @@ void SCPlane::updatePosition() {
     this->vx = this->incremental.v[3][0];
     this->vy = this->incremental.v[3][1];
     this->vz = this->incremental.v[3][2];
+
+    this->forward = {
+        -this->ptw.v[2][0],
+        -this->ptw.v[2][1],
+        -this->ptw.v[2][2],
+    };
 }
 void SCPlane::processInput() {
     int itemp {0};
@@ -1224,18 +1222,8 @@ Vector3D SCPlane::getWeaponIntialVector(float speedFactor) {
         this->z - this->last_pz
     };
     float planeSpeed      = direction.Length();
-    float thrustMagnitude = -planeSpeed * speedFactor;
-    float yawRad   = tenthOfDegreeToRad(this->yaw);
-    float pitchRad = tenthOfDegreeToRad(-this->pitch);
-    float rollRad  = 0.0;
-    // Calcul du vecteur de poussée initiale dans la direction avant de l'avion.
-    // On considère que le vecteur avant s'exprime en coordonnées :
-    // x = cos(pitch)*sin(yaw), y = sin(pitch), z = cos(pitch)*cos(yaw)
-    float cosRoll = cosf(rollRad);
-    float sinRoll = sinf(rollRad);
-    initial_trust.x = thrustMagnitude * (cosf(pitchRad) * sinf(yawRad) * cosRoll + sinf(pitchRad) * cosf(yawRad) * sinRoll);
-    initial_trust.y = thrustMagnitude * (sinf(pitchRad) * cosRoll - cosf(pitchRad) * sinf(yawRad) * sinRoll);
-    initial_trust.z = thrustMagnitude * cosf(pitchRad) * cosf(yawRad);
+    float thrustMagnitude = planeSpeed * speedFactor;
+    initial_trust = this->forward * thrustMagnitude;
 
     return initial_trust;
 

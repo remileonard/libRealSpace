@@ -92,7 +92,7 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
         if (target ) {
 
             Vector3D current_pos = {this->sim_object->x, this->sim_object->y, this->sim_object->z};
-            float distance = (target_pos - current_pos).Norm();
+            float distance = (target_pos - current_pos).Length();
             
             // Mettre à jour la distance la plus proche
             if (distance < closest_distance) {
@@ -128,7 +128,7 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
             // Pour les bombes, la probabilité dépend de l'impact au sol et du rayon d'explosion
             if (has_hit_ground) {
                 Vector3D impact_pos = this->trajectory.back();
-                float distance = (target_pos - impact_pos).Norm();
+                float distance = (target_pos - impact_pos).Length();
                 this->hit_probability = 1.0f - (distance / (obj->wdat->radius * 1.5f));
                 if (this->hit_probability < 0.0f) this->hit_probability = 0.0f;
                 if (this->hit_probability > 1.0f) this->hit_probability = 1.0f;

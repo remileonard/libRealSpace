@@ -130,7 +130,10 @@ public:
         float invSqrtLength = InvSqrt(ilength);
         Scale(invSqrtLength);
     };
-    inline float Length() {
+    inline float Length() const{
+        return sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
+    };
+    inline float Length(){
         return sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
     };
     inline float Distance(Vector3D* other) {
@@ -147,13 +150,9 @@ public:
         return acc;
     };
 
-    float Norm() {
-        return sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
-    };
-
     inline Vector3D limit(float max_value) {
-        if (this->Norm() > max_value) {
-            this->Scale(max_value / this->Norm());
+        if (this->Length() > max_value) {
+            this->Scale(max_value / this->Length());
         }
         return *this;
     };

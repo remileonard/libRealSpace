@@ -68,7 +68,7 @@ void cartesianToPolar(Vector3D v, float *phi, float *theta) {
 
 // Calcul de la force de frottement
 Vector3D SCSimulatedObject::calculate_drag(Vector3D velocity) {
-    float speed = velocity.Norm();
+    float speed = velocity.Length();
     int itemp;
     itemp = ((int)this->y) >> 10;
     if (itemp > 74) {
@@ -80,7 +80,7 @@ Vector3D SCSimulatedObject::calculate_drag(Vector3D velocity) {
     return velocity * (-drag_magnitude / speed);
 }
 Vector3D SCSimulatedObject::calculate_lift(Vector3D velocity) {
-    float speed = velocity.Norm()*tps*3.2808399f;
+    float speed = velocity.Length()*tps*3.2808399f;
     int itemp;
     itemp = ((int)this->y) >> 10;
     if (itemp > 74) {
@@ -131,7 +131,7 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     Vector3D error = (to_target - position);
     
     // Force de poussée ajustée en fonction de la direction de l'erreur
-    Vector3D thrust_force = error * (thrust / error.Norm());
+    Vector3D thrust_force = error * (thrust / error.Length());
     Vector3D other_way;
     error.Normalize();
     other_way = (error * thrust);
@@ -177,7 +177,7 @@ void SCSimulatedObject::Simulate(int tps) {
                 static_cast<float>(this->target->object->position.y),
                 static_cast<float>(this->target->object->position.z)
             };
-            float distance = (targetPos - position).Norm();
+            float distance = (targetPos - position).Length();
             if (distance < distanceThreshold) {
                 this->target->hasBeenHit(this, this->shooter);
                 this->alive = false;
@@ -248,7 +248,7 @@ std::tuple<Vector3D, Vector3D> GunSimulatedObject::ComputeTrajectory(int tps) {
     Vector3D gravity_force = { 0.0f, -this->weight * GRAVITY , 0.0f };
 
     // Calcul de la force de frottement (drag) avec une densité d'air standard (1.225 kg/m^3)
-    float speed = velocity.Norm();
+    float speed = velocity.Length();
     Vector3D drag_force = { 0.0f, 0.0f, 0.0f };
     if (speed > EPSILON) {
         float air_density = 1.225f;
