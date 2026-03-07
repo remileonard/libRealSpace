@@ -298,13 +298,17 @@ void SCJdynPlane::updatePosition() {
     this->y = this->ptw.v[3][1];
     this->z = this->ptw.v[3][2];
 
+    float rad_roll_speed = tenthOfDegreeToRad((float)this->roll_speed);
+    float rad_pitch_speed = tenthOfDegreeToRad(this->pitch_speed);
+    float rad_yaw_speed = tenthOfDegreeToRad(this->yaw_speed);
+
     this->incremental.Identity();
     if (this->roll_speed)
-        this->incremental.rotateM(tenthOfDegreeToRad((float)-this->roll_speed), 0, 0, 1);
+        this->incremental.rotateM(-rad_roll_speed, 0, 0, 1);
     if (this->pitch_speed)
-        this->incremental.rotateM(tenthOfDegreeToRad(-this->pitch_speed), 1, 0, 0);
+        this->incremental.rotateM(-rad_pitch_speed, 1, 0, 0);
     if (this->yaw_speed)
-        this->incremental.rotateM(tenthOfDegreeToRad(-this->yaw_speed), 0, 1, 0);
+        this->incremental.rotateM(-rad_yaw_speed, 0, 1, 0);
     this->incremental.translateM(this->vx, this->vy, this->vz);
 
     this->vx = this->incremental.v[3][0];
@@ -313,9 +317,21 @@ void SCJdynPlane::updatePosition() {
 
     float deltaTime = 1.0f / this->tps;
     
-    this->angular_velocity.x = tenthOfDegreeToRad(-this->pitch_speed);  // pitch autour de X
-    this->angular_velocity.y = tenthOfDegreeToRad(-this->yaw_speed);    // yaw autour de Y
-    this->angular_velocity.z = tenthOfDegreeToRad(-this->roll_speed);   // roll autour de Z
+
+    // Filtre passe-bas : alpha contrôle la réactivité vs lissage
+    // alpha = 0.1 -> très lissé, alpha = 0.5 -> moins lissé
+    const float alpha = 0.1f;
+    
+    Vector3D raw_angular_velocity = {
+        -rad_pitch_speed,
+        -rad_yaw_speed,
+        -rad_roll_speed
+    };
+
+    this->angular_velocity.x = alpha * raw_angular_velocity.x + (1.0f - alpha) * this->angular_velocity.x;
+    this->angular_velocity.y = alpha * raw_angular_velocity.y + (1.0f - alpha) * this->angular_velocity.y;
+    this->angular_velocity.z = alpha * raw_angular_velocity.z + (1.0f - alpha) * this->angular_velocity.z;
+    
     this->forward = {
         -this->ptw.v[2][0],
         -this->ptw.v[2][1],

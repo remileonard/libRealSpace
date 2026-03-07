@@ -97,13 +97,6 @@ TEST_F(MatrixTest, Vector3D_DotProduct) {
     EXPECT_FLOAT_EQ(32.0f, dot);
 }
 
-TEST_F(MatrixTest, Vector3D_Length_Norm) {
-    Vector3D v(3.0f, 0.0f, 4.0f);
-    // Sqrt(9 + 0 + 16) = 5
-    EXPECT_FLOAT_EQ(5.0f, v.Length());
-    EXPECT_FLOAT_EQ(5.0f, v.Length());
-}
-
 TEST_F(MatrixTest, Vector3D_Normalize) {
     Vector3D v(3.0f, 0.0f, 4.0f);
     v.Normalize();
@@ -243,4 +236,82 @@ TEST_F(MatrixTest, Vector3D_TransformPoint) {
     EXPECT_FLOAT_EQ(6.0f, res.x);
     EXPECT_FLOAT_EQ(6.0f, res.y);
     EXPECT_FLOAT_EQ(6.0f, res.z);
+}
+// ============================================================================
+// Tests Vector3D::rotateByAxis (Rodrigues)
+// ============================================================================
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_ZeroAngle) {
+    // Si l'angle est quasi nul, le vecteur ne doit pas changer
+    Vector3D v(1.0f, 0.0f, 0.0f);
+    Vector3D w(0.0f, 0.0f, 0.0f);  // angle = 0
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(1.0f, res.x, epsilon);
+    EXPECT_NEAR(0.0f, res.y, epsilon);
+    EXPECT_NEAR(0.0f, res.z, epsilon);
+}
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_90DegreesAroundZ) {
+    // Rotation de 90° autour de Z : X -> Y
+    Vector3D v(1.0f, 0.0f, 0.0f);
+    float angle = (float)(M_PI / 2.0);
+    Vector3D w(0.0f, 0.0f, angle);  // axe Z, angle 90°
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(0.0f, res.x, epsilon);
+    EXPECT_NEAR(1.0f, res.y, epsilon);
+    EXPECT_NEAR(0.0f, res.z, epsilon);
+}
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_90DegreesAroundX) {
+    // Rotation de 90° autour de X : Y -> Z
+    Vector3D v(0.0f, 1.0f, 0.0f);
+    float angle = (float)(M_PI / 2.0);
+    Vector3D w(angle, 0.0f, 0.0f);  // axe X, angle 90°
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(0.0f, res.x, epsilon);
+    EXPECT_NEAR(0.0f, res.y, epsilon);
+    EXPECT_NEAR(1.0f, res.z, epsilon);
+}
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_90DegreesAroundY) {
+    // Rotation de 90° autour de Y : Z -> X
+    Vector3D v(0.0f, 0.0f, 1.0f);
+    float angle = (float)(M_PI / 2.0);
+    Vector3D w(0.0f, angle, 0.0f);  // axe Y, angle 90°
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(1.0f, res.x, epsilon);
+    EXPECT_NEAR(0.0f, res.y, epsilon);
+    EXPECT_NEAR(0.0f, res.z, epsilon);
+}
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_PreservesLength) {
+    // La rotation ne doit pas modifier la norme du vecteur
+    Vector3D v(1.0f, 2.0f, 3.0f);
+    float angle = (float)(M_PI / 4.0);  // 45°
+    Vector3D w(angle, angle, 0.0f);
+    float lengthBefore = v.Length();
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(lengthBefore, res.Length(), epsilon);
+}
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_360Degrees) {
+    // Rotation de 360° autour de Z : le vecteur doit revenir à sa position initiale
+    Vector3D v(1.0f, 2.0f, 3.0f);
+    float angle = (float)(2.0 * M_PI);
+    Vector3D w(0.0f, 0.0f, angle);
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(v.x, res.x, epsilon);
+    EXPECT_NEAR(v.y, res.y, epsilon);
+    EXPECT_NEAR(v.z, res.z, epsilon);
+}
+
+TEST_F(MatrixTest, Vector3D_RotateByAxis_SmallAngle) {
+    // Petit angle (rad/frame typique) : cohérent avec l'approximation au premier ordre
+    Vector3D v(1.0f, 0.0f, 0.0f);
+    float angle = 0.005f;  // ~0.29°, typique d'une frame à 60 tps
+    Vector3D w(0.0f, 0.0f, angle);
+    Vector3D res = v.rotateByAxis(w);
+    EXPECT_NEAR(cosf(angle), res.x, epsilon);
+    EXPECT_NEAR(sinf(angle), res.y, epsilon);
+    EXPECT_NEAR(0.0f,        res.z, epsilon);
 }

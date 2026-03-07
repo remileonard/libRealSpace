@@ -245,3 +245,27 @@ Vector3D Vector3D::transformPoint(const Matrix &m) {
     out.z = this->x * m.v[0][2] + this->y * m.v[1][2] + this->z * m.v[2][2] + m.v[3][2];
     return out;    
 }
+
+Vector3D Vector3D::rotateByAxis(const Vector3D &w) const {
+    float angle = w.Length();
+    if (angle < 1e-7f) return *this;
+
+    float invAngle = 1.0f / angle;
+    Vector3D axis = { w.x * invAngle, w.y * invAngle, w.z * invAngle };
+
+    float cosA = cosf(angle);
+    float sinA = sinf(angle);
+    float dot = axis.x * x + axis.y * y + axis.z * z;
+
+    Vector3D cross{
+        axis.y * z - axis.z * y,
+        axis.z * x - axis.x * z,
+        axis.x * y - axis.y * x
+    };
+
+    return {
+        x * cosA + cross.x * sinA + axis.x * dot * (1.0f - cosA),
+        y * cosA + cross.y * sinA + axis.y * dot * (1.0f - cosA),
+        z * cosA + cross.z * sinA + axis.z * dot * (1.0f - cosA)
+    };
+}

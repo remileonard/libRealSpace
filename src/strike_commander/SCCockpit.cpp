@@ -783,34 +783,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
 
     initial_trust = this->player_plane->getWeaponIntialVector(projectile_speed);
     Vector3D planeDispAccum{0, 0, 0};
-    //planeDispAccum = planeDispAccum + planeVelWorld;
     
-    auto rotateByOmegaStep = [](const Vector3D &v, const Vector3D &w) -> Vector3D {
-        float angle = w.Length();
-        if (angle < 1e-7f) return v;
-        
-        // Axe normalisé
-        float invAngle = 1.0f / angle;
-        Vector3D axis = { w.x * invAngle, w.y * invAngle, w.z * invAngle };
-        
-        // Formule de Rodrigues: v' = v*cos(θ) + (axis×v)*sin(θ) + axis*(axis·v)*(1-cos(θ))
-        float cosA = cosf(angle);
-        float sinA = sinf(angle);
-        float dot = axis.x*v.x + axis.y*v.y + axis.z*v.z;
-        
-        Vector3D cross{
-            axis.y * v.z - axis.z * v.y,
-            axis.z * v.x - axis.x * v.z,
-            axis.x * v.y - axis.y * v.x
-        };
-        
-        return {
-            v.x * cosA + cross.x * sinA + axis.x * dot * (1.0f - cosA),
-            v.y * cosA + cross.y * sinA + axis.y * dot * (1.0f - cosA),
-            v.z * cosA + cross.z * sinA + axis.z * dot * (1.0f - cosA)
-        };
-    };
-
     weap->obj = this->player_plane->weaps_load[0]->objct;
     weap->x = this->player_plane->x + planeDispAccum.x;
     weap->y = this->player_plane->y + planeDispAccum.y;
@@ -818,7 +791,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     weap->vx = initial_trust.x;
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
-    planeVelWorld = rotateByOmegaStep(planeVelWorld, omegaStep);
     weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg * 2.205f;
     weap->azimuthf = this->player_plane->azimuthf;
     weap->elevationf = this->player_plane->elevationf;
@@ -831,26 +803,20 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     for (int i = 0; i < nbsteps; i++) {
         // 1. Accumuler le déplacement avion
         planeDispAccum = planeDispAccum + planeVelWorld;
-        planeVelWorld = rotateByOmegaStep(planeVelWorld, omegaStep);
+        planeVelWorld = planeVelWorld.rotateByAxis(omegaStep);
 
-        // 2. Simuler l'obus depuis sa position initiale (balistique pure)
-        //    On remet l'obus à sa position initiale + déplacement balistique cumulé
         std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
         
-        // 3. La position finale = balistique + correction déplacement avion
         Vector3D finalPos = {
             impact.x + planeDispAccum.x,
             impact.y + planeDispAccum.y,
             impact.z + planeDispAccum.z
         };
-        
-        // 4. On NE réinjecte PAS finalPos dans weap->x/y/z
-        //    On réinjecte seulement la position balistique pure
+
         weap->x = impact.x;
         weap->y = impact.y;
         weap->z = impact.z;
         
-        //velo = rotateByOmegaStep(velo, omegaStep);
         weap->vx = velo.x;
         weap->vy = velo.y;
         weap->vz = velo.z;
@@ -861,7 +827,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
         }
     }
 
-    // Le point d'impact final = dernière position balistique + déplacement avion accumulé
     const Vector3D impactWorld = {
         impact.x + planeDispAccum.x,
         impact.y + planeDispAccum.y,
@@ -869,7 +834,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     };
     this->targetImpactPointWorld = impactWorld;
 
-    // === Affichage du réticule LCOS (point d'impact balistique) ===
     Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
 
     int Xdraw = 0, Ydraw = 0;

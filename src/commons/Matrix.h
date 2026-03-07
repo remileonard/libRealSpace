@@ -192,6 +192,10 @@ public:
     int operator==(const Vector3D& other) const {
         return this->x == other.x && this->y == other.y && this->z == other.z;
     };
+    Vector3D rotateByAxis(const Vector3D &w) const;
+    void rotateByAxisInPlace(const Vector3D &w) {
+        *this = this->rotateByAxis(w);
+    };
     Vector3D transformPoint(const Matrix &m);
     float x;
     float y;
