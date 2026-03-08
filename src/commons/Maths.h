@@ -59,6 +59,9 @@ public:
     int operator==(const Vector2D& other) {
         return this->x == other.x && this->y == other.y;
     };
+    Vector2D operator-(Vector2D& other) {
+        return Vector2D(this->x - other.x, this->y - other.y);
+    };
     float Length() {
         return sqrtf((float)(this->x * this->x) + (float)(this->y * this->y));
     };

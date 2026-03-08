@@ -7,6 +7,9 @@
 //
 #include "precomp.h"
 #include "SCCockpit.h"
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
 
 bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
     Vector3D campos = this->cam->getPosition();
@@ -164,8 +167,12 @@ void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *f
     alti_arrow.y -= this->hud->small_hud->ALTI->SHP2->GetHeight() / 2;
     this->hud->small_hud->ALTI->SHP2->SetPosition(&alti_arrow);
     fb->drawShape(this->hud->small_hud->ALTI->SHP2);
-    Point2D alti_text = {alti_top_left.x, alti_top_left.y + 5 + this->hud->small_hud->ALTI->SHAP->GetHeight()};
-    fb->printText(this->font, &alti_text, (char *)std::to_string(alti_in_feet).c_str(), 0, 0, 5, 2, 2);
+    Point2D alti_text = {alti_top_left.x, alti_top_left.y + this->hud->small_hud->ALTI->SHAP->GetHeight()};
+    std::ostringstream oss;
+    oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << (alti_in_feet-(this->player_plane->groundlevel* 3.28084f)) / 1000.0f;
+    std::string s = oss.str();
+    std::string alti_str = "A"+s;
+    fb->printText(this->font, &alti_text, (char *)alti_str.c_str(), 0, 0, alti_str.length(), 2, 2);
 }
 /**
  * Renders the heading indicator in the cockpit view.
@@ -1741,6 +1748,8 @@ void SCCockpit::RenderHUD() {
                 if (distance <= weap_range) {
                     this->target_in_range = true;
                 }
+            } else {
+                this->target_in_range = false;
             }
             if (weapon_names.find(weapon_id) != weapon_names.end()) {
                 txt = weapon_names[weapon_id];
@@ -1768,6 +1777,15 @@ void SCCockpit::RenderHUD() {
     hud->printText(this->font, &weapons_count_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
     if (this->target_in_range) {
         hud->printText(this->font, &inrange_text, const_cast<char *>("IN RANGE"), 0, 0, 8, 2, 2);
+    }
+    if (this->target != nullptr) {
+        Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
+        float distance = dist_to_target.Length();
+        std::ostringstream oss;
+        oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << distance / 1000.0f;
+        std::string s = "R"+oss.str();
+        Point2D target_distance_text = {72, inrange_text.y};
+        hud->printText(this->font, &target_distance_text, (char *)s.c_str(), 0, 0, (uint32_t)s.length(), 2, 2);
     }
     Point2D gear = {75, 9};
     Point2D flaps = {75, gear.y + 5};
@@ -1797,7 +1815,14 @@ void SCCockpit::RenderHUD() {
             this->RenderBombSight(hud);
         }
     }
-    // hud->rect_slow(0,0, hud->width - 1, hud->height - 1, 1);
+    float distance = 0.0f;
+    Vector2D dist_to_waypoint = this->weapoint_coords - Vector2D(this->player_plane->position.x, this->player_plane->position.z);
+    distance = dist_to_waypoint.Length();
+    std::ostringstream oss;
+    oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << distance / 1000.0f;
+    std::string s = "D"+oss.str();
+    Point2D target_distance_text = {72, 24+45};
+    hud->printText(this->font, &target_distance_text, (char *)s.c_str(), 0, 0, (uint32_t)s.length(), 2, 2);
 }
 void SCCockpit::RenderAlti(Point2D pmfd_left = {177, 179}, FrameBuffer *fb = nullptr) {
     if (!fb) {

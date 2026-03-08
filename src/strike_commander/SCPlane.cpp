@@ -653,6 +653,11 @@ void SCPlane::updatePosition() {
         -this->ptw.v[2][1],
         -this->ptw.v[2][2],
     };
+    this->position = {
+        this->x,
+        this->y,
+        this->z
+    };
 }
 void SCPlane::processInput() {
     int itemp {0};

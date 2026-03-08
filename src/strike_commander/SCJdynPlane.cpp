@@ -99,7 +99,7 @@ void SCJdynPlane::Simulate() {
 
     this->gravity = GRAVITY * dt * dt;
     this->fps_knots = 1.944f / dt;
-
+    this->groundlevel = this->area->getY(this->x, this->z);
     this->computeGravity();
     this->processInput();
     this->updatePosition();
@@ -337,6 +337,11 @@ void SCJdynPlane::updatePosition() {
         -this->ptw.v[2][1],
         -this->ptw.v[2][2],
     };
+    this->position = {
+        this->x,
+        this->y,
+        this->z
+    };
     
 }
 void SCJdynPlane::processInput() {
@@ -479,14 +484,14 @@ void SCJdynPlane::updateSpeedOfSound() {
 }
 void SCJdynPlane::checkStatus() {
     float dt = GameTimer::getInstance().getDeltaTime();
-    float groundlevel = this->area->getY(this->x, this->z);
+    
     /****************************************************************/
     /*	check altitude for too high, and landing/takeoff            */
     /****************************************************************/
     /* flame out		*/
     if (this->y > 50000.0)
         this->thrust = 0;
-    else if (this->y > groundlevel + 4.0) {
+    else if (this->y > this->groundlevel + 4.0) {
         /* not on ground	*/
         if (!this->takeoff) {
             this->takeoff = true;
@@ -497,7 +502,7 @@ void SCJdynPlane::checkStatus() {
             this->min_throttle = 0;
         }
         this->on_ground = FALSE;
-    } else if ((int) this->y <= groundlevel+2) {
+    } else if ((int) this->y <= this->groundlevel+2) {
         /* check for on the ground */
         if (this->object->alive == 0) {
             this->status = MEXPLODE;
@@ -572,12 +577,12 @@ void SCJdynPlane::computeLift() {
 
     this->Spdf = .0025f * this->spoilers;
     this->Splf = 1.0f - .005f * this->spoilers;
-    float groundlevel = this->area->getY(this->x, this->z);
-    if (this->y > this->gefy+groundlevel) {
+    
+    if (this->y > this->gefy+this->groundlevel) {
         // ground effect factor
         this->kl = 1.0f;
     } else {
-        float height_ratio = (this->y - groundlevel) / this->b;
+        float height_ratio = (this->y - this->groundlevel) / this->b;
 
         if (height_ratio > 0.15f) {
             // Transition douce vers l'altitude normale
