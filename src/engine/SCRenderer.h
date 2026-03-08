@@ -55,7 +55,7 @@ private:
     bool running;
     bool paused;
     uint32_t counter;
-    Camera camera;
+    
     
     Point3D playerPosition;
     TextureVertexMap textureSortedVertex;
@@ -75,6 +75,7 @@ private:
     void renderWorldSkyAndGround();
 
 public:
+    Camera camera;
     static SCRenderer& getInstance() {
         if (!SCRenderer::hasInstance()) {
             SCRenderer::setInstance(std::make_unique<SCRenderer>());
@@ -91,6 +92,7 @@ public:
 
     static bool hasInstance() { return (bool)s_instance; }
     float verticalOffset{0.45f};
+    float fov{45.0f};
     GLuint texture{0};
     SCRenderer();
     ~SCRenderer();

@@ -836,6 +836,15 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_FORWARD))) {
         this->camera_mode = View::FRONT;
+        if (this->zoom_cockpit) {
+            Renderer.camera.fovy = 30.0f;
+            Renderer.camera.update();
+            zoom_cockpit = false;
+        } else {
+            Renderer.camera.fovy = 45.0f;
+            Renderer.camera.update();
+            zoom_cockpit = true;
+        }
         this->pilote_lookat.x = 0;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_LEFT))) {

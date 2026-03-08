@@ -20,7 +20,7 @@ private:
     
     void CalcViewMatrix(void);
     
-    float fovy;
+    
     float aspect;
     float zNear;
     float zFar;
@@ -38,9 +38,10 @@ private:
 
 public:
     
+    float fovy{45.0f};
     //Update parameters and recalculate perspective
     void setPersective(float fovy, float aspect, float zNear, float zFar);
-
+    void update();
     // Injection directe (ex: VR/OpenXR)
     void setProjectionMatrix(const Matrix& projection);
     void setViewMatrix(const Matrix& view);
