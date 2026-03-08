@@ -356,7 +356,7 @@ void SCRenderer::init(int width, int height) {
     camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
 
     light.SetWithCoo(300, 300, 300);
-
+    this->lodLevel = 0;
     initialized = true;
 }
 
@@ -504,7 +504,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position,
     glRotatef(orientation.z, 1, 0, 0);
     glTranslatef(ajustement.x, ajustement.y, ajustement.z);
     glScalef(scale, scale, scale);
-    drawModel(object, 0);
+    drawModel(object, lodLevel);
     glPopMatrix(); 
 }
 void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement) { 
@@ -515,7 +515,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position,
     glRotatef(orientation.y, 0, 0, 1);
     glRotatef(orientation.z, 1, 0, 0);
     glTranslatef(ajustement.x, ajustement.y, ajustement.z);
-    drawModel(object, 0);
+    drawModel(object, lodLevel);
     glPopMatrix(); 
 }
 void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation) {
@@ -525,7 +525,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel, Vector3D position,
     glRotatef(orientation.x, 0, 1, 0);
     glRotatef(orientation.y, 0, 0, 1);
     glRotatef(orientation.z, 1, 0, 0);
-    drawModel(object, 0);
+    drawModel(object, lodLevel);
     glPopMatrix();
 }
 void SCRenderer::drawPoint(Vector3D point, Vector3D color, Vector3D pos, Vector3D orientation) {
@@ -552,7 +552,7 @@ void SCRenderer::drawModel(RSEntity *object, Vector3D position, Vector3D orienta
     rotation.rotateM(orientation.z, 1.0f, 0.0f, 0.0f);
     
     glMultMatrixf((float *)rotation.v);
-    drawModel(object, 0);
+    drawModel(object, lodLevel);
     glPopMatrix();
 }
 void SCRenderer::drawLine(Vector3D start, Vector3D end, Vector3D color, Vector3D orientation) {
@@ -676,10 +676,10 @@ void SCRenderer::drawModelWithChilds(
 
         glMultMatrixf((float *)rotation.v);
         
-        Renderer.drawModel(object, LOD_LEVEL_MAX);
+        Renderer.drawModel(object, this->lodLevel);
         if (wheel_index) {
             if (object->chld.size() > wheel_index) {
-                Renderer.drawModel(object->chld[wheel_index]->objct, LOD_LEVEL_MAX);
+                Renderer.drawModel(object->chld[wheel_index]->objct, this->lodLevel);
             }
         }
         if (thrust > 50) {
@@ -692,7 +692,7 @@ void SCRenderer::drawModelWithChilds(
                 };
                 glTranslatef(pos.z/250 , pos.y /250 , pos.x /250);
                 glScalef(1+thrust/100.0f,1,1);
-                Renderer.drawModel(object->chld[0]->objct, LOD_LEVEL_MAX);
+                Renderer.drawModel(object->chld[0]->objct, this->lodLevel);
                 glPopMatrix();
             }
         }
@@ -706,7 +706,7 @@ void SCRenderer::drawModelWithChilds(
             
             glPushMatrix();
             glTranslatef(weaps_pos.x, weaps_pos.y, weaps_pos.z);
-            Renderer.drawModel(weaps, LOD_LEVEL_MAX);
+            Renderer.drawModel(weaps, this->lodLevel);
             glPopMatrix();            
         }
         glPopMatrix();
@@ -1666,7 +1666,7 @@ void SCRenderer::renderObjects(RSArea *area, size_t blockID) {
 
         glTranslatef(object.position.x, object.position.y, object.position.z);
         if (object.entity != nullptr) {
-            drawModel(object.entity, BLOCK_LOD_MAX);
+            drawModel(object.entity, this->lodLevel);
         } else {
             printf("OBJECT [%s] NOT FOUND\n", object.name);
             glBegin(GL_POINTS);
@@ -1781,7 +1781,7 @@ void SCRenderer::renderMissionObjects(RSMission *mission) {
         glRotatef((float)object->pitch, 0, 0, 1);
         glRotatef(-(float)object->roll, 1, 0, 0);
         if (object->entity != NULL) {
-            drawModel(object->entity, BLOCK_LOD_MAX);
+            drawModel(object->entity, this->lodLevel);
         } else {
             printf("OBJECT [%s] NOT FOUND\n", object->member_name.c_str());
             glBegin(GL_POINTS);

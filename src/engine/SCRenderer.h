@@ -93,6 +93,7 @@ public:
     static bool hasInstance() { return (bool)s_instance; }
     float verticalOffset{0.45f};
     float fov{45.0f};
+    int lodLevel{0};
     GLuint texture{0};
     SCRenderer();
     ~SCRenderer();

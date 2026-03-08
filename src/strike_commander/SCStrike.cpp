@@ -144,9 +144,9 @@ void SCStrike::renderVirtualCockpit() {
         const float cockpitScale = 1.0f; // ajuste: 0.7 .. 0.95
         //cockpit_ajustement = { -0.225f,-(float) this->eye_y+2.35f,0.0f};
         cockpit_ajustement = { -0.55f,-(float) this->eye_y,0.0f};
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
+        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
     } else {
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, LOD_LEVEL_MAX, cockpit_pos, cockpit_rot, cockpit_ajustement);
+        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
 
     this->cockpit->hud_eye_world = {0.0f,0.0f,0.0f};
@@ -1725,7 +1725,7 @@ void SCStrike::runFrame(void) {
                 if (distance.Length() > RENDER_DISTANCE) {
                     continue; // Skip rendering if the object is too far away
                 }
-                Renderer.drawModel(actor->object->entity, LOD_LEVEL_MAX, actor_position, actor_orientation);
+                Renderer.drawModel(actor->object->entity, Renderer.lodLevel, actor_position, actor_orientation);
                 if (this->show_bbox) {
                     if (actor->aiming_vector.x != 0.0f || actor->aiming_vector.y != 0.0f || actor->aiming_vector.z != 0.0f) {
                         Vector3D aim_pos = {actor->aiming_vector.x, actor->aiming_vector.y, actor->aiming_vector.z};

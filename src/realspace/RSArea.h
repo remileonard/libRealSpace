@@ -92,7 +92,7 @@ public:
     void InitFromZipFileName(std::string zipFilename);
     void InitFromRam(const char *pakFilename, uint8_t *data, size_t size);
     inline AreaBlock* GetAreaBlockByID(int lod,int blockID){
-        if (blockID < 0 || blockID >= BLOCKS_PER_MAP) {
+        if (blockID < 0 || blockID >= BLOCKS_PER_MAP || lod < 0 || lod >= NUM_LODS) {
             return nullptr;
         }
         return &this->blocks[lod][blockID];
