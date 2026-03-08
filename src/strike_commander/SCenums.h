@@ -24,6 +24,13 @@ enum weapon_ids {
     ID_AIM120 = 9,
     ID_20MM = 12,
 };
+enum CockpitFace {
+    CP_FRONT = 0,
+    CP_RIGHT = 1,
+    CP_LEFT = 2,
+    CP_REAR = 3,
+    CP_BIG = 4
+};
 static std::unordered_map<weapon_ids, weapon_type_shp_id> weapon_inv_to_loadout = {
     {ID_AIM9J, AIM9J},
     {ID_AIM9M, AIM9M},

@@ -100,6 +100,7 @@ public:
     Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
     bool has_hud_eye_world = false;
     bool debug_print{false};
+    bool big_cockpit{false};
     // Offset angulaire pour le viseur cannon (en radians)
     // x = azimut, y = élévation
     // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
@@ -109,7 +110,7 @@ public:
     ~SCCockpit();
     void init( );
     void Update();
-    void Render(int face);
+    void Render(CockpitFace face);
     void RenderHUD();
     void RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb);
     void RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb);

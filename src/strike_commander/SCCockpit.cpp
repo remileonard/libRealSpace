@@ -1532,142 +1532,141 @@ void SCCockpit::RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb) {
  * @param face The face number of the cockpit to render, or -1 to render
  * in 3D.
  */
-void SCCockpit::Render(int face) {
+void SCCockpit::Render(CockpitFace face) {
     FrameBuffer *fb{nullptr};
     bool upscale = false;
-    if (face >= 0) {
-        VGA.activate();
-        VGA.setPalette(&this->palette);
-        upscale = VGA.upscale;
-        VGA.upscale = false;
-        fb = VGA.getFrameBuffer();
-        fb->clear();
-        if (debug_print) {
-            debug_framebuffer->clear();
+
+    VGA.activate();
+    VGA.setPalette(&this->palette);
+    upscale = VGA.upscale;
+    VGA.upscale = false;
+    fb = VGA.getFrameBuffer();
+    fb->clear();
+    if (debug_print) {
+        debug_framebuffer->clear();
+    }
+    this->cannonAngularOffset = {0.0f, 0.0f};
+    if (cockpit != nullptr) {
+        if (face == CockpitFace::CP_FRONT) {
+            if (this->hud != nullptr) {
+                this->RenderHUD();
+                fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
+                            this->hud_framebuffer->height);
+            }
+            if (this->target != this->player) {
+                this->RenderTargetWithCam();
+            }
         }
-        this->cannonAngularOffset = {0.0f, 0.0f};
-        if (cockpit != nullptr) {
-            if (face == 0) {
-                if (this->hud != nullptr) {
-                    this->RenderHUD();
-                    fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
-                             this->hud_framebuffer->height);
-                }
-                if (this->target != this->player) {
-                    this->RenderTargetWithCam();
-                }
-                if (this->player_plane->weaps_load.size() > 0 &&
-                    this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
-                    if (this->radar_mode != RadarMode::ASST) {
-                        switch (
-                            this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
-                        case ID_20MM:
-                            this->radar_mode = RadarMode::AARD;
-                            break;
-                        case ID_AIM9J:
-                        case ID_AIM9M:
-                        case ID_AIM120:
-                            this->radar_mode = RadarMode::AARD;
-                            break;
-                        case ID_MK20:
-                        case ID_MK82:
-                        case ID_DURANDAL:
-                            this->radar_mode = RadarMode::AGRD;
-                            break;
-                        case ID_AGM65D:
-                        case ID_GBU15:
-                            this->radar_mode = RadarMode::AGRD;
-                            break;
-                        case ID_LAU3:
-                            this->radar_mode = RadarMode::AGRD;
-                            break;
-                        }
+        fb->drawShape(this->cockpit->ARTP.GetShape(face));
+        if (face == CockpitFace::CP_FRONT || face == CockpitFace::CP_BIG) {
+            if (this->player_plane->weaps_load.size() > 0 &&
+                this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+                if (this->radar_mode != RadarMode::ASST) {
+                    switch (
+                        this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
+                    case ID_20MM:
+                        this->radar_mode = RadarMode::AARD;
+                        break;
+                    case ID_AIM9J:
+                    case ID_AIM9M:
+                    case ID_AIM120:
+                        this->radar_mode = RadarMode::AARD;
+                        break;
+                    case ID_MK20:
+                    case ID_MK82:
+                    case ID_DURANDAL:
+                        this->radar_mode = RadarMode::AGRD;
+                        break;
+                    case ID_AGM65D:
+                    case ID_GBU15:
+                        this->radar_mode = RadarMode::AGRD;
+                        break;
+                    case ID_LAU3:
+                        this->radar_mode = RadarMode::AGRD;
+                        break;
                     }
                 }
-
-                //fb->plot_pixel(161, 50, 46);
             }
-            fb->drawShape(this->cockpit->ARTP.GetShape(face));
-            if (face == 0) {
+            if (face==CockpitFace::CP_FRONT) {
                 this->RenderRAWS({84, 112}, fb);
                 this->RenderAlti({161, 166}, fb);
                 this->RenderSpeedOmetter({125, 166}, fb);
-                Point2D pmfd_right = {0, 200 - this->cockpit->MONI.SHAP.GetHeight()};
-                Point2D pmfd_left = {320 - this->cockpit->MONI.SHAP.GetWidth() - 1,
-                                     200 - this->cockpit->MONI.SHAP.GetHeight()};
-                Point2D pmfd;
-                bool mfds = false;
-                if (this->show_radars) {
-                    if (!mfds) {
-                        pmfd = pmfd_left;
-                        mfds = true;
-                    } else {
-                        pmfd = pmfd_right;
-                    }
-                    float range = 0.0f;
-                    switch (this->radar_zoom) {
-                    case 1:
-                        range = 18520.0f;
-                        break;
-                    case 2:
-                        range = 18520.0f * 2.0f;
-                    case 3:
-                        range = 18520.0f * 4.0f;
-                        break;
-                    case 4:
-                        range = 18520.0f * 8.0f;
-                        break;
-                    }
-                    this->RenderMFDSRadar(pmfd, range, this->radar_mode);
-                }
-                if (this->show_weapons) {
-                    if (!mfds) {
-                        pmfd = pmfd_left;
-                        mfds = true;
-                    } else {
-                        pmfd = pmfd_right;
-                    }
-                    this->RenderMFDSWeapon(pmfd);
-                }
-                if (this->show_comm) {
-                    if (!mfds) {
-                        pmfd = pmfd_left;
-                        mfds = true;
-                    } else {
-                        pmfd = pmfd_right;
-                    }
-                    this->RenderMFDSComm(pmfd, this->comm_target);
-                }
-                if (this->show_damage) {
-                    if (!mfds) {
-                        pmfd = pmfd_left;
-                        mfds = true;
-                    } else {
-                        pmfd = pmfd_right;
-                    }
-                    this->RenderMFDSDamage(pmfd, fb);
-                }
-                if (this->show_cam) {
-                    if (!mfds) {
-                        pmfd = pmfd_left;
-                        mfds = true;
-                    } else {
-                        pmfd = pmfd_right;
-                    }
-                    this->RenderMFDSCamera(pmfd, fb);
-                }
             }
-            this->RenderCommMessages({0,200}, fb);
+            Point2D pmfd_right = {0, 200 - this->cockpit->MONI.SHAP.GetHeight()};
+            Point2D pmfd_left = {320 - this->cockpit->MONI.SHAP.GetWidth() - 1,
+                                    200 - this->cockpit->MONI.SHAP.GetHeight()};
+            Point2D pmfd;
+            bool mfds = false;
+            if (this->show_radars) {
+                if (!mfds) {
+                    pmfd = pmfd_left;
+                    mfds = true;
+                } else {
+                    pmfd = pmfd_right;
+                }
+                float range = 0.0f;
+                switch (this->radar_zoom) {
+                case 1:
+                    range = 18520.0f;
+                    break;
+                case 2:
+                    range = 18520.0f * 2.0f;
+                case 3:
+                    range = 18520.0f * 4.0f;
+                    break;
+                case 4:
+                    range = 18520.0f * 8.0f;
+                    break;
+                }
+                this->RenderMFDSRadar(pmfd, range, this->radar_mode);
+            }
+            if (this->show_weapons) {
+                if (!mfds) {
+                    pmfd = pmfd_left;
+                    mfds = true;
+                } else {
+                    pmfd = pmfd_right;
+                }
+                this->RenderMFDSWeapon(pmfd);
+            }
+            if (this->show_comm) {
+                if (!mfds) {
+                    pmfd = pmfd_left;
+                    mfds = true;
+                } else {
+                    pmfd = pmfd_right;
+                }
+                this->RenderMFDSComm(pmfd, this->comm_target);
+            }
+            if (this->show_damage) {
+                if (!mfds) {
+                    pmfd = pmfd_left;
+                    mfds = true;
+                } else {
+                    pmfd = pmfd_right;
+                }
+                this->RenderMFDSDamage(pmfd, fb);
+            }
+            if (this->show_cam) {
+                if (!mfds) {
+                    pmfd = pmfd_left;
+                    mfds = true;
+                } else {
+                    pmfd = pmfd_right;
+                }
+                this->RenderMFDSCamera(pmfd, fb);
+            }
         }
-        if (this->mouse_control) {
-            Mouse.draw();
-        }
-        if (debug_print) {  
-            VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
-        }
-        VGA.vSync();
-        VGA.upscale = upscale;
+        this->RenderCommMessages({0,200}, fb);
     }
+    if (this->mouse_control) {
+        Mouse.draw();
+    }
+    if (debug_print) {  
+        VGA.getFrameBuffer()->blitWithMask(debug_framebuffer->framebuffer, 0, 0, debug_framebuffer->width, debug_framebuffer->height,255);
+    }
+    VGA.vSync();
+    VGA.upscale = upscale;
 }
 void SCCockpit::Update() {
     this->yaw_speed = this->yaw - (this->player_plane->azimuthf / 10.0f);

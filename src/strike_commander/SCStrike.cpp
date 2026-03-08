@@ -1782,22 +1782,26 @@ void SCStrike::runFrame(void) {
             break;
         case View::FRONT:
             if (!forceVirtualCockpit) {
-                this->cockpit->Render(0);
+                if (this->zoom_cockpit) {
+                    this->cockpit->Render(CockpitFace::CP_FRONT);
+                } else {
+                    this->cockpit->Render(CockpitFace::CP_BIG);
+                }
                 break;
             }
         case View::RIGHT:
             if (!forceVirtualCockpit) {
-                this->cockpit->Render(1);
+                this->cockpit->Render(CockpitFace::CP_RIGHT);
                 break;    
             }
         case View::LEFT:
             if (!forceVirtualCockpit) {
-                this->cockpit->Render(2);
+                this->cockpit->Render(CockpitFace::CP_LEFT);
                 break;
             }
         case View::REAR:
             if (!forceVirtualCockpit) {
-                this->cockpit->Render(3);
+                this->cockpit->Render(CockpitFace::CP_REAR);
                 break;
             }
         case View::EYE_ON_TARGET:
