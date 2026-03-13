@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <climits>
 
 bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
     Vector3D campos = this->cam->getPosition();
@@ -1815,7 +1816,8 @@ void SCCockpit::RenderHUD() {
         }
     }
     float distance = 0.0f;
-    Vector2D dist_to_waypoint = this->weapoint_coords - Vector2D(this->player_plane->position.x, this->player_plane->position.z);
+    Vector2D planepos = {this->player_plane->position.x, this->player_plane->position.z};
+    Vector2D dist_to_waypoint = this->weapoint_coords - planepos;
     distance = dist_to_waypoint.Length();
     std::ostringstream oss;
     oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << distance / 1000.0f;
