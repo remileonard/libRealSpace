@@ -37,10 +37,12 @@ private:
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
     void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
     void BuildPaletteLUT();
+    void printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font);
     RSFont *font;
     RSFont *big_font;
     int radio_mission_timer{0};
     std::unordered_map<uint32_t, uint8_t> palette_lut;
+    std::unordered_map<std::string, std::string> hud_text_tags;
     bool palette_lut_dirty = true;
 public:
     VGAPalette palette;

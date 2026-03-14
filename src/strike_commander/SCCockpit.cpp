@@ -1015,11 +1015,17 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
                                      this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetHeight() / 2};
     this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->SetPosition(&pmfd_right_weapon);
     fb->drawShape(this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0));
-    std::unordered_map<int, int> weapons_shape = {{1, 1},  {2, 1},  {3, 5},  {4, 7}, {5, 9},
-                                                  {6, 11}, {7, 13}, {8, 15}, {9, 3}};
-    std::unordered_map<int, std::string> weapon_names = {{12, "GUN"},   {1, "AIM-9J"}, {2, "AIM-9M"}, {3, "AGM-65"},
-                                                         {4, "POD"},    {5, "MK-20"},  {6, "MK-82"},  {7, "DUR"},
-                                                         {8, "GBU-15"}, {9, "AIM-120"}};
+    std::unordered_map<int, int> weapons_shape = {
+        {1, 1},
+        {2, 1},
+        {3, 5},
+        {4, 7},
+        {5, 9},
+        {6, 11},
+        {7, 13},    
+        {8, 15},
+        {9, 3}
+    };
     if (this->player_plane->object->entity->hpts.size() > 1) {
         for (int indice = 1; indice < this->player_plane->object->entity->hpts.size() / 2 + 1; indice++) {
             if (this->player_plane->weaps_load[indice] == nullptr) {
@@ -1087,8 +1093,8 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
     Point2D pmfd_right_weapon_selected{pmfd_right_weapon.x + 12 +
                                            this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
                                        pmfd_right_weapon.y + 5};
-    fb->printText(this->big_font, &pmfd_right_weapon_selected, (char *)weapon_names[sel_weapon_id].c_str(), 0, 0,
-                  (uint32_t)weapon_names[sel_weapon_id].length(), 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_selected, (char *)weapon_names[static_cast<weapon_ids>(sel_weapon_id)].c_str(), 0, 0,
+                  (uint32_t)weapon_names[static_cast<weapon_ids>(sel_weapon_id)].length(), 2, 2);
 
     Point2D pmfd_right_weapon_chaff{pmfd_right_weapon.x - 7 +
                                         this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
@@ -1693,6 +1699,104 @@ void SCCockpit::Update() {
     this->player = this->player_plane->object;
     this->weapoint_coords.x = this->current_mission->waypoints[*this->nav_point_id]->spot->position.x;
     this->weapoint_coords.y = this->current_mission->waypoints[*this->nav_point_id]->spot->position.z;
+    float distance_to_waypoint = (this->weapoint_coords - Vector2D{this->player->position.x, this->player->position.z}).Length();
+    float radar_altitude = (this->player_plane->y - this->player_plane->groundlevel) * 3.28084f;
+    std::ostringstream oss;
+    
+    
+    
+    std::string txt;
+    int weapons_count = 0;
+    if (this->player_plane->weaps_load.size() == 0) {
+        txt = "NO WEAP";
+    } else {
+        if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+            int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
+            for (auto weap : this->player_plane->weaps_load) {
+                if (weap != nullptr && weap->objct->wdat->weapon_id == weapon_id) {
+                    weapons_count += weap->nb_weap;
+                }
+            }
+            if (this->target != nullptr) {
+                uint32_t weap_range =
+                    this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
+                Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
+                float distance = dist_to_target.Length();
+                if (distance <= weap_range) {
+                    this->target_in_range = true;
+                }
+            } else {
+                this->target_in_range = false;
+            }
+            if (weapon_names.find(static_cast<weapon_ids>(weapon_id)) != weapon_names.end()) {
+                txt = weapon_names[static_cast<weapon_ids>(weapon_id)];
+            } else {
+                txt = "UNKNOWN";
+            }
+        } else {
+            txt = "NO WEAP";
+        }
+    }
+    this->hud_text_tags["NUMW"]=std::to_string(weapons_count) + " "+txt;
+    this->hud_text_tags["HUDM"]="HUDM";
+    
+    if (this->target != nullptr) {
+        Vector3D dist_to_target = this->target->position - this->player_plane->position;
+        float distance = dist_to_target.Length();
+
+        oss.str("");
+        oss << std::setw(3) << std::setfill('0') << std::fixed << std::setprecision(2) << distance / 1000.0f;
+        this->hud_text_tags["TARG"]= "R "+oss.str();
+        SCMissionActors *targetActor = nullptr;
+        for (auto actor : this->current_mission->enemies) {
+            if (actor->object == this->target && actor->is_active) {
+                targetActor = actor;
+                break;
+            }
+        }
+        if (targetActor == nullptr) {
+            for (auto actor : this->current_mission->friendlies) {
+                if (actor->object == this->target && actor->is_active) {
+                    targetActor = actor;
+                    break;
+                }
+            }
+        }
+        float target_velocity = targetActor != nullptr ? targetActor->plane != nullptr ? targetActor->plane->airspeed : 0.0f : 0.0f;
+        oss.str("");
+        oss << std::setw(3) << std::setfill('0') << std::fixed << std::setprecision(2) << target_velocity;
+        this->hud_text_tags["CLSR"]= "C "+oss.str();
+        if (this->target_in_range) {
+            this->hud_text_tags["IRNG"]= "IN RNG";
+        } else {
+            this->hud_text_tags["IRNG"]= "";
+        }
+    } else {
+        this->hud_text_tags["TARG"] = "";
+        this->hud_text_tags["CLSR"]="";
+        this->hud_text_tags["IRNG"]= "";
+        
+    }
+    this->hud_text_tags["GFRC"]= std::to_string(this->g_limit);
+    this->hud_text_tags["MAXG"]= std::to_string(this->g_load);
+    oss.str("");
+    oss << std::fixed << std::setprecision(3) << this->mach;
+    std::string speed_buffer = oss.str();
+    this->hud_text_tags["MACH"]= std::string(oss.str());
+    oss.str("");
+    oss.clear();
+    oss << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << distance_to_waypoint / 1000.0f;
+    this->hud_text_tags["WAYP"]= "D"+oss.str();
+    oss.str("");
+    oss.clear();
+    oss << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << radar_altitude / 1000.0f;
+    this->hud_text_tags["RALT"]= "R"+oss.str();
+
+    this->hud_text_tags["LNDG"]= this->player_plane->GetWheel() > 0 ? "GEAR" : "";
+    this->hud_text_tags["FLAP"]= this->player_plane->GetFlaps() > 0 ? "FLAP" : "";
+    this->hud_text_tags["SPDB"]= this->player_plane->GetSpoilers() > 0 ? "BREAK" : "";
+    this->hud_text_tags["THRO"]= std::to_string(this->player_plane->GetThrottle());
+    this->hud_text_tags["CALA"]= "T";
 }
 
 void SCCockpit::RenderHUD() {
@@ -1728,10 +1832,6 @@ void SCCockpit::RenderHUD() {
     Point2D inrange_text = {7, throttle_text.y + 5};
     Point2D weapons_text = {7 + 16, throttle_text.y + 10};
     Point2D weapons_count_text = {7, weapons_text.y};
-    std::unordered_map<int, std::string> weapon_names = {
-        {ID_20MM, "GUNS"},    {ID_AIM9J, "AIM-9J"}, {ID_AIM9M, "AIM-9M"},      {ID_AIM120, "AIM-120"},
-        {ID_MK20, "MK-20"},   {ID_MK82, "MK-82"},   {ID_DURANDAL, "DURANDAL"}, {ID_AGM65D, "AGM-65D"},
-        {ID_GBU15, "GBU-15"}, {ID_LAU3, "LAU-3"}};
     int weapons_count = 0;
     bool in_range = false;
     if (this->player_plane->weaps_load.size() == 0) {
@@ -1755,8 +1855,8 @@ void SCCockpit::RenderHUD() {
             } else {
                 this->target_in_range = false;
             }
-            if (weapon_names.find(weapon_id) != weapon_names.end()) {
-                txt = weapon_names[weapon_id];
+            if (weapon_names.find(static_cast<weapon_ids>(weapon_id)) != weapon_names.end()) {
+                txt = weapon_names[static_cast<weapon_ids>(weapon_id)];
             } else {
                 txt = "UNKNOWN";
             }
@@ -2064,12 +2164,12 @@ void SCCockpit::SetCommActorTarget(int target) {
         }
     }
 }
-void printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font) {
+void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font) {
     Point2D tag_pos = {pos.x+tag.x, pos.y+tag.y+font->GetShapeForChar('0')->GetHeight()};
     if (tag.z == 0) {
         return;
     }
-    std::string value = name+std::to_string(tag.z)+" - "+std::to_string(tag.x)+" - "+std::to_string(tag.y);
+    std::string value = this->hud_text_tags[name];
     fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 2, 2);
 }
 void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {

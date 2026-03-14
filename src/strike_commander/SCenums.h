@@ -42,6 +42,18 @@ static std::unordered_map<weapon_ids, weapon_type_shp_id> weapon_inv_to_loadout 
     {ID_GBU15, GBU15},
     {ID_AIM120, AIM120}
 };
+static std::unordered_map<weapon_ids, std::string> weapon_names = {
+    {weapon_ids::ID_20MM, "GUN"},
+    {weapon_ids::ID_AIM9J, "AIM-9J"},
+    {weapon_ids::ID_AIM9M, "AIM-9M"},
+    {weapon_ids::ID_AGM65D, "AGM-65"},
+    {weapon_ids::ID_LAU3, "POD"},
+    {weapon_ids::ID_MK20, "MK-20"},
+    {weapon_ids::ID_MK82, "MK-82"},
+    {weapon_ids::ID_DURANDAL, "DUR"},
+    {weapon_ids::ID_GBU15, "GBU-15"},
+    {weapon_ids::ID_AIM120, "AIM-120"}
+};
 enum prog_compare_return_values {
     PROG_CMP_EQUAL = 1,          // 000001
     PROG_CMP_LESS = 2,           // 000010
