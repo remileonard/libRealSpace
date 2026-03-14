@@ -1534,6 +1534,7 @@ void SCCockpit::RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb) {
  * in 3D.
  */
 void SCCockpit::Render(CockpitFace face) {
+    this->face = face;
     FrameBuffer *fb{nullptr};
     bool upscale = false;
 
@@ -1548,18 +1549,21 @@ void SCCockpit::Render(CockpitFace face) {
     }
     this->cannonAngularOffset = {0.0f, 0.0f};
     if (cockpit != nullptr) {
-        if (face == CockpitFace::CP_FRONT) {
+        if (this->face  == CockpitFace::CP_FRONT) {
             if (this->hud != nullptr) {
-                this->RenderHUD();
-                fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
-                            this->hud_framebuffer->height);
+                this->RenderTextTags({this->hud->small_hud->HINF->center_x,this->hud->small_hud->HINF->center_y}, fb);
+                //fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
+                //            this->hud_framebuffer->height);
             }
             if (this->target != this->player) {
                 this->RenderTargetWithCam();
             }
         }
-        fb->drawShape(this->cockpit->ARTP.GetShape(face));
-        if (face == CockpitFace::CP_FRONT || face == CockpitFace::CP_BIG) {
+        if (this->face == CockpitFace::CP_BIG) {
+            this->RenderTextTags({this->hud->large_hud->HINF->center_x,this->hud->large_hud->HINF->center_y}, fb);
+        }
+        fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
+        if (this->face  == CockpitFace::CP_FRONT || this->face  == CockpitFace::CP_BIG) {
             if (this->player_plane->weaps_load.size() > 0 &&
                 this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
                 if (this->radar_mode != RadarMode::ASST) {
@@ -1588,7 +1592,7 @@ void SCCockpit::Render(CockpitFace face) {
                     }
                 }
             }
-            if (face==CockpitFace::CP_FRONT) {
+            if (this->face ==CockpitFace::CP_FRONT) {
                 this->RenderRAWS({84, 112}, fb);
                 this->RenderAlti({161, 166}, fb);
                 this->RenderSpeedOmetter({125, 166}, fb);
@@ -2058,5 +2062,57 @@ void SCCockpit::SetCommActorTarget(int target) {
                 cpt++;
             }
         }
+    }
+}
+void printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font) {
+    Point2D tag_pos = {pos.x+tag.x, pos.y+tag.y+font->GetShapeForChar('0')->GetHeight()};
+    if (tag.z == 0) {
+        return;
+    }
+    std::string value = name+std::to_string(tag.z)+" - "+std::to_string(tag.x)+" - "+std::to_string(tag.y);
+    fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 2, 2);
+}
+void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    switch (this->face) {
+        case CockpitFace::CP_FRONT:
+            printTTAG(position, this->hud->small_hud->TTAG->CLSR, "CLSR", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->TARG, "TARG", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->NUMW, "NUMW", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->HUDM, "HUDM", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->IRNG, "IRNG", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->GFRC, "GFRC", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->MAXG, "MAXG", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->MACH, "MACH", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->WAYP, "WAYP", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->RALT, "RALT", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->LNDG, "LNDG", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->FLAP, "FLAP", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->SPDB, "SPDB", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->THRO, "THRO", fb, this->font);
+            printTTAG(position, this->hud->small_hud->TTAG->CALA, "CALA", fb, this->font);
+
+        break;
+        case CockpitFace::CP_BIG:
+            printTTAG(position, this->hud->large_hud->TTAG->CLSR, "CLSR", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->TARG, "TARG", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->NUMW, "NUMW", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->HUDM, "HUDM", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->IRNG, "IRNG", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->GFRC, "GFRC", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->MAXG, "MAXG", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->MACH, "MACH", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->WAYP, "WAYP", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->RALT, "RALT", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->LNDG, "LNDG", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->FLAP, "FLAP", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->SPDB, "SPDB", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->THRO, "THRO", fb, this->big_font);
+            printTTAG(position, this->hud->large_hud->TTAG->CALA, "CALA", fb, this->big_font);
+        break;
+        default:
+        break;
     }
 }

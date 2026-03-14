@@ -10,7 +10,13 @@ struct CHUD_SHAPE {
     std::vector<uint8_t> INFO;
 };
 struct SHINF {
-    std::vector<uint8_t> INFO;
+    int16_t color;
+    int16_t center_x;
+    int16_t center_y;
+    int16_t left;
+    int16_t top;
+    int16_t right;
+    int16_t bottom;
     std::string font;
 };
 struct SLADD {
@@ -18,8 +24,9 @@ struct SLADD {
     CHUD_SHAPE *VECT;
 };
 struct HUD_POS {
-    uint16_t x;
-    uint16_t y;
+    int16_t z;
+    int16_t x;
+    int16_t y;
 };
 struct STTAG {
     HUD_POS CLSR;

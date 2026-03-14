@@ -73,9 +73,16 @@ void RSHud::parseREAL_CHUD_LARG_HINF(uint8_t* data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG_HINF_INFO(uint8_t* data, size_t size){
-    for (int i=0; i<size; i++){
-        this->tmp_hud->HINF->INFO.push_back(data[i]);
-    }
+    ByteStream stream;
+    stream.Set(data, size);
+    this->tmp_hud->HINF->color = stream.ReadShort();
+    this->tmp_hud->HINF->center_x = stream.ReadShort();
+    this->tmp_hud->HINF->center_y = stream.ReadShort();
+    this->tmp_hud->HINF->left = stream.ReadShort();
+    this->tmp_hud->HINF->top = stream.ReadShort();
+    this->tmp_hud->HINF->right = stream.ReadShort();
+    this->tmp_hud->HINF->bottom = stream.ReadShort();
+    this->tmp_hud->HINF->font = stream.ReadString(8);
 }
 void RSHud::parseREAL_CHUD_LARG_ASPD(uint8_t* data, size_t size){
     IFFSaxLexer lexer;
@@ -571,18 +578,21 @@ void RSHud::parseREAL_CHUD_LARG_TTAG(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_TTAG_CLSR(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->CLSR.z = bs.ReadShort();
     this->tmp_hud->TTAG->CLSR.x = bs.ReadShort();
     this->tmp_hud->TTAG->CLSR.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_TARG(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->TARG.z = bs.ReadShort();
     this->tmp_hud->TTAG->TARG.x = bs.ReadShort();
     this->tmp_hud->TTAG->TARG.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_NUMW(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->NUMW.z = bs.ReadShort();
     this->tmp_hud->TTAG->NUMW.x = bs.ReadShort();
     this->tmp_hud->TTAG->NUMW.y = bs.ReadShort();
 
@@ -590,6 +600,7 @@ void RSHud::parseREAL_CHUD_LARG_TTAG_NUMW(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_TTAG_HUDM(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->HUDM.z = bs.ReadShort();
     this->tmp_hud->TTAG->HUDM.x = bs.ReadShort();
     this->tmp_hud->TTAG->HUDM.y = bs.ReadShort();
 
@@ -597,6 +608,7 @@ void RSHud::parseREAL_CHUD_LARG_TTAG_HUDM(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_TTAG_IRNG(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->IRNG.z = bs.ReadShort();
     this->tmp_hud->TTAG->IRNG.x = bs.ReadShort();
     this->tmp_hud->TTAG->IRNG.y = bs.ReadShort();
 
@@ -604,42 +616,49 @@ void RSHud::parseREAL_CHUD_LARG_TTAG_IRNG(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_TTAG_GFRC(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->GFRC.z = bs.ReadShort();
     this->tmp_hud->TTAG->GFRC.x = bs.ReadShort();
     this->tmp_hud->TTAG->GFRC.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_MAXG(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->MAXG.z = bs.ReadShort();
     this->tmp_hud->TTAG->MAXG.x = bs.ReadShort();
     this->tmp_hud->TTAG->MAXG.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_MACH(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->MACH.z = bs.ReadShort();
     this->tmp_hud->TTAG->MACH.x = bs.ReadShort();
     this->tmp_hud->TTAG->MACH.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_WAYP(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->WAYP.z = bs.ReadShort();
     this->tmp_hud->TTAG->WAYP.x = bs.ReadShort();
     this->tmp_hud->TTAG->WAYP.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_RALT(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->RALT.z = bs.ReadShort();
     this->tmp_hud->TTAG->RALT.x = bs.ReadShort();
     this->tmp_hud->TTAG->RALT.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_LNDG(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->LNDG.z = bs.ReadShort();
     this->tmp_hud->TTAG->LNDG.x = bs.ReadShort();
     this->tmp_hud->TTAG->LNDG.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_FLAP(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->FLAP.z = bs.ReadShort();
     this->tmp_hud->TTAG->FLAP.x = bs.ReadShort();
     this->tmp_hud->TTAG->FLAP.y = bs.ReadShort();
 
@@ -647,6 +666,7 @@ void RSHud::parseREAL_CHUD_LARG_TTAG_FLAP(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_TTAG_SPDB(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->SPDB.z = bs.ReadShort();
     this->tmp_hud->TTAG->SPDB.x = bs.ReadShort();
     this->tmp_hud->TTAG->SPDB.y = bs.ReadShort();
 
@@ -654,12 +674,14 @@ void RSHud::parseREAL_CHUD_LARG_TTAG_SPDB(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_TTAG_THRO(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->THRO.z = bs.ReadShort();
     this->tmp_hud->TTAG->THRO.x = bs.ReadShort();
     this->tmp_hud->TTAG->THRO.y = bs.ReadShort();
 }
 void RSHud::parseREAL_CHUD_LARG_TTAG_CALA(uint8_t* data, size_t size){
     ByteStream bs;
     bs.Set(data, size);
+    this->tmp_hud->TTAG->CALA.z = bs.ReadShort();
     this->tmp_hud->TTAG->CALA.x = bs.ReadShort();
     this->tmp_hud->TTAG->CALA.y = bs.ReadShort();
 }

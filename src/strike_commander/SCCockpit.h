@@ -92,6 +92,7 @@ public:
     std::vector<MISN_PART *> parts;
     std::vector<SCAiPlane *> ai_planes;
     Camera *cam;
+    CockpitFace face{CockpitFace::CP_FRONT};
     Vector2D weapoint_coords;
     SCPlane *player_plane;
     SCMission *current_mission;
@@ -123,5 +124,6 @@ public:
     bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
     void RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb);
     void SetCommActorTarget(int target);
+    void RenderTextTags(Point2D position, FrameBuffer *fb);
 };
 #endif
