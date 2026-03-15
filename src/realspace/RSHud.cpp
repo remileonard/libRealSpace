@@ -93,6 +93,10 @@ void RSHud::parseREAL_CHUD_LARG_ASPD(uint8_t* data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG_ASPD_INFO(uint8_t* data, size_t size){
+    ByteStream stream;
+    stream.Set(data, size);
+    tmp_hud->ASPD->x = stream.ReadShort();
+    tmp_hud->ASPD->y = stream.ReadShort();
     for (int i=0; i<size; i++){
         this->tmp_hud->ASPD->INFO.push_back(data[i]);
     }
@@ -123,6 +127,19 @@ void RSHud::parseREAL_CHUD_LARG_ALTI(uint8_t* data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG_ALTI_INFO(uint8_t* data, size_t size){
+    ByteStream stream;
+    stream.Set(data, size);
+    tmp_hud->ALTI->x = stream.ReadShort();
+    tmp_hud->ALTI->y = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->ALTI->step = stream.ReadShort();
     for (int i=0; i<size; i++){
         this->tmp_hud->ALTI->INFO.push_back(data[i]);
     }
@@ -217,6 +234,19 @@ void RSHud::parseREAL_CHUD_LARG_HEAD(uint8_t* data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG_HEAD_INFO(uint8_t* data, size_t size){
+    ByteStream stream;
+    stream.Set(data, size);
+    this->tmp_hud->HEAD->x = stream.ReadShort();
+    this->tmp_hud->HEAD->y = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->HEAD->step = stream.ReadShort();
     for(int i=0; i<size; i++){
         this->tmp_hud->HEAD->INFO.push_back(data[i]);
     }

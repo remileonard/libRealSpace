@@ -2176,6 +2176,7 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
+    Point2D alti{0,0};
     switch (this->face) {
         case CockpitFace::CP_FRONT:
             printTTAG(position, this->hud->small_hud->TTAG->CLSR, "CLSR", fb, this->font);
@@ -2193,7 +2194,13 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
             printTTAG(position, this->hud->small_hud->TTAG->SPDB, "SPDB", fb, this->font);
             printTTAG(position, this->hud->small_hud->TTAG->THRO, "THRO", fb, this->font);
             printTTAG(position, this->hud->small_hud->TTAG->CALA, "CALA", fb, this->font);
-
+            alti = {position.x+this->hud->small_hud->ALTI->x, position.y+this->hud->small_hud->ALTI->y};
+            fb->plot_pixel(alti.x, alti.y, 223);
+            this->RenderAltiBandRoll(alti, fb, this->font, this->hud->small_hud->ALTI);
+            alti = {position.x+this->hud->small_hud->ASPD->x, position.y+this->hud->small_hud->ASPD->y};
+            fb->plot_pixel(alti.x, alti.y, 223);
+            alti = {position.x+this->hud->small_hud->HEAD->x, position.y+this->hud->small_hud->HEAD->y};
+            fb->plot_pixel(alti.x, alti.y, 223);
         break;
         case CockpitFace::CP_BIG:
             printTTAG(position, this->hud->large_hud->TTAG->CLSR, "CLSR", fb, this->big_font);
@@ -2211,8 +2218,56 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
             printTTAG(position, this->hud->large_hud->TTAG->SPDB, "SPDB", fb, this->big_font);
             printTTAG(position, this->hud->large_hud->TTAG->THRO, "THRO", fb, this->big_font);
             printTTAG(position, this->hud->large_hud->TTAG->CALA, "CALA", fb, this->big_font);
+            alti = {position.x+this->hud->large_hud->ALTI->x, position.y+this->hud->large_hud->ALTI->y};
+            fb->plot_pixel(alti.x, alti.y, 223);
+            this->RenderAltiBandRoll(alti, fb, this->big_font, this->hud->large_hud->ALTI);
+            alti = {position.x+this->hud->large_hud->ASPD->x, position.y+this->hud->large_hud->ASPD->y};
+            fb->plot_pixel(alti.x, alti.y, 223);
+            alti = {position.x+this->hud->large_hud->HEAD->x, position.y+this->hud->large_hud->HEAD->y};
+            fb->plot_pixel(alti.x, alti.y, 223);
         break;
         default:
         break;
     }
+    
+}
+
+void SCCockpit::RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *alti_band) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    std::vector<Point2D> alti_band_roll;
+    float alti_in_feet = this->altitude * 3.28084f; // Convert meters to feet
+    Point2D alti_size = {20, 35};
+
+    Point2D bottom_right = {alti_top_left.x + alti_size.x, alti_top_left.y + alti_size.y};
+
+    alti_band_roll.reserve(100);
+    for (int i = 0; i < 100; i++) {
+        Point2D p;
+        p.x = 0;
+        p.y = (100 - i) * alti_band->step;
+        alti_band_roll.push_back(p);
+    }
+    int cpt = 1000;
+    for (auto p : alti_band_roll) {
+        Point2D p2 = {p.x, p.y};
+        p2.x = alti_top_left.x + 9;
+        p2.y = (alti_top_left.y + alti_size.y / 2) - p.y + (int)(alti_in_feet / (10* alti_band->step));
+        if (p2.y > alti_top_left.y && p2.y < bottom_right.y) {
+            fb->printText(sfont, &p2, (char *)std::to_string(cpt / 10).c_str(), 0, 0, 3, 2, 2);
+        }
+        cpt -= 10;
+        Point2D alti = {alti_top_left.x + 1, p2.y};
+        int sheight = alti_band->SHAP->GetHeight();
+        // alti.y = alti_top_left.y;
+        alti_band->SHAP->SetPosition(&alti);
+        fb->drawShapeWithBox(alti_band->SHAP, alti_top_left.x, bottom_right.x, alti_top_left.y - 10,
+                             bottom_right.y - 10);
+    }
+    Point2D alti_arrow = {alti_top_left.x - 3, alti_top_left.y + alti_size.y / 2};
+    fb->line(alti_arrow.x, alti_arrow.y, alti_arrow.x + 1, alti_arrow.y, 223);
+    alti_arrow.y -= alti_band->SHP2->GetHeight() / 2;
+    alti_band->SHP2->SetPosition(&alti_arrow);
+    fb->drawShape(alti_band->SHP2);
 }

@@ -8,6 +8,9 @@ struct CHUD_SHAPE {
     RLEShape *SHAP;
     RLEShape *SHP2;
     std::vector<uint8_t> INFO;
+    int16_t x;
+    int16_t y;
+    int16_t step{0};
 };
 struct SHINF {
     int16_t color;

@@ -127,5 +127,6 @@ public:
     void RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb);
     void SetCommActorTarget(int target);
     void RenderTextTags(Point2D position, FrameBuffer *fb);
+    void RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *font, CHUD_SHAPE *alti_band_roll);
 };
 #endif
