@@ -97,6 +97,26 @@ void RSHud::parseREAL_CHUD_LARG_ASPD_INFO(uint8_t* data, size_t size){
     stream.Set(data, size);
     tmp_hud->ASPD->x = stream.ReadShort();
     tmp_hud->ASPD->y = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->ASPD->step = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->ASPD->width = stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->ASPD->height = stream.ReadShort();
     for (int i=0; i<size; i++){
         this->tmp_hud->ASPD->INFO.push_back(data[i]);
     }
@@ -140,6 +160,17 @@ void RSHud::parseREAL_CHUD_LARG_ALTI_INFO(uint8_t* data, size_t size){
     stream.ReadShort();
     stream.ReadShort();
     this->tmp_hud->ALTI->step = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->ALTI->width = stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->ALTI->height = stream.ReadShort();
     for (int i=0; i<size; i++){
         this->tmp_hud->ALTI->INFO.push_back(data[i]);
     }
@@ -220,6 +251,11 @@ void RSHud::parseREAL_CHUD_LARG_LADD_LADD(uint8_t* data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG_LADD_LADD_INFO(uint8_t* data, size_t size){
+    ByteStream stream;
+    stream.Set(data, size);
+    this->tmp_hud->LADD->x = stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->LADD->y = stream.ReadShort();
     for (int i=0; i<size; i++){
         this->tmp_hud->LADD->INFO.push_back(data[i]);
     }
@@ -247,6 +283,16 @@ void RSHud::parseREAL_CHUD_LARG_HEAD_INFO(uint8_t* data, size_t size){
     stream.ReadShort();
     stream.ReadShort();
     this->tmp_hud->HEAD->step = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+
+    this->tmp_hud->HEAD->height = stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    stream.ReadShort();
+    this->tmp_hud->HEAD->width = stream.ReadShort();
+    
     for(int i=0; i<size; i++){
         this->tmp_hud->HEAD->INFO.push_back(data[i]);
     }

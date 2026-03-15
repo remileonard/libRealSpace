@@ -1692,13 +1692,28 @@ void SCCockpit::Update() {
     this->g_load = this->player_plane->g_load;
     this->throttle = this->player_plane->GetThrottle();
     this->altitude = this->player_plane->y;
-    this->heading = this->player_plane->azimuthf / 10.0f;
+    this->heading = 360 - (this->player_plane->azimuthf / 10.0f);
     this->gear = this->player_plane->GetWheel();
     this->flaps = this->player_plane->GetFlaps() > 0;
     this->airbrake = this->player_plane->GetSpoilers() > 0;
     this->player = this->player_plane->object;
     this->weapoint_coords.x = this->current_mission->waypoints[*this->nav_point_id]->spot->position.x;
     this->weapoint_coords.y = this->current_mission->waypoints[*this->nav_point_id]->spot->position.z;
+
+    Vector2D weapoint_direction = {this->weapoint_coords.x - this->player->position.x,
+                                   this->weapoint_coords.y - this->player->position.z};
+    float weapoint_azimut = (atan2f(weapoint_direction.y, weapoint_direction.x) * 180.0f / (float)M_PI);
+
+    weapoint_azimut -= 360;
+    weapoint_azimut += 90;
+    if (weapoint_azimut > 360) {
+        weapoint_azimut -= 360;
+    }
+    while (weapoint_azimut < 0) {
+        weapoint_azimut += 360;
+    }
+    this->way_az = weapoint_azimut;
+
     float distance_to_waypoint = (this->weapoint_coords - Vector2D{this->player->position.x, this->player->position.z}).Length();
     float radar_altitude = (this->player_plane->y - this->player_plane->groundlevel) * 3.28084f;
     std::ostringstream oss;
@@ -1777,12 +1792,16 @@ void SCCockpit::Update() {
         this->hud_text_tags["IRNG"]= "";
         
     }
-    this->hud_text_tags["GFRC"]= std::to_string(this->g_limit);
-    this->hud_text_tags["MAXG"]= std::to_string(this->g_load);
     oss.str("");
-    oss << std::fixed << std::setprecision(3) << this->mach;
+    oss << std::setw(2) << std::fixed << std::setprecision(1) << this->g_load;
+    this->hud_text_tags["GFRC"]= oss.str()+"G";
+    oss.str("");
+    oss << std::setw(2) << std::fixed << std::setprecision(1) << (float)this->player_plane->object->entity->jdyn->MAX_G;
+    this->hud_text_tags["MAXG"]= oss.str()+"G";
+    oss.str("");
+    oss << std::setw(3) << std::fixed << std::setprecision(2) << this->mach;
     std::string speed_buffer = oss.str();
-    this->hud_text_tags["MACH"]= std::string(oss.str());
+    this->hud_text_tags["MACH"]= oss.str()+"M";
     oss.str("");
     oss.clear();
     oss << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << distance_to_waypoint / 1000.0f;
@@ -2199,8 +2218,24 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
             this->RenderAltiBandRoll(alti, fb, this->font, this->hud->small_hud->ALTI);
             alti = {position.x+this->hud->small_hud->ASPD->x, position.y+this->hud->small_hud->ASPD->y};
             fb->plot_pixel(alti.x, alti.y, 223);
+            this->RenderSpeedBandRoll(alti, fb, this->font, this->hud->small_hud->ASPD);
             alti = {position.x+this->hud->small_hud->HEAD->x, position.y+this->hud->small_hud->HEAD->y};
+            this->RenderHeadingCompas(alti, fb, this->font,this->hud->small_hud->HEAD);
             fb->plot_pixel(alti.x, alti.y, 223);
+            fb->rect_slow(
+                position.x-this->hud->small_hud->LADD->x,
+                position.y-16,
+                position.x+this->hud->small_hud->LADD->x,
+                position.y+16,
+                223
+            );
+            fb->rect_slow(
+                position.x-this->hud->small_hud->LADD->y,
+                position.y-this->hud->small_hud->LADD->x,
+                position.x+this->hud->small_hud->LADD->y,
+                position.y+this->hud->small_hud->LADD->x,
+                46
+            );
         break;
         case CockpitFace::CP_BIG:
             printTTAG(position, this->hud->large_hud->TTAG->CLSR, "CLSR", fb, this->big_font);
@@ -2223,8 +2258,24 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
             this->RenderAltiBandRoll(alti, fb, this->big_font, this->hud->large_hud->ALTI);
             alti = {position.x+this->hud->large_hud->ASPD->x, position.y+this->hud->large_hud->ASPD->y};
             fb->plot_pixel(alti.x, alti.y, 223);
+            this->RenderSpeedBandRoll(alti, fb, this->big_font, this->hud->large_hud->ASPD);
             alti = {position.x+this->hud->large_hud->HEAD->x, position.y+this->hud->large_hud->HEAD->y};
+            this->RenderHeadingCompas(alti, fb, this->big_font,this->hud->large_hud->HEAD);
             fb->plot_pixel(alti.x, alti.y, 223);
+            fb->rect_slow(
+                position.x-this->hud->large_hud->LADD->x,
+                position.y-50,
+                position.x+this->hud->large_hud->LADD->x,
+                position.y+50,
+                223
+            );
+            fb->rect_slow(
+                position.x-this->hud->large_hud->LADD->y,
+                position.y-this->hud->large_hud->LADD->x,
+                position.x+this->hud->large_hud->LADD->y,
+                position.y+this->hud->large_hud->LADD->x,
+                46
+            );
         break;
         default:
         break;
@@ -2233,41 +2284,127 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
 }
 
 void SCCockpit::RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *alti_band) {
-    if (!fb) {
-        fb = VGA.getFrameBuffer();
-    }
-    std::vector<Point2D> alti_band_roll;
-    float alti_in_feet = this->altitude * 3.28084f; // Convert meters to feet
-    Point2D alti_size = {20, 35};
+    if (!fb) fb = VGA.getFrameBuffer();
 
+    float alti_in_feet = this->altitude * 3.28084f;
+    Point2D alti_size = {alti_band->width, alti_band->height};
     Point2D bottom_right = {alti_top_left.x + alti_size.x, alti_top_left.y + alti_size.y};
+    int center_y = alti_top_left.y + alti_size.y / 2;
 
-    alti_band_roll.reserve(100);
-    for (int i = 0; i < 100; i++) {
-        Point2D p;
-        p.x = 0;
-        p.y = (100 - i) * alti_band->step;
-        alti_band_roll.push_back(p);
-    }
-    int cpt = 1000;
-    for (auto p : alti_band_roll) {
-        Point2D p2 = {p.x, p.y};
-        p2.x = alti_top_left.x + 9;
-        p2.y = (alti_top_left.y + alti_size.y / 2) - p.y + (int)(alti_in_feet / (10* alti_band->step));
-        if (p2.y > alti_top_left.y && p2.y < bottom_right.y) {
-            fb->printText(sfont, &p2, (char *)std::to_string(cpt / 10).c_str(), 0, 0, 3, 2, 2);
+    // Plage d'altitude visible (en pieds) depuis le haut et bas de la fenêtre
+    float half_view_feet = ((float)alti_size.y / 2.0f) * (500.0f / alti_band->step);
+
+    // Première graduation en dessous de la zone visible, arrondie à 500 pieds
+    int first_grad = (int)floorf((alti_in_feet - half_view_feet) / 500.0f) * 500;
+
+    for (int grad_feet = first_grad; grad_feet <= (int)(alti_in_feet + half_view_feet) + 500; grad_feet += 500) {
+        // Conversion altitude → Y pixel
+        float y = center_y - (grad_feet - alti_in_feet) / 500.0f * alti_band->step;
+        int iy = (int)y;
+
+        if (iy < alti_top_left.y || iy > bottom_right.y+alti_band->step) continue;
+
+        // Tick mark
+        Point2D tick = {alti_top_left.x, iy-alti_band->SHAP->GetHeight()};
+        alti_band->SHAP->SetPosition(&tick);
+        fb->drawShapeWithBox(alti_band->SHAP, alti_top_left.x, bottom_right.x,
+                             alti_top_left.y-alti_band->step, bottom_right.y-alti_band->step);
+        // Label : valeur en milliers de pieds, 1 décimale (ex: "-02.5")
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << (grad_feet / 1000.0f);
+        std::string txt = oss.str();
+        Point2D label = {alti_top_left.x + 6, iy};
+        if (iy >= alti_top_left.y && iy <= bottom_right.y) {
+            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
-        cpt -= 10;
-        Point2D alti = {alti_top_left.x + 1, p2.y};
-        int sheight = alti_band->SHAP->GetHeight();
-        // alti.y = alti_top_left.y;
-        alti_band->SHAP->SetPosition(&alti);
-        fb->drawShapeWithBox(alti_band->SHAP, alti_top_left.x, bottom_right.x, alti_top_left.y - 10,
-                             bottom_right.y - 10);
     }
-    Point2D alti_arrow = {alti_top_left.x - 3, alti_top_left.y + alti_size.y / 2};
-    fb->line(alti_arrow.x, alti_arrow.y, alti_arrow.x + 1, alti_arrow.y, 223);
-    alti_arrow.y -= alti_band->SHP2->GetHeight() / 2;
-    alti_band->SHP2->SetPosition(&alti_arrow);
-    fb->drawShape(alti_band->SHP2);
+    // Flèche centrale (altitude courante)
+    Point2D alti_arrow = {alti_top_left.x - 4, center_y};
+    fb->line(alti_arrow.x, alti_arrow.y, alti_arrow.x +3, alti_arrow.y, 223);
+}
+
+void SCCockpit::RenderSpeedBandRoll(Point2D speed_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *speed_band) {
+    if (!fb) fb = VGA.getFrameBuffer();
+
+    float speed_in_knots = this->speed;
+    Point2D speed_size = {speed_band->width, speed_band->height};
+    Point2D bottom_right = {speed_top_left.x + speed_size.x, speed_top_left.y + speed_size.y};
+    int center_y = speed_top_left.y + speed_size.y / 2;
+
+    float half_view_knots = ((float)speed_size.y / 2.0f) * (50.0f / speed_band->step);
+
+    int first_grad = (int)floorf((speed_in_knots - half_view_knots) / 50.0f) * 50;
+    if (first_grad < 0) first_grad = 0;
+    int txt_width = sfont->GetShapeForChar('0')->GetWidth() * 2 + 4;
+    for (int grad_knots = first_grad; grad_knots <= (int)(speed_in_knots + half_view_knots) + 50; grad_knots += 50) {
+        float y = center_y - (grad_knots - speed_in_knots) / 50.0f * speed_band->step;
+        int iy = (int)y;
+
+        if (iy < speed_top_left.y || iy > bottom_right.y + speed_band->step) continue;
+
+        Point2D tick = {speed_top_left.x+txt_width, iy - speed_band->SHAP->GetHeight()};
+        speed_band->SHAP->SetPosition(&tick);
+        fb->drawShapeWithBox(speed_band->SHAP, speed_top_left.x, bottom_right.x,
+                             speed_top_left.y - speed_band->step, bottom_right.y - speed_band->step);
+
+        std::string txt = std::to_string(grad_knots/10);
+        Point2D label = {speed_top_left.x, iy};
+        if (iy >= speed_top_left.y && iy <= bottom_right.y) {
+            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+        }
+    }
+
+    Point2D speed_arrow = {speed_top_left.x+txt_width+2, center_y};
+    fb->line(speed_arrow.x, speed_arrow.y, speed_arrow.x + (txt_width/2), speed_arrow.y, 223);
+}
+void SCCockpit::RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *heading_band) {
+    if (!fb) fb = VGA.getFrameBuffer();
+
+    float current_heading = this->heading; // en degrés [0, 360[
+    Point2D heading_size = {heading_band->width, heading_band->height};
+    Point2D bottom_right = {heading_top_left.x + heading_size.x, heading_top_left.y + heading_size.y};
+    int center_x = heading_top_left.x + heading_size.x / 2;
+
+    // Plage de degrés visible depuis le centre jusqu'au bord
+    float half_view_deg = ((float)heading_size.x / 2.0f) * (10.0f / heading_band->step);
+    int txt_height = sfont->GetShapeForChar('0')->GetHeight();
+    int first_grad = (int)ceilf((current_heading + half_view_deg) / 10.0f) * 10;
+
+    for (int grad_deg = first_grad; grad_deg >= (int)(current_heading - half_view_deg) - 10; grad_deg -= 10) {
+        int display_deg = ((grad_deg % 360) + 360) % 360;
+
+        float x = center_x + (grad_deg - current_heading) / 10.0f * heading_band->step;
+        int ix = (int)x;
+
+        if (ix < heading_top_left.x || ix > bottom_right.x + heading_band->step) continue;
+
+        Point2D tick = {ix - heading_band->SHAP->GetWidth() / 2, heading_top_left.y};
+        heading_band->SHAP->SetPosition(&tick);
+        fb->drawShapeWithBox(heading_band->SHAP, heading_top_left.x - heading_band->step, bottom_right.x,
+                             heading_top_left.y, bottom_right.y);
+
+        std::string txt = std::to_string(display_deg/10);
+        
+        Point2D label = {ix - (int)(txt.length()) * 2, heading_top_left.y + heading_band->SHAP->GetHeight() + txt_height};
+        if (ix >= heading_top_left.x && ix <= bottom_right.x) {
+            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+        }
+    }
+
+    // Flèche centrale (cap courant)
+    Point2D heading_arrow = {center_x, heading_top_left.y - 3};
+    fb->line(heading_arrow.x, heading_arrow.y, heading_arrow.x, heading_arrow.y + 6, 223);
+
+    // Différence angulaire normalisée [-180, 180]
+    float way_diff = fmodf(this->way_az - current_heading + 540.0f, 360.0f) - 180.0f;
+    float way_x = center_x + way_diff / 10.0f * heading_band->step;
+    int iway_x = (int)way_x;
+
+    // Dessiner l'indicateur seulement s'il est dans la zone visible
+    if (iway_x >= heading_top_left.x && iway_x <= bottom_right.x) {
+        // ex: flèche différente de SHP2 ou même SHP2 repositionné
+        Point2D way_arrow = {iway_x+(heading_band->SHP2->GetWidth() / 2), heading_top_left.y - heading_band->SHP2->GetHeight()};
+        heading_band->SHP2->SetPosition(&way_arrow);
+        fb->drawShape(heading_band->SHP2);
+    }
 }

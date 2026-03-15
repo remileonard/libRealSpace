@@ -8,23 +8,27 @@ struct CHUD_SHAPE {
     RLEShape *SHAP;
     RLEShape *SHP2;
     std::vector<uint8_t> INFO;
-    int16_t x;
-    int16_t y;
+    int16_t x{0};
+    int16_t y{0};
+    int16_t width{0};
+    int16_t height{0};
     int16_t step{0};
 };
 struct SHINF {
-    int16_t color;
-    int16_t center_x;
-    int16_t center_y;
-    int16_t left;
-    int16_t top;
-    int16_t right;
-    int16_t bottom;
+    int16_t color{0};
+    int16_t center_x{0};
+    int16_t center_y{0};
+    int16_t left{0};
+    int16_t top{0};
+    int16_t right{0};
+    int16_t bottom{0};
     std::string font;
 };
 struct SLADD {
     std::vector<uint8_t> INFO;
     CHUD_SHAPE *VECT;
+    int16_t x{0};
+    int16_t y{0};
 };
 struct HUD_POS {
     int16_t z;
