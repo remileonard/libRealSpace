@@ -253,9 +253,11 @@ void RSHud::parseREAL_CHUD_LARG_LADD_LADD(uint8_t* data, size_t size){
 void RSHud::parseREAL_CHUD_LARG_LADD_LADD_INFO(uint8_t* data, size_t size){
     ByteStream stream;
     stream.Set(data, size);
-    this->tmp_hud->LADD->x = stream.ReadShort();
-    stream.ReadShort();
-    this->tmp_hud->LADD->y = stream.ReadShort();
+    this->tmp_hud->LADD->ladd_height = stream.ReadShort();
+    this->tmp_hud->LADD->ladd_text_spacer = stream.ReadShort();
+    this->tmp_hud->LADD->ladd_half_width = stream.ReadShort();
+    this->tmp_hud->LADD->ladd_tick_height = stream.ReadShort();
+    this->tmp_hud->LADD->ladd_space_in_line = stream.ReadShort();
     for (int i=0; i<size; i++){
         this->tmp_hud->LADD->INFO.push_back(data[i]);
     }

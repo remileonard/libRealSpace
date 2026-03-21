@@ -27,8 +27,11 @@ struct SHINF {
 struct SLADD {
     std::vector<uint8_t> INFO;
     CHUD_SHAPE *VECT;
-    int16_t x{0};
-    int16_t y{0};
+    int16_t ladd_height{0};
+    int16_t ladd_text_spacer{0};
+    int16_t ladd_half_width{0};
+    int16_t ladd_tick_height{0};
+    int16_t ladd_space_in_line{0};
 };
 struct HUD_POS {
     int16_t z;

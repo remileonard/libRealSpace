@@ -2214,28 +2214,15 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
             printTTAG(position, this->hud->small_hud->TTAG->THRO, "THRO", fb, this->font);
             printTTAG(position, this->hud->small_hud->TTAG->CALA, "CALA", fb, this->font);
             alti = {position.x+this->hud->small_hud->ALTI->x, position.y+this->hud->small_hud->ALTI->y};
-            fb->plot_pixel(alti.x, alti.y, 223);
+            
             this->RenderAltiBandRoll(alti, fb, this->font, this->hud->small_hud->ALTI);
             alti = {position.x+this->hud->small_hud->ASPD->x, position.y+this->hud->small_hud->ASPD->y};
-            fb->plot_pixel(alti.x, alti.y, 223);
+            
             this->RenderSpeedBandRoll(alti, fb, this->font, this->hud->small_hud->ASPD);
             alti = {position.x+this->hud->small_hud->HEAD->x, position.y+this->hud->small_hud->HEAD->y};
             this->RenderHeadingCompas(alti, fb, this->font,this->hud->small_hud->HEAD);
-            fb->plot_pixel(alti.x, alti.y, 223);
-            fb->rect_slow(
-                position.x-this->hud->small_hud->LADD->x,
-                position.y-16,
-                position.x+this->hud->small_hud->LADD->x,
-                position.y+16,
-                223
-            );
-            fb->rect_slow(
-                position.x-this->hud->small_hud->LADD->y,
-                position.y-this->hud->small_hud->LADD->x,
-                position.x+this->hud->small_hud->LADD->y,
-                position.y+this->hud->small_hud->LADD->x,
-                46
-            );
+            this->RenderPitchLadder(position, {90, 80}, fb, this->hud->small_hud->LADD, this->font);
+
         break;
         case CockpitFace::CP_BIG:
             printTTAG(position, this->hud->large_hud->TTAG->CLSR, "CLSR", fb, this->big_font);
@@ -2254,28 +2241,16 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
             printTTAG(position, this->hud->large_hud->TTAG->THRO, "THRO", fb, this->big_font);
             printTTAG(position, this->hud->large_hud->TTAG->CALA, "CALA", fb, this->big_font);
             alti = {position.x+this->hud->large_hud->ALTI->x, position.y+this->hud->large_hud->ALTI->y};
-            fb->plot_pixel(alti.x, alti.y, 223);
+            
             this->RenderAltiBandRoll(alti, fb, this->big_font, this->hud->large_hud->ALTI);
             alti = {position.x+this->hud->large_hud->ASPD->x, position.y+this->hud->large_hud->ASPD->y};
-            fb->plot_pixel(alti.x, alti.y, 223);
+            
             this->RenderSpeedBandRoll(alti, fb, this->big_font, this->hud->large_hud->ASPD);
             alti = {position.x+this->hud->large_hud->HEAD->x, position.y+this->hud->large_hud->HEAD->y};
             this->RenderHeadingCompas(alti, fb, this->big_font,this->hud->large_hud->HEAD);
-            fb->plot_pixel(alti.x, alti.y, 223);
-            fb->rect_slow(
-                position.x-this->hud->large_hud->LADD->x,
-                position.y-50,
-                position.x+this->hud->large_hud->LADD->x,
-                position.y+50,
-                223
-            );
-            fb->rect_slow(
-                position.x-this->hud->large_hud->LADD->y,
-                position.y-this->hud->large_hud->LADD->x,
-                position.x+this->hud->large_hud->LADD->y,
-                position.y+this->hud->large_hud->LADD->x,
-                46
-            );
+            this->RenderPitchLadder(position, {90, 80}, fb, this->hud->large_hud->LADD, this->big_font);
+
+
         break;
         default:
         break;
@@ -2406,5 +2381,82 @@ void SCCockpit::RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, R
         Point2D way_arrow = {iway_x+(heading_band->SHP2->GetWidth() / 2), heading_top_left.y - heading_band->SHP2->GetHeight()};
         heading_band->SHP2->SetPosition(&way_arrow);
         fb->drawShape(heading_band->SHP2);
+    }
+}
+void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer *fb, SLADD *ladd, RSFont *ft) {
+    if (!fb)   fb = VGA.getFrameBuffer();
+    if (!ladd) return;
+
+    const int bx1 = center.x - clip_size.x / 2;
+    const int bx2 = center.x + clip_size.x / 2;
+    const int by1 = center.y - clip_size.y / 2;
+    const int by2 = center.y + clip_size.y / 2;
+
+    const float rollRad   = this->roll * (float)M_PI / 180.0f;
+    const float pixPerDeg = (float)ladd->ladd_height / 5.0f;
+    const int   halfGap   = ladd->ladd_space_in_line / 2;
+    const int   color     = 223;
+
+    std::string txt;
+
+    for (int angle = 90; angle >= -90; angle -= 5) {
+        const int lineY = center.y + (int)((this->pitch - (float)angle) * pixPerDeg);
+
+        if (angle == 0) {
+            // Horizon line: solid, slightly wider than the other bars
+            Point2D hStart = { center.x - ladd->ladd_half_width - 5, lineY };
+            Point2D hEnd   = { center.x + ladd->ladd_half_width + 5, lineY };
+            hStart = hStart.rotateAroundPoint(center, rollRad);
+            hEnd   = hEnd.rotateAroundPoint(center, rollRad);
+            fb->lineWithBox(hStart.x, hStart.y, hEnd.x, hEnd.y, color, bx1, bx2, by1, by2);
+            continue;
+        }
+
+        // Left and right bar segments (pre-rotation)
+        Point2D lStart = { center.x - ladd->ladd_half_width-halfGap, lineY };
+        Point2D lEnd   = { center.x - halfGap,               lineY };
+        Point2D rStart = { center.x + halfGap,               lineY };
+        Point2D rEnd   = { center.x + ladd->ladd_half_width+halfGap, lineY };
+
+        // Tick endpoints (perpendicular, pointing toward horizon)
+        const int tickDir = (angle > 0) ? ladd->ladd_tick_height : -ladd->ladd_tick_height;
+        Point2D ltTick = { lStart.x, lineY + tickDir };
+        Point2D rtTick = { rEnd.x,   lineY + tickDir };
+
+        // Apply roll rotation to all points
+        lStart = lStart.rotateAroundPoint(center, rollRad);
+        lEnd   = lEnd.rotateAroundPoint(center, rollRad);
+        rStart = rStart.rotateAroundPoint(center, rollRad);
+        rEnd   = rEnd.rotateAroundPoint(center, rollRad);
+        ltTick = ltTick.rotateAroundPoint(center, rollRad);
+        rtTick = rtTick.rotateAroundPoint(center, rollRad);
+
+        // Below horizon → dashed lines
+        const int skip = (angle < 0) ? 2 : 1;
+        fb->lineWithBoxWithSkip(lStart.x, lStart.y, lEnd.x, lEnd.y, color, bx1, bx2, by1, by2, skip);
+        fb->lineWithBoxWithSkip(rStart.x, rStart.y, rEnd.x, rEnd.y, color, bx1, bx2, by1, by2, skip);
+
+        // Tick marks at outer ends
+        if (ladd->ladd_tick_height != 0) {
+            fb->lineWithBox(lStart.x, lStart.y, ltTick.x, ltTick.y, color, bx1, bx2, by1, by2);
+            fb->lineWithBox(rEnd.x,   rEnd.y,   rtTick.x, rtTick.y, color, bx1, bx2, by1, by2);
+        }
+
+        // Text label every 10° (skip 5° minor marks)
+        
+        txt = std::to_string(std::abs(angle));
+        if (lStart.x > bx1 && lStart.x < bx2 && lStart.y > by1 && lStart.y < by2) {
+            Point2D p = lStart;
+            p.x -= ladd->ladd_text_spacer;
+            p.y -= 2;
+            fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+        }
+        if (rEnd.x > bx1 && rEnd.x < bx2 && rEnd.y > by1 && rEnd.y < by2) {
+            Point2D p = rEnd;
+            p.x += ladd->ladd_text_spacer;
+            p.y -= 2;
+            fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+        }
+        
     }
 }
