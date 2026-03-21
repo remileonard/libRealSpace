@@ -86,17 +86,6 @@ int main(int argc, char* argv[]) {
         ConvAssetManager::getInstance().init();
         loader->setProgress(90.0f);
         RSSound::getInstance().init();
-        RSVGA &VGA = RSVGA::getInstance();
-        GameEngine *game = &GameEngine::instance();
-        VGA.upscale = true;
-        game->init();
-        //Add MainMenu activity on the game stack.
-        SCMainMenu* main = new SCMainMenu();
-        main->init();
-        game->addActivity(main);
-        SCAnimationPlayer *intro = new SCAnimationPlayer();
-        intro->init();
-        game->addActivity(intro);
         loader->setProgress(100.0f);
     });
     while (!loader.isLoadingComplete()) {
@@ -105,6 +94,16 @@ int main(int argc, char* argv[]) {
         SDL_PumpEvents();
     }
     GameEngine *game = &GameEngine::instance();
+    RSVGA &VGA = RSVGA::getInstance();
+    VGA.upscale = true;
+    game->init();
+    //Add MainMenu activity on the game stack.
+    SCMainMenu* main = new SCMainMenu();
+    main->init();
+    game->addActivity(main);
+    SCAnimationPlayer *intro = new SCAnimationPlayer();
+    intro->init();
+    game->addActivity(intro);
     game->run();
 
     return EXIT_SUCCESS;
