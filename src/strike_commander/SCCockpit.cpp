@@ -2420,7 +2420,7 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
 
         // Tick endpoints (perpendicular, pointing toward horizon)
         const int tickDir = (angle > 0) ? ladd->ladd_tick_height : -ladd->ladd_tick_height;
-        Point2D ltTick = { lStart.x, lineY + tickDir };
+        Point2D ltTick = { lStart.x+1, lineY + tickDir };
         Point2D rtTick = { rEnd.x,   lineY + tickDir };
 
         // Apply roll rotation to all points
@@ -2438,11 +2438,10 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
 
         // Tick marks at outer ends
         if (ladd->ladd_tick_height != 0) {
-            fb->lineWithBox(lStart.x, lStart.y, ltTick.x, ltTick.y, color, bx1, bx2, by1, by2);
+            fb->lineWithBox(lStart.x+1, lStart.y, ltTick.x, ltTick.y, color, bx1, bx2, by1, by2);
             fb->lineWithBox(rEnd.x,   rEnd.y,   rtTick.x, rtTick.y, color, bx1, bx2, by1, by2);
         }
 
-        // Text label every 10° (skip 5° minor marks)
         
         txt = std::to_string(std::abs(angle));
         if (lStart.x > bx1 && lStart.x < bx2 && lStart.y > by1 && lStart.y < by2) {
