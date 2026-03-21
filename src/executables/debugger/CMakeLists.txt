@@ -16,7 +16,9 @@ target_link_libraries(debugger PUBLIC ${SDL2_LIBRARIES})
 target_link_libraries(debugger PRIVATE imgui::imgui )
 target_link_libraries(debugger PRIVATE nfd::nfd)
 target_link_libraries(debugger PUBLIC ${OPENGL_LIBRARIES})
-
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    target_link_options(debugger PRIVATE "-Wl,-no_fixup_chains")
+endif()
 # Copie des fichiers resources vers assets en mode Debug
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR "${CMAKE_CONFIGURATION_TYPES}" MATCHES "Debug")
     add_custom_command(TARGET debugger POST_BUILD

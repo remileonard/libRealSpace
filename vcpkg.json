@@ -8,7 +8,6 @@
       ]
     },
     "opengl",
-    "openxr-loader",
     "sdl2",
     "simpleini",
     "sdl2-mixer-ext",

@@ -29,9 +29,13 @@ extern "C" {
 #endif
 
     #include <SDL.h>
+#ifndef __APPLE__
     #include <GL/gl.h>
     #include <GL/glu.h>
-
+#else
+    #include <OpenGL/gl.h>
+    #include <OpenGL/glu.h>
+#endif
     #include "../commons/Maths.h"
     #include "../commons/Matrix.h"
     #include "../commons/Quaternion.h"

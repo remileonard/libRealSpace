@@ -10,7 +10,11 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
-#include <GL/gl.h>
+#ifndef __APPLE__
+    #include <GL/gl.h>
+#else
+    #include <OpenGL/gl.h>
+#endif
 
 #include "../realspace/AssetManager.h"
 #include "../realspace/RLEShape.h"

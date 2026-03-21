@@ -55,14 +55,6 @@ int main(int argc, char* argv[]) {
         loader->setProgress(40.0f);
         GameEngine *game = &GameEngine::instance();
         
-        
-        loader->setProgress(60.0f);
-        
-        loader->setProgress(80.0f);
-        DebugEmptyActivity *main = new DebugEmptyActivity();
-        game->init();
-        main->init();
-        game->addActivity(main);
         loader->setProgress(100.0f);
     });
     
@@ -77,6 +69,10 @@ int main(int argc, char* argv[]) {
     loader.close();
     
     GameEngine *game = &GameEngine::instance();
+    DebugEmptyActivity *main = new DebugEmptyActivity();
+    game->init();
+    main->init();
+    game->addActivity(main);
     game->run();
     return EXIT_SUCCESS;
 }

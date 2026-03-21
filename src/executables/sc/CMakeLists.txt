@@ -13,7 +13,9 @@ target_link_libraries(neosc PRIVATE strike_commander engine realspace commons)
 target_link_libraries(neosc PUBLIC ${SDL2_LIBRARIES})
 target_link_libraries(neosc PRIVATE imgui::imgui )
 target_link_libraries(neosc PUBLIC ${OPENGL_LIBRARIES})
-
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    target_link_options(neosc PRIVATE "-Wl,-no_fixup_chains")
+endif()
 # Copie des fichiers resources vers assets en mode Debug
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR "${CMAKE_CONFIGURATION_TYPES}" MATCHES "Debug")
     add_custom_command(TARGET neosc POST_BUILD

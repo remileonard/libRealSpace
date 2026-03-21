@@ -1713,8 +1713,8 @@ void SCCockpit::Update() {
         weapoint_azimut += 360;
     }
     this->way_az = weapoint_azimut;
-
-    float distance_to_waypoint = (this->weapoint_coords - Vector2D{this->player->position.x, this->player->position.z}).Length();
+    Vector2D player_position = {this->player->position.x, this->player->position.z};
+    float distance_to_waypoint = (this->weapoint_coords - player_position).Length();
     float radar_altitude = (this->player_plane->y - this->player_plane->groundlevel) * 3.28084f;
     std::ostringstream oss;
     

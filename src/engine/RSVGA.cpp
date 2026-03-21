@@ -195,8 +195,8 @@ void RSVGA::init(int width, int height) {
     
     this->palette = *palette.GetColorPalette();
 
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
 
     glEnable(GL_TEXTURE_2D);
 
@@ -205,7 +205,7 @@ void RSVGA::init(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
     uint8_t *data = (uint8_t *)calloc(1, 320 * 200 * 4);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 320, 200, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     free(data);
