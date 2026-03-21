@@ -8,6 +8,10 @@
       ]
     },
     "opengl",
+    {
+      "name": "openxr-loader",
+      "platform": "!osx"
+    },
     "sdl2",
     "simpleini",
     "sdl2-mixer-ext",
