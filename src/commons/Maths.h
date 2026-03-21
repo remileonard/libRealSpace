@@ -18,8 +18,8 @@ public:
     int32_t y;
 
     Point2D rotateAroundPoint(Point2D center, float angle) {
-        float x = this->x - center.x;
-        float y = this->y - center.y;
+        float x = (float) (this->x - center.x);
+        float y = (float) (this->y - center.y);
         float newx = x * cos(angle) - y * sin(angle) + center.x;
         float newy = x * sin(angle) + y * cos(angle) + center.y;
         return {(int)newx, (int)newy};

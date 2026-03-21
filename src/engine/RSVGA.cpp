@@ -212,13 +212,6 @@ void RSVGA::init(int width, int height) {
 }
 
 void RSVGA::activate(void) {
-
-    glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
-    glLoadIdentity();            // Reset The Projection Matrix
-    glOrtho(0, 320, 0, 200, -10, 10);
-    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-    glLoadIdentity();
-
     glColor4f(1, 0, 1, 0);
 }
 
@@ -282,6 +275,11 @@ void RSVGA::displayBuffer(uint32_t *buffer, int width, int height) {
     int w = (int) ((float) this->height * (4.0f/3.0f));
     int x = (this->width - w) /2;
     glViewport(x,0,w,this->height);
+    glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
+    glLoadIdentity();            // Reset The Projection Matrix
+    glOrtho(0, width, 0, height, -10, 10);
+    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
+    glLoadIdentity();
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
     glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
@@ -307,13 +305,13 @@ void RSVGA::displayBuffer(uint32_t *buffer, int width, int height) {
     glVertex2d(0, 0);
 
     glTexCoord2f(1, 1);
-    glVertex2d(320, 0);
+    glVertex2d(width, 0);
 
     glTexCoord2f(1, 0);
-    glVertex2d(320, 200);
+    glVertex2d(width, height);
 
     glTexCoord2f(0, 0);
-    glVertex2d(0, 200);
+    glVertex2d(0, height);
     glEnd();
 
     glDisable(GL_TEXTURE_2D);

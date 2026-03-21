@@ -7,9 +7,9 @@ public:
     DesktopTimer() {
         m_lastTime = SDL_GetTicks64();
         m_lastFPSUpdate = SDL_GetTicks64();
-        m_smoothedDeltaTime = 1.0f / 60.0f;
-        m_framesSinceLastUpdate = 0;
         m_expectedFPS = 60.0f;
+        m_smoothedDeltaTime = 1.0f / m_expectedFPS;
+        m_framesSinceLastUpdate = 0;
         m_hadSpikeThisSecond = false;
     }
     
