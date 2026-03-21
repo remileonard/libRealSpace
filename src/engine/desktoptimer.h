@@ -11,12 +11,34 @@ public:
         m_smoothedDeltaTime = 1.0f / m_expectedFPS;
         m_framesSinceLastUpdate = 0;
         m_hadSpikeThisSecond = false;
+        m_warmupFrames = 0; 
+        m_warmupAccum = 0.0f;
+        m_calibrated = false;
     }
     
     void update() override {
         uint64_t currentTime = SDL_GetTicks64();
         float rawDeltaTime = (float)(currentTime - m_lastTime) / 1000.0f;
-        
+        m_lastTime = currentTime;
+
+        // Phase de calibration : 90 premières frames
+        if (!m_calibrated) {
+            m_warmupAccum += rawDeltaTime;
+            m_warmupFrames++;
+            if (m_warmupFrames >= 90) {
+                float measuredFPS = (float)m_warmupFrames / m_warmupAccum;
+                m_expectedFPS = snapToStandardFPS(measuredFPS);
+                m_smoothedDeltaTime = 1.0f / m_expectedFPS;
+                m_calibrated = true;
+                m_lastFPSUpdate = currentTime;
+                m_framesSinceLastUpdate = 0;
+            }
+            m_deltaTime = rawDeltaTime > 0.1f ? 0.016f : rawDeltaTime; // cap pendant warmup
+            m_totalTime += m_deltaTime;
+            m_accumulator += m_deltaTime;
+            m_frameCount++;
+            return;
+        }
         // Détecter les spikes : plus de 3x le temps normal attendu
         const float maxReasonableDeltaTime = m_smoothedDeltaTime * 3.0f;
         if (rawDeltaTime > maxReasonableDeltaTime) {
