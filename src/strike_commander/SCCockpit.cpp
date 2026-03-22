@@ -102,7 +102,7 @@ void SCCockpit::init() {
                 line.end.y = 0 + i * 20;
                 horizon.push_back(line);
             }
-            hud_framebuffer = new FrameBuffer(96, 93);
+            hud_framebuffer = new FrameBuffer(128, 128);
             mfd_right_framebuffer = new FrameBuffer(115, 95);
             mfd_left_framebuffer = new FrameBuffer(115, 95);
             raws_framebuffer = new FrameBuffer(36, 32);
@@ -660,7 +660,7 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
-void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
+void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -847,7 +847,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
     int Xdraw = 0, Ydraw = 0;
     if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw, Ydraw)) {
         Point2D gun_piper= {Xdraw, Ydraw};
-        RLEShape *s = this->hud->small_hud->LCOS->SHAPSET->GetShape(0);
+        RLEShape *s = reticleShape->SHAPSET->GetShape(0);
         int shapeWidth = s->GetWidth();
         int shapeHeight = s->GetHeight();
         gun_piper.x -= shapeWidth / 2;
@@ -881,7 +881,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb) {
             {8, 2}
         };
         if (distance_to_target_index > 0) {
-            RLEShape *distance = this->hud->small_hud->LCOS->SHAPSET->GetShape(distance_to_target_shape[distance_to_target_index]);
+            RLEShape *distance = reticleShape->SHAPSET->GetShape(distance_to_target_shape[distance_to_target_index]);
             gun_piper= {Xdraw, Ydraw};
             int shapeWidth = s->GetWidth();
             int shapeHeight = s->GetHeight();
@@ -1567,6 +1567,9 @@ void SCCockpit::Render(CockpitFace face) {
         }
         if (this->face == CockpitFace::CP_BIG) {
             this->RenderHUD({this->hud->large_hud->HINF->center_x,this->hud->large_hud->HINF->center_y}, fb);
+            if (this->target != this->player) {
+                this->RenderTargetWithCam();
+            }
         }
         fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
         if (this->face  == CockpitFace::CP_FRONT || this->face  == CockpitFace::CP_BIG) {
@@ -1817,8 +1820,17 @@ void SCCockpit::Update() {
     this->hud_text_tags["THRO"]= std::to_string(this->player_plane->GetThrottle());
     this->hud_text_tags["CALA"]= "T";
 }
-
 void SCCockpit::RenderHUD() {
+    FrameBuffer *hud = this->hud_framebuffer;
+    if (hud == nullptr) {
+        return;
+    }
+    hud->fillWithColor(255);
+    Point2D hud_center = {hud->width / 2, hud->height / 2};
+    this->RenderHUD(hud_center, hud);
+    
+}
+void SCCockpit::DeprecatedRenderHUD() {
     FrameBuffer *hud = this->hud_framebuffer;
     if (hud == nullptr) {
         return;
@@ -1932,7 +1944,7 @@ void SCCockpit::RenderHUD() {
         this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
         int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
         if (weapon_id == ID_20MM) {
-            this->RenderTargetingReticle(hud);
+            this->RenderTargetingReticle(hud, nullptr);
         }
         if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
             this->RenderBombSight(hud);
@@ -2204,6 +2216,20 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
         default:
         break;
     }
+    if (this->player_plane->weaps_load.size() > 0 &&
+        this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
+        int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
+        CHUD_SHAPE *lcos = this->hud->small_hud->LCOS;
+        if (this->face == CockpitFace::CP_BIG) {
+            lcos = this->hud->large_hud->LCOS;
+        }
+        if (weapon_id == ID_20MM) {
+            this->RenderTargetingReticle(fb, lcos);
+        }
+        if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
+            this->RenderBombSight(fb);
+        }
+    }
 }
 void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSFont *font) {
     if (!fb) {
@@ -2234,7 +2260,11 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSF
     this->RenderSpeedBandRoll(alti, fb, font, hud->ASPD);
     alti = {position.x+hud->HEAD->x, position.y+hud->HEAD->y};
     this->RenderHeadingCompas(alti, fb, font,hud->HEAD);
-    this->RenderPitchLadder(position, {90, 80}, fb, hud->LADD, font);    
+    Point2D pitch_ladder_size = {
+        (hud->LADD->ladd_half_width + hud->LADD->ladd_text_spacer)*2+hud->LADD->ladd_space_in_line+20,
+        hud->LADD->ladd_height * 5
+    };
+    this->RenderPitchLadder(position, pitch_ladder_size, fb, hud->LADD, font);    
 }
 
 void SCCockpit::RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *alti_band) {

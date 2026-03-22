@@ -68,7 +68,9 @@ void DebugScreen::init(int w, int h, bool fullscreen){
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-
+    if (fullscreen) {
+        window_flags = (SDL_WindowFlags)(SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+    }
     // 3. UNE seule création de fenêtre
     sdlWindow = SDL_CreateWindow("Neo Strike Commander DebugTool",
                                  SDL_WINDOWPOS_UNDEFINED,

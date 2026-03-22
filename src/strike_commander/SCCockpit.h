@@ -29,7 +29,7 @@ private:
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
     
-    void RenderTargetingReticle(FrameBuffer *fb);
+    void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape);
     void RenderBombSight(FrameBuffer* fb = nullptr);
     void RenderHeading(Point2D heading_pos, FrameBuffer *fb);
     void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
@@ -115,6 +115,7 @@ public:
     void Update();
     void Render(CockpitFace face);
     void RenderHUD();
+    void DeprecatedRenderHUD();
     void RenderHUD(Point2D position, FrameBuffer *fb);
     void RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb);
     void RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb);
