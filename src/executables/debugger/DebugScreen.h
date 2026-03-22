@@ -25,6 +25,7 @@ extern "C" {
 #ifndef __APPLE__
     #include <GL/gl.h>
 #else
+    #define GL_SILENCE_DEPRECATION
     #include <OpenGL/gl.h>
 #endif
 #include <SDL.h>

@@ -115,6 +115,7 @@ public:
     void Update();
     void Render(CockpitFace face);
     void RenderHUD();
+    void RenderHUD(Point2D position, FrameBuffer *fb);
     void RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb);
     void RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb);
     void RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb);
@@ -126,7 +127,7 @@ public:
     bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
     void RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb);
     void SetCommActorTarget(int target);
-    void RenderTextTags(Point2D position, FrameBuffer *fb);
+    void RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSFont *font);
     void RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *font, CHUD_SHAPE *alti_band_roll);
     void RenderSpeedBandRoll(Point2D speed_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *speed_band);
     void RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *heading_compas);

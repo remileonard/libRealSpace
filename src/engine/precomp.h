@@ -33,6 +33,7 @@ extern "C" {
     #include <GL/gl.h>
     #include <GL/glu.h>
 #else
+    #define GL_SILENCE_DEPRECATION
     #include <OpenGL/gl.h>
     #include <OpenGL/glu.h>
 #endif

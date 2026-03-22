@@ -1557,7 +1557,7 @@ void SCCockpit::Render(CockpitFace face) {
     if (cockpit != nullptr) {
         if (this->face  == CockpitFace::CP_FRONT) {
             if (this->hud != nullptr) {
-                this->RenderTextTags({this->hud->small_hud->HINF->center_x,this->hud->small_hud->HINF->center_y}, fb);
+                this->RenderHUD({this->hud->small_hud->HINF->center_x,this->hud->small_hud->HINF->center_y}, fb);
                 //fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
                 //            this->hud_framebuffer->height);
             }
@@ -1566,7 +1566,7 @@ void SCCockpit::Render(CockpitFace face) {
             }
         }
         if (this->face == CockpitFace::CP_BIG) {
-            this->RenderTextTags({this->hud->large_hud->HINF->center_x,this->hud->large_hud->HINF->center_y}, fb);
+            this->RenderHUD({this->hud->large_hud->HINF->center_x,this->hud->large_hud->HINF->center_y}, fb);
         }
         fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
         if (this->face  == CockpitFace::CP_FRONT || this->face  == CockpitFace::CP_BIG) {
@@ -2191,71 +2191,50 @@ void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuff
     std::string value = this->hud_text_tags[name];
     fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 2, 2);
 }
-void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb) {
+void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    switch (this->face) {
+        case CockpitFace::CP_FRONT:
+            this->RenderTextTags(position, fb, this->hud->small_hud, this->font);
+        break;
+        case CockpitFace::CP_BIG:
+            this->RenderTextTags(position, fb, this->hud->large_hud, this->big_font);
+        default:
+        break;
+    }
+}
+void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSFont *font) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
     Point2D alti{0,0};
-    switch (this->face) {
-        case CockpitFace::CP_FRONT:
-            printTTAG(position, this->hud->small_hud->TTAG->CLSR, "CLSR", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->TARG, "TARG", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->NUMW, "NUMW", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->HUDM, "HUDM", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->IRNG, "IRNG", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->GFRC, "GFRC", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->MAXG, "MAXG", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->MACH, "MACH", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->WAYP, "WAYP", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->RALT, "RALT", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->LNDG, "LNDG", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->FLAP, "FLAP", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->SPDB, "SPDB", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->THRO, "THRO", fb, this->font);
-            printTTAG(position, this->hud->small_hud->TTAG->CALA, "CALA", fb, this->font);
-            alti = {position.x+this->hud->small_hud->ALTI->x, position.y+this->hud->small_hud->ALTI->y};
-            
-            this->RenderAltiBandRoll(alti, fb, this->font, this->hud->small_hud->ALTI);
-            alti = {position.x+this->hud->small_hud->ASPD->x, position.y+this->hud->small_hud->ASPD->y};
-            
-            this->RenderSpeedBandRoll(alti, fb, this->font, this->hud->small_hud->ASPD);
-            alti = {position.x+this->hud->small_hud->HEAD->x, position.y+this->hud->small_hud->HEAD->y};
-            this->RenderHeadingCompas(alti, fb, this->font,this->hud->small_hud->HEAD);
-            this->RenderPitchLadder(position, {90, 80}, fb, this->hud->small_hud->LADD, this->font);
 
-        break;
-        case CockpitFace::CP_BIG:
-            printTTAG(position, this->hud->large_hud->TTAG->CLSR, "CLSR", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->TARG, "TARG", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->NUMW, "NUMW", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->HUDM, "HUDM", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->IRNG, "IRNG", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->GFRC, "GFRC", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->MAXG, "MAXG", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->MACH, "MACH", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->WAYP, "WAYP", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->RALT, "RALT", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->LNDG, "LNDG", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->FLAP, "FLAP", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->SPDB, "SPDB", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->THRO, "THRO", fb, this->big_font);
-            printTTAG(position, this->hud->large_hud->TTAG->CALA, "CALA", fb, this->big_font);
-            alti = {position.x+this->hud->large_hud->ALTI->x, position.y+this->hud->large_hud->ALTI->y};
-            
-            this->RenderAltiBandRoll(alti, fb, this->big_font, this->hud->large_hud->ALTI);
-            alti = {position.x+this->hud->large_hud->ASPD->x, position.y+this->hud->large_hud->ASPD->y};
-            
-            this->RenderSpeedBandRoll(alti, fb, this->big_font, this->hud->large_hud->ASPD);
-            alti = {position.x+this->hud->large_hud->HEAD->x, position.y+this->hud->large_hud->HEAD->y};
-            this->RenderHeadingCompas(alti, fb, this->big_font,this->hud->large_hud->HEAD);
-            this->RenderPitchLadder(position, {90, 80}, fb, this->hud->large_hud->LADD, this->big_font);
-
-
-        break;
-        default:
-        break;
-    }
+    printTTAG(position, hud->TTAG->CLSR, "CLSR", fb, font);
+    printTTAG(position, hud->TTAG->TARG, "TARG", fb, font);
+    printTTAG(position, hud->TTAG->NUMW, "NUMW", fb, font);
+    printTTAG(position, hud->TTAG->HUDM, "HUDM", fb, font);
+    printTTAG(position, hud->TTAG->IRNG, "IRNG", fb, font);
+    printTTAG(position, hud->TTAG->GFRC, "GFRC", fb, font);
+    printTTAG(position, hud->TTAG->MAXG, "MAXG", fb, font);
+    printTTAG(position, hud->TTAG->MACH, "MACH", fb, font);
+    printTTAG(position, hud->TTAG->WAYP, "WAYP", fb, font);
+    printTTAG(position, hud->TTAG->RALT, "RALT", fb, font);
+    printTTAG(position, hud->TTAG->LNDG, "LNDG", fb, font);
+    printTTAG(position, hud->TTAG->FLAP, "FLAP", fb, font);
+    printTTAG(position, hud->TTAG->SPDB, "SPDB", fb, font);
+    printTTAG(position, hud->TTAG->THRO, "THRO", fb, font);
+    printTTAG(position, hud->TTAG->CALA, "CALA", fb, font);
+    alti = {position.x+hud->ALTI->x, position.y+hud->ALTI->y};
     
+    this->RenderAltiBandRoll(alti, fb, font, hud->ALTI);
+    alti = {position.x+hud->ASPD->x, position.y+hud->ASPD->y};
+    
+    this->RenderSpeedBandRoll(alti, fb, font, hud->ASPD);
+    alti = {position.x+hud->HEAD->x, position.y+hud->HEAD->y};
+    this->RenderHeadingCompas(alti, fb, font,hud->HEAD);
+    this->RenderPitchLadder(position, {90, 80}, fb, hud->LADD, font);    
 }
 
 void SCCockpit::RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *alti_band) {
