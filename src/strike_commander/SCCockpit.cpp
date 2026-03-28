@@ -2258,7 +2258,7 @@ void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSF
     alti = {position.x+hud->ASPD->x, position.y+hud->ASPD->y};
     
     this->RenderSpeedBandRoll(alti, fb, font, hud->ASPD);
-    alti = {position.x+hud->HEAD->x, position.y+hud->HEAD->y};
+    alti = {position.x-(hud->HEAD->width/2), position.y+hud->HEAD->y};
     this->RenderHeadingCompas(alti, fb, font,hud->HEAD);
     Point2D pitch_ladder_size = {
         (hud->LADD->ladd_half_width + hud->LADD->ladd_text_spacer)*2+hud->LADD->ladd_space_in_line+20,
@@ -2364,7 +2364,7 @@ void SCCockpit::RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, R
 
         Point2D tick = {ix - heading_band->SHAP->GetWidth() / 2, heading_top_left.y};
         heading_band->SHAP->SetPosition(&tick);
-        fb->drawShapeWithBox(heading_band->SHAP, heading_top_left.x - heading_band->step, bottom_right.x,
+        fb->drawShapeWithBox(heading_band->SHAP, heading_top_left.x, bottom_right.x,
                              heading_top_left.y, bottom_right.y);
 
         std::string txt = std::to_string(display_deg/10);
@@ -2385,12 +2385,15 @@ void SCCockpit::RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, R
     int iway_x = (int)way_x;
 
     // Dessiner l'indicateur seulement s'il est dans la zone visible
-    if (iway_x >= heading_top_left.x && iway_x <= bottom_right.x) {
-        // ex: flèche différente de SHP2 ou même SHP2 repositionné
-        Point2D way_arrow = {iway_x+(heading_band->SHP2->GetWidth() / 2), heading_top_left.y - heading_band->SHP2->GetHeight()};
-        heading_band->SHP2->SetPosition(&way_arrow);
-        fb->drawShape(heading_band->SHP2);
+    if (iway_x <= heading_top_left.x) {
+        iway_x = heading_top_left.x;
+    } else if (iway_x >= bottom_right.x) {
+        iway_x = bottom_right.x;
     }
+    Point2D way_arrow = {iway_x+(heading_band->SHP2->GetWidth() / 2), heading_top_left.y - heading_band->SHP2->GetHeight()};
+    heading_band->SHP2->SetPosition(&way_arrow);
+    fb->drawShape(heading_band->SHP2);
+    //fb->rect_slow(heading_top_left.x, heading_top_left.y, bottom_right.x, bottom_right.y, 223);
 }
 void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer *fb, SLADD *ladd, RSFont *ft) {
     if (!fb)   fb = VGA.getFrameBuffer();
