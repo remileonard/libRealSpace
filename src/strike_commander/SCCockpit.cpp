@@ -661,6 +661,9 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
 void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape) {
+    if (reticleShape == nullptr) {
+        reticleShape = this->hud->small_hud->LCOS;
+    }
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -1557,9 +1560,18 @@ void SCCockpit::Render(CockpitFace face) {
     if (cockpit != nullptr) {
         if (this->face  == CockpitFace::CP_FRONT) {
             if (this->hud != nullptr) {
-                this->RenderHUD({this->hud->small_hud->HINF->center_x,this->hud->small_hud->HINF->center_y}, fb);
+                //this->RenderHUD({this->hud->small_hud->HINF->center_x,this->hud->small_hud->HINF->center_y}, fb);
                 //fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
                 //            this->hud_framebuffer->height);
+                //this->DeprecatedRenderHUD();
+                this->hud_framebuffer->clear();
+                this->RenderHUD({this->hud_framebuffer->width/2,this->hud_framebuffer->height/2}, this->hud_framebuffer);
+                Point2D hud_pos = {
+                    this->hud->small_hud->HINF->center_x - this->hud_framebuffer->width / 2,
+                    this->hud->small_hud->HINF->center_y - this->hud_framebuffer->height / 2
+                };
+                fb->blit(this->hud_framebuffer->framebuffer, hud_pos.x, hud_pos.y , this->hud_framebuffer->width,
+                            this->hud_framebuffer->height);
             }
             if (this->target != this->player) {
                 this->RenderTargetWithCam();
@@ -1831,7 +1843,7 @@ void SCCockpit::RenderHUD() {
     
 }
 void SCCockpit::DeprecatedRenderHUD() {
-    FrameBuffer *hud = this->hud_framebuffer;
+    FrameBuffer *hud = this->VGA.getFrameBuffer();
     if (hud == nullptr) {
         return;
     }
