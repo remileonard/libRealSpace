@@ -151,7 +151,10 @@ void SCStrike::renderVirtualCockpit() {
 
     this->cockpit->hud_eye_world = {0.0f,0.0f,0.0f};
     this->cockpit->cannonAngularOffset = gunsight_hud_offset;
+    CockpitFace prev_face = this->cockpit->face;
+    this->cockpit->face = CockpitFace::CP_BIG;
     this->cockpit->RenderHUD();
+    this->cockpit->face = prev_face;
     if (this->cockpit->hud != nullptr) {
         Texture *hud_texture = new Texture();
         hud_texture->animated = true;
@@ -818,6 +821,9 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
         this->mouse_control = false;
+        this->zoom_cockpit = false;
+        Renderer.camera.fovy = 45.0f;
+        Renderer.camera.update();
         this->camera_mode = View::REAL;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {

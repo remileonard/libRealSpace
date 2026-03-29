@@ -102,7 +102,7 @@ void SCCockpit::init() {
                 line.end.y = 0 + i * 20;
                 horizon.push_back(line);
             }
-            hud_framebuffer = new FrameBuffer(128, 128);
+            hud_framebuffer = new FrameBuffer(150, 128);
             mfd_right_framebuffer = new FrameBuffer(115, 95);
             mfd_left_framebuffer = new FrameBuffer(115, 95);
             raws_framebuffer = new FrameBuffer(36, 32);
@@ -1564,10 +1564,6 @@ void SCCockpit::Render(CockpitFace face) {
     if (cockpit != nullptr) {
         if (this->face  == CockpitFace::CP_FRONT) {
             if (this->hud != nullptr) {
-                //this->RenderHUD({this->hud->small_hud->HINF->center_x,this->hud->small_hud->HINF->center_y}, fb);
-                //fb->blit(this->hud_framebuffer->framebuffer, 111, 9, this->hud_framebuffer->width,
-                //            this->hud_framebuffer->height);
-                //this->DeprecatedRenderHUD();
                 this->hud_framebuffer->clear();
                 this->RenderHUD({this->hud_framebuffer->width/2,this->hud_framebuffer->height/2}, this->hud_framebuffer);
                 Point2D hud_pos = {
@@ -1582,7 +1578,16 @@ void SCCockpit::Render(CockpitFace face) {
             }
         }
         if (this->face == CockpitFace::CP_BIG) {
-            this->RenderHUD({this->hud->large_hud->HINF->center_x,this->hud->large_hud->HINF->center_y}, fb);
+            if (this->hud != nullptr) {
+                this->hud_framebuffer->clear();
+                this->RenderHUD({this->hud_framebuffer->width/2,this->hud_framebuffer->height/2}, this->hud_framebuffer);
+                Point2D hud_pos = {
+                    this->hud->large_hud->HINF->center_x - this->hud_framebuffer->width / 2,
+                    this->hud->large_hud->HINF->center_y - this->hud_framebuffer->height / 2
+                };
+                fb->blit(this->hud_framebuffer->framebuffer, hud_pos.x, hud_pos.y , this->hud_framebuffer->width,
+                            this->hud_framebuffer->height);
+            }
             if (this->target != this->player) {
                 this->RenderTargetWithCam();
             }
