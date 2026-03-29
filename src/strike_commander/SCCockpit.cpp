@@ -875,30 +875,34 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
             {9, 10},
             {10, 11},
             {11, 12},
-            {12, 9}
+            {12, 9},
+            {20, 0},
+            {21, 1},
+            {22, 2},
+            {23, 3},
+            {24, 6},
+            {25, 4},
+            {26, 5},
+            {27, 7},
+            {28, 9},
+            {29, 12},
+            {30, 10},
+            {31, 11},
+            {32, 8}
         };
-        std::unordered_map<int, int> distance_shape_offset = {
-            {2, 6},
-            {4, 6},
-            {6, 4},
-            {8, 2}
-        };
-        if (distance_to_target_index > 0) {
+        
+        int max_d_width = reticleShape->SHAPSET->GetShape(9)->GetWidth();
+        int max_d_height = reticleShape->SHAPSET->GetShape(9)->GetHeight();
+        distance_to_target_index += max_d_width == 13 ? 20 : 0;
+        int offset_y = shapeHeight / 2 - ((shapeHeight - max_d_height)/2);
+        if (distance_to_target_index != 0 && distance_to_target_index != 20) {
             RLEShape *distance = reticleShape->SHAPSET->GetShape(distance_to_target_shape[distance_to_target_index]);
-            gun_piper= {Xdraw, Ydraw};
-            int shapeWidth = s->GetWidth();
-            int shapeHeight = s->GetHeight();
-            int dwidth = distance->GetWidth();
-            int dheight = distance->GetHeight();
-            int distanceShapeWidth = distance->GetWidth();
-            
-            gun_piper.x -= shapeWidth / 2;
-            gun_piper.y -= shapeHeight / 2;
-            gun_piper.x += distance_shape_offset[dwidth];
-            gun_piper.y += 2;
-            distance->SetPosition(&gun_piper);
-            fb->drawShapeWithBox(distance, 0, 320, 0,
-                                 200);
+            Point2D anchor = {Xdraw, Ydraw};
+            anchor.x -= distance->leftDist;
+            anchor.y -= offset_y;
+
+            distance->SetPosition(&anchor);
+            fb->drawShapeWithBox(distance, 0, 320, 0, 200);
         }
     }
 
@@ -2219,12 +2223,32 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
+    Point2D hud_top_left;
+    Point2D hud_bottom_right;
     switch (this->face) {
         case CockpitFace::CP_FRONT:
             this->RenderTextTags(position, fb, this->hud->small_hud, this->font);
+            hud_top_left = {
+                position.x + this->hud->small_hud->HINF->left,
+                position.y + this->hud->small_hud->HINF->top
+            };
+            hud_bottom_right = {
+                position.x + this->hud->small_hud->HINF->right,
+                position.y + this->hud->small_hud->HINF->bottom
+            };
+            fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
         break;
         case CockpitFace::CP_BIG:
             this->RenderTextTags(position, fb, this->hud->large_hud, this->big_font);
+            hud_top_left = {
+                position.x + this->hud->large_hud->HINF->left,
+                position.y + this->hud->large_hud->HINF->top
+            };
+            hud_bottom_right = {
+                position.x + this->hud->large_hud->HINF->right,
+                position.y + this->hud->large_hud->HINF->bottom
+            };
+            fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
         default:
         break;
     }
@@ -2242,6 +2266,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
             this->RenderBombSight(fb);
         }
     }
+    
 }
 void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSFont *font) {
     if (!fb) {
