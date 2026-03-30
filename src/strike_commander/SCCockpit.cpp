@@ -660,7 +660,7 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
-void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape) {
+void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight) {
     if (reticleShape == nullptr) {
         reticleShape = this->hud->small_hud->LCOS;
     }
@@ -856,8 +856,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         gun_piper.x -= shapeWidth / 2;
         gun_piper.y -= shapeHeight / 2;
         s->SetPosition(&gun_piper);
-        fb->drawShapeWithBox(s, 0, 320, 0,
-                             200);
+        fb->drawShapeWithBox(s, hudTopLeft.x, hudBottomRight.x, hudTopLeft.y, hudBottomRight.y);
         int distance_to_target_index = target_distance*3.2808399f / 1000;
         if (distance_to_target_index > 12 ) {
             distance_to_target_index = 12;
@@ -902,7 +901,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
             anchor.y -= offset_y;
 
             distance->SetPosition(&anchor);
-            fb->drawShapeWithBox(distance, 0, 320, 0, 200);
+            fb->drawShapeWithBox(distance, hudTopLeft.x, hudBottomRight.x, hudTopLeft.y, hudBottomRight.y);
         }
     }
 
@@ -1198,7 +1197,7 @@ void SCCockpit::RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, flo
 
     // Préparation pour la rotation
     int heading = (int)this->heading;
-    heading = (heading + 360) % 360; // Normalisation entre 0-359
+    heading = (heading) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
 
     // Fonction pour dessiner un contact sur le radar
@@ -1211,7 +1210,7 @@ void SCCockpit::RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, flo
         Vector2D objPos = {object->object->position.x, object->object->position.z};
 
         // Rotation selon le heading du joueur
-        Vector2D rotatedPos = objPos.rotateAroundPoint(center, headingRad);
+        Vector2D rotatedPos = objPos.rotateAroundPoint(center, -headingRad);
         Vector2D relativePos = {rotatedPos.x - center.x, rotatedPos.y - center.y};
 
         // Vérification de la distance
@@ -1338,7 +1337,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
 
     // Préparation pour la rotation
     int heading = (int)this->heading;
-    heading = (heading + 360) % 360; // Normalisation entre 0-359
+    heading = (heading) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
 
     // Fonction pour dessiner un contact sur le radar
@@ -1361,7 +1360,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         Vector2D objPos = {object->object->position.x, object->object->position.z};
 
         // Rotation selon le heading du joueur
-        Vector2D rotatedPos = objPos.rotateAroundPoint(center, headingRad);
+        Vector2D rotatedPos = objPos.rotateAroundPoint(center, -headingRad);
         Vector2D relativePos = {rotatedPos.x - center.x, rotatedPos.y - center.y};
 
         // Vérification de la distance
@@ -1418,6 +1417,50 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         }
     }
 }
+void SCCockpit::RenderRAWSBig(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = nullptr) {
+    if (this->cockpit->MONI.INST.RAWS.ZOOM.data == nullptr) {
+        return;
+    }
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    Point2D raws_size = {this->cockpit->MONI.INST.RAWS.ZOOM.GetWidth(), this->cockpit->MONI.INST.RAWS.ZOOM.GetHeight()};
+    if (this->cockpit->MONI.INST.RAWS.zoom_x != 0 && this->cockpit->MONI.INST.RAWS.zoom_y != 0) {
+        if (pmfd_left.x != 0 && pmfd_left.y != 0) {
+            pmfd_left.x = this->cockpit->MONI.INST.RAWS.zoom_x;
+            pmfd_left.y = this->cockpit->MONI.INST.RAWS.zoom_y;
+        }
+    }
+    Point2D bottom_right = {pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y};
+    this->cockpit->MONI.INST.RAWS.ZOOM.SetPosition(&pmfd_left);
+    fb->drawShape(&this->cockpit->MONI.INST.RAWS.ZOOM);
+    int heading = (int)this->heading;
+    heading = (heading) % 360;
+    float headingRad = heading / 180.0f * (float)M_PI;
+
+    for (auto contact : this->current_mission->actors) {
+        if (contact->is_active && contact->object->entity->entity_type == EntityType::jet) {
+            Vector2D contact_pos = {contact->object->position.x, contact->object->position.z};
+            Vector2D center = {this->player->position.x, this->player->position.z};
+            Vector2D roa_dir = {contact_pos.x - center.x, contact_pos.y - center.y};
+
+            float distance = roa_dir.Length();
+            roa_dir.Normalize();
+            const float max_range = 30000.0f; // 30 km
+            if (distance < max_range) {
+                float scale = 10.0f;
+                scale = (distance / max_range) * this->cockpit->MONI.INST.RAWS.ZOOM.GetWidth() /
+                        2; // Ajustement de l'échelle
+                Point2D p = {(int)(roa_dir.x * scale), (int)(roa_dir.y * scale)};
+                Point2D rotatedPos = p.rotateAroundPoint({0, 0}, -headingRad);
+                Point2D raw_pos = {pmfd_left.x + (raws_size.x / 2) + rotatedPos.x,
+                                   pmfd_left.y + (raws_size.y / 2) + rotatedPos.y};
+                this->cockpit->MONI.INST.RAWS.SYMB.GetShape(11)->SetPosition(&raw_pos);
+                fb->drawShape(this->cockpit->MONI.INST.RAWS.SYMB.GetShape(11));
+            }
+        }
+    }
+}
 
 void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = nullptr) {
     if (this->cockpit->MONI.INST.RAWS.NORM.data == nullptr) {
@@ -1437,7 +1480,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = null
     this->cockpit->MONI.INST.RAWS.NORM.SetPosition(&pmfd_left);
     fb->drawShape(&this->cockpit->MONI.INST.RAWS.NORM);
     int heading = (int)this->heading;
-    heading = (heading + 360) % 360; // Normalisation entre 0-359
+    heading = (heading + 360) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
 
     for (auto contact : this->current_mission->actors) {
@@ -1626,6 +1669,8 @@ void SCCockpit::Render(CockpitFace face) {
                 this->RenderRAWS({84, 112}, fb);
                 this->RenderAlti({161, 166}, fb);
                 this->RenderSpeedOmetter({125, 166}, fb);
+            } else if (this->face == CockpitFace::CP_BIG) {
+                this->RenderRAWSBig({84, 112}, fb);
             }
             Point2D pmfd_right = {0, 200 - this->cockpit->MONI.SHAP.GetHeight()};
             Point2D pmfd_left = {320 - this->cockpit->MONI.SHAP.GetWidth() - 1,
@@ -1965,7 +2010,7 @@ void SCCockpit::DeprecatedRenderHUD() {
         this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
         int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
         if (weapon_id == ID_20MM) {
-            this->RenderTargetingReticle(hud, nullptr);
+            this->RenderTargetingReticle(hud, nullptr, {0,0},{320,200});
         }
         if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
             this->RenderBombSight(hud);
@@ -2241,7 +2286,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 position.x + this->hud->small_hud->HINF->right,
                 position.y + this->hud->small_hud->HINF->bottom
             };
-            fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
+            //fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
         break;
         case CockpitFace::CP_BIG:
             this->RenderTextTags(position, fb, this->hud->large_hud, this->big_font);
@@ -2253,7 +2298,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 position.x + this->hud->large_hud->HINF->right,
                 position.y + this->hud->large_hud->HINF->bottom
             };
-            fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
+            //fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
         default:
         break;
     }
@@ -2265,7 +2310,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
             lcos = this->hud->large_hud->LCOS;
         }
         if (weapon_id == ID_20MM) {
-            this->RenderTargetingReticle(fb, lcos);
+            this->RenderTargetingReticle(fb, lcos, hud_top_left, hud_bottom_right);
         }
         if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
             this->RenderBombSight(fb);

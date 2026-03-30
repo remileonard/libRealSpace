@@ -630,6 +630,8 @@ void SCMission::update() {
             case OP_SET_OBJ_FOLLOW_ALLY:
                 ai_actor->current_command_executed = ai_actor->followAlly(ai_actor->current_command_arg);
             break;
+            default:
+            break;
         }
         
         if (ai_actor->pilot == nullptr) {

@@ -29,7 +29,7 @@ private:
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
     
-    void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape);
+    void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight);
     void RenderBombSight(FrameBuffer* fb = nullptr);
     void RenderHeading(Point2D heading_pos, FrameBuffer *fb);
     void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
@@ -122,6 +122,7 @@ public:
     void RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb);
     void RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb);
     void RenderRAWS(Point2D pmfd_left, FrameBuffer *fb);
+    void RenderRAWSBig(Point2D pmfd_left, FrameBuffer *fb);
     void RenderTargetWithCam(Point2D top_left, FrameBuffer *fb);
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);
     void RenderSpeedOmetter(Point2D speed_top_left, FrameBuffer *fb);

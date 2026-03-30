@@ -340,17 +340,17 @@ void RSCockpit::parseMONI_INST_RAWS_INFO(uint8_t* data, size_t size) {
     ByteStream* reader = new ByteStream(data, size);
     this->MONI.INST.RAWS.width = reader->ReadUShort();
     this->MONI.INST.RAWS.height = reader->ReadUShort();
+    this->MONI.INST.RAWS.zoom_x = reader->ReadUShort(); // skip
+    this->MONI.INST.RAWS.zoom_y = reader->ReadUShort(); // skip
     reader->ReadUShort(); // skip
     reader->ReadUShort(); // skip
     reader->ReadUShort(); // skip
     reader->ReadUShort(); // skip
-    reader->ReadUShort(); // skip
-    reader->ReadUShort(); // skip
-    reader->ReadUShort(); // skip
-    reader->ReadUShort(); // skip
+    reader->ReadShort();
+    reader->ReadShort();
     
-    this->MONI.INST.RAWS.x = reader->ReadUShort();
-    this->MONI.INST.RAWS.y = reader->ReadUShort();
+    this->MONI.INST.RAWS.x = reader->ReadShort();
+    this->MONI.INST.RAWS.y = reader->ReadShort();
     
     
 }

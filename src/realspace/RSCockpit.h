@@ -72,6 +72,8 @@ struct RAWSShape {
     std::vector<uint8_t> INFO;
     uint16_t x{0};
     uint16_t y{0};
+    uint16_t zoom_x{0};
+    uint16_t zoom_y{0};
     uint16_t width{0};
     uint16_t height{0};
     RSImageSet SYMB;
