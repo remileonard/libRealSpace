@@ -979,7 +979,7 @@ void DebugStrike::renderMenu() {
                             360 - (ai_actor->plane->azimuthf / 10.0f));
                 ImGui::SameLine();
                 if (ai_actor->pilot != nullptr) {
-                    ImGui::Text("{TH %.0f TA %d TS %.3f}", ai_actor->pilot->target_azimut, ai_actor->pilot->target_climb, ai_actor->pilot->target_speed);
+                    ImGui::Text("{TH %.0f TA %d TS %d}", ai_actor->pilot->target_azimut, ai_actor->pilot->target_climb, ai_actor->pilot->target_speed);
                     ImGui::SameLine();
                     ImGui::Text("AI OBJ %d", ai_actor->current_objective);
                     ImGui::SameLine();

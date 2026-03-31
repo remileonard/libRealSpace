@@ -1891,7 +1891,7 @@ void SCCockpit::Update() {
         }
     }
     this->hud_text_tags["NUMW"]=std::to_string(weapons_count) + " "+txt;
-    this->hud_text_tags["HUDM"]="HUDM";
+    this->hud_text_tags["HUDM"]=hud_weapon_mode_names[this->weapon_mode];
     
     if (this->target != nullptr) {
         Vector3D dist_to_target = this->target->position - this->player_plane->position;

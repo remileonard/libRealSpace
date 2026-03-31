@@ -12,6 +12,26 @@ enum weapon_type_shp_id {
     LAU3 = 36
 };
 
+enum Hud_weapon_mode {
+    WM_HUD_LCOS = 0,
+    WM_HUD_STRAF = 1,
+    WM_HUD_SRM = 2,
+    WM_HUD_CCIP = 3,
+    WM_HUD_CCRP = 4,
+    WM_HUD_LRM = 5,
+    WM_HUD_IRST = 6,
+    WM_HUD_NONE = 7
+};
+static std::unordered_map<Hud_weapon_mode, std::string> hud_weapon_mode_names = {
+    {WM_HUD_LCOS, "DGFT"},
+    {WM_HUD_STRAF, "STRF"},
+    {WM_HUD_SRM, "SRM"},
+    {WM_HUD_CCIP, "CCIP"},
+    {WM_HUD_CCRP, "CCRP"},
+    {WM_HUD_LRM, "LRM"},
+    {WM_HUD_IRST, "IR"},
+    {WM_HUD_NONE, ""}
+};
 enum weapon_ids {
     ID_AIM9J = 1,
     ID_AIM9M = 2,

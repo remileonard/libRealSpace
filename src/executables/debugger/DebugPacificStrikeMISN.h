@@ -8,7 +8,7 @@ protected:
 public:
     DebugPacificStrikeMISN();
     ~DebugPacificStrikeMISN();
-    virtual void setMission(std::string mission_name);
+    virtual void setMission(std::string mission_name) override;
     
     virtual void init() override { DebugStrike::init(); DebugStrike::verticalOffset = 0.0f; DebugStrike::eye_y = 0;}
     virtual void renderMenu() override { DebugStrike::renderMenu(); }

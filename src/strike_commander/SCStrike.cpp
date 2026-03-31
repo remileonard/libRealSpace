@@ -764,7 +764,36 @@ void SCStrike::checkKeyboard(void) {
                     }
                 }
             }
-            this->player_plane->selected_weapon = next_weapon;
+            if (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == weapon_ids::ID_20MM && !this->air_weapons_mode && this->cockpit->weapon_mode == Hud_weapon_mode::WM_HUD_LCOS) {
+                this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
+            } else {
+                this->player_plane->selected_weapon = next_weapon;
+                switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
+                    case weapon_ids::ID_20MM:
+                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LCOS;
+                        break;
+                    case weapon_ids::ID_AIM120:
+                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LRM;
+                        break;
+                    case weapon_ids::ID_AIM9J:
+                    case weapon_ids::ID_AIM9M:
+                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_SRM;
+                        break;
+                    case weapon_ids::ID_AGM65D:
+                    case weapon_ids::ID_GBU15:
+                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_IRST;
+                        break;
+                    case weapon_ids::ID_MK20:
+                    case weapon_ids::ID_MK82:
+                    case weapon_ids::ID_DURANDAL:
+                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_CCIP;
+                        break;
+                    default:
+                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
+                        break;
+                }
+            }
+            
             
             this->player_plane->wp_cooldown = 0;
             this->mfd_timeout = 400;
@@ -822,8 +851,6 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
         this->mouse_control = false;
         this->zoom_cockpit = false;
-        Renderer.camera.fovy = 45.0f;
-        Renderer.camera.update();
         this->camera_mode = View::REAL;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {
@@ -843,12 +870,8 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_FORWARD))) {
         this->camera_mode = View::FRONT;
         if (this->zoom_cockpit) {
-            Renderer.camera.fovy = 30.0f;
-            Renderer.camera.update();
             zoom_cockpit = false;
         } else {
-            Renderer.camera.fovy = 45.0f;
-            Renderer.camera.update();
             zoom_cockpit = true;
         }
         this->pilote_lookat.x = 0;
@@ -1487,6 +1510,13 @@ void SCStrike::runFrame(void) {
             return;
         }
     }
+    if (this->zoom_cockpit) {
+        Renderer.camera.fovy = 30.0f;
+        Renderer.camera.update();
+    } else {
+        Renderer.camera.fovy = 45.0f;
+        Renderer.camera.update();
+    }
     this->player_plane->getPosition(&new_position);
     if (this->player_plane->object != nullptr) {
         this->player_plane->object->position.x = new_position.x;
@@ -1789,9 +1819,9 @@ void SCStrike::runFrame(void) {
         case View::FRONT:
             if (!forceVirtualCockpit) {
                 if (this->zoom_cockpit) {
-                    this->cockpit->Render(CockpitFace::CP_FRONT);
-                } else {
                     this->cockpit->Render(CockpitFace::CP_BIG);
+                } else {
+                    this->cockpit->Render(CockpitFace::CP_FRONT);
                 }
                 break;
             }

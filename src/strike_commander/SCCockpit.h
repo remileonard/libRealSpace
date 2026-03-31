@@ -99,7 +99,7 @@ public:
     SCPlane *player_plane;
     SCMission *current_mission;
     uint8_t *nav_point_id{nullptr};
-    
+    Hud_weapon_mode weapon_mode{Hud_weapon_mode::WM_HUD_NONE};
     Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
     bool has_hud_eye_world = false;
     bool debug_print{false};
