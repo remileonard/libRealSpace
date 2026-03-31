@@ -244,7 +244,7 @@ void SCStrike::renderVirtualCockpit() {
     }
     if (this->cockpit->cockpit->MONI.INST.RAWS.NORM.data != nullptr) {
         cockpit->raws_framebuffer->fillWithColor(0);
-        cockpit->RenderRAWS({0,0}, cockpit->raws_framebuffer);
+        cockpit->RenderRAWSBig({0,0}, cockpit->raws_framebuffer);
         Texture *raws_texture = new Texture();
         raws_texture->animated = true;
         RSImage *raws_image = new RSImage();

@@ -28,7 +28,7 @@ private:
     bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
     void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
     void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
-    
+    void IdentifyRAWSContact(SCMissionActors *actor, FrameBuffer *fb, float headingRad, Point2D pmfd_left, Point2D raws_size, bool is_zoomed, int rsize);
     void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight);
     void RenderBombSight(FrameBuffer* fb = nullptr);
     void RenderHeading(Point2D heading_pos, FrameBuffer *fb);

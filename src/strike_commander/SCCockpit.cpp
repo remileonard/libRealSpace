@@ -105,7 +105,7 @@ void SCCockpit::init() {
             hud_framebuffer = new FrameBuffer(150, 128);
             mfd_right_framebuffer = new FrameBuffer(115, 95);
             mfd_left_framebuffer = new FrameBuffer(115, 95);
-            raws_framebuffer = new FrameBuffer(36, 32);
+            raws_framebuffer = new FrameBuffer(57, 46);
             target_framebuffer = new FrameBuffer(320, 200);
             alti_framebuffer = new FrameBuffer(33, 29);
             speed_framebuffer = new FrameBuffer(36, 29);
@@ -1433,35 +1433,121 @@ void SCCockpit::RenderRAWSBig(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = n
     }
     Point2D bottom_right = {pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y};
     this->cockpit->MONI.INST.RAWS.ZOOM.SetPosition(&pmfd_left);
+    for (int y = pmfd_left.y; y < bottom_right.y; y++) {
+        fb->line(pmfd_left.x, y, bottom_right.x, y, 0);
+    }
+    
     fb->drawShape(&this->cockpit->MONI.INST.RAWS.ZOOM);
     int heading = (int)this->heading;
     heading = (heading) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
-
+    int rsize = this->cockpit->MONI.INST.RAWS.ZOOM.GetWidth() / 2;
     for (auto contact : this->current_mission->actors) {
-        if (contact->is_active && contact->object->entity->entity_type == EntityType::jet) {
-            Vector2D contact_pos = {contact->object->position.x, contact->object->position.z};
-            Vector2D center = {this->player->position.x, this->player->position.z};
-            Vector2D roa_dir = {contact_pos.x - center.x, contact_pos.y - center.y};
-
-            float distance = roa_dir.Length();
-            roa_dir.Normalize();
-            const float max_range = 30000.0f; // 30 km
-            if (distance < max_range) {
-                float scale = 10.0f;
-                scale = (distance / max_range) * this->cockpit->MONI.INST.RAWS.ZOOM.GetWidth() /
-                        2; // Ajustement de l'échelle
-                Point2D p = {(int)(roa_dir.x * scale), (int)(roa_dir.y * scale)};
-                Point2D rotatedPos = p.rotateAroundPoint({0, 0}, -headingRad);
-                Point2D raw_pos = {pmfd_left.x + (raws_size.x / 2) + rotatedPos.x,
-                                   pmfd_left.y + (raws_size.y / 2) + rotatedPos.y};
-                this->cockpit->MONI.INST.RAWS.SYMB.GetShape(11)->SetPosition(&raw_pos);
-                fb->drawShape(this->cockpit->MONI.INST.RAWS.SYMB.GetShape(11));
-            }
-        }
+        this->IdentifyRAWSContact(contact, fb, headingRad, pmfd_left, raws_size, true, rsize);
     }
 }
+void SCCockpit::IdentifyRAWSContact(SCMissionActors *contact, FrameBuffer *fb = nullptr, float headingRad = 0.0f, Point2D pmfd_left = {84, 112}, Point2D raws_size = {0, 0}, bool is_zoomed = false, int rsize = 10) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    if (contact->is_active && contact->object->entity->radar_signature != nullptr) {
+        Vector2D contact_pos = {
+            contact->object->position.x,
+            contact->object->position.z
+        };
+        Vector2D center = {
+            this->player->position.x,
+            this->player->position.z
+        };
+        Vector2D roa_dir = {
+            contact_pos.x - center.x,
+            contact_pos.y - center.y
+        };
 
+        float distance = roa_dir.Length();
+        roa_dir.Normalize();
+        const float max_range = 30000.0f; // 30 km
+        int radar_index = 29; // Index de l'icône de contact radar
+        static std::unordered_map<std::string, int> radar_signature_to_index = {
+            {"747", 29},
+            {"A-10", 29},
+            {"AWACS", 29},
+            {"BOATX", 19},
+            {"C130DES", 29},
+            {"C130GRN", 29},
+            {"CARRIERW", 19},
+            {"DESTROYS", 23},
+            {"F-15", 29},
+            {"F-16DES", 29},
+            {"F-16GRAY", 29},
+            {"F-18", 29},
+            {"F-22", 29},
+            {"F-4", 29},
+            {"LEARJET", 29},
+            {"MIG21", 29},
+            {"MIG29", 29},
+            {"MIRAGE", 29},
+            {"MOBSAMLN", 23},
+            {"RDRSTL2", 21},
+            {"STASAMLN", 23},
+            {"SU27", 29},
+            {"TORNCG", 29},
+            {"TU-20", 29},
+            {"YF23", 29},
+            {"ZSU-23", 19},
+        };
+        static std::unordered_map<std::string, int> radar_signature_to_index_zoom = {
+            {"747", 11},
+            {"A-10", 13},
+            {"AWACS", 11},
+            {"BOATX", 3},
+            {"C130DES", 11},
+            {"C130GRN", 11},
+            {"CARRIERW", 3},
+            {"DESTROYS", 5},
+            {"F-15", 17},
+            {"F-16DES", 17},
+            {"F-16GRAY", 17},
+            {"F-18", 17},
+            {"F-22", 17},
+            {"F-4", 13},
+            {"LEARJET", 11},
+            {"MIG21", 13},
+            {"MIG29", 17},
+            {"MIRAGE", 15},
+            {"MOBSAMLN", 5},
+            {"RDRSTL2", 9},
+            {"STASAMLN", 7},
+            {"SU27", 17},
+            {"TORNCG", 17},
+            {"TU-20", 11},
+            {"YF23", 17},
+            {"ZSU-23", 3},
+        };
+        if (is_zoomed) {
+            if (radar_signature_to_index_zoom.find(contact->object->member_name) != radar_signature_to_index_zoom.end()) {
+                radar_index = radar_signature_to_index_zoom[contact->object->member_name];
+            }
+        } else {
+            if (radar_signature_to_index.find(contact->object->member_name) != radar_signature_to_index.end()) {
+                radar_index = radar_signature_to_index[contact->object->member_name];
+            }
+        }
+        if (distance < max_range) {
+            float scale = 10.0f;
+            scale = (distance / max_range) * rsize;
+            Point2D p = {(int)(roa_dir.x * scale), (int)(roa_dir.y * scale)};
+            Point2D rotatedPos = p.rotateAroundPoint({0, 0}, headingRad);
+            Point2D raw_pos = {
+                pmfd_left.x + (raws_size.x / 2) + rotatedPos.x,
+                pmfd_left.y + (raws_size.y / 2) + rotatedPos.y
+            };
+            this->cockpit->MONI.INST.RAWS.SYMB.GetShape(radar_index)->SetPosition(&raw_pos);
+            fb->drawShape(this->cockpit->MONI.INST.RAWS.SYMB.GetShape(radar_index));
+        }
+    }
+    
+}
 void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = nullptr) {
     if (this->cockpit->MONI.INST.RAWS.NORM.data == nullptr) {
         return;
@@ -1478,33 +1564,16 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = null
     }
     Point2D bottom_right = {pmfd_left.x + raws_size.x, pmfd_left.y + raws_size.y};
     this->cockpit->MONI.INST.RAWS.NORM.SetPosition(&pmfd_left);
+    for (int y = pmfd_left.y; y < bottom_right.y; y++) {
+        fb->line(pmfd_left.x, y, bottom_right.x, y, 0);
+    }
     fb->drawShape(&this->cockpit->MONI.INST.RAWS.NORM);
     int heading = (int)this->heading;
     heading = (heading + 360) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
-
+    int rsize = this->cockpit->MONI.INST.RAWS.NORM.GetWidth() / 2;
     for (auto contact : this->current_mission->actors) {
-        if (contact->is_active && contact->object->entity->entity_type == EntityType::jet) {
-            Vector2D contact_pos = {contact->object->position.x, contact->object->position.z};
-            Vector2D center = {this->player->position.x, this->player->position.z};
-            Vector2D roa_dir = {contact_pos.x - center.x, contact_pos.y - center.y};
-
-            float distance = roa_dir.Length();
-            roa_dir.Normalize();
-            const float max_range = 30000.0f; // 30 km
-            if (distance < max_range) {
-                float scale = 10.0f;
-                scale = (distance / max_range) * this->cockpit->MONI.INST.RAWS.NORM.GetWidth() /
-                        2; // Ajustement de l'échelle
-                Point2D p = {(int)(roa_dir.x * scale), (int)(roa_dir.y * scale)};
-                Point2D rotatedPos = p.rotateAroundPoint({0, 0}, headingRad);
-                Point2D raw_pos = {pmfd_left.x + (raws_size.x / 2) + rotatedPos.x,
-                                   pmfd_left.y + (raws_size.y / 2) + rotatedPos.y};
-                this->cockpit->MONI.INST.RAWS.SYMB.GetShape(29)->SetPosition(&raw_pos);
-                fb->drawShape(this->cockpit->MONI.INST.RAWS.SYMB.GetShape(29));
-                // fb->plot_pixel((int)p.x, (int)p.y, 223);
-            }
-        }
+        this->IdentifyRAWSContact(contact, fb, headingRad, pmfd_left, raws_size, false, rsize);
     }
 }
 
