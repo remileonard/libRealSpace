@@ -512,9 +512,13 @@ void RSHud::parseREAL_CHUD_LARG_CIRC(uint8_t* data, size_t size){
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSHud::parseREAL_CHUD_LARG_CIRC_INFO(uint8_t* data, size_t size){
-    for(int i=0; i<size; i++){
-        this->tmp_hud->CIRC.push_back(data[i]);
-    }
+    MISD_CIRC *info = new MISD_CIRC();
+    ByteStream stream;
+    stream.Set(data, size);
+    info->radius = stream.ReadShort();
+    info->x = stream.ReadShort();
+    this->tmp_hud->CIRC = info;
+
 }
 void RSHud::parseREAL_CHUD_LARG_CROS(uint8_t* data, size_t size){
     IFFSaxLexer lexer;

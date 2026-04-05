@@ -55,7 +55,11 @@ struct STTAG {
     HUD_POS THRO;
     HUD_POS CALA;
 };
-
+struct MISD_CIRC {
+    int16_t x;
+    int16_t y;
+    int16_t radius;
+};
 struct CHUD {
     uint8_t type;
     SHINF *HINF;
@@ -69,7 +73,7 @@ struct CHUD {
     CHUD_SHAPE *LCOS;
     CHUD_SHAPE *TARG;
     CHUD_SHAPE *MISD;
-    std::vector<uint8_t> CIRC;
+    MISD_CIRC *CIRC;
     CHUD_SHAPE *CROS;
     CHUD_SHAPE *CCIP;
     CHUD_SHAPE *CCRP;

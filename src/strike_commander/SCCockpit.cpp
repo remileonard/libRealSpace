@@ -1929,6 +1929,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
     }
     Point2D hud_top_left;
     Point2D hud_bottom_right;
+    int circle_size = 0;
     switch (this->face) {
         case CockpitFace::CP_FRONT:
             this->RenderTextTags(position, fb, this->hud->small_hud, this->font);
@@ -1940,7 +1941,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 position.x + this->hud->small_hud->HINF->right,
                 position.y + this->hud->small_hud->HINF->bottom
             };
-            //fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
+            circle_size = this->hud->small_hud->CIRC->radius;
         break;
         case CockpitFace::CP_BIG:
             this->RenderTextTags(position, fb, this->hud->large_hud, this->big_font);
@@ -1952,7 +1953,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 position.x + this->hud->large_hud->HINF->right,
                 position.y + this->hud->large_hud->HINF->bottom
             };
-            //fb->rect_slow(hud_top_left.x, hud_top_left.y, hud_bottom_right.x, hud_bottom_right.y, 223);
+            circle_size = this->hud->large_hud->CIRC->radius;
         default:
         break;
     }
@@ -1977,9 +1978,11 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 // Non implémenté : viseur de type IRST (pour les missiles à guidage infrarouge)
                 break;
             case Hud_weapon_mode::WM_HUD_SRM:
+                fb->circle_slow(position.x, position.y, circle_size, 223); // Cercle de visée pour les missiles à courte portée
                 // Non implémenté : mode de tir SRM (Short Range Missile) pour les missiles à courte portée
                 break;
             case Hud_weapon_mode::WM_HUD_LRM:
+                fb->circle_slow(position.x, position.y, circle_size, 223); // Cercle de visée pour les missiles à longue portée
                 // Non implémenté : mode de tir LRM (Long Range Missile) pour les missiles à longue portée
                 break;
             case Hud_weapon_mode::WM_HUD_STRAF:
