@@ -26,13 +26,9 @@ private:
     SCMouse &Mouse = SCMouse::getInstance();
     std::vector<HudLine> horizon;
     bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
-    void RenderHudHorizonLinesSmall(Point2D center, FrameBuffer *fb);
-    void RenderAltitude(Point2D alti_arrow, FrameBuffer *fb);
     void IdentifyRAWSContact(SCMissionActors *actor, FrameBuffer *fb, float headingRad, Point2D pmfd_left, Point2D raws_size, bool is_zoomed, int rsize);
     void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight);
     void RenderBombSight(FrameBuffer* fb = nullptr);
-    void RenderHeading(Point2D heading_pos, FrameBuffer *fb);
-    void RenderSpeed(Point2D heading_pos, FrameBuffer *fb);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
     void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
@@ -115,7 +111,6 @@ public:
     void Update();
     void Render(CockpitFace face);
     void RenderHUD();
-    void DeprecatedRenderHUD();
     void RenderHUD(Point2D position, FrameBuffer *fb);
     void RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb);
     void RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb);

@@ -116,294 +116,6 @@ void SCCockpit::init() {
     }
     debug_framebuffer = new FrameBuffer(320, 200);
 }
-/**
- * SCCockpit::RenderAltitude
- *
- * Render the current altitude in the cockpit view.
- *
- * This function renders the current altitude in the cockpit view by drawing
- * a band of lines and numbers on the right side of the screen. The altitude
- * is rendered in meters, with the 1000s place on the left side of the band
- * and the 100s place on the right side of the band. The band is rendered
- * from the top of the screen (0) to the bottom of the screen (512), with
- * the 0 mark at the top of the screen and the 1000 mark at the bottom of
- * the screen.
- */
-
-void SCCockpit::RenderAltitude(Point2D alti_top_left = {185, 30}, FrameBuffer *fb = nullptr) {
-    if (!fb) {
-        fb = VGA.getFrameBuffer();
-    }
-    std::vector<Point2D> alti_band_roll;
-    float alti_in_feet = this->altitude * 3.28084f; // Convert meters to feet
-    Point2D alti_size = {20, 35};
-
-    Point2D bottom_right = {alti_top_left.x + alti_size.x, alti_top_left.y + alti_size.y};
-
-    alti_band_roll.reserve(100);
-    for (int i = 0; i < 100; i++) {
-        Point2D p;
-        p.x = 0;
-        p.y = (100 - i) * 10;
-        alti_band_roll.push_back(p);
-    }
-    int cpt = 1000;
-    for (auto p : alti_band_roll) {
-        Point2D p2 = {p.x, p.y};
-        p2.x = alti_top_left.x + 9;
-        p2.y = (alti_top_left.y + alti_size.y / 2) - p.y + (int)(alti_in_feet / 100);
-        if (p2.y > alti_top_left.y && p2.y < bottom_right.y) {
-            fb->printText(this->font, &p2, (char *)std::to_string(cpt / 10.0f).c_str(), 0, 0, 3, 2, 2);
-        }
-        cpt -= 10;
-        Point2D alti = {alti_top_left.x + 1, p2.y};
-        int sheight = this->hud->small_hud->ALTI->SHAP->GetHeight();
-        // alti.y = alti_top_left.y;
-        this->hud->small_hud->ALTI->SHAP->SetPosition(&alti);
-        fb->drawShapeWithBox(this->hud->small_hud->ALTI->SHAP, alti_top_left.x, bottom_right.x, alti_top_left.y - 10,
-                             bottom_right.y - 10);
-    }
-    Point2D alti_arrow = {alti_top_left.x - 3, alti_top_left.y + alti_size.y / 2};
-    fb->line(alti_arrow.x, alti_arrow.y, alti_arrow.x + 1, alti_arrow.y, 223);
-    alti_arrow.y -= this->hud->small_hud->ALTI->SHP2->GetHeight() / 2;
-    this->hud->small_hud->ALTI->SHP2->SetPosition(&alti_arrow);
-    fb->drawShape(this->hud->small_hud->ALTI->SHP2);
-    Point2D alti_text = {alti_top_left.x, alti_top_left.y + this->hud->small_hud->ALTI->SHAP->GetHeight()};
-    std::ostringstream oss;
-    oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << (alti_in_feet-(this->player_plane->groundlevel* 3.28084f)) / 1000.0f;
-    std::string s = oss.str();
-    std::string alti_str = "A"+s;
-    fb->printText(this->font, &alti_text, (char *)alti_str.c_str(), 0, 0, alti_str.length(), 2, 2);
-}
-/**
- * Renders the heading indicator in the cockpit view.
- *
- * This function renders the heading indicator in the cockpit view by drawing
- * a band of lines and numbers on the top of the screen. The heading is rendered
- * in degrees, with the 0 mark at the top of the screen and the 360 mark at the
- * bottom of the screen. The band is rendered from the top of the screen (0) to
- * the bottom of the screen (360), with the 0 mark at the top of the screen and
- * the 360 mark at the bottom of the screen.
- */
-void SCCockpit::RenderHeading(Point2D heading_pos = {136, 90}, FrameBuffer *fb = nullptr) {
-    if (!fb) {
-        fb = VGA.getFrameBuffer();
-    }
-    this->hud->small_hud->HEAD->SHAP->SetPosition(&heading_pos);
-
-    std::vector<Point2D> heading_points;
-    std::string txt;
-    heading_points.reserve(36);
-    for (int i = 0; i < 36; i++) {
-        Point2D p;
-        p.x = 432 - (36 - i) * 12;
-        p.y = heading_pos.y + 7;
-        heading_points.push_back(p);
-    }
-    int headcpt = 0;
-    int pixelcpt = 0;
-
-    Point2D heading_size = {48, 14};
-    Point2D bottom_right = {heading_pos.x + heading_size.x, heading_pos.y + heading_size.y};
-
-    for (auto p : heading_points) {
-        Point2D hp = p;
-        hp.x = hp.x + (int)(this->heading * 1.2) + (heading_pos.x + heading_size.x / 2);
-
-        if (hp.x < 0) {
-            hp.x += 432;
-        }
-        if (hp.x > 432) {
-            hp.x -= 432;
-        }
-        if (hp.x > heading_pos.x && hp.x < bottom_right.x) {
-            Point2D txt_pos = hp;
-            int toprint = headcpt;
-            if (toprint == 36) {
-                toprint = 0;
-            }
-            txt = std::to_string(toprint);
-            fb->printText(this->font, &txt_pos, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-        }
-        if (headcpt % 3 == 0) {
-            Point2D headspeed;
-            headspeed.x = hp.x - 6;
-            headspeed.y = heading_pos.y;
-            this->hud->small_hud->HEAD->SHAP->SetPosition(&headspeed);
-            fb->drawShapeWithBox(this->hud->small_hud->HEAD->SHAP, heading_pos.x, bottom_right.x, heading_pos.y,
-                                 bottom_right.y);
-        }
-        headcpt += 1;
-    }
-    Vector2D weapoint_direction = {this->weapoint_coords.x - this->player->position.x,
-                                   this->weapoint_coords.y - this->player->position.z};
-    float weapoint_azimut = (atan2f(weapoint_direction.y, weapoint_direction.x) * 180.0f / (float)M_PI);
-    Point2D weapoint = {0, heading_pos.y - 3};
-
-    weapoint_azimut -= 360;
-    weapoint_azimut += 90;
-    if (weapoint_azimut > 360) {
-        weapoint_azimut -= 360;
-    }
-    while (weapoint_azimut < 0) {
-        weapoint_azimut += 360;
-    }
-    this->way_az = weapoint_azimut;
-    weapoint.x = weapoint.x + (int)(weapoint_azimut * 1.2f) - (int)((360 - this->heading) * 1.2f) +
-                 (heading_pos.x + heading_size.x / 2);
-    if (weapoint.x < 0) {
-        weapoint.x += 432;
-    }
-    if (weapoint.x > 432) {
-        weapoint.x -= 432;
-    }
-
-    this->hud->small_hud->HEAD->SHP2->SetPosition(&weapoint);
-    fb->line((heading_pos.x + heading_size.x / 2), weapoint.y, (heading_pos.x + heading_size.x / 2), weapoint.y + 3,
-             223);
-    fb->drawShapeWithBox(this->hud->small_hud->HEAD->SHP2, heading_pos.x, bottom_right.x, heading_pos.y - 5,
-                         bottom_right.y);
-}
-void SCCockpit::RenderSpeed(Point2D speed_top_left = {115, 30}, FrameBuffer *fb = nullptr) {
-    if (!fb) {
-        fb = VGA.getFrameBuffer();
-    }
-    std::vector<Point2D> speed_band_roll;
-    Point2D speed_band_size = {20, 35};
-    Point2D bottom_right = {speed_top_left.x + speed_band_size.x, speed_top_left.y + speed_band_size.y};
-
-    std::string txt;
-    speed_band_roll.reserve(30);
-    for (int i = 0; i < 150; i++) {
-        Point2D p;
-        p.x = 0;
-        p.y = (150 - i) * 10;
-        speed_band_roll.push_back(p);
-    }
-    int cpt_speed = 1500;
-    for (auto sp : speed_band_roll) {
-        Point2D p = sp;
-        p.x = speed_top_left.x + 5;
-        p.y = (speed_top_left.y + this->hud->small_hud->ASPD->SHAP->GetHeight() / 2) - p.y + (int)this->speed;
-        if (p.y > speed_top_left.y + 1 && p.y < speed_top_left.y + this->hud->small_hud->ASPD->SHAP->GetHeight()) {
-            txt = std::to_string(cpt_speed);
-            fb->printText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-        }
-        if (cpt_speed % 5 == 0) {
-            if (p.y > 10 && p.y < 29 + this->hud->small_hud->ASPD->SHAP->GetHeight()) {
-                Point2D speed = {bottom_right.x - 5, speed_top_left.y};
-                speed.y = p.y;
-                this->hud->small_hud->ASPD->SHAP->SetPosition(&speed);
-                fb->drawShapeWithBox(this->hud->small_hud->ASPD->SHAP, speed_top_left.x, bottom_right.x,
-                                     speed_top_left.y - 10, bottom_right.y - 10);
-            }
-        }
-        cpt_speed -= 10;
-    }
-    Point2D speed_arrow = {bottom_right.x, speed_top_left.y + speed_band_size.y / 2};
-    fb->line(speed_arrow.x - 3, speed_arrow.y, speed_arrow.x, speed_arrow.y, 223);
-}
-/**
- * SCCockpit::RenderHudHorizonLinesSmall
- *
- * Renders the horizon lines of the Heads-Up Display (HUD) in the lower
- * left corner of the screen. The horizon lines are used to indicate the
- * orientation of the aircraft with respect to the horizon.
- *
- * The horizon lines are drawn with a set of HudLine objects, which are
- * transformed by the roll angle of the aircraft. The lines are also
- * clipped to the bounds of the HUD display area.
- *
- * This function is called by the SCCockpit::Render method.
- */
-void SCCockpit::RenderHudHorizonLinesSmall(Point2D center = {160, 50}, FrameBuffer *fb = nullptr) {
-    if (!fb) {
-        fb = VGA.getFrameBuffer();
-    }
-
-    const int dec = 0;
-
-    const int width = 50;
-    const int height = 78;
-
-    int bx1 = center.x - width / 2;
-    int bx2 = center.x + width / 2;
-    int by1 = center.y - height / 2;
-    int by2 = center.y + height / 2;
-
-    int top = by1;
-    int bottom = by2;
-    int left = bx1 + 5;
-    int ligne_width = width - 10;
-    std::string txt;
-    std::vector<HudLine> *hline = new std::vector<HudLine>();
-    hline->resize(36);
-    for (int i = 0; i < 36; i++) {
-        hline->at(i).start.x = horizon[i].start.x;
-        hline->at(i).start.y = (int)(horizon[i].start.y - ((360 - center.y) - this->pitch * 4)) % 720;
-        if (hline->at(i).start.y < 0) {
-            hline->at(i).start.y += 720;
-        }
-        hline->at(i).end.x = horizon[i].end.x;
-        hline->at(i).end.y = hline->at(i).start.y;
-    }
-
-    int ladder = 90;
-    for (auto h : *hline) {
-        HudLine l = h;
-        HudLine l2 = h;
-        l.start.x = l.start.x + left;
-        l.start.y = l.start.y - dec;
-        l.end.y = l.end.y - dec;
-        l.end.x = l.start.x + ligne_width / 4;
-
-        l2.start.x = l.start.x + ligne_width - ligne_width / 4;
-        l2.start.y = l2.start.y - dec;
-        l2.end.y = l2.end.y - dec;
-        l2.end.x = l.start.x + ligne_width;
-
-        l.start = l.start.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
-        l.end = l.end.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
-
-        l2.start = l2.start.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
-        l2.end = l2.end.rotateAroundPoint(center, this->roll * (float)M_PI / 180.0f);
-        txt = std::to_string(ladder);
-        if (l.start.x > bx1 && l.start.x < bx2 && l.start.y > by1 && l.start.y < by2) {
-            Point2D p = l.start;
-            p.y -= 2;
-            fb->printText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-        }
-        if (l2.end.x > bx1 && l2.end.x < bx2 && l2.end.y > by1 && l2.end.y < by2) {
-            Point2D p = l2.end;
-            p.x = p.x - 8;
-            p.y -= 2;
-            fb->printText(this->font, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-        }
-        int color = 223;
-        if (ladder == 0) {
-            HudLine l3 = h;
-            l3.start.x = l3.start.x + left - 5;
-            l3.start.y = l3.start.y - dec;
-            l3.end.y = l3.end.y - dec;
-            l3.end.x = l3.start.x + ligne_width + 10;
-            l3.start = l3.start.rotateAroundPoint( center, this->roll * (float)M_PI / 180.0f);
-            l3.end = l3.end.rotateAroundPoint( center, this->roll * (float)M_PI / 180.0f);
-            fb->lineWithBox(l3.start.x, l3.start.y, l3.end.x, l3.end.y, color, bx1, bx2, by1, by2);
-        } else {
-            int skip = 1;
-            if (ladder < 0) {
-                skip = 2;
-            }
-            fb->lineWithBoxWithSkip(l.start.x, l.start.y, l.end.x, l.end.y, color, bx1, bx2, by1, by2, skip);
-            fb->lineWithBoxWithSkip(l2.start.x, l2.start.y, l2.end.x, l2.end.y, color, bx1, bx2, by1, by2, skip);
-        }
-        ladder = ladder - 5;
-    }
-    hline->clear();
-    hline->shrink_to_fit();
-    delete hline;
-}
-
 void SCCockpit::RenderMFDS(Point2D mfds, FrameBuffer *fb = nullptr) {
     if (this->cockpit->MONI.SHAP.data == nullptr) {
         return;
@@ -1437,7 +1149,7 @@ void SCCockpit::RenderRAWSBig(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = n
         fb->line(pmfd_left.x, y, bottom_right.x, y, 0);
     }
     
-    fb->drawShape(&this->cockpit->MONI.INST.RAWS.ZOOM);
+    
     int heading = (int)this->heading;
     heading = (heading) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
@@ -1445,6 +1157,7 @@ void SCCockpit::RenderRAWSBig(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = n
     for (auto contact : this->current_mission->actors) {
         this->IdentifyRAWSContact(contact, fb, headingRad, pmfd_left, raws_size, true, rsize);
     }
+    fb->drawShape(&this->cockpit->MONI.INST.RAWS.ZOOM);
 }
 void SCCockpit::IdentifyRAWSContact(SCMissionActors *contact, FrameBuffer *fb = nullptr, float headingRad = 0.0f, Point2D pmfd_left = {84, 112}, Point2D raws_size = {0, 0}, bool is_zoomed = false, int rsize = 10) {
     if (!fb) {
@@ -1567,7 +1280,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = null
     for (int y = pmfd_left.y; y < bottom_right.y; y++) {
         fb->line(pmfd_left.x, y, bottom_right.x, y, 0);
     }
-    fb->drawShape(&this->cockpit->MONI.INST.RAWS.NORM);
+    
     int heading = (int)this->heading;
     heading = (heading + 360) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
@@ -1575,6 +1288,7 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = null
     for (auto contact : this->current_mission->actors) {
         this->IdentifyRAWSContact(contact, fb, headingRad, pmfd_left, raws_size, false, rsize);
     }
+    fb->drawShape(&this->cockpit->MONI.INST.RAWS.NORM);
 }
 
 void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nullptr) {
@@ -1965,136 +1679,7 @@ void SCCockpit::RenderHUD() {
     this->RenderHUD(hud_center, hud);
     
 }
-void SCCockpit::DeprecatedRenderHUD() {
-    FrameBuffer *hud = this->VGA.getFrameBuffer();
-    if (hud == nullptr) {
-        return;
-    }
-    hud->fillWithColor(255);
-    this->RenderHudHorizonLinesSmall({46, 44}, hud);
-    this->RenderAltitude({72, 24}, hud);
-    this->RenderSpeed({0, 24}, hud);
-    this->RenderHeading({22, 82}, hud);
 
-    std::string txt;
-    char speed_buffer[10];
-    Point2D g_load_text = {7, 14};
-    snprintf(speed_buffer, sizeof(speed_buffer), "%.2f", this->g_load);
-    txt = speed_buffer;
-    hud->printText(this->font, &g_load_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-    Point2D g_limit_text = {7, g_load_text.y + 5};
-    snprintf(speed_buffer, sizeof(speed_buffer), "%.2f", this->g_limit);
-    txt = speed_buffer;
-    hud->printText(this->font, &g_limit_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-
-    Point2D speed_text = {7, 24 + 40};
-    snprintf(speed_buffer, sizeof(speed_buffer), "%.3f", this->mach);
-    txt = speed_buffer;
-    hud->printText(this->font, &speed_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-    Point2D throttle_text = {7, speed_text.y + 5};
-    txt = std::to_string(this->throttle);
-    hud->printText(this->font, &throttle_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-
-    Point2D inrange_text = {7, throttle_text.y + 5};
-    Point2D weapons_text = {7 + 16, throttle_text.y + 10};
-    Point2D weapons_count_text = {7, weapons_text.y};
-    int weapons_count = 0;
-    bool in_range = false;
-    if (this->player_plane->weaps_load.size() == 0) {
-        txt = "NO WEAP";
-    } else {
-        if (this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
-            int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
-            for (auto weap : this->player_plane->weaps_load) {
-                if (weap != nullptr && weap->objct->wdat->weapon_id == weapon_id) {
-                    weapons_count += weap->nb_weap;
-                }
-            }
-            if (this->target != nullptr) {
-                uint32_t weap_range =
-                    this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
-                Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
-                float distance = dist_to_target.Length();
-                if (distance <= weap_range) {
-                    this->target_in_range = true;
-                }
-            } else {
-                this->target_in_range = false;
-            }
-            if (weapon_names.find(static_cast<weapon_ids>(weapon_id)) != weapon_names.end()) {
-                txt = weapon_names[static_cast<weapon_ids>(weapon_id)];
-            } else {
-                txt = "UNKNOWN";
-            }
-        } else {
-            txt = "NO WEAP";
-        }
-    }
-    hud->printText(this->font, &weapons_text, const_cast<char *>(txt.c_str()), 0, 0, (uint32_t)txt.length(), 2, 2);
-    Point2D center = {hud->width / 2, hud->height / 2};
-    center.x -= this->hud->small_hud->LADD->VECT->SHAP->GetWidth() / 2;
-    center.y -= this->hud->small_hud->LADD->VECT->SHAP->GetHeight() / 2;
-    center.x += (int)(this->player_plane->ax * 1000.0f);
-    center.y -= (int)(this->player_plane->ay * 100.0f);
-    this->hud->small_hud->LADD->VECT->SHAP->SetPosition(&center);
-    hud->drawShapeWithBox(this->hud->small_hud->LADD->VECT->SHAP, 0, hud_framebuffer->width, 0,
-                          hud_framebuffer->height);
-    if (weapons_count > 0) {
-        txt = std::to_string(weapons_count);
-    } else {
-        txt = "0";
-    }
-    hud->printText(this->font, &weapons_count_text, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
-    if (this->target_in_range) {
-        hud->printText(this->font, &inrange_text, const_cast<char *>("IN RANGE"), 0, 0, 8, 2, 2);
-    }
-    if (this->target != nullptr) {
-        Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
-        float distance = dist_to_target.Length();
-        std::ostringstream oss;
-        oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << distance / 1000.0f;
-        std::string s = "R"+oss.str();
-        Point2D target_distance_text = {72, inrange_text.y};
-        hud->printText(this->font, &target_distance_text, (char *)s.c_str(), 0, 0, (uint32_t)s.length(), 2, 2);
-    }
-    Point2D gear = {75, 9};
-    Point2D flaps = {75, gear.y + 5};
-    Point2D break_text = {75, flaps.y + 5};
-    if (this->gear) {
-        hud->printText(this->font, &gear, const_cast<char *>("GEARS"), 0, 0, 5, 2, 2);
-    }
-
-    if (this->flaps) {
-        hud->printText(this->font, &flaps, const_cast<char *>("FLAPS"), 0, 0, 5, 2, 2);
-    }
-
-    if (this->airbrake) {
-        hud->printText(this->font, &break_text, const_cast<char *>("BREAKS"), 0, 0, 6, 2, 2);
-    }
-    Point2D pcenter = {hud->width / 2, hud->height / 2};
-    hud->plot_pixel(pcenter.x, pcenter.y, 223);
-
-    // Reticle de gun: dessiné dans le même framebuffer que le HUD (important pour cockpit 3D/VR).
-    if (this->player_plane->weaps_load.size() > 0 &&
-        this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
-        int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
-        if (weapon_id == ID_20MM) {
-            this->RenderTargetingReticle(hud, nullptr, {0,0},{320,200});
-        }
-        if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
-            this->RenderBombSight(hud);
-        }
-    }
-    float distance = 0.0f;
-    Vector2D planepos = {this->player_plane->position.x, this->player_plane->position.z};
-    Vector2D dist_to_waypoint = this->weapoint_coords - planepos;
-    distance = dist_to_waypoint.Length();
-    std::ostringstream oss;
-    oss << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) << distance / 1000.0f;
-    std::string s = "D"+oss.str();
-    Point2D target_distance_text = {72, 24+45};
-    hud->printText(this->font, &target_distance_text, (char *)s.c_str(), 0, 0, (uint32_t)s.length(), 2, 2);
-}
 void SCCockpit::RenderAlti(Point2D pmfd_left = {177, 179}, FrameBuffer *fb = nullptr) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
@@ -2378,14 +1963,34 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
         if (this->face == CockpitFace::CP_BIG) {
             lcos = this->hud->large_hud->LCOS;
         }
-        if (weapon_id == ID_20MM) {
-            this->RenderTargetingReticle(fb, lcos, hud_top_left, hud_bottom_right);
+        switch (this->weapon_mode) {
+            case Hud_weapon_mode::WM_HUD_LCOS:
+                this->RenderTargetingReticle(fb, lcos, hud_top_left, hud_bottom_right);
+                break;
+            case Hud_weapon_mode::WM_HUD_CCIP:
+                this->RenderBombSight(fb);
+                break;
+            case Hud_weapon_mode::WM_HUD_CCRP:
+                // Non implémenté : viseur de type CCRP (pour les bombes guidées)
+                break;
+            case Hud_weapon_mode::WM_HUD_IRST:
+                // Non implémenté : viseur de type IRST (pour les missiles à guidage infrarouge)
+                break;
+            case Hud_weapon_mode::WM_HUD_SRM:
+                // Non implémenté : mode de tir SRM (Short Range Missile) pour les missiles à courte portée
+                break;
+            case Hud_weapon_mode::WM_HUD_LRM:
+                // Non implémenté : mode de tir LRM (Long Range Missile) pour les missiles à longue portée
+                break;
+            case Hud_weapon_mode::WM_HUD_STRAF:
+                // Non implémenté : mode de tir STRAF (pour les canons et mitrailleuses)
+                break;
+            case Hud_weapon_mode::WM_HUD_NONE:
+                break;
+            default:
+                break;
         }
-        if (weapon_id == ID_MK20 || weapon_id == ID_MK82 || weapon_id == ID_DURANDAL) {
-            this->RenderBombSight(fb);
-        }
-    }
-    
+    }    
 }
 void SCCockpit::RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSFont *font) {
     if (!fb) {
