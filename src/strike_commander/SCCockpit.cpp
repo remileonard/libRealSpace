@@ -1971,7 +1971,7 @@ void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuff
     std::string value = this->hud_text_tags[name];
     fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 2, 2);
 }
-void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud) {
+void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
@@ -1998,7 +1998,32 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud) {
         hud->MISD->SHAP->SetPosition(&msd_pos);
         fb->drawShape(hud->MISD->SHAP);
     } else {
-        this->RenderTargetWithCam();
+        //this->RenderTargetWithCam();
+        int target_screen_x, target_screen_y;
+        int hud_width = hudBottomRight.x - hudTopLeft.x;
+        int hud_height = hudBottomRight.y - hudTopLeft.y;
+        int hud_center_x = hud_width / 2;
+        int hud_center_y = hud_height / 2;
+        if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
+            target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
+            target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
+            RLEShape *tg = hud->TARG->SHAPSET->GetShape(1);
+            int shape_width = tg->GetWidth();
+            int shape_height = tg->GetHeight();
+            Point2D target_pos = {target_screen_x, target_screen_y};
+            target_pos.x -= shape_width / 2;
+            target_pos.y -= shape_height / 2;
+            tg->SetPosition(&target_pos);
+            fb->drawShape(tg);
+            if (this->target_in_range) {
+                Point2D tmsd_pos = {target_screen_x, target_screen_y};
+                tmsd_pos.x -= hud->MISD->SHAP->GetWidth() / 2;
+                tmsd_pos.y -= hud->MISD->SHAP->GetHeight() / 2;
+                hud->MISD->SHAP->SetPosition(&tmsd_pos);
+                fb->drawShape(hud->MISD->SHAP);
+            }
+            fb->line(position.x, position.y, target_screen_x, target_screen_y, 223);
+        }
     }
 }
 void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
@@ -2066,7 +2091,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 break;
             case Hud_weapon_mode::WM_HUD_SRM:
             case Hud_weapon_mode::WM_HUD_LRM:
-                this->RenderMissileHud(position, fb, hud);
+                this->RenderMissileHud(position, fb, hud, hud_top_left, hud_bottom_right, hud_center);
                 break;
             case Hud_weapon_mode::WM_HUD_STRAF:
                 // Non implémenté : mode de tir STRAF (pour les canons et mitrailleuses)
