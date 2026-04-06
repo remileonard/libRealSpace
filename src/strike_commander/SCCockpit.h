@@ -42,6 +42,8 @@ private:
     std::unordered_map<std::string, std::string> hud_text_tags;
     bool palette_lut_dirty = true;
     int current_weapon_id{-1};
+    Camera cockpit_camera;
+    
 public:
     VGAPalette palette;
     RSCockpit* cockpit{nullptr};

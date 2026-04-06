@@ -149,7 +149,7 @@ void SCStrike::renderVirtualCockpit() {
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
 
-    this->cockpit->hud_eye_world = {0.0f,0.0f,0.0f};
+    
     this->cockpit->cannonAngularOffset = gunsight_hud_offset;
     CockpitFace prev_face = this->cockpit->face;
     this->cockpit->face = CockpitFace::CP_BIG;
@@ -838,6 +838,7 @@ void SCStrike::checkKeyboard(void) {
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
         this->camera_mode = View::TARGET;
+        this->cockpit->hud_eye_world.y = -40.0f;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND))) {
         if (this->camera_mode != View::FOLLOW) {
@@ -852,6 +853,9 @@ void SCStrike::checkKeyboard(void) {
         this->mouse_control = false;
         this->zoom_cockpit = false;
         this->camera_mode = View::REAL;
+        this->cockpit->hud_eye_world.x = 0.0f;
+        this->cockpit->hud_eye_world.y = 40.0f;  
+        this->cockpit->hud_eye_world.z = 0.0f;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {
         if (this->cockpit->radar_mode == RadarMode::AARD) {
@@ -869,6 +873,7 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_FORWARD))) {
         this->camera_mode = View::FRONT;
+        this->cockpit->hud_eye_world = {0.0f,0.0f,0.0f};
         if (this->zoom_cockpit) {
             zoom_cockpit = false;
         } else {

@@ -13,11 +13,11 @@
 #include <climits>
 
 bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
-    Vector3D campos = this->cam->getPosition();
+    Vector3D campos = this->cockpit_camera.getPosition();
     Vector3DHomogeneous v = {coord.x, coord.y, coord.z, 1.0f};
 
-    Matrix *mproj = this->cam->getProjectionMatrix();
-    Matrix *mview = this->cam->getViewMatrix();
+    Matrix *mproj = this->cockpit_camera.getProjectionMatrix();
+    Matrix *mview = this->cockpit_camera.getViewMatrix();
 
     Vector3DHomogeneous mcombined = mview->multiplyMatrixVector(v);
     Vector3DHomogeneous result = mproj->multiplyMatrixVector(mcombined);
@@ -27,11 +27,16 @@ bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
 
         Xout = (int)((x + 1.0f) * 160.0f);
         Yout = (int)((1.0f - y - 0.45f) * 100.0f) - 1;
+        if (this->hud_eye_world.y != 0) {
+            Yout += 40;
+        }
         return true;
     }
     return false;
 }
-SCCockpit::SCCockpit() {}
+SCCockpit::SCCockpit() {
+    this->cockpit_camera.setPersective(45.0f, 320.0f / 200.0f, 0.1f, 10000.0f);
+}
 SCCockpit::~SCCockpit() {
     if (this->hud_framebuffer) {
         delete this->hud_framebuffer;
@@ -641,6 +646,18 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
             fb->lineWithBox(Xlead + diamond_size, Ylead, Xlead, Ylead + diamond_size, 223, 0, 320, 0, 200);
             fb->lineWithBox(Xlead, Ylead + diamond_size, Xlead - diamond_size, Ylead, 223, 0, 320, 0, 200);
             fb->lineWithBox(Xlead - diamond_size, Ylead, Xlead, Ylead - diamond_size, 223, 0, 320, 0, 200);
+        }
+
+        int Xtarget = 0, Ytarget = 0;
+        if (project_to_screen(this->target->position, Xtarget, Ytarget)) {
+            Xtarget = Xtarget - hudCenter.x + hud_center_x + hudTopLeft.x;
+            Ytarget = Ytarget - hudCenter.y + hud_center_y + hudTopLeft.y;
+            // Dessine un carré autour de la position actuelle de la cible
+            int box_size = 3;
+            fb->lineWithBox(Xtarget - box_size, Ytarget - box_size, Xtarget + box_size, Ytarget - box_size, 223, 0, 320, 0, 200);
+            fb->lineWithBox(Xtarget + box_size, Ytarget - box_size, Xtarget + box_size, Ytarget + box_size, 223, 0, 320, 0, 200);
+            fb->lineWithBox(Xtarget + box_size, Ytarget + box_size, Xtarget - box_size, Ytarget + box_size, 223, 0, 320, 0, 200);
+            fb->lineWithBox(Xtarget - box_size, Ytarget + box_size, Xtarget - box_size, Ytarget - box_size, 223, 0, 320, 0, 200);
         }
     }
 
@@ -1419,9 +1436,7 @@ void SCCockpit::Render(CockpitFace face) {
                 fb->blit(this->hud_framebuffer->framebuffer, hud_pos.x, hud_pos.y , this->hud_framebuffer->width,
                             this->hud_framebuffer->height);
             }
-            if (this->target != this->player) {
-                this->RenderTargetWithCam();
-            }
+
         }
         if (this->face == CockpitFace::CP_BIG) {
             if (this->hud != nullptr) {
@@ -1433,9 +1448,6 @@ void SCCockpit::Render(CockpitFace face) {
                 };
                 fb->blit(this->hud_framebuffer->framebuffer, hud_pos.x, hud_pos.y , this->hud_framebuffer->width,
                             this->hud_framebuffer->height);
-            }
-            if (this->target != this->player) {
-                this->RenderTargetWithCam();
             }
         }
         fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
@@ -1689,6 +1701,21 @@ void SCCockpit::Update() {
     this->hud_text_tags["SPDB"]= this->player_plane->GetSpoilers() > 0 ? "BREAK" : "";
     this->hud_text_tags["THRO"]= std::to_string(this->player_plane->GetThrottle());
     this->hud_text_tags["CALA"]= "T";
+    Vector3D camera_position = this->player->position;
+    this->cockpit_camera.SetPosition(&camera_position);
+    this->cockpit_camera.resetRotate();
+    this->cockpit_camera.rotate(
+        -tenthOfDegreeToRad(this->player_plane->elevationf),
+        -tenthOfDegreeToRad(this->player_plane->azimuthf),
+        -tenthOfDegreeToRad(this->player_plane->twist)
+    );
+    if (this->face == CockpitFace::CP_FRONT) {
+        this->cockpit_camera.fovy = 45.0f;
+    } else if (this->face == CockpitFace::CP_BIG) {
+        this->cockpit_camera.fovy = 30.0f;
+    }
+    this->cockpit_camera.update();
+
 }
 void SCCockpit::RenderHUD() {
     FrameBuffer *hud = this->hud_framebuffer;
