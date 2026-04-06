@@ -154,7 +154,7 @@ void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb
                 targetPoint.y = targetPoint.y - targetShape->GetHeight() / 2;
                 targetShape->SetPosition(&targetPoint);
                 fb->drawShape(targetShape);
-                if (this->target_in_range) {
+                if (this->target_in_range && this->current_weapon_id != weapon_ids::ID_20MM) {
                     RLEShape *inRangeShape = this->hud->small_hud->MISD->SHAP;
                     Point2D inRangePos = {hudX + top_left.x, hudY + top_left.y};
                     inRangePos.x = inRangePos.x - inRangeShape->GetWidth() / 2;
@@ -226,6 +226,7 @@ static bool projectToHUD3D(const Vector3D &targetLocal, const Vector3D &eyeLocal
                            FrameBuffer *fb, int &outX, int &outY) {
     // Direction depuis l'œil vers la cible (normalisée pour un HUD collimaté à l'infini)
     Vector3D dir = targetLocal - eyeLocal;
+
     float dirLen = dir.Length();
     if (dirLen < 0.001f)
         return false;
@@ -372,7 +373,11 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
-void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight) {
+void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
+    int hud_width = hudBottomRight.x - hudTopLeft.x;
+    int hud_height = hudBottomRight.y - hudTopLeft.y;
+    int hud_center_x = hud_width / 2;
+    int hud_center_y = hud_height / 2;
     if (reticleShape == nullptr) {
         reticleShape = this->hud->small_hud->LCOS;
     }
@@ -560,13 +565,18 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
 
     int Xdraw = 0, Ydraw = 0;
-    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw, Ydraw)) {
+    //if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw, Ydraw)) {
+    if (project_to_screen(impactWorld, Xdraw, Ydraw)) {
+        
+        
+        Xdraw = Xdraw - hudCenter.x + hud_center_x + hudTopLeft.x;
+        Ydraw = Ydraw - hudCenter.y + hud_center_y + hudTopLeft.y;
         Point2D gun_piper= {Xdraw, Ydraw};
         RLEShape *s = reticleShape->SHAPSET->GetShape(0);
         int shapeWidth = s->GetWidth();
         int shapeHeight = s->GetHeight();
-        gun_piper.x -= shapeWidth / 2;
-        gun_piper.y -= shapeHeight / 2;
+        gun_piper.x -= (1+shapeWidth / 2);
+        gun_piper.y -= (-1+shapeHeight / 2);
         s->SetPosition(&gun_piper);
         fb->drawShapeWithBox(s, hudTopLeft.x, hudBottomRight.x, hudTopLeft.y, hudBottomRight.y);
         int distance_to_target_index = target_distance*3.2808399f / 1000;
@@ -609,8 +619,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         if (distance_to_target_index != 0 && distance_to_target_index != 20) {
             RLEShape *distance = reticleShape->SHAPSET->GetShape(distance_to_target_shape[distance_to_target_index]);
             Point2D anchor = {Xdraw, Ydraw};
-            anchor.x -= distance->leftDist;
-            anchor.y -= offset_y;
+            anchor.x -= distance->leftDist+1;
+            anchor.y -= offset_y-1;
 
             distance->SetPosition(&anchor);
             fb->drawShapeWithBox(distance, hudTopLeft.x, hudBottomRight.x, hudTopLeft.y, hudBottomRight.y);
@@ -621,7 +631,10 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     // On projette la position future de la cible (avec lead)
     if (this->target != nullptr) {
         int Xlead = 0, Ylead = 0;
-        if (projectCannonSightToHUD(predictedTargetPos, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xlead, Ylead)) {
+        //if (projectCannonSightToHUD(predictedTargetPos, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xlead, Ylead)) {
+        if (project_to_screen(predictedTargetPos, Xlead, Ylead)) {
+            Xlead = Xlead - hudCenter.x + hud_center_x + hudTopLeft.x;
+            Ylead = Ylead - hudCenter.y + hud_center_y + hudTopLeft.y;
             // Dessine un losange/diamond autour de la position prédite de la cible
             int diamond_size = 4;
             fb->lineWithBox(Xlead, Ylead - diamond_size, Xlead + diamond_size, Ylead, 223, 0, 320, 0, 200);
@@ -656,7 +669,11 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     }
     delete weap;
 }
-void SCCockpit::RenderBombSight(FrameBuffer *fb) {
+void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
+    int hud_width = hudBottomRight.x - hudTopLeft.x;
+    int hud_height = hudBottomRight.y - hudTopLeft.y;
+    int hud_center_x = hud_width / 2;
+    int hud_center_y = hud_height / 2;
     // Par défaut, on dessine dans la texture HUD si elle existe
     if (!fb) {
         fb = (this->hud_framebuffer != nullptr) ? this->hud_framebuffer : VGA.getFrameBuffer();
@@ -708,7 +725,10 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb) {
     const Vector2D bombAngularOffset = {0.0f, 0.0f};
 
     int Xhud = 0, Yhud = 0;
-    if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xhud, Yhud)) {
+    if (project_to_screen(impactWorld, Xhud, Yhud)) {
+        Xhud = Xhud - hudCenter.x + hud_center_x + hudTopLeft.x;
+        Yhud = Yhud - hudCenter.y + hud_center_y + hudTopLeft.y;
+
         fb->plot_pixel(center.x, center.y, 223);
         fb->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
         fb->plot_pixel(Xhud, Yhud, 223);
@@ -1600,6 +1620,7 @@ void SCCockpit::Update() {
             } else {
                 txt = "UNKNOWN";
             }
+            current_weapon_id = weapon_id;
         } else {
             txt = "NO WEAP";
         }
@@ -1923,13 +1944,44 @@ void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuff
     std::string value = this->hud_text_tags[name];
     fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 2, 2);
 }
+void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    static float msd_x = position.x;
+    static float msd_y = position.y;
+    int circle_size = hud->CIRC->radius;
+    fb->circle_slow(position.x, position.y, circle_size, 223);
+    static float x_sign = 0.5f;
+    static float y_sign = 0.1f;
+    if (this->target == nullptr) {
+        msd_x += x_sign;
+        if (x_sign == 0.5f && msd_x > circle_size+position.x) {
+            x_sign = -0.5f;
+        } else if (x_sign == -0.5f && msd_x < (position.x-circle_size)) {
+            x_sign = 0.5f;
+        }
+        if (y_sign == 0.1f && msd_y > circle_size+position.y) {
+            y_sign = -0.1f;
+        } else if (y_sign == -0.1f && msd_y < (position.y-circle_size)) {
+            y_sign = 0.1f;
+        }
+        msd_y += y_sign;
+        Point2D msd_pos = {(int)msd_x, (int)msd_y};
+        hud->MISD->SHAP->SetPosition(&msd_pos);
+        fb->drawShape(hud->MISD->SHAP);
+    } else {
+        this->RenderTargetWithCam();
+    }
+}
 void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
     if (!fb) {
         fb = VGA.getFrameBuffer();
     }
     Point2D hud_top_left;
     Point2D hud_bottom_right;
-    int circle_size = 0;
+    Point2D hud_center;
+    CHUD *hud = nullptr;
     switch (this->face) {
         case CockpitFace::CP_FRONT:
             this->RenderTextTags(position, fb, this->hud->small_hud, this->font);
@@ -1941,7 +1993,11 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 position.x + this->hud->small_hud->HINF->right,
                 position.y + this->hud->small_hud->HINF->bottom
             };
-            circle_size = this->hud->small_hud->CIRC->radius;
+            hud_center = {
+                this->hud->small_hud->HINF->center_x,
+                this->hud->small_hud->HINF->center_y
+            };
+            hud = this->hud->small_hud;
         break;
         case CockpitFace::CP_BIG:
             this->RenderTextTags(position, fb, this->hud->large_hud, this->big_font);
@@ -1953,7 +2009,11 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 position.x + this->hud->large_hud->HINF->right,
                 position.y + this->hud->large_hud->HINF->bottom
             };
-            circle_size = this->hud->large_hud->CIRC->radius;
+            hud_center = {
+                this->hud->large_hud->HINF->center_x,
+                this->hud->large_hud->HINF->center_y
+            };
+            hud = this->hud->large_hud;
         default:
         break;
     }
@@ -1966,10 +2026,10 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
         }
         switch (this->weapon_mode) {
             case Hud_weapon_mode::WM_HUD_LCOS:
-                this->RenderTargetingReticle(fb, lcos, hud_top_left, hud_bottom_right);
+                this->RenderTargetingReticle(fb, lcos, hud_top_left, hud_bottom_right, hud_center);
                 break;
             case Hud_weapon_mode::WM_HUD_CCIP:
-                this->RenderBombSight(fb);
+                this->RenderBombSight(fb,hud_top_left, hud_bottom_right, hud_center);
                 break;
             case Hud_weapon_mode::WM_HUD_CCRP:
                 // Non implémenté : viseur de type CCRP (pour les bombes guidées)
@@ -1978,12 +2038,8 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 // Non implémenté : viseur de type IRST (pour les missiles à guidage infrarouge)
                 break;
             case Hud_weapon_mode::WM_HUD_SRM:
-                fb->circle_slow(position.x, position.y, circle_size, 223); // Cercle de visée pour les missiles à courte portée
-                // Non implémenté : mode de tir SRM (Short Range Missile) pour les missiles à courte portée
-                break;
             case Hud_weapon_mode::WM_HUD_LRM:
-                fb->circle_slow(position.x, position.y, circle_size, 223); // Cercle de visée pour les missiles à longue portée
-                // Non implémenté : mode de tir LRM (Long Range Missile) pour les missiles à longue portée
+                this->RenderMissileHud(position, fb, hud);
                 break;
             case Hud_weapon_mode::WM_HUD_STRAF:
                 // Non implémenté : mode de tir STRAF (pour les canons et mitrailleuses)

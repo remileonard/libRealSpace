@@ -27,9 +27,10 @@ private:
     std::vector<HudLine> horizon;
     bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
     void IdentifyRAWSContact(SCMissionActors *actor, FrameBuffer *fb, float headingRad, Point2D pmfd_left, Point2D raws_size, bool is_zoomed, int rsize);
-    void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight);
-    void RenderBombSight(FrameBuffer* fb = nullptr);
+    void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
+    void RenderBombSight(FrameBuffer* fb, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
+    void RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud);
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
     void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
     void BuildPaletteLUT();
@@ -40,6 +41,7 @@ private:
     std::unordered_map<uint32_t, uint8_t> palette_lut;
     std::unordered_map<std::string, std::string> hud_text_tags;
     bool palette_lut_dirty = true;
+    int current_weapon_id{-1};
 public:
     VGAPalette palette;
     RSCockpit* cockpit{nullptr};
