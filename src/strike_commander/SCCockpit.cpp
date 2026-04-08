@@ -12,69 +12,42 @@
 #include <algorithm>
 #include <climits>
 
-/**
- * projectCannonSightToHUD - Version simplifiée pour le viseur de cannon
- *
- * Utilise une approche angulaire adaptée au cockpit 3D:
- * - Calcule la direction vers la cible depuis la position du cannon (pas l'œil)
- * - Projette cette direction sur le HUD selon son champ de vision angulaire
- * - Tient compte de la parallaxe entre l'œil du pilote et le cannon
- *
- * @param targetWorld     Point cible en coordonnées monde
- * @param planeFromWorld  Matrice inverse de transformation avion (monde -> local)
- * @param eyeLocal        Position de l'œil en coordonnées locales cockpit
- * @param cannonOffset    Offset angulaire du cannon en radians (azimut, élévation)
- * @param fb              FrameBuffer du HUD
- * @param outX, outY      Coordonnées de sortie en pixels
- * @return true si le point est visible sur le HUD
- */
-static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &planeFromWorld, const Vector3D &eyeLocal,
-                                    const Vector2D &cannonAngularOffset, // (azimut_offset, elevation_offset) en radians
-                                    FrameBuffer *fb, int &outX, int &outY) {
-    // Transformer la cible dans le repère local de l'avion
-    Vector3D worldPos = targetWorld;
-    Vector3D targetLocal = worldPos.transformPoint(planeFromWorld);
+static bool projectRealToHUD( Vector3D targetWorld,  Matrix planeFromWorld,  Vector3D eyeLocal,
+                              FrameBuffer *fb, int &outX, int &outY) {
+    // Transform target into plane local frame (-Z = forward, X = right, Y = up)
+    Vector3D targetLocal = targetWorld.transformPoint(planeFromWorld);
 
-    // Direction depuis l'origine de l'avion vers la cible dans le repère local
-    Vector3D toTarget = targetLocal;
+    // Direction from eye to target
+    Vector3D dir = {
+        targetLocal.x - eyeLocal.x,
+        targetLocal.y - eyeLocal.y,
+        targetLocal.z - eyeLocal.z
+    };
 
-    // Dans le repère cockpit:
-    // -Z = devant l'avion (forward)
-    // X = droite/gauche (positif = droite)
-    // Y = vers le haut (positif = haut)
-
-    // La composante -Z doit être positive (cible devant)
-    const float forward = -toTarget.z;
+    // -Z = devant : dir.z doit être négatif pour que la cible soit devant
+    const float forward = -dir.z;
     if (forward <= 0.001f)
         return false;
 
-    // Calcul des angles azimut (horizontal) et élévation (vertical)
-    // depuis l'axe de visée (-Z) du cockpit
-    float az = atan2f(toTarget.x, forward); // Angle horizontal (X = droite/gauche)
-    float el = atan2f(toTarget.y, forward); // Angle vertical (Y = haut/bas)
+    // Géométrie du quad HUD dans le repère local (-Z=avant)
+    // Le quad est dans le plan Z = -quadDist
+    const float quadDist = (5.8f + 6.0f) * 0.5f; // 5.9 unités devant l'œil
+    const float quadXmin = -1.22f, quadXmax = 1.35f; // latéral (X_local)
+    const float quadYmin = -0.8f,  quadYmax = 2.0f;  // vertical (Y_local)
 
-    // Appliquer l'offset angulaire du cannon
-    // Le cannon pointe légèrement différemment de l'axe de l'avion
-    az += cannonAngularOffset.x; // Correction azimut
-    el += cannonAngularOffset.y; // Correction élévation (cannon plus bas = élévation négative)
+    // Intersection rayon avec le plan Z = -quadDist
+    // eyeLocal.z + t * dir.z = -quadDist  =>  t = (-quadDist - eyeLocal.z) / dir.z
+    float t = (-quadDist - eyeLocal.z) / dir.z;
 
-    float fovX = 2*atanf((1.35f - (-1.22f))/2.0f / 8.0f); 
-    float fovY = 2*atanf((2.0f - (-0.8f))/2.0f / 8.0f);
-    const float hudFovX = fovX; // ~24° horizontal
-    const float hudFovY = fovY; // ~26° vertical
+    float xHit = eyeLocal.x + t * dir.x;
+    float yHit = eyeLocal.y + t * dir.y;
 
-    // Normaliser les angles dans [-1, 1]
-    const float nx = az / (hudFovX * 0.5f);
-    const float ny = el / (hudFovY * 0.5f);
+    // Mapping UV -> pixels HUD
+    float u = (xHit - quadXmin) / (quadXmax - quadXmin); // 0=gauche, 1=droite
+    float v = (quadYmax - yHit) / (quadYmax - quadYmin); // 0=haut, 1=bas (Y inversé)
 
-    // Centre du HUD en pixels
-    const float cx = (fb->width - 1) * 0.5f;
-    const float cy = (fb->height - 1) * 0.5f;
-
-    // Convertir en coordonnées pixels
-    // Note: Y est inversé car l'origine du framebuffer est en haut
-    outX = (int)(cx + nx * cx);
-    outY = (int)(cy - ny * cy);
+    outX = (int)(u * (fb->width  - 1));
+    outY = (int)(v * (fb->height - 1));
 
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
@@ -82,7 +55,7 @@ static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &p
 bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
     if (this->hud_eye_world.y != 0) {
         Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
-        return projectCannonSightToHUD(coord, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, this->hud_framebuffer, Xout, Yout);
+        return projectRealToHUD(coord, planeFromWorld, {0,0,0}, this->hud_framebuffer, Xout, Yout);
     }
     Vector3D campos = this->cockpit_camera.getPosition();
     Vector3DHomogeneous v = {coord.x, coord.y, coord.z, 1.0f};
@@ -272,114 +245,6 @@ static bool projectLocalAnglesToHud(const Vector3D &vLocal, FrameBuffer *fb, int
 
     outX = (int)(cx + nx * cx);
     outY = (int)(cy - ny * cy);
-    return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
-}
-
-/**
- * projectToHUD3D - Projette un point 3D monde sur le HUD virtuel du cockpit 3D
- *
- * Cette fonction calcule où un point cible (comme un viseur de cannon) doit
- * apparaître sur le HUD en prenant en compte:
- * - La position de l'œil du pilote dans le cockpit
- * - La géométrie réelle du HUD (plan 3D)
- * - La direction depuis l'œil vers la cible
- *
- * Principe: On trace un rayon depuis l'œil vers la cible à l'infini,
- * et on calcule l'intersection avec le plan du HUD.
- *
- * @param targetLocal     Point cible en coordonnées locales de l'avion
- * @param eyeLocal        Position de l'œil du pilote en coordonnées locales
- * @param hudTopLeft      Coin supérieur gauche du HUD en coords locales (depuis renderVirtualCockpit)
- * @param hudTopRight     Coin supérieur droit du HUD
- * @param hudBottomRight  Coin inférieur droit du HUD
- * @param hudBottomLeft   Coin inférieur gauche du HUD
- * @param fb              FrameBuffer du HUD
- * @param outX, outY      Coordonnées de sortie en pixels HUD
- * @return true si le point est visible sur le HUD
- */
-static bool projectToHUD3D(const Vector3D &targetLocal, const Vector3D &eyeLocal, const Vector3D &hudTopLeft,
-                           const Vector3D &hudTopRight, const Vector3D &hudBottomRight, const Vector3D &hudBottomLeft,
-                           FrameBuffer *fb, int &outX, int &outY) {
-    // Direction depuis l'œil vers la cible (normalisée pour un HUD collimaté à l'infini)
-    Vector3D dir = targetLocal - eyeLocal;
-
-    float dirLen = dir.Length();
-    if (dirLen < 0.001f)
-        return false;
-    dir = dir * (1.0f / dirLen);
-
-    // La cible doit être devant (X positif dans le repère cockpit où X pointe vers l'avant)
-    // Note: adapter selon votre convention d'axes
-    if (dir.x <= 0.001f)
-        return false;
-
-    // Calcul du plan du HUD à partir de ses 4 coins
-    // Le HUD est défini par hudTopLeft, hudTopRight, hudBottomRight, hudBottomLeft
-    // On utilise 2 vecteurs du plan pour calculer la normale
-    Vector3D hudRight = hudTopRight - hudTopLeft;
-    Vector3D hudDown = hudBottomLeft - hudTopLeft;
-
-    // Normale du plan HUD (produit vectoriel)
-    Vector3D normal;
-    normal.x = hudRight.y * hudDown.z - hudRight.z * hudDown.y;
-    normal.y = hudRight.z * hudDown.x - hudRight.x * hudDown.z;
-    normal.z = hudRight.x * hudDown.y - hudRight.y * hudDown.x;
-
-    float normalLen = normal.Length();
-    if (normalLen < 0.001f)
-        return false;
-    normal = normal * (1.0f / normalLen);
-
-    // Équation du plan: normal · (P - hudTopLeft) = 0
-    // D = -normal · hudTopLeft
-    float D = -(normal.x * hudTopLeft.x + normal.y * hudTopLeft.y + normal.z * hudTopLeft.z);
-
-    // Intersection rayon-plan
-    // Rayon: P = eyeLocal + t * dir
-    // Plan: normal · P + D = 0
-    // => normal · (eyeLocal + t * dir) + D = 0
-    // => t = -(normal · eyeLocal + D) / (normal · dir)
-
-    float denom = normal.x * dir.x + normal.y * dir.y + normal.z * dir.z;
-    if (fabsf(denom) < 0.0001f)
-        return false; // Rayon parallèle au plan
-
-    float t = -(normal.x * eyeLocal.x + normal.y * eyeLocal.y + normal.z * eyeLocal.z + D) / denom;
-
-    // Le HUD doit être devant l'œil
-    if (t < 0.0f)
-        return false;
-
-    // Point d'intersection sur le plan du HUD
-    Vector3D hitPoint;
-    hitPoint.x = eyeLocal.x + t * dir.x;
-    hitPoint.y = eyeLocal.y + t * dir.y;
-    hitPoint.z = eyeLocal.z + t * dir.z;
-
-    // Convertir le point d'intersection en coordonnées UV du HUD [0, 1]
-    // Vecteur du coin supérieur gauche vers le point d'intersection
-    Vector3D toHit = hitPoint - hudTopLeft;
-
-    // Projection sur les axes du HUD
-    float hudWidth = hudRight.Length();
-    float hudHeight = hudDown.Length();
-
-    if (hudWidth < 0.001f || hudHeight < 0.001f)
-        return false;
-
-    // Normaliser les vecteurs du HUD
-    Vector3D hudRightNorm = hudRight * (1.0f / hudWidth);
-    Vector3D hudDownNorm = hudDown * (1.0f / hudHeight);
-
-    // Coordonnées UV (projection du point sur les axes du HUD)
-    float u = (toHit.x * hudRightNorm.x + toHit.y * hudRightNorm.y + toHit.z * hudRightNorm.z) / hudWidth;
-    float v = (toHit.x * hudDownNorm.x + toHit.y * hudDownNorm.y + toHit.z * hudDownNorm.z) / hudHeight;
-
-    // Convertir en coordonnées pixels
-    outX = (int)(u * (fb->width - 1));
-    outY = (int)(v * (fb->height - 1));
-
-    // Vérifier si dans les limites du HUD
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
 
@@ -646,7 +511,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         if (project_to_screen(predictedTargetPos, Xlead, Ylead)) {
             if (this->hud_eye_world.y == 0) {
                 Xlead = Xlead - hudCenter.x + hud_center_x + hudTopLeft.x;
-                Xlead = Xlead - hudCenter.y + hud_center_y + hudTopLeft.y;
+                Ylead = Ylead - hudCenter.y + hud_center_y + hudTopLeft.y;
             }
             // Dessine un losange/diamond autour de la position prédite de la cible
             int diamond_size = 4;
