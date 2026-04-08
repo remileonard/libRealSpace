@@ -838,7 +838,6 @@ void SCStrike::checkKeyboard(void) {
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
         this->camera_mode = View::TARGET;
-        this->cockpit->hud_eye_world.y = -40.0f;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND))) {
         if (this->camera_mode != View::FOLLOW) {
@@ -853,9 +852,7 @@ void SCStrike::checkKeyboard(void) {
         this->mouse_control = false;
         this->zoom_cockpit = false;
         this->camera_mode = View::REAL;
-        this->cockpit->hud_eye_world.x = 0.0f;
-        this->cockpit->hud_eye_world.y = 40.0f;  
-        this->cockpit->hud_eye_world.z = 0.0f;
+        this->cockpit->is_3d_cockpit = true;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {
         if (this->cockpit->radar_mode == RadarMode::AARD) {
@@ -873,12 +870,8 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_FORWARD))) {
         this->camera_mode = View::FRONT;
-        this->cockpit->hud_eye_world = {0.0f,0.0f,0.0f};
-        if (this->zoom_cockpit) {
-            zoom_cockpit = false;
-        } else {
-            zoom_cockpit = true;
-        }
+        this->cockpit->is_3d_cockpit = false;
+        zoom_cockpit = !zoom_cockpit;
         this->pilote_lookat.x = 0;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_LEFT))) {
@@ -1102,8 +1095,10 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::EYES_ON_TARGET))) {
         if (this->camera_mode != View::EYE_ON_TARGET) {
             this->camera_mode = View::EYE_ON_TARGET;
+            this->cockpit->is_3d_cockpit = true;
         } else {
             this->camera_mode = View::FRONT;
+            this->cockpit->is_3d_cockpit = false;
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {

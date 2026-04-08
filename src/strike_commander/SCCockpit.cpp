@@ -53,7 +53,7 @@ static bool projectRealToHUD( Vector3D targetWorld,  Matrix planeFromWorld,  Vec
 }
 
 bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
-    if (this->hud_eye_world.y != 0) {
+    if (this->is_3d_cockpit) {
         Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
         return projectRealToHUD(coord, planeFromWorld, {0,0,0}, this->hud_framebuffer, Xout, Yout);
     }
@@ -71,9 +71,6 @@ bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
 
         Xout = (int)((x + 1.0f) * 160.0f);
         Yout = (int)((1.0f - y - 0.45f) * 100.0f) - 1;
-        if (this->hud_eye_world.y != 0) {
-            Yout += 40;
-        }
         return true;
     }
     return false;
@@ -443,7 +440,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     bool onHud = false;
     //if () {
     if (project_to_screen(impactWorld, Xdraw, Ydraw)) {
-        if (this->hud_eye_world.y == 0) {
+        if (this->is_3d_cockpit == false) {
             Xdraw = Xdraw - hudCenter.x + hud_center_x + hudTopLeft.x;
             Ydraw = Ydraw - hudCenter.y + hud_center_y + hudTopLeft.y;
         }
@@ -507,9 +504,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     // On projette la position future de la cible (avec lead)
     if (this->target != nullptr) {
         int Xlead = 0, Ylead = 0;
-        //if (projectCannonSightToHUD(predictedTargetPos, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xlead, Ylead)) {
         if (project_to_screen(predictedTargetPos, Xlead, Ylead)) {
-            if (this->hud_eye_world.y == 0) {
+            if (this->is_3d_cockpit == false) {
                 Xlead = Xlead - hudCenter.x + hud_center_x + hudTopLeft.x;
                 Ylead = Ylead - hudCenter.y + hud_center_y + hudTopLeft.y;
             }
@@ -523,7 +519,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
 
         int Xtarget = 0, Ytarget = 0;
         if (project_to_screen(this->target->position, Xtarget, Ytarget)) {
-            if (this->hud_eye_world.y == 0) {
+            if (this->is_3d_cockpit == false) {
                 Xtarget = Xtarget - hudCenter.x + hud_center_x + hudTopLeft.x;
                 Ytarget = Ytarget - hudCenter.y + hud_center_y + hudTopLeft.y;
             }
@@ -618,7 +614,7 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hud
 
     int Xhud = 0, Yhud = 0;
     if (project_to_screen(impactWorld, Xhud, Yhud)) {
-        if (this->hud_eye_world.y == 0) {
+        if (this->is_3d_cockpit == false) {
             Xhud = Xhud - hudCenter.x + hud_center_x + hudTopLeft.x;
             Yhud = Yhud - hudCenter.y + hud_center_y + hudTopLeft.y;
         }
@@ -1881,7 +1877,7 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
         int hud_center_x = hud_width / 2;
         int hud_center_y = hud_height / 2;
         if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
-            if (this->hud_eye_world.y == 0) {
+            if (this->is_3d_cockpit == false) {
                 target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
                 target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
             }
