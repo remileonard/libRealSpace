@@ -12,7 +12,78 @@
 #include <algorithm>
 #include <climits>
 
+/**
+ * projectCannonSightToHUD - Version simplifiée pour le viseur de cannon
+ *
+ * Utilise une approche angulaire adaptée au cockpit 3D:
+ * - Calcule la direction vers la cible depuis la position du cannon (pas l'œil)
+ * - Projette cette direction sur le HUD selon son champ de vision angulaire
+ * - Tient compte de la parallaxe entre l'œil du pilote et le cannon
+ *
+ * @param targetWorld     Point cible en coordonnées monde
+ * @param planeFromWorld  Matrice inverse de transformation avion (monde -> local)
+ * @param eyeLocal        Position de l'œil en coordonnées locales cockpit
+ * @param cannonOffset    Offset angulaire du cannon en radians (azimut, élévation)
+ * @param fb              FrameBuffer du HUD
+ * @param outX, outY      Coordonnées de sortie en pixels
+ * @return true si le point est visible sur le HUD
+ */
+static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &planeFromWorld, const Vector3D &eyeLocal,
+                                    const Vector2D &cannonAngularOffset, // (azimut_offset, elevation_offset) en radians
+                                    FrameBuffer *fb, int &outX, int &outY) {
+    // Transformer la cible dans le repère local de l'avion
+    Vector3D worldPos = targetWorld;
+    Vector3D targetLocal = worldPos.transformPoint(planeFromWorld);
+
+    // Direction depuis l'origine de l'avion vers la cible dans le repère local
+    Vector3D toTarget = targetLocal;
+
+    // Dans le repère cockpit:
+    // -Z = devant l'avion (forward)
+    // X = droite/gauche (positif = droite)
+    // Y = vers le haut (positif = haut)
+
+    // La composante -Z doit être positive (cible devant)
+    const float forward = -toTarget.z;
+    if (forward <= 0.001f)
+        return false;
+
+    // Calcul des angles azimut (horizontal) et élévation (vertical)
+    // depuis l'axe de visée (-Z) du cockpit
+    float az = atan2f(toTarget.x, forward); // Angle horizontal (X = droite/gauche)
+    float el = atan2f(toTarget.y, forward); // Angle vertical (Y = haut/bas)
+
+    // Appliquer l'offset angulaire du cannon
+    // Le cannon pointe légèrement différemment de l'axe de l'avion
+    az += cannonAngularOffset.x; // Correction azimut
+    el += cannonAngularOffset.y; // Correction élévation (cannon plus bas = élévation négative)
+
+    float fovX = 2*atanf((1.35f - (-1.22f))/2.0f / 8.0f); 
+    float fovY = 2*atanf((2.0f - (-0.8f))/2.0f / 8.0f);
+    const float hudFovX = fovX; // ~24° horizontal
+    const float hudFovY = fovY; // ~26° vertical
+
+    // Normaliser les angles dans [-1, 1]
+    const float nx = az / (hudFovX * 0.5f);
+    const float ny = el / (hudFovY * 0.5f);
+
+    // Centre du HUD en pixels
+    const float cx = (fb->width - 1) * 0.5f;
+    const float cy = (fb->height - 1) * 0.5f;
+
+    // Convertir en coordonnées pixels
+    // Note: Y est inversé car l'origine du framebuffer est en haut
+    outX = (int)(cx + nx * cx);
+    outY = (int)(cy - ny * cy);
+
+    return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
+}
+
 bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
+    if (this->hud_eye_world.y != 0) {
+        Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
+        return projectCannonSightToHUD(coord, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, this->hud_framebuffer, Xout, Yout);
+    }
     Vector3D campos = this->cockpit_camera.getPosition();
     Vector3DHomogeneous v = {coord.x, coord.y, coord.z, 1.0f};
 
@@ -312,72 +383,6 @@ static bool projectToHUD3D(const Vector3D &targetLocal, const Vector3D &eyeLocal
     return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
 }
 
-/**
- * projectCannonSightToHUD - Version simplifiée pour le viseur de cannon
- *
- * Utilise une approche angulaire adaptée au cockpit 3D:
- * - Calcule la direction vers la cible depuis la position du cannon (pas l'œil)
- * - Projette cette direction sur le HUD selon son champ de vision angulaire
- * - Tient compte de la parallaxe entre l'œil du pilote et le cannon
- *
- * @param targetWorld     Point cible en coordonnées monde
- * @param planeFromWorld  Matrice inverse de transformation avion (monde -> local)
- * @param eyeLocal        Position de l'œil en coordonnées locales cockpit
- * @param cannonOffset    Offset angulaire du cannon en radians (azimut, élévation)
- * @param fb              FrameBuffer du HUD
- * @param outX, outY      Coordonnées de sortie en pixels
- * @return true si le point est visible sur le HUD
- */
-static bool projectCannonSightToHUD(const Vector3D &targetWorld, const Matrix &planeFromWorld, const Vector3D &eyeLocal,
-                                    const Vector2D &cannonAngularOffset, // (azimut_offset, elevation_offset) en radians
-                                    FrameBuffer *fb, int &outX, int &outY) {
-    // Transformer la cible dans le repère local de l'avion
-    Vector3D worldPos = targetWorld;
-    Vector3D targetLocal = worldPos.transformPoint(planeFromWorld);
-
-    // Direction depuis l'origine de l'avion vers la cible dans le repère local
-    Vector3D toTarget = targetLocal;
-
-    // Dans le repère cockpit:
-    // -Z = devant l'avion (forward)
-    // X = droite/gauche (positif = droite)
-    // Y = vers le haut (positif = haut)
-
-    // La composante -Z doit être positive (cible devant)
-    const float forward = -toTarget.z;
-    if (forward <= 0.001f)
-        return false;
-
-    // Calcul des angles azimut (horizontal) et élévation (vertical)
-    // depuis l'axe de visée (-Z) du cockpit
-    float az = atan2f(toTarget.x, forward); // Angle horizontal (X = droite/gauche)
-    float el = atan2f(toTarget.y, forward); // Angle vertical (Y = haut/bas)
-
-    // Appliquer l'offset angulaire du cannon
-    // Le cannon pointe légèrement différemment de l'axe de l'avion
-    az += cannonAngularOffset.x; // Correction azimut
-    el += cannonAngularOffset.y; // Correction élévation (cannon plus bas = élévation négative)
-
-    float fovX = 2*atanf((1.35f - (-1.22f))/2.0f / 8.0f); 
-    float fovY = 2*atanf((2.0f - (-0.8f))/2.0f / 8.0f);
-    const float hudFovX = fovX; // ~24° horizontal
-    const float hudFovY = fovY; // ~26° vertical
-
-    // Normaliser les angles dans [-1, 1]
-    const float nx = az / (hudFovX * 0.5f);
-    const float ny = el / (hudFovY * 0.5f);
-
-    // Centre du HUD en pixels
-    const float cx = (fb->width - 1) * 0.5f;
-    const float cy = (fb->height - 1) * 0.5f;
-
-    // Convertir en coordonnées pixels
-    // Note: Y est inversé car l'origine du framebuffer est en haut
-    outX = (int)(cx + nx * cx);
-    outY = (int)(cy - ny * cy);
-
-    return (outX >= 0 && outX < fb->width && outY >= 0 && outY < fb->height);
-}
 void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
     int hud_width = hudBottomRight.x - hudTopLeft.x;
     int hud_height = hudBottomRight.y - hudTopLeft.y;
@@ -567,15 +572,16 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     };
     this->targetImpactPointWorld = impactWorld;
 
-    Matrix planeFromWorld = this->player_plane->ptw.invertRigidBodyMatrixLocal();
+    
 
     int Xdraw = 0, Ydraw = 0;
-    //if (projectCannonSightToHUD(impactWorld, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xdraw, Ydraw)) {
+    bool onHud = false;
+    //if () {
     if (project_to_screen(impactWorld, Xdraw, Ydraw)) {
-        
-        
-        Xdraw = Xdraw - hudCenter.x + hud_center_x + hudTopLeft.x;
-        Ydraw = Ydraw - hudCenter.y + hud_center_y + hudTopLeft.y;
+        if (this->hud_eye_world.y == 0) {
+            Xdraw = Xdraw - hudCenter.x + hud_center_x + hudTopLeft.x;
+            Ydraw = Ydraw - hudCenter.y + hud_center_y + hudTopLeft.y;
+        }
         Point2D gun_piper= {Xdraw, Ydraw};
         RLEShape *s = reticleShape->SHAPSET->GetShape(0);
         int shapeWidth = s->GetWidth();
@@ -638,8 +644,10 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         int Xlead = 0, Ylead = 0;
         //if (projectCannonSightToHUD(predictedTargetPos, planeFromWorld, this->hud_eye_world, this->cannonAngularOffset, fb, Xlead, Ylead)) {
         if (project_to_screen(predictedTargetPos, Xlead, Ylead)) {
-            Xlead = Xlead - hudCenter.x + hud_center_x + hudTopLeft.x;
-            Ylead = Ylead - hudCenter.y + hud_center_y + hudTopLeft.y;
+            if (this->hud_eye_world.y == 0) {
+                Xlead = Xlead - hudCenter.x + hud_center_x + hudTopLeft.x;
+                Xlead = Xlead - hudCenter.y + hud_center_y + hudTopLeft.y;
+            }
             // Dessine un losange/diamond autour de la position prédite de la cible
             int diamond_size = 4;
             fb->lineWithBox(Xlead, Ylead - diamond_size, Xlead + diamond_size, Ylead, 223, 0, 320, 0, 200);
@@ -650,8 +658,10 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
 
         int Xtarget = 0, Ytarget = 0;
         if (project_to_screen(this->target->position, Xtarget, Ytarget)) {
-            Xtarget = Xtarget - hudCenter.x + hud_center_x + hudTopLeft.x;
-            Ytarget = Ytarget - hudCenter.y + hud_center_y + hudTopLeft.y;
+            if (this->hud_eye_world.y == 0) {
+                Xtarget = Xtarget - hudCenter.x + hud_center_x + hudTopLeft.x;
+                Ytarget = Ytarget - hudCenter.y + hud_center_y + hudTopLeft.y;
+            }
             // Dessine un carré autour de la position actuelle de la cible
             int box_size = 3;
             fb->lineWithBox(Xtarget - box_size, Ytarget - box_size, Xtarget + box_size, Ytarget - box_size, 223, 0, 320, 0, 200);
@@ -743,9 +753,10 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hud
 
     int Xhud = 0, Yhud = 0;
     if (project_to_screen(impactWorld, Xhud, Yhud)) {
-        Xhud = Xhud - hudCenter.x + hud_center_x + hudTopLeft.x;
-        Yhud = Yhud - hudCenter.y + hud_center_y + hudTopLeft.y;
-
+        if (this->hud_eye_world.y == 0) {
+            Xhud = Xhud - hudCenter.x + hud_center_x + hudTopLeft.x;
+            Yhud = Yhud - hudCenter.y + hud_center_y + hudTopLeft.y;
+        }
         fb->plot_pixel(center.x, center.y, 223);
         fb->lineWithBox(center.x, center.y, Xhud, Yhud, 223, bx1, bx2, by1, by2);
         fb->plot_pixel(Xhud, Yhud, 223);
@@ -2005,8 +2016,10 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
         int hud_center_x = hud_width / 2;
         int hud_center_y = hud_height / 2;
         if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
-            target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
-            target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
+            if (this->hud_eye_world.y == 0) {
+                target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
+                target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
+            }
             RLEShape *tg = hud->TARG->SHAPSET->GetShape(1);
             int shape_width = tg->GetWidth();
             int shape_height = tg->GetHeight();
