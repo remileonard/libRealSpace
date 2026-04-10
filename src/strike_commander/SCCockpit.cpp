@@ -350,23 +350,6 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         }
         
         timeOfFlight = tof;
-        //nbsteps_predict = timeOfFlight * this->player_plane->tps;
-        // Vitesse RELATIVE de la cible par rapport à l'avion
-        /*Vector3D relativeVelocity = {
-            targetVelocityWorld.x - planeVelWorld.x * dt,
-            targetVelocityWorld.y - planeVelWorld.y * dt,
-            targetVelocityWorld.z - planeVelWorld.z * dt
-        };
-        for (int iter = 0; iter < 3; iter++) {
-            predictedTargetPos = {
-                this->target->position.x + relativeVelocity.x * nbsteps_predict,
-                this->target->position.y + relativeVelocity.y * nbsteps_predict,
-                this->target->position.z + relativeVelocity.z * nbsteps_predict
-            };
-            Vector3D toPredict = predictedTargetPos - avion_pos;
-            float newDist = toPredict.Length();
-            timeOfFlight = newDist / projectile_speed_world;
-        }*/
     }
 
     int nbsteps = timeOfFlight * this->player_plane->tps;
@@ -511,6 +494,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
             }
             // Dessine un losange/diamond autour de la position prédite de la cible
             int diamond_size = 4;
+            if (this->face == CP_BIG) {
+                diamond_size = 6;
+            }
             fb->lineWithBox(Xlead, Ylead - diamond_size, Xlead + diamond_size, Ylead, 223, 0, 320, 0, 200);
             fb->lineWithBox(Xlead + diamond_size, Ylead, Xlead, Ylead + diamond_size, 223, 0, 320, 0, 200);
             fb->lineWithBox(Xlead, Ylead + diamond_size, Xlead - diamond_size, Ylead, 223, 0, 320, 0, 200);
@@ -525,6 +511,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
             }
             // Dessine un carré autour de la position actuelle de la cible
             int box_size = 3;
+            if (this->face == CP_BIG) {
+                box_size = 5;
+            }
             fb->lineWithBox(Xtarget - box_size, Ytarget - box_size, Xtarget + box_size, Ytarget - box_size, 223, 0, 320, 0, 200);
             fb->lineWithBox(Xtarget + box_size, Ytarget - box_size, Xtarget + box_size, Ytarget + box_size, 223, 0, 320, 0, 200);
             fb->lineWithBox(Xtarget + box_size, Ytarget + box_size, Xtarget - box_size, Ytarget + box_size, 223, 0, 320, 0, 200);
