@@ -776,33 +776,37 @@ void SCStrike::checkKeyboard(void) {
                     }
                 }
             }
-            if (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == weapon_ids::ID_20MM && !this->air_weapons_mode && this->cockpit->weapon_mode == Hud_weapon_mode::WM_HUD_LCOS) {
+            if ((this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) && (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == weapon_ids::ID_20MM) && (!this->air_weapons_mode && this->cockpit->weapon_mode == Hud_weapon_mode::WM_HUD_LCOS)) {
                 this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
             } else {
                 this->player_plane->selected_weapon = next_weapon;
-                switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
-                    case weapon_ids::ID_20MM:
-                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LCOS;
-                        break;
-                    case weapon_ids::ID_AIM120:
-                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LRM;
-                        break;
-                    case weapon_ids::ID_AIM9J:
-                    case weapon_ids::ID_AIM9M:
-                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_SRM;
-                        break;
-                    case weapon_ids::ID_AGM65D:
-                    case weapon_ids::ID_GBU15:
-                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_IRST;
-                        break;
-                    case weapon_ids::ID_MK20:
-                    case weapon_ids::ID_MK82:
-                    case weapon_ids::ID_DURANDAL:
-                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_CCIP;
-                        break;
-                    default:
-                        this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
-                        break;
+                if (this->player_plane->weaps_load[this->player_plane->selected_weapon] == nullptr) {
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
+                } else {
+                    switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
+                        case weapon_ids::ID_20MM:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LCOS;
+                            break;
+                        case weapon_ids::ID_AIM120:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LRM;
+                            break;
+                        case weapon_ids::ID_AIM9J:
+                        case weapon_ids::ID_AIM9M:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_SRM;
+                            break;
+                        case weapon_ids::ID_AGM65D:
+                        case weapon_ids::ID_GBU15:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_IRST;
+                            break;
+                        case weapon_ids::ID_MK20:
+                        case weapon_ids::ID_MK82:
+                        case weapon_ids::ID_DURANDAL:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_CCIP;
+                            break;
+                        default:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
+                            break;
+                    }
                 }
             }
             
