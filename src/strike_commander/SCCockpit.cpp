@@ -947,7 +947,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
 
     // Préparation pour la rotation
     int heading = (int)this->heading;
-    heading = (heading) % 360;
+    heading = (heading + 360) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
 
     // Fonction pour dessiner un contact sur le radar
@@ -1859,12 +1859,39 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
         hud->MISD->SHAP->SetPosition(&msd_pos);
         fb->drawShape(hud->MISD->SHAP);
     } else {
-        //this->RenderTargetWithCam();
         int target_screen_x, target_screen_y;
         int hud_width = hudBottomRight.x - hudTopLeft.x;
         int hud_height = hudBottomRight.y - hudTopLeft.y;
         int hud_center_x = hud_width / 2;
         int hud_center_y = hud_height / 2;
+        float target_angle_vs_player = 180-(target->azymuth - this->heading);
+        // Angle en radians (attention : target_angle_vs_player semble en degrés ici)
+        float angle_rad = target_angle_vs_player * M_PI / 180.0f;
+
+        // Direction radiale (du centre vers px,py) = même direction que x_offset/y_offset
+        float radial_x = sinf(angle_rad);
+        float radial_y = -cosf(angle_rad);
+
+        // Direction tangentielle (perpendiculaire au rayon)
+        float tang_x =  cosf(angle_rad);
+        float tang_y =  sinf(angle_rad);
+        const int S = 4;
+
+        // Tip : sur le cercle
+        int tip_x = (int)(position.x + radial_x * circle_size);
+        int tip_y = (int)(position.y + radial_y * circle_size);
+
+
+        // Base : à l'extérieur du cercle, écartée tangentiellement
+        int base1_x = tip_x + (int)(radial_x * S + tang_x * S);
+        int base1_y = tip_y + (int)(radial_y * S + tang_y * S);
+        int base2_x = tip_x + (int)(radial_x * S - tang_x * S);
+        int base2_y = tip_y + (int)(radial_y * S - tang_y * S);
+
+        fb->line(tip_x, tip_y, base1_x, base1_y, 223);
+        fb->line(tip_x, tip_y, base2_x, base2_y, 223);
+        fb->line(base1_x, base1_y, base2_x, base2_y, 223);
+                
         if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
             if (this->is_3d_cockpit == false) {
                 target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
@@ -1885,7 +1912,7 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
                 hud->MISD->SHAP->SetPosition(&tmsd_pos);
                 fb->drawShape(hud->MISD->SHAP);
             }
-            fb->line(position.x, position.y, target_screen_x, target_screen_y, 223);
+            //fb->line(position.x, position.y, target_screen_x, target_screen_y, 223);
         }
     }
 }

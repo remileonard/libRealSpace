@@ -10,6 +10,7 @@
 #include <cctype>
 #include <tuple>
 #include <optional>
+#include <algorithm>
 #include <cmath>
 #include "SCStrike.h"
 #include "../realspace/block_def.h"
@@ -671,9 +672,20 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
-
-    //m_keyboard->update();
-    
+    bool is_rudder_pressed = false;
+    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_LEFT))) {
+        this->player_plane->rudder -= 0.1f;
+        is_rudder_pressed = true;
+    }
+    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_RIGHT))) {
+        this->player_plane->rudder += 0.1f;
+        is_rudder_pressed = true;
+    }
+    if (!is_rudder_pressed) {
+        this->player_plane->rudder = 0;
+    } else {
+        this->player_plane->rudder = std::clamp(this->player_plane->rudder, -10.0f, 10.0f);
+    }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_UP))) {
         if (this->player_plane->GetThrottle() == 0) {
             this->player_plane->SetThrottle(21);

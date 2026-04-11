@@ -135,7 +135,9 @@ void GameEngine::initKeyboard() {
         SimActionOfst::CONTROLLER_STICK_LEFT_Y,
         SimActionOfst::CONTROLLER_STICK_RIGHT_X,
         SimActionOfst::CONTROLLER_STICK_RIGHT_Y,
-        SimActionOfst::RADAR_MODE_TOGGLE
+        SimActionOfst::RADAR_MODE_TOGGLE,
+        SimActionOfst::RUDDER_LEFT,
+        SimActionOfst::RUDDER_RIGHT
     };
     
     for (auto action : allActions) {
@@ -193,6 +195,8 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE), SDL_SCANCODE_P);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::EYES_ON_TARGET), SDL_SCANCODE_Y);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION), SDL_SCANCODE_ESCAPE);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_LEFT), SDL_SCANCODE_COMMA);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_RIGHT), SDL_SCANCODE_PERIOD);
     m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X), 0, 1.0f);
     m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y), 1, 1.0f);
     m_keyboard->bindMouseButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY), SDL_BUTTON_LEFT);

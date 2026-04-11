@@ -95,6 +95,8 @@ enum SimActionOfst {
     WEAPON_MODE_TOGGLE = 62,
     INFINIT_AMMO_TOGGLE = 63,
     SINGLE_TARGET_MODE = 64,
+    RUDDER_LEFT = 65,
+    RUDDER_RIGHT = 66,
 };
 
 class GameEngine{

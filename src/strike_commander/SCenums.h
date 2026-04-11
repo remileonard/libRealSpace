@@ -28,7 +28,7 @@ static std::unordered_map<Hud_weapon_mode, std::string> hud_weapon_mode_names = 
     {WM_HUD_SRM, "SRM"},
     {WM_HUD_CCIP, "CCIP"},
     {WM_HUD_CCRP, "CCRP"},
-    {WM_HUD_LRM, "LRM"},
+    {WM_HUD_LRM, "MRM"},
     {WM_HUD_IRST, "IR"},
     {WM_HUD_NONE, ""}
 };
@@ -200,13 +200,13 @@ enum RadarMode {
     AFRD
 };
 static std::unordered_map<uint8_t, std::string> pilot_names = {
-    {1, "PRIMETIME"},
-    {2, "PHOENIX"},
-    {3, "BASELINE"},
-    {4, "ZORRO"},
-    {5, "TEX"},
-    {6, "VIXEN"},
-    {7, "HAWK"}
+    {PilotsId::PRIMETIME, "PRIMETIME"},
+    {PilotsId::PHOENIX, "PHOENIX"},
+    {PilotsId::BASELINE, "BASELINE"},
+    {PilotsId::ZORRO, "ZORRO"},
+    {PilotsId::TEX, "TEX"},
+    {PilotsId::VIXEN, "VIXEN"},
+    {PilotsId::HAWK, "HAWK"}
 };
 
 static std::unordered_map<std::string, uint8_t> pilot_profile = {

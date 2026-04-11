@@ -393,6 +393,9 @@ void SCJdynPlane::processInput() {
 
     float max_turnrate = 0.0f;
     max_turnrate = 600.0f * dt;
+    if (this->rudder != 0) {
+        printf("Rudder input detected: %f\n", this->rudder);
+    }
     temp = this->rudder * (this->vz*3.2f) - (4.0f) * (this->vx*3.2f);
     if (this->on_ground) {
         itemp = (int)(16.0f * temp);
