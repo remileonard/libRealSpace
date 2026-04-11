@@ -1904,15 +1904,44 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
             target_pos.x -= shape_width / 2;
             target_pos.y -= shape_height / 2;
             tg->SetPosition(&target_pos);
-            fb->drawShape(tg);
+            fb->drawShapeWithBox(tg, 0,0,fb->width, fb->height);
             if (this->target_in_range) {
                 Point2D tmsd_pos = {target_screen_x, target_screen_y};
                 tmsd_pos.x -= hud->MISD->SHAP->GetWidth() / 2;
                 tmsd_pos.y -= hud->MISD->SHAP->GetHeight() / 2;
                 hud->MISD->SHAP->SetPosition(&tmsd_pos);
-                fb->drawShape(hud->MISD->SHAP);
+                fb->drawShapeWithBox(hud->MISD->SHAP, 0,0,fb->width, fb->height);
             }
-            //fb->line(position.x, position.y, target_screen_x, target_screen_y, 223);
+        }
+    }
+}
+void SCCockpit::RenderIrTargetHud(Point2D position, FrameBuffer *fb, CHUD *hud, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    static float msd_x = position.x;
+    static float msd_y = position.y;
+    
+    if (this->target != nullptr) {
+        int target_screen_x, target_screen_y;
+        int hud_width = hudBottomRight.x - hudTopLeft.x;
+        int hud_height = hudBottomRight.y - hudTopLeft.y;
+        int hud_center_x = hud_width / 2;
+        int hud_center_y = hud_height / 2;
+                
+        if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
+            if (this->is_3d_cockpit == false) {
+                target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
+                target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
+            }
+            RLEShape *tg = hud->CROS->SHAP;
+            int shape_width = tg->GetWidth();
+            int shape_height = tg->GetHeight();
+            Point2D target_pos = {target_screen_x, target_screen_y};
+            target_pos.x -= shape_width / 2;
+            target_pos.y -= shape_height / 2;
+            tg->SetPosition(&target_pos);
+            fb->drawShapeWithBox(tg, 0,0,fb->width, fb->height);
         }
     }
 }
@@ -1977,7 +2006,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 // Non implémenté : viseur de type CCRP (pour les bombes guidées)
                 break;
             case Hud_weapon_mode::WM_HUD_IRST:
-                // Non implémenté : viseur de type IRST (pour les missiles à guidage infrarouge)
+                this->RenderIrTargetHud(position, fb, hud, hud_top_left, hud_bottom_right, hud_center);
                 break;
             case Hud_weapon_mode::WM_HUD_SRM:
             case Hud_weapon_mode::WM_HUD_LRM:
