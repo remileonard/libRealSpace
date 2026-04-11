@@ -1891,6 +1891,7 @@ void SCStrike::runFrame(void) {
                 continue;
             }
             camera->setCustomMatrices(eyeInfo.projection, eyeInfo.view);
+            this->cockpit->is_3d_cockpit = true;
             renderScene(eyeInfo.width, eyeInfo.height, 0.0f, true);
 
 			if (this->cockpit && this->cockpit->target) {

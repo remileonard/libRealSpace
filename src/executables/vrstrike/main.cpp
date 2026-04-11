@@ -13,6 +13,8 @@
 #define FLOPPY 0
 
 int main(int argc, char* argv[]) {
+    Config &config = Config::getInstance();
+    config.load("./assets/config.ini");
     RSScreen::setInstance(std::make_unique<VRScreen>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
 
