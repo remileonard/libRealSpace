@@ -1904,13 +1904,13 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
             target_pos.x -= shape_width / 2;
             target_pos.y -= shape_height / 2;
             tg->SetPosition(&target_pos);
-            fb->drawShapeWithBox(tg, 0,0,fb->width, fb->height);
+            fb->drawShapeWithBox(tg, 0,fb->width,0, fb->height);
             if (this->target_in_range) {
                 Point2D tmsd_pos = {target_screen_x, target_screen_y};
                 tmsd_pos.x -= hud->MISD->SHAP->GetWidth() / 2;
                 tmsd_pos.y -= hud->MISD->SHAP->GetHeight() / 2;
                 hud->MISD->SHAP->SetPosition(&tmsd_pos);
-                fb->drawShapeWithBox(hud->MISD->SHAP, 0,0,fb->width, fb->height);
+                fb->drawShapeWithBox(hud->MISD->SHAP, 0,fb->width,0, fb->height);
             }
         }
     }
@@ -1941,7 +1941,7 @@ void SCCockpit::RenderIrTargetHud(Point2D position, FrameBuffer *fb, CHUD *hud, 
             target_pos.x -= shape_width / 2;
             target_pos.y -= shape_height / 2;
             tg->SetPosition(&target_pos);
-            fb->drawShapeWithBox(tg, 0,0,fb->width, fb->height);
+            fb->drawShapeWithBox(tg, 0,fb->width,0, fb->height);
         }
     }
 }
