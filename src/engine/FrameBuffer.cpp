@@ -215,7 +215,10 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
     for (size_t i = 0; i < size; i++) {
 
         char chartoDraw = text[start + i];
-
+        if (chartoDraw == ' ') {
+            coo->x += static_cast<int32_t>(spaceSize);
+            continue;
+        }
         RLEShape *shape = font->GetShapeForChar(chartoDraw);
         if (shape == nullptr) {
             continue;
@@ -230,7 +233,7 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
             coo->y += 1;
         if (chartoDraw == '\n') {
             RLEShape *sp = font->GetShapeForChar('A');
-            coo->y += sp->GetHeight() + 2;
+            coo->y += sp->GetHeight() + 1;
             lineHeight = coo->y;
             coo->x = startx;
         }
@@ -250,9 +253,9 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
             coo->x += static_cast<int32_t>(spaceSize);
         } else {
             if (!fixedWidth) {
-                coo->x = static_cast<int32_t>(coo->x + shape->GetWidth() + interLetterSpace);
+                coo->x = static_cast<int32_t>(coo->x + shape->GetWidth() + interLetterSpace-1);
             } else {
-                coo->x = static_cast<int32_t>(coo->x + shape->GetHeight()+1);
+                coo->x = static_cast<int32_t>(coo->x + shape->GetHeight());
             }
         }
     }

@@ -219,17 +219,20 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
     stream.Set(tmpdata, this->size);
     
 
-    this->rightDist = stream.ReadShort();
+    this->rightDist = stream.ReadShort()+1;
     this->leftDist = stream.ReadShort();
     this->topDist = stream.ReadShort();
-    this->botDist = stream.ReadShort();
+    this->botDist = stream.ReadShort()+1;
     this->data = stream.GetPosition();
     
     this->buffer_size.x = 320;
     this->buffer_size.y = 200;
+    if (this->rightDist + this->leftDist == 0 && this->topDist + this->botDist > 0) {
+        this->leftDist = 1;
+    }
     if (this->rightDist + this->leftDist > 0 && this->topDist + this->botDist > 0) {
         this->buffer_size.x = this->leftDist + this->rightDist;  // sprite width
-        this->buffer_size.y = this->topDist + this->botDist;      // sprite height
+        this->buffer_size.y = this->topDist + this->botDist;       // sprite height
         if (this->buffer_size.x > 320 || this->buffer_size.y > 200) {
             printf("Warning: RLE shape has dimensions larger than screen, clipping will occur\n");
             this->buffer_size.x = 320;
@@ -240,12 +243,13 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
         bool error = this->Expand(this->expand_buffer, &this->uncompressed_size);
         this->buffer_size.x = 320;  // restaurer les dimensions écran
         this->buffer_size.y = 200;
-        if (error) {
+        /*if (error) {
             printf("Error while expanding RLE shape\n");
             this->uncompressed = false;
         } else {
             this->uncompressed = true;
-        }
+        }*/
+        this->uncompressed = true;
     }
 }
 
@@ -280,7 +284,14 @@ bool RLEShape::Expand(uint8_t *dst, size_t *byteRead) {
                 if (src_row[i] == 255) { i++; continue; }
                 int span_start = i;
                 while (i < len && src_row[i] != 255) i++;
-                memcpy(dst_row + span_start, src_row + span_start, i - span_start);
+                int span_len = i - span_start;
+                if (colorOffset == 0) {
+                    memcpy(dst_row + span_start, src_row + span_start, span_len);
+                } else {
+                    for (int j = 0; j < span_len; j++) {
+                        dst_row[span_start + j] = src_row[span_start + j] + colorOffset;
+                    }
+                }
             }
         }
         *byteRead = this->uncompressed_size;

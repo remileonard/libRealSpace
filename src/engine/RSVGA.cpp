@@ -325,13 +325,13 @@ void RSVGA::vSync(void) {
     this->ajusterContraste(contrastFactor);
     this->ajusterLuminosite(brightnessFactor);
     this->appliquerTeinte(tintR, tintG, tintB, tintIntensity);
+
+    Texel lut[256];
+    memcpy(lut, palette.colors, sizeof(lut));
+    lut[255].a = 0;
+    uint8_t *src = frameBuffer->framebuffer;
     for (size_t i = 0; i < 320 * 200; i++) {
-        Texel *rgba = palette.GetRGBColor(frameBuffer->framebuffer[i]);
-        if (frameBuffer->framebuffer[i] == 255) {
-            rgba->a = 0;
-        }
-        *dst = *rgba;
-        dst++;
+        *dst++ = lut[src[i]];
     }
     if (this->upscale) {
         applySuperEagle2x((uint32_t *)data, upscaled_framebuffer, 320, 200);
