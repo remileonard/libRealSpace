@@ -263,7 +263,7 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
 void FrameBuffer::blit(uint8_t *srcBuffer, int x, int y, int w, int h) {
     int startRow = (y < 0) ? -y : 0;
     int startCol = (x < 0) ? -x : 0;
-    int endCol   = std::min(w, this->width - x);
+    int endCol   = (std::min)(w, this->width - x);
 
     if (endCol <= startCol) return;
     int len = endCol - startCol;
@@ -279,7 +279,7 @@ void FrameBuffer::blit(uint8_t *srcBuffer, int x, int y, int w, int h) {
 void FrameBuffer::blitWithMask(uint8_t *srcBuffer, int x, int y, int width, int height, uint8_t maxk) {
     int startRow = (y < 0) ? -y : 0;
     int startCol = (x < 0) ? -x : 0;
-    int endCol   = std::min(width, this->width - x);
+    int endCol   = (std::min)(width, this->width - x);
 
     if (endCol <= startCol) return;
 
@@ -303,7 +303,7 @@ void FrameBuffer::blitWithMask(uint8_t *srcBuffer, int x, int y, int width, int 
 void FrameBuffer::blitWithMaskAndOffset(uint8_t *srcBuffer, int x, int y, int width, int height, uint8_t maxk, uint8_t offset) {
     int startRow = (y < 0) ? -y : 0;
     int startCol = (x < 0) ? -x : 0;
-    int endCol   = std::min(width, this->width - x);
+    int endCol   = (std::min)(width, this->width - x);
 
     if (endCol <= startCol) return;
 
@@ -324,13 +324,13 @@ void FrameBuffer::blitWithMaskAndOffset(uint8_t *srcBuffer, int x, int y, int wi
 void FrameBuffer::blitLargeBuffer(uint8_t *srcBuffer, int srcWidth, int srcHeight, int srcX, int srcY, int destX,
                                   int destY, int width, int height) {
     // Clipping combiné src + dst sur les colonnes
-    int startCol = std::max({0, -srcX, -destX});
-    int endCol   = std::min({width, srcWidth - srcX, this->width - destX});
+    int startCol = (std::max)({0, -srcX, -destX});
+    int endCol   = (std::min)({width, srcWidth - srcX, this->width - destX});
     if (endCol <= startCol) return;
 
     // Clipping combiné src + dst sur les lignes
-    int startRow = std::max({0, -srcY, -destY});
-    int endRow   = std::min({height, srcHeight - srcY, this->height - destY});
+    int startRow = (std::max)({0, -srcY, -destY});
+    int endRow   = (std::min)({height, srcHeight - srcY, this->height - destY});
 
     for (int row = startRow; row < endRow; ++row) {
         const uint8_t* src_row = srcBuffer      + (srcY + row) * srcWidth  + srcX + startCol;

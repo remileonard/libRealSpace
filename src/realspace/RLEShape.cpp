@@ -267,8 +267,8 @@ bool RLEShape::Expand(uint8_t *dst, size_t *byteRead) {
         int px = position.x;
         int py = position.y;
 
-        int x_src_start = std::max(0, -px);
-        int x_src_end   = std::min(sprite_w, screen_w - px);
+        int x_src_start = (std::max)(0, -px);
+        int x_src_end   = (std::min)(sprite_w, screen_w - px);
 
         for (int y = 0; y < sprite_h; y++) {
             int dst_y = y + py;
@@ -330,10 +330,10 @@ bool RLEShape::ExpandWithBox(uint8_t *dst, size_t *byteRead, int bx1, int bx2, i
         int py = position.y;
 
         // Clipping combiné : écran + box, en coordonnées buffer-sprite
-        int x_src_start = std::max({0, -px, bx1 - px + leftDist});
-        int x_src_end   = std::min({sprite_w, screen_w - px, bx2 - px + leftDist + 1});
-        int y_start     = std::max({0, -py, by1 - py + topDist});
-        int y_end       = std::min({sprite_h, screen_h - py, by2 - py + topDist + 1});
+        int x_src_start = (std::max)({0, -px, bx1 - px + leftDist});
+        int x_src_end   = (std::min)({sprite_w, screen_w - px, bx2 - px + leftDist + 1});
+        int y_start     = (std::max)({0, -py, by1 - py + topDist});
+        int y_end       = (std::min)({sprite_h, screen_h - py, by2 - py + topDist + 1});
 
         for (int y = y_start; y < y_end; y++) {
             int dst_y = y + py;
