@@ -34,8 +34,10 @@ void RSImageSet::InitFromPakEntry(PakEntry *entry) {
         if (*currImage != 'F') {
             RLEShape *shape = new RLEShape();
             shape->init(currImage, size);
-            this->shapes.push_back(shape);
-            this->sequence.push_back((uint8_t)i);
+            if (shape->uncompressed) {
+                this->shapes.push_back(shape);
+                this->sequence.push_back((uint8_t)i);
+            }
         } else {
             RSPalette *palette = new RSPalette();
             uint32_t pal_size = 0;
@@ -196,7 +198,7 @@ void RSImageSet::removeFirstEmptyShape(void) {
         return;
     }
     RLEShape *firstShape = this->shapes[0];
-    if (firstShape->GetWidth() == 0 || firstShape->GetHeight() == 0) {
+    if (firstShape->GetWidth() <= 1 || firstShape->GetHeight() <= 1) {
         this->shapes.erase(this->shapes.begin());
         delete firstShape;
     }

@@ -35,7 +35,7 @@ private:
     uint8_t colorOffset;
     uint8_t *expand_buffer{nullptr};
     size_t uncompressed_size{0};
-    bool uncompressed{false};
+    
     void ReadFragment(RLEFragment *frag);
     bool ExpandFragment(RLEFragment *frag, uint8_t *dst);
     bool ExpandFragmentWithBox(RLEFragment *frag, uint8_t *dst, int bx1, int bx2, int by1, int by2);
@@ -46,7 +46,7 @@ public:
     Point2D position;
     Point2D buffer_size{320, 200};
     uint8_t *data{nullptr};
-
+    bool uncompressed{false};
     int16_t leftDist;
     int16_t topDist;
     int16_t rightDist;

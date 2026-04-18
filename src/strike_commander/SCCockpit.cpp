@@ -182,9 +182,9 @@ void SCCockpit::RenderTargetWithCam(Point2D top_left = {126, 5}, FrameBuffer *fb
     Point2D hud_size = {68, 85};
     Point2D bottom_right = {top_left.x + hud_size.x, top_left.y + hud_size.y};
 
-    if (this->target != nullptr) {
+    if (this->current_target != nullptr) {
         int Xhud, Yhud;
-        if (project_to_screen(this->target->position, Xhud, Yhud)) {
+        if (project_to_screen(this->current_target->position, Xhud, Yhud)) {
 
             // Check if the target is within HUD boundaries
             bool isInHud = (Xhud >= top_left.x && Xhud < bottom_right.x && Yhud >= top_left.y && Yhud < bottom_right.y);
@@ -284,15 +284,15 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     float projectile_speed_world = initial_trust.Length();
     // === LEAD ANGLE: vitesse de la cible ===
     Vector3D targetVelocityWorld = {0.0f, 0.0f, 0.0f};
-    Vector3D predictedTargetPos = (this->target != nullptr) 
-        ? this->target->position 
+    Vector3D predictedTargetPos = (this->current_target != nullptr) 
+        ? this->current_target->position 
         : avion_pos;
     float newDist = 0.0f;
-    if (this->target != nullptr) {
+    if (this->current_target != nullptr) {
         Vector3D toTarget = {
-            this->target->position.x - avion_pos.x,
-            this->target->position.y - avion_pos.y,
-            this->target->position.z - avion_pos.z
+            this->current_target->position.x - avion_pos.x,
+            this->current_target->position.y - avion_pos.y,
+            this->current_target->position.z - avion_pos.z
         };
         target_distance = toTarget.Length();
         
@@ -302,22 +302,8 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         timeOfFlight = tof;
         debutTimeOfFlight = timeOfFlight;
         // Récupérer la vitesse de la cible depuis l'acteur mission
-        // On cherche l'acteur correspondant à this->target
-        SCMissionActors *targetActor = nullptr;
-        for (auto actor : this->current_mission->enemies) {
-            if (actor->object == this->target && actor->is_active) {
-                targetActor = actor;
-                break;
-            }
-        }
-        if (targetActor == nullptr) {
-            for (auto actor : this->current_mission->friendlies) {
-                if (actor->object == this->target && actor->is_active) {
-                    targetActor = actor;
-                    break;
-                }
-            }
-        }
+        // On cherche l'acteur correspondant à this->current_target
+        SCMissionActors *targetActor = this->current_target_actor;
 
         if (targetActor != nullptr && targetActor->plane != nullptr) {
             
@@ -334,9 +320,9 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         // 2-3 itérations suffisent pour converger
         for (int iter = 0; iter < 3; iter++) {
             predictedTargetPos = {
-                this->target->position.x + targetVelocityWorld.x * tof,
-                this->target->position.y + targetVelocityWorld.y * tof,
-                this->target->position.z + targetVelocityWorld.z * tof
+                this->current_target->position.x + targetVelocityWorld.x * tof,
+                this->current_target->position.y + targetVelocityWorld.y * tof,
+                this->current_target->position.z + targetVelocityWorld.z * tof
             };
             // Recalcul du ToF avec la nouvelle distance prédite
             Vector3D toPredict = {
@@ -485,7 +471,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
 
     // === Affichage du LEAD DIAMOND sur la cible prédite ===
     // On projette la position future de la cible (avec lead)
-    if (this->target != nullptr) {
+    if (this->current_target != nullptr) {
         int Xlead = 0, Ylead = 0;
         if (project_to_screen(predictedTargetPos, Xlead, Ylead)) {
             if (this->is_3d_cockpit == false) {
@@ -504,7 +490,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         }
 
         int Xtarget = 0, Ytarget = 0;
-        if (project_to_screen(this->target->position, Xtarget, Ytarget)) {
+        if (project_to_screen(this->current_target->position, Xtarget, Ytarget)) {
             if (this->is_3d_cockpit == false) {
                 Xtarget = Xtarget - hudCenter.x + hud_center_x + hudTopLeft.x;
                 Ytarget = Ytarget - hudCenter.y + hud_center_y + hudTopLeft.y;
@@ -544,6 +530,134 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         debugPos.y += 8;
         debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt4.c_str(), 0, 0, (uint32_t)debugTxt4.length(), 2, 2);
     }
+    delete weap;
+}
+void SCCockpit::RenderStraffingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
+    int hud_width = hudBottomRight.x - hudTopLeft.x;
+    int hud_height = hudBottomRight.y - hudTopLeft.y;
+    int hud_center_x = hud_width / 2;
+    int hud_center_y = hud_height / 2;
+    if (reticleShape == nullptr) {
+        reticleShape = this->hud->small_hud->LCOS;
+    }
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    if (!this->player_plane) {
+        return;
+    }
+    float target_distance = 0.0f;
+    const float dt = (this->player_plane->tps > 0) ? (1.0f / (float)this->player_plane->tps) : (1.0f / 60.0f);
+
+    Vector3D avion_pos {
+        this->player_plane->x,
+        this->player_plane->y,
+        this->player_plane->z
+    };
+    Vector3D planeVelWorld = {
+        (this->player_plane->x - this->player_plane->last_px),
+        (this->player_plane->y - this->player_plane->last_py),
+        (this->player_plane->z - this->player_plane->last_pz)
+    };
+    
+    float timeOfFlight = 4.0f;
+    float debutTimeOfFlight = timeOfFlight;
+    
+    float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
+    
+    Vector3D initial_trust{0, 0, 0};
+
+    initial_trust = this->player_plane->getWeaponIntialVector(projectile_speed);
+    float projectile_speed_world = initial_trust.Length();
+    // === LEAD ANGLE: vitesse de la cible ===
+    Vector3D targetVelocityWorld = {0.0f, 0.0f, 0.0f};
+    Vector3D predictedTargetPos = (this->current_target != nullptr) 
+        ? this->current_target->position 
+        : avion_pos;
+    float newDist = 0.0f;
+
+    int nbsteps = timeOfFlight * this->player_plane->tps;
+    GunSimulatedObject *weap = new GunSimulatedObject();
+    
+    Vector3D omegaLocal = this->player_plane->angular_velocity;
+    
+    Matrix &ptw = this->player_plane->ptw;
+    Vector3D omegaStep = {
+        ptw.v[0][0] * omegaLocal.x + ptw.v[1][0] * omegaLocal.y + ptw.v[2][0] * omegaLocal.z,
+        ptw.v[0][1] * omegaLocal.x + ptw.v[1][1] * omegaLocal.y + ptw.v[2][1] * omegaLocal.z,
+        ptw.v[0][2] * omegaLocal.x + ptw.v[1][2] * omegaLocal.y + ptw.v[2][2] * omegaLocal.z
+    };
+
+    initial_trust = this->player_plane->getWeaponIntialVector(projectile_speed);
+    Vector3D planeDispAccum{0, 0, 0};
+    
+    weap->obj = this->player_plane->weaps_load[0]->objct;
+    weap->x = this->player_plane->x + planeDispAccum.x;
+    weap->y = this->player_plane->y + planeDispAccum.y;
+    weap->z = this->player_plane->z + planeDispAccum.z;
+    weap->vx = initial_trust.x;
+    weap->vy = initial_trust.y;
+    weap->vz = initial_trust.z;
+    weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg * 2.205f;
+    weap->azimuthf = this->player_plane->azimuthf;
+    weap->elevationf = this->player_plane->elevationf;
+    weap->target = nullptr;
+
+    Vector3D impact{0, 0, 0};
+    Vector3D velo{0, 0, 0};
+    bool firstIter = true;
+    float bulletSpeedAfterShot = 0.0f;
+    for (int i = 0; i < nbsteps; i++) {
+        // 1. Accumuler le déplacement avion
+        planeDispAccum = planeDispAccum + planeVelWorld;
+        planeVelWorld = planeVelWorld.rotateByAxis(omegaStep);
+
+        std::tie(impact, velo) = weap->ComputeTrajectory(this->player_plane->tps);
+        
+        Vector3D finalPos = {
+            impact.x + planeDispAccum.x,
+            impact.y + planeDispAccum.y,
+            impact.z + planeDispAccum.z
+        };
+
+        weap->x = impact.x;
+        weap->y = impact.y;
+        weap->z = impact.z;
+        
+        weap->vx = velo.x;
+        weap->vy = velo.y;
+        weap->vz = velo.z;
+
+        if (firstIter) {
+            bulletSpeedAfterShot = velo.Length();
+            firstIter = false;
+        }
+    }
+
+    const Vector3D impactWorld = {
+        impact.x + planeDispAccum.x,
+        impact.y + planeDispAccum.y,
+        impact.z + planeDispAccum.z
+    };
+    this->targetImpactPointWorld = impactWorld;
+
+    int Xdraw = 0, Ydraw = 0;
+    bool onHud = false;
+    if (project_to_screen(impactWorld, Xdraw, Ydraw)) {
+        if (this->is_3d_cockpit == false) {
+            Xdraw = Xdraw - hudCenter.x + hud_center_x + hudTopLeft.x;
+            Ydraw = Ydraw - hudCenter.y + hud_center_y + hudTopLeft.y;
+        }
+        Point2D gun_piper= {Xdraw, Ydraw};
+        RLEShape *s = reticleShape->SHAP;
+        int shapeWidth = s->GetWidth();
+        int shapeHeight = s->GetHeight();
+        gun_piper.x -= (1+shapeWidth / 2);
+        gun_piper.y -= (-1+shapeHeight / 2);
+        s->SetPosition(&gun_piper);
+        fb->drawShapeWithBox(s, hudTopLeft.x, hudBottomRight.x, hudTopLeft.y, hudBottomRight.y);
+    }
+
     delete weap;
 }
 void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
@@ -862,14 +976,14 @@ void SCCockpit::RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, flo
 
     // Dessine les ennemis 
     for (auto actor : this->current_mission->enemies) {
-        if (actor->object == this->target) {
+        if (actor->object == this->current_target) {
             drawContact(actor, false, actor->is_destroyed);
         }
     }
 
     // Dessine les alliés (sauf le joueur)
     for (auto actor : this->current_mission->friendlies) {
-        if (actor->object == this->target) {
+        if (actor->object == this->current_target) {
             drawContact(actor, true, actor->is_destroyed);
         }
     }
@@ -1006,7 +1120,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         fb->drawShapeWithBox(radar_arts.GetShape(iconIndex), pmfd_left.x, bottom_right.x, pmfd_left.y, bottom_right.y);
 
         // Si c'est la cible actuelle, dessine le marqueur de cible
-        if (object->object == this->target) {
+        if (object->object == this->current_target) {
             Point2D targetPos = {screenPos.x - 2, screenPos.y - 1};
             // Utilise toujours l'icône de cible du mode air
             this->cockpit->MONI.MFDS.AARD.ARTS.GetShape(2)->SetPosition(&targetPos);
@@ -1320,6 +1434,9 @@ void SCCockpit::Render(CockpitFace face) {
                         this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
                     case ID_20MM:
                         this->radar_mode = RadarMode::AARD;
+                        if (this->weapon_mode == Hud_weapon_mode::WM_HUD_STRAF) {
+                            this->radar_mode = RadarMode::AGRD;
+                        }
                         break;
                     case ID_AIM9J:
                     case ID_AIM9M:
@@ -1449,6 +1566,25 @@ void SCCockpit::Update() {
                                    this->weapoint_coords.y - this->player->position.z};
     float weapoint_azimut = (atan2f(weapoint_direction.y, weapoint_direction.x) * 180.0f / (float)M_PI);
 
+    this->current_target = nullptr;
+    
+    if (this->target != nullptr) {
+        switch (this->radar_mode) {
+        case RadarMode::AFRD:
+        case RadarMode::ASST:
+        case RadarMode::AARD:
+            if (this->target->entity->entity_type == EntityType::jet) {
+                this->current_target = this->target;
+            }
+            break;
+        case RadarMode::AGRD:
+            if (this->target->entity->entity_type == EntityType::ground || this->target->entity->entity_type == EntityType::ornt || this->target->entity->entity_type == EntityType::swpn) {
+                this->current_target = this->target;
+            }
+            break;
+        }
+    }
+    
     weapoint_azimut -= 360;
     weapoint_azimut += 90;
     if (weapoint_azimut > 360) {
@@ -1477,10 +1613,10 @@ void SCCockpit::Update() {
                     weapons_count += weap->nb_weap;
                 }
             }
-            if (this->target != nullptr) {
+            if (this->current_target != nullptr) {
                 uint32_t weap_range =
                     this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
-                Vector3D dist_to_target = this->target->position - this->player_plane->object->position;
+                Vector3D dist_to_target = this->current_target->position - this->player_plane->object->position;
                 float distance = dist_to_target.Length();
                 if (distance <= weap_range) {
                     this->target_in_range = true;
@@ -1501,8 +1637,8 @@ void SCCockpit::Update() {
     this->hud_text_tags["NUMW"]=std::to_string(weapons_count) + " "+txt;
     this->hud_text_tags["HUDM"]=hud_weapon_mode_names[this->weapon_mode];
     
-    if (this->target != nullptr) {
-        Vector3D dist_to_target = this->target->position - this->player_plane->position;
+    if (this->current_target != nullptr) {
+        Vector3D dist_to_target = this->current_target->position - this->player_plane->position;
         float distance = dist_to_target.Length();
 
         oss.str("");
@@ -1510,19 +1646,25 @@ void SCCockpit::Update() {
         this->hud_text_tags["TARG"]= "R "+oss.str();
         SCMissionActors *targetActor = nullptr;
         for (auto actor : this->current_mission->enemies) {
-            if (actor->object == this->target && actor->is_active) {
+            if (actor->object == this->current_target && actor->is_active) {
                 targetActor = actor;
                 break;
             }
         }
         if (targetActor == nullptr) {
             for (auto actor : this->current_mission->friendlies) {
-                if (actor->object == this->target && actor->is_active) {
+                if (actor->object == this->current_target && actor->is_active) {
                     targetActor = actor;
                     break;
                 }
             }
         }
+        if (targetActor != nullptr && targetActor->is_destroyed) {
+            targetActor = nullptr;
+            this->target = nullptr;
+            this->current_target = nullptr;
+        }
+        this->current_target_actor = targetActor;
         float target_velocity = targetActor != nullptr ? targetActor->plane != nullptr ? targetActor->plane->airspeed : 0.0f : 0.0f;
         oss.str("");
         oss << std::setw(3) << std::setfill('0') << std::fixed << std::setprecision(2) << target_velocity;
@@ -1842,7 +1984,7 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
     fb->circle_slow(position.x, position.y, circle_size, 223);
     static float x_sign = 0.5f;
     static float y_sign = 0.1f;
-    if (this->target == nullptr) {
+    if (this->current_target == nullptr) {
         msd_x += x_sign;
         if (x_sign == 0.5f && msd_x > circle_size+position.x) {
             x_sign = -0.5f;
@@ -1892,7 +2034,7 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
         fb->line(tip_x, tip_y, base2_x, base2_y, 223);
         fb->line(base1_x, base1_y, base2_x, base2_y, 223);
                 
-        if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
+        if (project_to_screen(this->current_target->position, target_screen_x, target_screen_y)) {
             if (this->is_3d_cockpit == false) {
                 target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
                 target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
@@ -1922,14 +2064,14 @@ void SCCockpit::RenderIrTargetHud(Point2D position, FrameBuffer *fb, CHUD *hud, 
     static float msd_x = position.x;
     static float msd_y = position.y;
     
-    if (this->target != nullptr) {
+    if (this->current_target != nullptr) {
         int target_screen_x, target_screen_y;
         int hud_width = hudBottomRight.x - hudTopLeft.x;
         int hud_height = hudBottomRight.y - hudTopLeft.y;
         int hud_center_x = hud_width / 2;
         int hud_center_y = hud_height / 2;
                 
-        if (project_to_screen(this->target->position, target_screen_x, target_screen_y)) {
+        if (project_to_screen(this->current_target->position, target_screen_x, target_screen_y)) {
             if (this->is_3d_cockpit == false) {
                 target_screen_x = target_screen_x - hudCenter.x + hud_center_x + hudTopLeft.x;
                 target_screen_y = target_screen_y - hudCenter.y + hud_center_y + hudTopLeft.y;
@@ -1992,8 +2134,10 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
         this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
         int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
         CHUD_SHAPE *lcos = this->hud->small_hud->LCOS;
+        CHUD_SHAPE *strf = this->hud->small_hud->STRF;
         if (this->face == CockpitFace::CP_BIG) {
             lcos = this->hud->large_hud->LCOS;
+            strf = this->hud->large_hud->STRF;
         }
         switch (this->weapon_mode) {
             case Hud_weapon_mode::WM_HUD_LCOS:
@@ -2013,7 +2157,7 @@ void SCCockpit::RenderHUD(Point2D position, FrameBuffer *fb) {
                 this->RenderMissileHud(position, fb, hud, hud_top_left, hud_bottom_right, hud_center);
                 break;
             case Hud_weapon_mode::WM_HUD_STRAF:
-                // Non implémenté : mode de tir STRAF (pour les canons et mitrailleuses)
+                this->RenderStraffingReticle(fb, strf, hud_top_left, hud_bottom_right, hud_center);
                 break;
             case Hud_weapon_mode::WM_HUD_NONE:
                 break;

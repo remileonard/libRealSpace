@@ -28,6 +28,7 @@ private:
     bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
     void IdentifyRAWSContact(SCMissionActors *actor, FrameBuffer *fb, float headingRad, Point2D pmfd_left, Point2D raws_size, bool is_zoomed, int rsize);
     void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
+    void RenderStraffingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
     void RenderBombSight(FrameBuffer* fb, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
     void RenderMFDS(Point2D mfds, FrameBuffer *fb);
     void RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
@@ -44,7 +45,8 @@ private:
     bool palette_lut_dirty = true;
     int current_weapon_id{-1};
     Camera cockpit_camera;
-    
+    MISN_PART *current_target{nullptr};
+    SCMissionActors *current_target_actor{nullptr};
 public:
     VGAPalette palette;
     RSCockpit* cockpit{nullptr};

@@ -230,6 +230,17 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
     if (this->rightDist + this->leftDist == 0 && this->topDist + this->botDist > 0) {
         this->leftDist = 1;
     }
+    if (this->rightDist > 320 || 
+        this->leftDist > 320 || 
+        this->topDist > 200 || 
+        this->botDist > 200 || 
+        this->rightDist < 0 || 
+        this->topDist < 0 || 
+        this->leftDist < 0 || 
+        this->botDist < 0) {
+        this->uncompressed = false;
+        return;
+    }
     if (this->rightDist + this->leftDist > 0 && this->topDist + this->botDist > 0) {
         this->buffer_size.x = this->leftDist + this->rightDist;  // sprite width
         this->buffer_size.y = this->topDist + this->botDist;       // sprite height
@@ -243,12 +254,6 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
         bool error = this->Expand(this->expand_buffer, &this->uncompressed_size);
         this->buffer_size.x = 320;  // restaurer les dimensions écran
         this->buffer_size.y = 200;
-        /*if (error) {
-            printf("Error while expanding RLE shape\n");
-            this->uncompressed = false;
-        } else {
-            this->uncompressed = true;
-        }*/
         this->uncompressed = true;
     }
 }

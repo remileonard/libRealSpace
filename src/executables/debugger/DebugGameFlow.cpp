@@ -493,6 +493,10 @@ void DebugGameFlow::renderMissionInfos() {
                                 if (shp->GetWidth() <= 2) {
                                     shp = this->getShape(sprt.second->sprite.SHP_ID)->GetShape(1);
                                 }
+                                if (shp == nullptr) {
+                                    ImGui::Text("No shape for this image");
+                                    continue;
+                                }
                                 ImGui::Text("Width %d Height %d", shp->GetWidth(), shp->GetHeight());
                                 if (shp->GetWidth() > 1 && shp->GetHeight() > 1) {
                                     FrameBuffer *fb = new FrameBuffer(320, 200);
