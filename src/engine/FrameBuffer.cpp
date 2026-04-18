@@ -258,96 +258,88 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
     }
 }
 void FrameBuffer::blit(uint8_t *srcBuffer, int x, int y, int w, int h) {
-    int startRow = 0;
-    int startCol = 0;
-    if (y < 0) {
-        startRow = -y;
-    }
-    if (x < 0) {
-        startCol = -x;
-    }
+    int startRow = (y < 0) ? -y : 0;
+    int startCol = (x < 0) ? -x : 0;
+    int endCol   = std::min(w, this->width - x);
+
+    if (endCol <= startCol) return;
+    int len = endCol - startCol;
+
     for (int row = startRow; row < h; ++row) {
         int destRow = y + row;
-        if (destRow < 0 || destRow >= this->height)
-            continue;
-        int destOffset = destRow * this->width;
-        for (int col = startCol; col < w; ++col) {
-            int destCol = x + col;
-            if (destCol < 0 || destCol >= this->width)
-                continue;
-            framebuffer[destOffset + destCol] = srcBuffer[row * w + col];
-        }
+        if (destRow >= this->height) break;
+        memcpy(framebuffer + destRow * this->width + x + startCol,
+               srcBuffer   + row * w              +     startCol,
+               len);
     }
 }
 void FrameBuffer::blitWithMask(uint8_t *srcBuffer, int x, int y, int width, int height, uint8_t maxk) {
-    int startRow = 0;
-    int startCol = 0;
-    if (y < 0) {
-        startRow = -y;
-    }
-    if (x < 0) {
-        startCol = -x;
-    }
+    int startRow = (y < 0) ? -y : 0;
+    int startCol = (x < 0) ? -x : 0;
+    int endCol   = std::min(width, this->width - x);
+
+    if (endCol <= startCol) return;
+
     for (int row = startRow; row < height; ++row) {
         int destRow = y + row;
-        if (destRow < 0 || destRow >= this->height)
-            continue;
-        int destOffset = destRow * this->width;
-        for (int col = startCol; col < width; ++col) {
-            int destCol = x + col;
-            if (destCol < 0 || destCol >= this->width)
-                continue;
-            if (srcBuffer[row * width + col] == maxk)
-                continue;
-            framebuffer[destOffset + destCol] = srcBuffer[row * width + col];
+        if (destRow >= this->height) break;
+
+        const uint8_t* src_row = srcBuffer   + row * width  + startCol;
+        uint8_t*       dst_row = framebuffer  + destRow * this->width + x + startCol;
+        int len = endCol - startCol;
+
+        int i = 0;
+        while (i < len) {
+            if (src_row[i] == maxk) { i++; continue; }
+            int span_start = i;
+            while (i < len && src_row[i] != maxk) i++;
+            memcpy(dst_row + span_start, src_row + span_start, i - span_start);
         }
     }
 }
 void FrameBuffer::blitWithMaskAndOffset(uint8_t *srcBuffer, int x, int y, int width, int height, uint8_t maxk, uint8_t offset) {
-    int startRow = 0;
-    int startCol = 0;
-    if (y < 0) {
-        startRow = -y;
-    }
-    if (x < 0) {
-        startCol = -x;
-    }
+    int startRow = (y < 0) ? -y : 0;
+    int startCol = (x < 0) ? -x : 0;
+    int endCol   = std::min(width, this->width - x);
+
+    if (endCol <= startCol) return;
+
     for (int row = startRow; row < height; ++row) {
         int destRow = y + row;
-        if (destRow < 0 || destRow >= this->height)
-            continue;
-        int destOffset = destRow * this->width;
-        for (int col = startCol; col < width; ++col) {
-            int destCol = x + col;
-            if (destCol < 0 || destCol >= this->width)
-                continue;
-            if (srcBuffer[row * width + col] == maxk)
-                continue;
-            framebuffer[destOffset + destCol] = srcBuffer[row * width + col]+offset;
+        if (destRow >= this->height) break;
+
+        const uint8_t* src_row = srcBuffer  + row * width       + startCol;
+        uint8_t*       dst_row = framebuffer + destRow * this->width + x + startCol;
+        int len = endCol - startCol;
+
+        for (int i = 0; i < len; ++i) {
+            if (src_row[i] != maxk)
+                dst_row[i] = src_row[i] + offset;
         }
     }
 }
 void FrameBuffer::blitLargeBuffer(uint8_t *srcBuffer, int srcWidth, int srcHeight, int srcX, int srcY, int destX,
                                   int destY, int width, int height) {
+    // Clipping combiné src + dst sur les colonnes
+    int startCol = std::max({0, -srcX, -destX});
+    int endCol   = std::min({width, srcWidth - srcX, this->width - destX});
+    if (endCol <= startCol) return;
 
-    for (int row = 0; row < height; ++row) {
-        int srcRow = srcY + row;
-        int destRow = destY + row;
-        if (srcRow < 0 || srcRow >= srcHeight)
-            continue;
-        if (destRow < 0 || destRow >= this->height)
-            continue;
-        int destOffset = destRow * this->width;
-        for (int col = 0; col < width; ++col) {
-            int srcCol = srcX + col;
-            int destCol = destX + col;
-            if (srcCol < 0 || srcCol >= srcWidth)
-                continue;
-            if (destCol < 0 || destCol >= this->width)
-                continue;
-            if (srcBuffer[srcRow * srcWidth + srcCol] == 255)
-                continue;
-            this->framebuffer[destOffset + destCol] = srcBuffer[srcRow * srcWidth + srcCol];
+    // Clipping combiné src + dst sur les lignes
+    int startRow = std::max({0, -srcY, -destY});
+    int endRow   = std::min({height, srcHeight - srcY, this->height - destY});
+
+    for (int row = startRow; row < endRow; ++row) {
+        const uint8_t* src_row = srcBuffer      + (srcY + row) * srcWidth  + srcX + startCol;
+        uint8_t*       dst_row = this->framebuffer + (destY + row) * this->width + destX + startCol;
+        int len = endCol - startCol;
+
+        int i = 0;
+        while (i < len) {
+            if (src_row[i] == 255) { i++; continue; }
+            int span_start = i;
+            while (i < len && src_row[i] != 255) i++;
+            memcpy(dst_row + span_start, src_row + span_start, i - span_start);
         }
     }
 }

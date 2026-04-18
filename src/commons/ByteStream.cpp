@@ -20,6 +20,19 @@ ByteStream::ByteStream(ByteStream& stream) {
 	this->size = stream.size;
 	this->position = stream.position;
 }
+ByteStream::ByteStream(const ByteStream& stream) {
+    this->cursor   = stream.cursor;
+    this->size     = stream.size;
+    this->position = stream.position;
+}
+
+ByteStream& ByteStream::operator=(const ByteStream& other) {
+    if (this == &other) return *this;
+    this->cursor   = other.cursor;
+    this->size     = other.size;
+    this->position = other.position;
+    return *this;
+}
 
 ByteStream::ByteStream() {
 	this->cursor = nullptr;

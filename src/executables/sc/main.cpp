@@ -27,6 +27,10 @@ int main(int argc, char* argv[]) {
     int height = config.getInt("Window", "height", 600);
     bool fullscreen = config.getBool("Window", "fullscreen", false);
     screen.init(width,height,fullscreen);
+    width = screen.width;
+    height = screen.height;
+    config.setInt("Window", "width", width);
+    config.setInt("Window", "height", height);
     screen.is_spfx_finished = false;
     while (!screen.is_spfx_finished) {
         screen.fxTurnOnTv();

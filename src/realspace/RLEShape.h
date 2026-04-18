@@ -33,7 +33,9 @@ private:
     size_t size;
 
     uint8_t colorOffset;
-
+    uint8_t *expand_buffer{nullptr};
+    size_t uncompressed_size{0};
+    bool uncompressed{false};
     void ReadFragment(RLEFragment *frag);
     bool ExpandFragment(RLEFragment *frag, uint8_t *dst);
     bool ExpandFragmentWithBox(RLEFragment *frag, uint8_t *dst, int bx1, int bx2, int by1, int by2);
@@ -51,6 +53,8 @@ public:
     int16_t botDist;
 
     RLEShape();
+    RLEShape(const RLEShape& other);
+    RLEShape& operator=(const RLEShape& other);
     ~RLEShape();
 
     void init(uint8_t *data, size_t size);

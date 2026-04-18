@@ -31,6 +31,8 @@ private:
 public:
     ByteStream(uint8_t *cursor, size_t size);
     ByteStream(ByteStream &stream);
+    ByteStream(const ByteStream &stream);
+    ByteStream& operator=(const ByteStream& other);
     ByteStream();
     ~ByteStream();
 

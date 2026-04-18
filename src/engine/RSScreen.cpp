@@ -57,6 +57,18 @@ void RSScreen::init(int width, int height, bool fullscreen){
                                  this->width,
                                  this->height,
                                  window_flags);
+
+    int drawableW = 0, drawableH = 0;
+    SDL_GL_GetDrawableSize(m_window, &drawableW, &drawableH);
+    if (drawableW <= 0 || drawableH <= 0) {
+        drawableW = this->width;
+        drawableH = this->height;
+    } else {
+        this->width = drawableW;
+        this->height = drawableH;
+    }
+    
+
     if (!m_window) {
         printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
         return;
