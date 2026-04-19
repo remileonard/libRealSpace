@@ -29,5 +29,6 @@ public:
     int getInt(const std::string& section, const std::string& key, int defaultValue = 0) const;
     int setInt(const std::string& section, const std::string& key, int value);
     bool getBool(const std::string& section, const std::string& key, bool defaultValue = false) const;
-
+    void setBool(const std::string& section, const std::string& key, bool value);
+    void save(const std::string& filePath) const;
 };

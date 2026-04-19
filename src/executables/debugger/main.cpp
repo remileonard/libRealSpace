@@ -25,8 +25,8 @@ int main(int argc, char* argv[]) {
     AssetManager& assets = AssetManager::getInstance();
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
-    int width = config.getInt("Display", "Width", 1200);
-    int height = config.getInt("Display", "Height", 800);
+    int width = config.getInt("Window", "width", 1200);
+    int height = config.getInt("Window", "height", 800);
     screen.init(width,height,0);
     assets.SetBase("./assets");
     loader.init();

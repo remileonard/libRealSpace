@@ -273,13 +273,52 @@ std::string DebugControlMapping::describeBinding(InputAction action) const {
 
 // ------------------------------------------------------------------ UI ------
 void DebugControlMapping::renderUI() {
-    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Joystick Mapping");
+    Config* cfg = Config::hasInstance() ? &Config::instance() : nullptr;
 
+    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Settings");
+    ImGui::SeparatorText("Screen");
+    ImGui::Text("Resolution: %dx%d", cfg->getInt("Window", "width", 0), cfg->getInt("window", "height", 0));
+    int numModes = SDL_GetNumDisplayModes(0);
+    std::vector<std::string> modeLabels;
+    for (int i = 0; i < numModes; i++) {
+        SDL_DisplayMode mode;
+        if (SDL_GetDisplayMode(0, i, &mode) == 0) {
+            modeLabels.push_back(
+                std::to_string(mode.w) + "x" + std::to_string(mode.h)
+                + " @ " + std::to_string(mode.refresh_rate) + "Hz"
+            );
+        }
+    }
+
+    static int selectedMode = 0;
+    if (ImGui::BeginCombo("Resolution", modeLabels[selectedMode].c_str())) {
+        for (int i = 0; i < (int)modeLabels.size(); i++) {
+            if (ImGui::Selectable(modeLabels[i].c_str(), selectedMode == i))
+                selectedMode = i;
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::Text("Fullscreen: %s", cfg->getBool("Window", "fullscreen", false) ? "Yes" : "No");
+    ImGui::SameLine();
+    static bool fullscreen = cfg->getBool("Window", "fullscreen", false);
+    ImGui::Checkbox("##fullscreen", &fullscreen);
+    if (ImGui::Button("Apply")) {
+        // Appliquer la résolution sélectionnée
+        SDL_DisplayMode mode;
+        if (SDL_GetDisplayMode(0, selectedMode, &mode) == 0) {
+            cfg->setInt("Window", "width", mode.w);
+            cfg->setInt("Window", "height", mode.h);
+        }
+        cfg->setBool("Window", "fullscreen", true);
+        cfg->save("./assets/config.ini");
+        ImGui::OpenPopup("applied_popup");
+
+    }
     // --- Joysticks connectés ---
-    ImGui::SeparatorText("Joysticks connectes");
+    ImGui::SeparatorText("Joysticks");
     if (m_joysticks.empty()) {
-        ImGui::TextColored(ImVec4(1,0.3f,0.3f,1), "Aucun joystick detecte.");
+        ImGui::TextColored(ImVec4(1,0.3f,0.3f,1), "No joystick detected !");
     }
     for (int i = 0; i < (int)m_joysticks.size(); i++) {
         ImGui::Text("[%d] %s", i, m_joystickNames[i].c_str());
@@ -289,10 +328,10 @@ void DebugControlMapping::renderUI() {
 
     ImGui::Separator();
 
-    // --- Capture en cours ---
+    // --- Capture in progress ---
     if (m_capture.active) {
         ImGui::TextColored(ImVec4(1,1,0,1),
-            ">> Appuyez sur un bouton ou bougez un axe... (%.1fs)",
+            ">> Press a button or move an axis... (%.1fs)",
             m_capture.timeout);
         if (ImGui::Button("Annuler")) m_capture.active = false;
         ImGui::Separator();
@@ -343,19 +382,22 @@ void DebugControlMapping::renderUI() {
 
     // --- Boutons globaux ---
     ImGui::Separator();
-    if (ImGui::Button("Sauvegarder")) {
+    if (ImGui::Button("Save")) {
         m_keyboard->saveActionBindings("default_bindings.cfg");
         ImGui::OpenPopup("saved_popup");
     }
     ImGui::SameLine();
-    if (ImGui::Button("Recharger joysticks")) {
+    if (ImGui::Button("Reload")) {
         openJoysticks();
         buildActionList();
     }
     if (ImGui::BeginPopup("saved_popup")) {
-        ImGui::Text("Bindings sauvegardes !");
+        ImGui::Text("Bindings Saved !");
         ImGui::EndPopup();
     }
-
+    if (ImGui::BeginPopup("applied_popup")) {
+        ImGui::Text("Settings Applied !");
+        ImGui::EndPopup();
+    }
     ImGui::End();
 }

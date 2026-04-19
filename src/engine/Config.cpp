@@ -20,3 +20,11 @@ int Config::setInt(const std::string& section, const std::string& key, int value
 bool Config::getBool(const std::string& section, const std::string& key, bool defaultValue) const {
     return _ini.GetBoolValue(section.c_str(), key.c_str(), defaultValue);
 }
+
+void Config::setBool(const std::string &section, const std::string &key, bool value) {
+    _ini.SetBoolValue(section.c_str(), key.c_str(), value);
+}
+
+void Config::save(const std::string &filePath) const {
+    _ini.SaveFile(filePath.c_str());
+}
