@@ -230,24 +230,27 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
     if (this->rightDist + this->leftDist == 0 && this->topDist + this->botDist > 0) {
         this->leftDist = 1;
     }
-    if (this->rightDist > 320 || 
-        this->leftDist > 320 || 
-        this->topDist > 200 || 
-        this->botDist > 200 || 
+    if (this->rightDist > 640 || 
+        this->leftDist > 640 || 
+        this->topDist > 400 || 
+        this->botDist > 400 || 
         this->rightDist < -320 || 
         this->topDist < -200 || 
         this->leftDist < -320 || 
         this->botDist < -200) {
         this->uncompressed = false;
+        printf("Warning: RLE shape has invalid dimensions, skipping expansion\n");
+        printf("Dimensions: left=%d, right=%d, top=%d, bot=%d\n", this->leftDist, this->rightDist, this->topDist, this->botDist);
         return;
     }
     if (this->rightDist + this->leftDist > 0 && this->topDist + this->botDist > 0) {
         this->buffer_size.x = this->leftDist + this->rightDist;  // sprite width
         this->buffer_size.y = this->topDist + this->botDist;       // sprite height
-        if (this->buffer_size.x > 320 || this->buffer_size.y > 200) {
+        if (this->buffer_size.x > 322 || this->buffer_size.y > 204) {
             printf("Warning: RLE shape has dimensions larger than screen, clipping will occur\n");
-            this->buffer_size.x = 320;
-            this->buffer_size.y = 200;
+            printf("Buffer dimensions: width=%d, height=%d\n", this->buffer_size.x, this->buffer_size.y);
+            this->buffer_size.x = 322;
+            this->buffer_size.y = 204;
         }
         this->expand_buffer = new uint8_t[this->buffer_size.x * this->buffer_size.y];
         memset(this->expand_buffer, 255, this->buffer_size.x * this->buffer_size.y);
