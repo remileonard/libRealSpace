@@ -234,10 +234,10 @@ void RLEShape::init(uint8_t *idata, size_t isize) {
         this->leftDist > 320 || 
         this->topDist > 200 || 
         this->botDist > 200 || 
-        this->rightDist < 0 || 
-        this->topDist < 0 || 
-        this->leftDist < 0 || 
-        this->botDist < 0) {
+        this->rightDist < -320 || 
+        this->topDist < -200 || 
+        this->leftDist < -320 || 
+        this->botDist < -200) {
         this->uncompressed = false;
         return;
     }

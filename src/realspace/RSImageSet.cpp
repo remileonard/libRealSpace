@@ -37,6 +37,8 @@ void RSImageSet::InitFromPakEntry(PakEntry *entry) {
             if (shape->uncompressed) {
                 this->shapes.push_back(shape);
                 this->sequence.push_back((uint8_t)i);
+            } else {
+                delete shape;
             }
         } else {
             RSPalette *palette = new RSPalette();
@@ -88,8 +90,12 @@ void RSImageSet::InitFromRam(uint8_t *data, size_t size) {
         if (*currImage != 'F') {
             RLEShape *shape = new RLEShape();
             shape->init(currImage, size);
-            this->shapes.push_back(shape);
-            this->sequence.push_back((uint8_t)i);
+            if (shape->uncompressed) {
+                this->shapes.push_back(shape);
+                this->sequence.push_back((uint8_t)i);
+            } else {
+                delete shape;
+            }
         } else {
             RSPalette *palette = new RSPalette();
             uint32_t pal_size = 0;
@@ -130,8 +136,12 @@ void RSImageSet::InitFromTreEntry(TreEntry *entry) {
         if (*currImage != 'F') {
             RLEShape *shape = new RLEShape();
             shape->init(currImage, size);
-            this->shapes.push_back(shape);
-            this->sequence.push_back((uint8_t)i);
+            if (shape->uncompressed) {
+                this->shapes.push_back(shape);
+                this->sequence.push_back((uint8_t)i);
+            } else {
+                delete shape;
+            }
         } else {
             RSPalette *palette = new RSPalette();
             uint32_t pal_size = 0;
@@ -171,10 +181,15 @@ void RSImageSet::InitFromPakArchive(PakArchive *entry, uint8_t data_offset) {
     for (int i = 0; i < entry->GetNumEntries(); i++) {
         RLEShape *shape = new RLEShape();
         shape->init(entry->GetEntry(i)->data + data_offset, entry->GetEntry(i)->size - data_offset);
-        Point2D pos = {0, 0};
-        shape->SetPosition(&pos);
-        this->shapes.push_back(shape);
-        this->sequence.push_back(i);
+        if (shape->uncompressed) {
+            Point2D pos = {0, 0};
+            shape->SetPosition(&pos);
+            this->shapes.push_back(shape);
+            this->sequence.push_back(i);
+        } else {
+            delete shape;
+        }
+        
     }
 }
 
