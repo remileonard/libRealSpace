@@ -995,9 +995,11 @@ void SCConvPlayer::runFrame(void) {
                 VGA.setPalette(&this->palette);
                 RLEShape *s = participant->appearances->GetShape(0);
                 s->SetPosition(&position);
+                s->uncompressed = false;
                 VGA.getFrameBuffer()->drawShape(s);
                 if (participant->appearances->GetNumImages() > 1) {
                     s = participant->appearances->GetShape(1);
+                    s->uncompressed = false;
                     s->SetPosition(&position);
                     VGA.getFrameBuffer()->drawShape(s);
                 }

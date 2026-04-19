@@ -22,6 +22,7 @@ public:
 
     void InitFromPakEntry(PakEntry *entry);
     void InitFromTreEntry(TreEntry *entry);
+    void InitFromTreEntryBis(TreEntry *entry);
     void InitFromSubPakEntry(PakArchive *entry);
     void InitFromPakArchive(PakArchive *entry);
     void InitFromPakArchive(PakArchive *entry, uint8_t data_offset);
