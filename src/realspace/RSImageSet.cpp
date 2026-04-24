@@ -14,48 +14,45 @@ RSImageSet::~RSImageSet() {}
 
 void RSImageSet::InitFromPakEntry(PakEntry *entry) {
 
-    uint8_t *end = entry->data + entry->size;
     ByteStream index(entry->data, entry->size);
 
-    uint32_t nextImage = index.ReadUInt32LE();
-    nextImage = nextImage & 0x00FFFFFF;
-
-    uint32_t numImages = nextImage / 4;
-    for (size_t i = 0; i < numImages && (entry->data + nextImage < end); i++) {
-        size_t size = 0;
-        size = end - (entry->data + nextImage);
-        uint8_t *currImage = entry->data + nextImage;
-
-        nextImage = index.ReadUInt32LE();
-        nextImage = nextImage & 0x00FFFFFF;
-
-        
-
-        if (*currImage != 'F') {
-            RLEShape *shape = new RLEShape();
-            shape->init(currImage, size);
-            if (shape->uncompressed) {
-                this->shapes.push_back(shape);
-                this->sequence.push_back((uint8_t)i);
-            } else {
-                delete shape;
-            }
-        } else {
-            RSPalette *palette = new RSPalette();
-            uint32_t pal_size = 0;
-            pal_size |= *(currImage+4) << 24;
-            pal_size |= *(currImage+5) << 16;
-            pal_size |= *(currImage+6) << 8;
-            pal_size |= *(currImage+7) << 0;
-            if (*(currImage+8)=='P') {
-                palette->initFromFileRam(currImage, pal_size+16, 4);
-                this->palettes.push_back(palette);
-                RLEShape *shape = new RLEShape();
-                *shape = *RLEShape::GetEmptyShape();
-                this->shapes.push_back(shape);
-            } else {
-                delete palette;
-            }
+    uint32_t palettesOffset = index.ReadUInt32LE();
+    uint32_t firstImageOffset = index.ReadUInt32LE();
+    std::vector<uint32_t> imageOffsets;
+    imageOffsets.push_back(firstImageOffset);
+    while (index.GetCurrentPosition() < firstImageOffset) {
+        uint32_t imageOffset = index.ReadUInt32LE();
+        imageOffsets.push_back(imageOffset);
+    }
+    RLEShape *shape = RLEShape::GetEmptyShape();
+    this->shapes.push_back(shape);
+    for (size_t i = 0; i < imageOffsets.size(); i++) {
+        uint32_t imageOffset = imageOffsets[i];
+        size_t size = entry->size - imageOffset;
+        if (i < imageOffsets.size() - 1) {
+            size = imageOffsets[i+1] - imageOffset;
+        }
+        uint8_t *currImage = entry->data + imageOffset;
+        RLEShape *shape = new RLEShape();
+        shape->init(currImage, size);
+        if (shape->uncompressed) {
+            this->shapes.push_back(shape);
+            this->sequence.push_back((uint8_t)i);
+        }
+    }
+    if (palettesOffset < entry->size) {
+        uint8_t *palettesData = entry->data + palettesOffset;
+        RSPalette *palette = new RSPalette();
+        uint32_t pal_size = 0;
+        pal_size |= *(palettesData+4) << 24;
+        pal_size |= *(palettesData+5) << 16;
+        pal_size |= *(palettesData+6) << 8;
+        pal_size |= *(palettesData+7) << 0;
+        if (*(palettesData+8)=='P') {
+            palette->initFromFileRam(palettesData, pal_size+8);
+            this->palettes.push_back(palette);
+            RLEShape *shape = RLEShape::GetEmptyShape();
+            this->shapes.push_back(shape);
         }
     }
 }
@@ -71,51 +68,47 @@ void RSImageSet::InitFromRam(uint8_t *data, size_t size) {
 
 
 
-    uint8_t *end = data + size;
     ByteStream index(data, size);
 
-    uint32_t nextImage = index.ReadUInt32LE();
-    nextImage = nextImage & 0x00FFFFFF;
+    uint32_t palettesOffset = index.ReadUInt32LE();
+    uint32_t firstImageOffset = index.ReadUInt32LE();
+    std::vector<uint32_t> imageOffsets;
+    imageOffsets.push_back(firstImageOffset);
+    while (index.GetCurrentPosition() < firstImageOffset) {
+        uint32_t imageOffset = index.ReadUInt32LE();
+        imageOffsets.push_back(imageOffset);
+    }
 
-    uint32_t numImages = nextImage / 4;
-    for (size_t i = 0; i < numImages && (data + nextImage < end); i++) {
-        size_t size = 0;
-        size = end - (data + nextImage);
-        uint8_t *currImage = data + nextImage;
-
-        nextImage = index.ReadUInt32LE();
-        nextImage = nextImage & 0x00FFFFFF;
-
-
-        if (*currImage != 'F') {
-            RLEShape *shape = new RLEShape();
-            shape->init(currImage, size);
-            if (shape->uncompressed) {
-                this->shapes.push_back(shape);
-                this->sequence.push_back((uint8_t)i);
-            } else {
-                delete shape;
-            }
-        } else {
-            RSPalette *palette = new RSPalette();
-            uint32_t pal_size = 0;
-            pal_size |= *(currImage+4) << 24;
-            pal_size |= *(currImage+5) << 16;
-            pal_size |= *(currImage+6) << 8;
-            pal_size |= *(currImage+7) << 0;
-            if (*(currImage+8)=='P') {
-                palette->initFromFileRam(currImage, pal_size+8);
-                this->palettes.push_back(palette);
-                
-                RLEShape *shape = new RLEShape();
-                *shape = *RLEShape::GetEmptyShape();
-                this->shapes.push_back(shape);
-            }
+    for (size_t i = 0; i < imageOffsets.size(); i++) {
+        uint32_t imageOffset = imageOffsets[i];
+        size_t img_size = size - imageOffset;
+        if (i < imageOffsets.size() - 1) {
+            img_size = imageOffsets[i+1] - imageOffset;
+        }
+        uint8_t *currImage = data + imageOffset;
+        RLEShape *shape = new RLEShape();
+        shape->init(currImage, size);
+        if (shape->uncompressed) {
+            this->shapes.push_back(shape);
+            this->sequence.push_back((uint8_t)i);
+        }
+    }
+    if (palettesOffset < size) {
+        uint8_t *palettesData = data + palettesOffset;
+        RSPalette *palette = new RSPalette();
+        uint32_t pal_size = 0;
+        pal_size |= *(palettesData+4) << 24;
+        pal_size |= *(palettesData+5) << 16;
+        pal_size |= *(palettesData+6) << 8;
+        pal_size |= *(palettesData+7) << 0;
+        if (*(palettesData+8)=='P') {
+            palette->initFromFileRam(palettesData, pal_size+8);
+            this->palettes.push_back(palette);
         }
     }
 }
 
-void RSImageSet::InitFromTreEntry(TreEntry *entry) {
+void RSImageSet::InitFromTreEntryBis(TreEntry *entry) {
 
     uint8_t *end = entry->data + entry->size;
     ByteStream index(entry->data, entry->size);
@@ -161,7 +154,7 @@ void RSImageSet::InitFromTreEntry(TreEntry *entry) {
         }
     }
 }
-void RSImageSet::InitFromTreEntryBis(TreEntry *entry) {
+void RSImageSet::InitFromTreEntry(TreEntry *entry) {
     /*
         à implémenter :
         - premier uint32_t fin de la séquence d'images. S'il reste de la place après, c'est que les images sont suivies de palettes.
@@ -170,47 +163,43 @@ void RSImageSet::InitFromTreEntryBis(TreEntry *entry) {
         - la liste est constituée, on charge chaque image
         - on charge la palette si elle existe.
     */
-    uint8_t *end = entry->data + entry->size;
+    
     ByteStream index(entry->data, entry->size);
 
-    uint32_t nextImage = index.ReadUInt32LE();
-    nextImage = nextImage & 0x00FFFFFF;
+    uint32_t palettesOffset = index.ReadUInt32LE();
+    uint32_t firstImageOffset = index.ReadUInt32LE();
+    std::vector<uint32_t> imageOffsets;
+    imageOffsets.push_back(firstImageOffset);
+    while (index.GetCurrentPosition() < firstImageOffset) {
+        uint32_t imageOffset = index.ReadUInt32LE();
+        imageOffsets.push_back(imageOffset);
+    }
 
-    uint32_t numImages = nextImage / 4;
-    for (size_t i = 0; i < numImages && (entry->data + nextImage < end); i++) {
-
-        uint8_t *currImage = entry->data + nextImage;
-
-        nextImage = index.ReadUInt32LE();
-        nextImage = nextImage & 0x00FFFFFF;
-
-        size_t size = 0;
-
-        if (*currImage != 'F') {
-            RLEShape *shape = new RLEShape();
-            shape->init(currImage, size);
-            if (shape->uncompressed) {
-                this->shapes.push_back(shape);
-                this->sequence.push_back((uint8_t)i);
-            } else {
-                delete shape;
-            }
-        } else {
-            RSPalette *palette = new RSPalette();
-            uint32_t pal_size = 0;
-            pal_size |= *(currImage+4) << 24;
-            pal_size |= *(currImage+5) << 16;
-            pal_size |= *(currImage+6) << 8;
-            pal_size |= *(currImage+7) << 0;
-            if (*(currImage+8)=='P') {
-                palette->initFromFileRam(currImage, pal_size+8);
-                
-                this->palettes.push_back(palette);
-                
-                RLEShape *shape = new RLEShape();
-                *shape = *RLEShape::GetEmptyShape();
-                this->shapes.push_back(shape);
-            }
+    for (size_t i = 0; i < imageOffsets.size(); i++) {
+        uint32_t imageOffset = imageOffsets[i];
+        size_t size = entry->size - imageOffset;
+        if (i < imageOffsets.size() - 1) {
+            size = imageOffsets[i+1] - imageOffset;
+        }
+        uint8_t *currImage = entry->data + imageOffset;
+        RLEShape *shape = new RLEShape();
+        shape->init(currImage, size);
+        if (shape->uncompressed) {
+            this->shapes.push_back(shape);
+            this->sequence.push_back((uint8_t)i);
+        }
+    }
+    if (palettesOffset < entry->size) {
+        uint8_t *palettesData = entry->data + palettesOffset;
+        RSPalette *palette = new RSPalette();
+        uint32_t pal_size = 0;
+        pal_size |= *(palettesData+4) << 24;
+        pal_size |= *(palettesData+5) << 16;
+        pal_size |= *(palettesData+6) << 8;
+        pal_size |= *(palettesData+7) << 0;
+        if (*(palettesData+8)=='P') {
+            palette->initFromFileRam(palettesData, pal_size+8);
+            this->palettes.push_back(palette);
         }
     }
 }
