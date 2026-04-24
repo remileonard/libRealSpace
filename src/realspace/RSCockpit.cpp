@@ -67,11 +67,7 @@ void RSCockpit::parseARTP(uint8_t* data, size_t size) {
     
     uint32_t tsize = data2[0] + (data2[1] << 8) + (data2[2] << 16) + (data2[3] << 24);
     pak->InitFromRAM("ARTP", data2, tsize);
-    if (pak->GetNumEntries() == 0) {
-        this->ARTP.InitFromRam(data2, size);
-    } else {
-        this->ARTP.InitFromPakArchive(pak);
-    }
+    this->ARTP.InitFromPakArchive(pak);
 }
 void RSCockpit::parseVTMP(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
@@ -83,22 +79,14 @@ void RSCockpit::parseEJEC(uint8_t* data, size_t size) {
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
     pak->InitFromRAM("EJEC", data2, size);
-    if (pak->GetNumEntries() == 0) {
-        this->EJEC.InitFromRam(data2, size);
-    } else {
-        this->EJEC.InitFromSubPakEntry(pak);
-    }
+    this->EJEC.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseGUNF(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
     pak->InitFromRAM("GUNF", data2, size);
-    if (pak->GetNumEntries() == 0) {
-        this->GUNF.InitFromRam(data2, size);
-    } else {
-        this->GUNF.InitFromSubPakEntry(pak);
-    }
+    this->GUNF.InitFromSubPakEntry(pak);
 }
 void RSCockpit::parseGHUD(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);
