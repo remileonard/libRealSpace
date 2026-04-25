@@ -4,15 +4,16 @@
 #include <chrono>
 #include <thread>
 
+#define TARGET_FPS 30.0f
 class VRTimer : public Timer {
 public:
     VRTimer() {
         m_lastXrTime = 0;
         m_lastFPSUpdate = 0;
-        m_targetFrameTime = 1.0f / 60.0f; // 30 FPS = 33.33ms par frame
+        m_targetFrameTime = 1.0f / TARGET_FPS; // 30 FPS = 33.33ms par frame
         m_smoothedDeltaTime = m_targetFrameTime;
         m_framesSinceLastUpdate = 0;
-        m_expectedFPS = 60.0f;
+        m_expectedFPS =TARGET_FPS;
         m_hadSpikeThisSecond = false;
         m_lastFrameStart = std::chrono::high_resolution_clock::now();
     }
