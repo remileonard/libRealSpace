@@ -2391,16 +2391,44 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
 
         
         txt = std::to_string(std::abs(angle));
+        int txtLen = (int)txt.length();
+        int spacer = ladd->ladd_text_spacer;
+        float dx = rEnd.x - lStart.x;
+        float dy = rEnd.y - lStart.y;
+        float len = sqrtf(dx*dx + dy*dy);
+        float dirX = dx / len, dirY = dy / len;
+
+        // Perpendiculaire à la barre
+        float perpX = -dirY, perpY = dirX;
+
+        // Le midpoint de la barre est toujours du côté "extérieur" par rapport au centre
+        float midX = (lStart.x + rEnd.x) / 2.0f;
+        float midY = (lStart.y + rEnd.y) / 2.0f;
+        // Si la perp pointe vers le centre, on l'inverse
+        if (perpX * (midX - center.x) + perpY * (midY - center.y) < 0.f) {
+            perpX = -perpX; perpY = -perpY;
+        }
+
+        int char_w = ft->GetShapeForChar('0')->GetWidth();
+        int char_h = ft->GetShapeForChar('0')->GetHeight();
+        int txt_w  = char_w * txtLen;
+
+        // Label gauche : direction sortante = -dir
         if (lStart.x > bx1 && lStart.x < bx2 && lStart.y > by1 && lStart.y < by2) {
-            Point2D p = lStart;
-            p.x -= ladd->ladd_text_spacer;
-            p.y -= 2;
+            float outX = -dirX, outY = -dirY;
+            Point2D p = {
+                (int)(lStart.x + outX * (spacer + txt_w * 0.5f) - txt_w * 0.5f),
+                (int)(lStart.y + outY * (spacer + char_h * 0.5f) - char_h * 0.5f)
+            };
             fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
+        // Label droit : direction sortante = +dir
         if (rEnd.x > bx1 && rEnd.x < bx2 && rEnd.y > by1 && rEnd.y < by2) {
-            Point2D p = rEnd;
-            p.x += ladd->ladd_text_spacer;
-            p.y -= 2;
+            float outX = dirX, outY = dirY;
+            Point2D p = {
+                (int)(rEnd.x + outX * (spacer + txt_w * 0.5f) - txt_w * 0.5f),
+                (int)(rEnd.y + outY * (spacer + char_h * 0.5f) - char_h * 0.5f)
+            };
             fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
         }
         
