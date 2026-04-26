@@ -2398,17 +2398,6 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
         float len = sqrtf(dx*dx + dy*dy);
         float dirX = dx / len, dirY = dy / len;
 
-        // Perpendiculaire à la barre
-        float perpX = -dirY, perpY = dirX;
-
-        // Le midpoint de la barre est toujours du côté "extérieur" par rapport au centre
-        float midX = (lStart.x + rEnd.x) / 2.0f;
-        float midY = (lStart.y + rEnd.y) / 2.0f;
-        // Si la perp pointe vers le centre, on l'inverse
-        if (perpX * (midX - center.x) + perpY * (midY - center.y) < 0.f) {
-            perpX = -perpX; perpY = -perpY;
-        }
-
         int char_w = ft->GetShapeForChar('0')->GetWidth();
         int char_h = ft->GetShapeForChar('0')->GetHeight();
         int txt_w  = char_w * txtLen;
