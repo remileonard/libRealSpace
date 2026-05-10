@@ -178,6 +178,7 @@ void EndMissionScene::init() {
     // opt shp id 143
     // opt shp id 141
     SCShot::init();
+    this->scoringSprites = this->getShape(142);
     this->layers.clear();
     shotBackground *tmpbg = new shotBackground();
     tmpbg->img = this->getShape(143);
@@ -218,13 +219,81 @@ void EndMissionScene::runFrame() {
     VGA.getFrameBuffer()->fillWithColor(0);
     VGA.setPalette(&this->palette);
     shotBackground *layer = this->layers[this->part];
-    VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
-    VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
-    if (layer->img->sequence.size() > 1) {
-        layer->frameCounter = (uint8_t)(layer->frameCounter + fpsupdate) % layer->img->sequence.size();
+    switch (this->part) {
+        case 0:
+            VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
+            VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
+            if (layer->img->sequence.size() > 1) {
+                layer->frameCounter = (uint8_t)(layer->frameCounter + fpsupdate) % layer->img->sequence.size();
+            }
+            break;
+        case 1:
+            {
+                VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
+                SCState &state = SCState::getInstance();
+                int air_kill = state.air_kills;
+                int ground_kill = state.ground_kills;
+                if (air_kill > 5) {
+                    for (int i=0; i<air_kill; i++) {
+                        Point2D pos = {100+i*10, 100};
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[0]);
+                        shape->SetPosition(&pos);
+                        VGA.getFrameBuffer()->drawShape(shape);
+                    }
+                } else if (air_kill > 10) {
+                    Point2D pos = {100, 100};
+                    RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
+                    shape->SetPosition(&pos);
+                    VGA.getFrameBuffer()->drawShape(shape);
+                    for (int i=1; i<=air_kill-5; i++) {
+                        Point2D pos = {100+i*10, 100};
+                        shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[0]);
+                        shape->SetPosition(&pos);
+                        VGA.getFrameBuffer()->drawShape(shape);
+                    }
+                } else {
+                    int nb_10 = air_kill / 10;
+                    int nb_1 = air_kill % 10;
+                    for (int i=0; i<nb_10; i++) {
+                        Point2D pos = {100+i*10, 100};
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[2]);
+                        shape->SetPosition(&pos);
+                        VGA.getFrameBuffer()->drawShape(shape);
+                    }
+                    for (int i=0; i<nb_1; i++) {
+                        Point2D pos = {100+(nb_10+i)*10, 100};
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[0]);
+                        shape->SetPosition(&pos);
+                        VGA.getFrameBuffer()->drawShape(shape);
+                    }
+                }
+            }
+            break;
     }
+    
     Mouse.draw();
     VGA.vSync();
+}
+void EndMissionScene::checkKeyboard(void) {
+    if (!Game)
+        return;
+    Keyboard* kb = Game->getKeyboard();
+    if (!kb)
+        return;
+    if (kb->isActionJustPressed(InputAction::KEY_ESCAPE)) {
+        Game->stopTopActivity();
+    }
+    if (kb->isActionJustPressed(InputAction::KEY_RETURN)) {
+        if (this->part == 0) {
+            this->part = 1;
+        } else {
+            Game->stopTopActivity();
+        }
+    }
+    if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
+        Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
+        Game->stopTopActivity();
+    }
 }
 
 void MapShot::init() {

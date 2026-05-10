@@ -44,12 +44,15 @@ protected:
 };
 
 class EndMissionScene : public SCShot {
+private:
+    RSImageSet* scoringSprites{nullptr};
 protected:
     int part{0};
 public:
     EndMissionScene(PakArchive *optShps, PakArchive *optPals) : SCShot() {};
     void init();
     void runFrame(void);
+    void checkKeyboard(void) override;
 };
 class MapShot : public SCShot {
     std::vector<uint8_t*> mapics;
