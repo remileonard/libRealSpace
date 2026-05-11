@@ -221,7 +221,7 @@ void EndMissionScene::runFrame() {
     shotBackground *layer = this->layers[this->part];
     switch (this->part) {
         case 0:
-            VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
+            VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[1]));
             VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[layer->frameCounter]));
             if (layer->img->sequence.size() > 1) {
                 layer->frameCounter = (uint8_t)(layer->frameCounter + fpsupdate) % layer->img->sequence.size();
@@ -283,7 +283,7 @@ void EndMissionScene::checkKeyboard(void) {
     if (kb->isActionJustPressed(InputAction::KEY_ESCAPE)) {
         Game->stopTopActivity();
     }
-    if (kb->isActionJustPressed(InputAction::KEY_RETURN)) {
+    if (kb->isActionJustPressed(InputAction::KEY_RETURN) || kb->isActionJustPressed(InputAction::KEY_SPACE)) {
         if (this->part == 0) {
             this->part = 1;
         } else {
@@ -292,7 +292,11 @@ void EndMissionScene::checkKeyboard(void) {
     }
     if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::PRESSED) {
         Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
-        Game->stopTopActivity();
+        if (this->part == 0) {
+            this->part = 1;
+        } else {
+            Game->stopTopActivity();
+        }
     }
 }
 

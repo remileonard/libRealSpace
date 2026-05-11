@@ -21,6 +21,7 @@ enum class InputAction {
     KEY_ENTER = 9,
     KEY_TAB = 10,
     KEY_RETURN = 11,
+    KEY_SPACE = 20,
     CONTROLLER_STICK_LEFT_X = 12,
     CONTROLLER_STICK_LEFT_Y = 13,
     CONTROLLER_BUTTON_A = 14,
