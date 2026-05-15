@@ -46,12 +46,13 @@ protected:
 class EndMissionScene : public SCShot {
 private:
     RSImageSet* scoringSprites{nullptr};
+    VGAPalette *p2{nullptr};
 protected:
     int part{0};
 public:
     EndMissionScene(PakArchive *optShps, PakArchive *optPals) : SCShot() {};
-    void init();
-    void runFrame(void);
+    void init() override;
+    void runFrame(void) override;
     void checkKeyboard(void) override;
 };
 class MapShot : public SCShot {

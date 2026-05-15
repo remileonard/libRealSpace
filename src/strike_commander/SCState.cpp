@@ -88,11 +88,11 @@ void SCState::Load(std::string filename) {
         int ground_kills = (buffer[0x19D + i*0x06+3] << 8) | buffer[0x19D + i*0x06+2];
         int air_kills = (buffer[0x19D + i*0x06+5] << 8) | buffer[0x19D + i*0x06+4];
         this->pilot_roaster[i+1] = alive;
-        this->kill_board[i+1][0] = ground_kills;
-        this->kill_board[i+1][1] = air_kills;
+        this->kill_board[i+1][0] = air_kills;
+        this->kill_board[i+1][1] = ground_kills;
     }
-    this->kill_board[0][0] = this->ground_kills;
-    this->kill_board[0][1] = this->air_kills;
+    this->kill_board[0][0] = this->air_kills;
+    this->kill_board[0][1] = this->ground_kills;
     
     this->weapon_inventory = {
         {ID_AIM9J, buffer[0x16F]},
@@ -148,10 +148,10 @@ void SCState::Save(std::string filename) {
     // Kill board
     for (int i = 0; i < 6; i++) {
         buffer[0x19D + i*0x06] = this->pilot_roaster[i+1];
-        // Write ground kills
+        // Write air kills
         buffer[0x19D + i*0x06 + 2] = this->kill_board[i+1][0] & 0xFF;
         buffer[0x19D + i*0x06 + 3] = (this->kill_board[i+1][0] >> 8) & 0xFF;
-        // Write air kills
+        // Write ground kills
         buffer[0x19D + i*0x06 + 4] = this->kill_board[i+1][1] & 0xFF;
         buffer[0x19D + i*0x06 + 5] = (this->kill_board[i+1][1] >> 8) & 0xFF;
     }

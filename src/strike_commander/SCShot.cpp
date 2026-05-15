@@ -196,7 +196,13 @@ void EndMissionScene::init() {
     if (paletteEntry != nullptr) {
         this->rawPalette = this->optPals.GetEntry(20)->data;
     }
-    
+    PakEntry *paletteEntry2 = this->optPals.GetEntry(19);
+    if (paletteEntry2 != nullptr) {
+        this->p2 = new VGAPalette();
+        ByteStream paletteReader;
+        paletteReader.Set((this->optPals.GetEntry(19)->data), 772);
+        this->p2->ReadPatch(&paletteReader);
+    }
 }
 
 void EndMissionScene::runFrame() {
@@ -229,25 +235,26 @@ void EndMissionScene::runFrame() {
             break;
         case 1:
             {
+                VGA.setPalette(this->p2);
                 VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
                 SCState &state = SCState::getInstance();
-                int air_kill = state.air_kills;
-                int ground_kill = state.ground_kills;
-                if (air_kill > 5) {
+                int air_kill = state.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL];
+                int ground_kill = state.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
+                if (air_kill < 5) {
                     for (int i=0; i<air_kill; i++) {
                         Point2D pos = {100+i*10, 100};
-                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[0]);
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
                         shape->SetPosition(&pos);
                         VGA.getFrameBuffer()->drawShape(shape);
                     }
-                } else if (air_kill > 10) {
+                } else if (air_kill < 10) {
                     Point2D pos = {100, 100};
-                    RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
+                    RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[2]);
                     shape->SetPosition(&pos);
                     VGA.getFrameBuffer()->drawShape(shape);
                     for (int i=1; i<=air_kill-5; i++) {
                         Point2D pos = {100+i*10, 100};
-                        shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[0]);
+                        shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
                         shape->SetPosition(&pos);
                         VGA.getFrameBuffer()->drawShape(shape);
                     }
@@ -256,13 +263,13 @@ void EndMissionScene::runFrame() {
                     int nb_1 = air_kill % 10;
                     for (int i=0; i<nb_10; i++) {
                         Point2D pos = {100+i*10, 100};
-                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[2]);
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[3]);
                         shape->SetPosition(&pos);
                         VGA.getFrameBuffer()->drawShape(shape);
                     }
                     for (int i=0; i<nb_1; i++) {
                         Point2D pos = {100+(nb_10+i)*10, 100};
-                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[0]);
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
                         shape->SetPosition(&pos);
                         VGA.getFrameBuffer()->drawShape(shape);
                     }

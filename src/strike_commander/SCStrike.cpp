@@ -1510,6 +1510,8 @@ void SCStrike::runFrame(void) {
             GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0]>0;
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
+            GameState.air_kills += this->current_mission->player->plane_down;
+            GameState.ground_kills += this->current_mission->player->ground_down;
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
                     if (team->plane != nullptr && team->plane != this->player_plane) {
