@@ -238,42 +238,48 @@ void EndMissionScene::runFrame() {
                 VGA.setPalette(this->p2);
                 VGA.getFrameBuffer()->drawShape(layer->img->GetShape(layer->img->sequence[0]));
                 SCState &state = SCState::getInstance();
-                int air_kill = state.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL];
+                int air_kill    = state.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL];
                 int ground_kill = state.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
-                if (air_kill < 5) {
-                    for (int i=0; i<air_kill; i++) {
-                        Point2D pos = {100+i*10, 100};
-                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
+
+                int mark_w = 16;
+                int mark_h = 16;
+
+                // seq_base : index du sprite ×1 pour ce type de kill (1=air, 4=ground)
+                auto drawKills = [&](int kills, Point2D base_pos, int seq_base) {
+                    int remaining = kills;
+                    int col = 0, row = 0;
+                    while (remaining > 0) {
+                        if (col >= 8) { col = 0; row++; }
+
+                        int seq_idx, marks_used;
+                        if (remaining >= 10) { 
+                            seq_idx = seq_base + 2;
+                            marks_used = 10; 
+                        } else if (remaining >= 5) {
+                            seq_idx = seq_base + 1;
+                            marks_used = 5;  
+                        } else { 
+                            seq_idx = seq_base;
+                            marks_used = 1;
+                        }
+
+                        Point2D pos = { 
+                            base_pos.x + col * mark_w,
+                            base_pos.y + row * mark_h 
+                        };
+                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[seq_idx]);
                         shape->SetPosition(&pos);
                         VGA.getFrameBuffer()->drawShape(shape);
+
+                        remaining -= marks_used;
+                        col++;
                     }
-                } else if (air_kill < 10) {
-                    Point2D pos = {100, 100};
-                    RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[2]);
-                    shape->SetPosition(&pos);
-                    VGA.getFrameBuffer()->drawShape(shape);
-                    for (int i=1; i<=air_kill-5; i++) {
-                        Point2D pos = {100+i*10, 100};
-                        shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
-                        shape->SetPosition(&pos);
-                        VGA.getFrameBuffer()->drawShape(shape);
-                    }
-                } else {
-                    int nb_10 = air_kill / 10;
-                    int nb_1 = air_kill % 10;
-                    for (int i=0; i<nb_10; i++) {
-                        Point2D pos = {100+i*10, 100};
-                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[3]);
-                        shape->SetPosition(&pos);
-                        VGA.getFrameBuffer()->drawShape(shape);
-                    }
-                    for (int i=0; i<nb_1; i++) {
-                        Point2D pos = {100+(nb_10+i)*10, 100};
-                        RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[1]);
-                        shape->SetPosition(&pos);
-                        VGA.getFrameBuffer()->drawShape(shape);
-                    }
-                }
+                };
+
+                Point2D air_pos    = { 110, 75 };
+                Point2D ground_pos = { 110, 75 + mark_h + 4 };
+                drawKills(air_kill,    air_pos,    1);  // sprites 1,2,3
+                drawKills(ground_kill, ground_pos, 4);  // sprites 4,5,6
             }
             break;
     }
