@@ -1011,6 +1011,9 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
 void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
     int damage = 10;
     this->health = 0;
+    if (this->object->alive == false) {
+        return;
+    }
     if (this->health <= 0 && this->object->alive) {
         if (this->profile != nullptr && this->profile->radi.msgs.size() > 0) {
             std::srand(std::time(0));
@@ -1041,8 +1044,6 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
     } else {
         attacker->ground_down += 1;
     }
-    // If the actor is destroyed, process it
-   
 }
 /**
  * SCMissionActorsPlayer::takeOff

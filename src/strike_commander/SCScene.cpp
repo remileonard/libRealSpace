@@ -1293,9 +1293,9 @@ void KillBoardScene::Render() {
         position.x = 80;
         fb->printText(this->font, position, pilot_names[pil.first], 0);
         position.x += 130;
-        fb->printText(this->font, position, std::to_string(pil.second[1]), 0);
+        fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::AIR_KILL]), 0);
         position.x += 30;
-        fb->printText(this->font, position, std::to_string(pil.second[0]), 0);
+        fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::GROUND_KILL]), 0);
         position.y += 15;
     }
 }

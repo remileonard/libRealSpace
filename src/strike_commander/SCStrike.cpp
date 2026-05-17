@@ -1508,13 +1508,16 @@ void SCStrike::runFrame(void) {
             GameState.proj_cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000 - GameState.over_head - GameState.weapons_costs - GameState.f16_replacements ;
             GameState.weapons_costs = 0;
             GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0]>0;
-            GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
-            GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
+            //GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
+            //GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
             GameState.air_kills += this->current_mission->player->plane_down;
             GameState.ground_kills += this->current_mission->player->ground_down;
+            GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] =GameState.air_kills;
+            GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = GameState.ground_kills;
+            
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
-                    if (team->plane != nullptr && team->plane != this->player_plane) {
+                    if (team->plane != nullptr && team->actor_name != "PLAYER") {
                         GameState.kill_board[pilot_profile[team->actor_name]][KillBoardType::AIR_KILL] += team->plane_down;
                         GameState.kill_board[pilot_profile[team->actor_name]][KillBoardType::GROUND_KILL] += team->ground_down;
                     }
