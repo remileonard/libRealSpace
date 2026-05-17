@@ -8,7 +8,7 @@
 
 
 #include "precomp.h"
-
+#include "../engine/gametimer.h"
 SCShot::SCShot() { 
     this->fps = SDL_GetTicks() / 100;
     if (Game == nullptr) {
@@ -363,6 +363,9 @@ void MapShot::SetPoints(std::vector<MAP_POINT *> *points) {
     point_y_move = dy / (float)this->nb_etapes;
     current_x = (float)(*this->points)[point_counter]->x;
     current_y = (float)(*this->points)[point_counter]->y;
+
+    this->x = (std::max)(0, (std::min)((int)current_x - 160, x_max - 320));
+    this->y = (std::max)(0, (std::min)((int)current_y - 100, y_max - 200));
 }
 
 void MapShot::runFrame(void) {
@@ -403,7 +406,12 @@ void MapShot::runFrame(void) {
         point_y_move = dy / (float)this->nb_etapes;
     }
 
-    if (fp_counter % 10 == 0) {
+    float dt = GameTimer::getInstance().getDeltaTime();
+    this->move_accumulator += dt;
+
+    const float MOVE_INTERVAL = 1.0f / 12.0f;
+    if (this->move_accumulator >= MOVE_INTERVAL) {
+        this->move_accumulator -= MOVE_INTERVAL;
         this->nb_etapes--;
         original_pos.x = current_x;
         original_pos.y = current_y;
@@ -411,8 +419,30 @@ void MapShot::runFrame(void) {
         current_y += point_y_move;
     }
 
-    this->x = (int) current_x - 160;
-    this->y = (int) current_y - 100;
+    const int MARGIN_X = 80;  // zone de déclenchement horizontale
+    const int MARGIN_Y = 50;  // zone de déclenchement verticale
+
+    // Position du point dans la fenêtre visible (espace écran)
+    int screen_x = (int)current_x - this->x;
+    int screen_y = (int)current_y - this->y;
+
+    // Scroll horizontal
+    if (screen_x < MARGIN_X) {
+        this->x = (int)current_x - MARGIN_X;
+    } else if (screen_x > 320 - MARGIN_X) {
+        this->x = (int)current_x - (320 - MARGIN_X);
+    }
+
+    // Scroll vertical
+    if (screen_y < MARGIN_Y) {
+        this->y = (int)current_y - MARGIN_Y;
+    } else if (screen_y > 200 - MARGIN_Y) {
+        this->y = (int)current_y - (200 - MARGIN_Y);
+    }
+
+    // Clamp pour rester dans les limites de la grande map
+    this->x = (std::max)(0, (std::min)(this->x, x_max - 320));
+    this->y = (std::max)(0, (std::min)(this->y, y_max - 200));
     
     //frameBufferA->framebuffer[(int)current_y * x_max + (int)current_x] = 246;
     if (original_pos.x != 0 && original_pos.y != 0) {
