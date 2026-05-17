@@ -180,8 +180,8 @@ static std::unordered_map<prog_op, std::string> prog_op_names = {
 };
 
 enum KillBoardType {
-    AIR_KILL = 1,
-    GROUND_KILL = 0
+    AIR_KILL = 0,
+    GROUND_KILL = 1
 };
 enum PilotsId {
     PLAYER=0,

@@ -351,12 +351,18 @@ void MapShot::SetPoints(std::vector<MAP_POINT *> *points) {
     this->points = points;
     point_counter = 0;
     next_point_counter = 1;
-    point_x_move =
-        (((*this->points)[next_point_counter]->x) - ((*this->points)[point_counter]->x)) / 100.0f;
-    point_y_move =
-        (((*this->points)[next_point_counter]->y) - ((*this->points)[point_counter]->y)) / 100.0f;
-    current_x = (float) (*this->points)[point_counter]->x;
-    current_y = (float) (*this->points)[point_counter]->y;
+
+    float dx = (float)((*this->points)[next_point_counter]->x - (*this->points)[point_counter]->x);
+    float dy = (float)((*this->points)[next_point_counter]->y - (*this->points)[point_counter]->y);
+    float dist = sqrtf(dx * dx + dy * dy);
+    const float SPEED = 2.0f; // pixels par étape
+    this->nb_etapes = (int)(dist / SPEED);
+    if (this->nb_etapes < 1) this->nb_etapes = 1;
+
+    point_x_move = dx / (float)this->nb_etapes;
+    point_y_move = dy / (float)this->nb_etapes;
+    current_x = (float)(*this->points)[point_counter]->x;
+    current_y = (float)(*this->points)[point_counter]->y;
 }
 
 void MapShot::runFrame(void) {
@@ -367,14 +373,13 @@ void MapShot::runFrame(void) {
     VGA.activate();
     VGA.getFrameBuffer()->fillWithColor(255);
     VGA.setPalette(&this->palette);
-    static int nb_etapes = 100;
+    
     this->fp_counter++;
 
     bool ended = false;
     
-    if (nb_etapes < 0) {
+    if (this->nb_etapes < 0) {
         point_counter++;
-        nb_etapes = 100;
         if (point_counter >= this->points->size()) {
             point_counter = 0;
         }
@@ -383,13 +388,25 @@ void MapShot::runFrame(void) {
             next_point_counter = 0;
             ended = true;
         }
-        current_x = (float) (*this->points)[point_counter]->x;
-        current_y = (float) (*this->points)[point_counter]->y;
-        point_x_move = (((*this->points)[next_point_counter]->x) - ((*this->points)[point_counter]->x)) / 100.0f;
-        point_y_move = (((*this->points)[next_point_counter]->y) - ((*this->points)[point_counter]->y)) / 100.0f;
+        current_x = (float)(*this->points)[point_counter]->x;
+        current_y = (float)(*this->points)[point_counter]->y;
+
+        
+        float dx = (float)((*this->points)[next_point_counter]->x - (*this->points)[point_counter]->x);
+        float dy = (float)((*this->points)[next_point_counter]->y - (*this->points)[point_counter]->y);
+        float dist = sqrtf(dx * dx + dy * dy);
+        const float SPEED = 2.0f;
+        this->nb_etapes = (int)(dist / SPEED);
+        if (this->nb_etapes < 1) this->nb_etapes = 1;
+
+        point_x_move = dx / (float)this->nb_etapes;
+        point_y_move = dy / (float)this->nb_etapes;
     }
+
     if (fp_counter % 10 == 0) {
-        nb_etapes--;
+        this->nb_etapes--;
+        original_pos.x = current_x;
+        original_pos.y = current_y;
         current_x += point_x_move;
         current_y += point_y_move;
     }
@@ -397,7 +414,10 @@ void MapShot::runFrame(void) {
     this->x = (int) current_x - 160;
     this->y = (int) current_y - 100;
     
-    frameBufferA->framebuffer[(int)current_y * x_max + (int)current_x] = 246;
+    //frameBufferA->framebuffer[(int)current_y * x_max + (int)current_x] = 246;
+    if (original_pos.x != 0 && original_pos.y != 0) {
+        frameBufferA->line(original_pos.x, original_pos.y, current_x, current_y, 246);
+    }
     VGA.getFrameBuffer()->blitLargeBuffer(frameBuffer->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
     float rx = (this->x / (x_max / 320.0f));
     float ry = (this->y / (y_max / 200.0f)) + 100;
@@ -405,7 +425,8 @@ void MapShot::runFrame(void) {
     VGA.getFrameBuffer()->blitLargeBuffer(frameBufferA->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
     Mouse.draw();
     for (auto p: *this->points) {
-        VGA.getFrameBuffer()->plot_pixel((int)p->x, (int)p->y, 0);
+        //VGA.getFrameBuffer()->plot_pixel((int)p->x, (int)p->y, 0);
+        //VGA.getFrameBuffer()->line((int)original_pos.x, (int)original_pos.y, (int)p->x, (int)p->y, 0);
         VGA.getFrameBuffer()->printText_SM(
             this->font,
             new Point2D{p->x-this->x, p->y-this->y},

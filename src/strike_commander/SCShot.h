@@ -59,7 +59,8 @@ class MapShot : public SCShot {
     std::vector<uint8_t*> mapics;
     FrameBuffer *frameBuffer;
     FrameBuffer *frameBufferA;
-    
+    Point2D original_pos{0, 0};
+    int nb_etapes{0};
     int x{0};
     int y{0};
     int x_max{820};
