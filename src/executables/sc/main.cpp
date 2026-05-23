@@ -98,8 +98,6 @@ int main(int argc, char* argv[]) {
         SDL_PumpEvents();
     }
     GameEngine *game = &GameEngine::instance();
-    RSVGA &VGA = RSVGA::getInstance();
-    VGA.upscale = true;
     game->init();
     //Add MainMenu activity on the game stack.
     SCMainMenu* main = new SCMainMenu();

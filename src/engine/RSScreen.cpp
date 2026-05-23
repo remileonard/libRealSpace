@@ -7,6 +7,7 @@
 //
 
 #include "RSScreen.h"
+#include "Config.hpp"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl2.h"
@@ -120,6 +121,10 @@ void RSScreen::openScreen(void){
 }
 
 void RSScreen::initPostProcess() {
+    Config &config = Config::getInstance();
+    this->fx_cpc_palette = config.getBool("video", "fx_cpc_palette", false);
+    this->fx_scanlines   = config.getBool("video", "fx_scanlines", false);
+    this->fx_pixel_scale = config.getInt("video", "fx_pixel_scale", 1);
     const char* vertSrc = R"(
         void main() {
             gl_TexCoord[0] = gl_MultiTexCoord0;

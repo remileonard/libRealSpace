@@ -7,6 +7,7 @@
 //
 
 #include "RSVGA.h"
+#include "Config.hpp"
 #include "../realspace/RSImage.h"
 #include "../realspace/RSPalette.h"
 #include "SDL2/SDL_opengl_glext.h"
@@ -180,7 +181,8 @@ void RSVGA::init(int width, int height) {
     this->width = width;
     this->height = height;
     AssetManager &assets = AssetManager::instance();
-
+    Config &config = Config::instance();
+    this->upscale = config.getBool("Video", "super_eagle_2x", false);
     RSPalette palette;
     TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
     

@@ -24,4 +24,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR "${CMAKE_CONFIGURATION_TYPES}" MATCHES "
         "$<TARGET_FILE_DIR:neosc>/assets"
         COMMENT "Copie des fichiers resources vers assets (Debug) $<TARGET_FILE_DIR:neosc>/assets"
     )
+    add_custom_command(TARGET neosc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_SOURCE_DIR}/resources/config.ini"
+        "${CMAKE_BINARY_DIR}/config.ini"
+        COMMENT "Copie du fichier config.ini vers le dossier de build (Debug) ${CMAKE_BINARY_DIR}/config.ini"
+    )
 endif()
