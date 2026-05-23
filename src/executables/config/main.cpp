@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL2_Init();
 
-    const std::string configPath = "./config.ini";
+    const std::string configPath = "./assets/config.ini";
     Config& config = Config::getInstance();
     config.load(configPath);
 
