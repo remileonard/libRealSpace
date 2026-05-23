@@ -42,6 +42,9 @@ struct VRStereoEyeRenderInfo {
 class RSScreen {
 private:
     inline static std::unique_ptr<RSScreen> s_instance{};
+    GLuint m_postProcessTexture{0};
+    GLuint m_shaderProgram{0};
+    bool   m_postProcessReady{false};
 public:
     RSScreen() = default;
     virtual ~RSScreen() = default;
@@ -69,7 +72,10 @@ public:
     virtual void setTitle(const char* title);
     virtual void refresh(void);
     virtual void fxTurnOnTv();
-
+    bool fx_cpc_palette{false};  // quantification palette CPC 6128
+    bool fx_scanlines{false};    // scanlines CRT
+    float fx_pixel_scale{1.0f};   // pixelation scale (1.0 = normal, 2.0 = double size, etc.)
+    virtual void initPostProcess();
     // --- VR stéréo (optionnel) ---
     // Par défaut: non supporté. Les implémentations VR (ex: VRScreen) surchargent.
     virtual uint32_t vrStereoEyeCount() const { return 0; }
