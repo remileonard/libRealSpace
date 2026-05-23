@@ -1,5 +1,6 @@
 file (GLOB SC_SOURCE "*.cpp")
 file (GLOB SC_HEADER "*.h")
+
 if(WIN32)
     set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/resources/config.rc")
 endif()
@@ -7,6 +8,12 @@ find_package(nfd CONFIG REQUIRED)
 
 add_executable (config ${SC_SOURCE} ${SC_HEADER} ${APP_ICON_RESOURCE})
 set(CONFIG_TARGET_NAME config PARENT_SCOPE)
+target_sources(config PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../debugger/DebugControlMapping.cpp"
+)
+target_include_directories(config PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../debugger"
+)
 target_include_directories(config PUBLIC ${SC_INCLUDES})
 target_include_directories(config PUBLIC ${SDL2_INCLUDE_DIRS})
 target_include_directories(config PUBLIC ${OPENGL_INCLUDE_DIR})

@@ -275,46 +275,6 @@ std::string DebugControlMapping::describeBinding(InputAction action) const {
 void DebugControlMapping::renderUI() {
     Config* cfg = Config::hasInstance() ? &Config::instance() : nullptr;
 
-    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Settings");
-    ImGui::SeparatorText("Screen");
-    ImGui::Text("Resolution: %dx%d", cfg->getInt("Window", "width", 0), cfg->getInt("window", "height", 0));
-    int numModes = SDL_GetNumDisplayModes(0);
-    std::vector<std::string> modeLabels;
-    for (int i = 0; i < numModes; i++) {
-        SDL_DisplayMode mode;
-        if (SDL_GetDisplayMode(0, i, &mode) == 0) {
-            modeLabels.push_back(
-                std::to_string(mode.w) + "x" + std::to_string(mode.h)
-                + " @ " + std::to_string(mode.refresh_rate) + "Hz"
-            );
-        }
-    }
-
-    static int selectedMode = 0;
-    if (ImGui::BeginCombo("Resolution", modeLabels[selectedMode].c_str())) {
-        for (int i = 0; i < (int)modeLabels.size(); i++) {
-            if (ImGui::Selectable(modeLabels[i].c_str(), selectedMode == i))
-                selectedMode = i;
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::Text("Fullscreen: %s", cfg->getBool("Window", "fullscreen", false) ? "Yes" : "No");
-    ImGui::SameLine();
-    static bool fullscreen = cfg->getBool("Window", "fullscreen", false);
-    ImGui::Checkbox("##fullscreen", &fullscreen);
-    if (ImGui::Button("Apply")) {
-        // Appliquer la résolution sélectionnée
-        SDL_DisplayMode mode;
-        if (SDL_GetDisplayMode(0, selectedMode, &mode) == 0) {
-            cfg->setInt("Window", "width", mode.w);
-            cfg->setInt("Window", "height", mode.h);
-        }
-        cfg->setBool("Window", "fullscreen", true);
-        cfg->save("./assets/config.ini");
-        ImGui::OpenPopup("applied_popup");
-
-    }
     // --- Joysticks connectés ---
     ImGui::SeparatorText("Joysticks");
     if (m_joysticks.empty()) {
@@ -399,5 +359,4 @@ void DebugControlMapping::renderUI() {
         ImGui::Text("Settings Applied !");
         ImGui::EndPopup();
     }
-    ImGui::End();
 }

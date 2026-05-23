@@ -1,4 +1,6 @@
 #include "../../engine/Config.hpp"
+#include "../debugger/DebugControlMapping.h"
+
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl2.h"
@@ -21,7 +23,7 @@ int main(int argc, char* argv[]) {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+    ImGui::StyleColorsLight();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL2_Init();
 
@@ -82,59 +84,70 @@ int main(int argc, char* argv[]) {
         ImGui::SetNextWindowPos(vp->Pos);
         ImGui::SetNextWindowSize(vp->Size);
         ImGui::Begin("Configuration", nullptr,
-            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
 
-        if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen)) {
-            // Construire les labels à la volée
-            if (ImGui::BeginCombo("Resolution", 
-                (std::to_string(resolutions[selectedRes].w) + "x" +
-                std::to_string(resolutions[selectedRes].h)).c_str()))
-            {
-                for (int i = 0; i < (int)resolutions.size(); i++) {
-                    std::string label = std::to_string(resolutions[i].w) + "x" +
-                                        std::to_string(resolutions[i].h);
-                    bool isSelected = (i == selectedRes);
-                    if (ImGui::Selectable(label.c_str(), isSelected)) {
-                        selectedRes  = i;
-                        win_width    = resolutions[i].w;
-                        win_height   = resolutions[i].h;
+        if (ImGui::BeginTabBar("tabs")) {
+            if (ImGui::BeginTabItem("General")) {
+                if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    // Construire les labels à la volée
+                    if (ImGui::BeginCombo("Resolution", 
+                        (std::to_string(resolutions[selectedRes].w) + "x" +
+                        std::to_string(resolutions[selectedRes].h)).c_str()))
+                    {
+                        for (int i = 0; i < (int)resolutions.size(); i++) {
+                            std::string label = std::to_string(resolutions[i].w) + "x" +
+                                                std::to_string(resolutions[i].h);
+                            bool isSelected = (i == selectedRes);
+                            if (ImGui::Selectable(label.c_str(), isSelected)) {
+                                selectedRes  = i;
+                                win_width    = resolutions[i].w;
+                                win_height   = resolutions[i].h;
+                            }
+                            if (isSelected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
                     }
-                    if (isSelected)
-                        ImGui::SetItemDefaultFocus();
+                    ImGui::Checkbox("Fullscreen", &fullscreen);
                 }
-                ImGui::EndCombo();
+                if (ImGui::CollapsingHeader("Game", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::SliderInt("Object Detail", &object_detail, 0, 5);
+                    ImGui::SliderInt("World Detail",  &world_detail,  0, 5);
+                }
+                if (ImGui::CollapsingHeader("Video", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::Checkbox("CPC Palette",   &fx_cpc_palette);
+                    ImGui::Checkbox("Scanlines",     &fx_scanlines);
+                    ImGui::InputInt("Pixel Scale",   &fx_pixel_scale);
+                    ImGui::Checkbox("Super Eagle 2x",&super_eagle_2x);
+                }
+
+                ImGui::Separator();
+                if (ImGui::Button("Save")) {
+                    config.setInt ("Window", "width",       win_width);
+                    config.setInt ("Window", "height",      win_height);
+                    config.setBool("Window", "fullscreen",  fullscreen);
+                    config.setInt ("Game",   "object_detail", object_detail);
+                    config.setInt ("Game",   "world_detail",  world_detail);
+                    config.setBool("Video",  "fx_cpc_palette", fx_cpc_palette);
+                    config.setBool("Video",  "fx_scanlines",   fx_scanlines);
+                    config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);
+                    config.setBool("Video",  "super_eagle_2x",  super_eagle_2x);
+                    config.save(configPath);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Quit")) running = false;
+                ImGui::EndTabItem();
+                
             }
-            ImGui::Checkbox("Fullscreen", &fullscreen);
+            if (ImGui::BeginTabItem("Controls")) { 
+                DebugControlMapping controlMapping;
+                controlMapping.init();
+                controlMapping.renderUI();
+                ImGui::EndTabItem(); 
+            }
+            ImGui::EndTabBar();
         }
-        if (ImGui::CollapsingHeader("Game", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::SliderInt("Object Detail", &object_detail, 0, 5);
-            ImGui::SliderInt("World Detail",  &world_detail,  0, 5);
-        }
-        if (ImGui::CollapsingHeader("Video", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Checkbox("CPC Palette",   &fx_cpc_palette);
-            ImGui::Checkbox("Scanlines",     &fx_scanlines);
-            ImGui::InputInt("Pixel Scale",   &fx_pixel_scale);
-            ImGui::Checkbox("Super Eagle 2x",&super_eagle_2x);
-        }
-
-        ImGui::Separator();
-        if (ImGui::Button("Save")) {
-            config.setInt ("Window", "width",       win_width);
-            config.setInt ("Window", "height",      win_height);
-            config.setBool("Window", "fullscreen",  fullscreen);
-            config.setInt ("Game",   "object_detail", object_detail);
-            config.setInt ("Game",   "world_detail",  world_detail);
-            config.setBool("Video",  "fx_cpc_palette", fx_cpc_palette);
-            config.setBool("Video",  "fx_scanlines",   fx_scanlines);
-            config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);
-            config.setBool("Video",  "super_eagle_2x",  super_eagle_2x);
-            config.save(configPath);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Quit")) running = false;
-
         ImGui::End();
-
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui::Render();
