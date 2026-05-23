@@ -1169,7 +1169,7 @@ void SCPlane::Render() {
                 position.y -= 0.5f;
             }
         }
-        Renderer.drawModelWithChilds(this->object->entity, LOD_LEVEL_MAX, pos, orientation, wheel_index, thrust, weapons);
+        Renderer.drawModelWithChilds(this->object->entity, Renderer.lodLevel, pos, orientation, wheel_index, thrust, weapons);
     }
 }
 void SCPlane::RenderSmoke() {

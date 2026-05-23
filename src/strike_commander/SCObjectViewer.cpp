@@ -292,7 +292,7 @@ void SCObjectViewer::runFrame(void) {
 
     glScalef(1 / this->zoomFactor, 1 / this->zoomFactor, 1 / this->zoomFactor);
     if (objs.showCases[currentObject].entity->triangles.size() > 0) {
-        Renderer.drawModel(objs.showCases[currentObject].entity, LOD_LEVEL_MAX);    
+        Renderer.drawModel(objs.showCases[currentObject].entity, Renderer.lodLevel);    
     } else if (objs.showCases[currentObject].entity->animations.size() > 0) {
         this->fps++;
         if (this->fps > 12) {

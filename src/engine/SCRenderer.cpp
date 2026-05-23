@@ -7,6 +7,7 @@
 //
 
 #include "SCRenderer.h"
+#include "Config.hpp"
 #include "../realspace/AssetManager.h"
 #include "../realspace/RSArea.h"
 #include "../realspace/RSEntity.h"
@@ -340,10 +341,10 @@ void SCRenderer::init(int width, int height) {
     this->counter = 0;
 
     RSPalette palette;
-    
+    Config &config = Config::instance();
     TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
     palette.initFromFileRam(entries->data, entries->size);
-    
+    this->lodLevel = config.getInt("Game", "object_detail", 0);
     this->palette = *palette.GetColorPalette();
 
     this->width = width;
@@ -356,7 +357,6 @@ void SCRenderer::init(int width, int height) {
     camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
 
     light.SetWithCoo(300, 300, 300);
-    this->lodLevel = 0;
     initialized = true;
 }
 
