@@ -16,6 +16,7 @@ public:
     void fillLineColor(size_t lineIndex, uint8_t color);
     void plot_pixel(int x, int y, uint8_t color);
     void line(int x1, int y1, int x2, int y2, uint8_t color);
+    void lineThick(int x1, int y1, int x2, int y2, uint8_t color, int thickness);
     void lineWithSkip(int x1, int y1, int x2, int y2, uint8_t color, int skip);
     void lineWithBox(int x1, int y1, int x2, int y2, uint8_t color, int bx1, int bx2, int by1, int by2);
     void lineWithBoxWithSkip(int x1, int y1, int x2, int y2, uint8_t color, int bx1, int bx2, int by1, int by2,

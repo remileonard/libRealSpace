@@ -61,6 +61,8 @@ class MapShot : public SCShot {
     FrameBuffer *frameBufferA;
     Point2D original_pos{0, 0};
     float move_accumulator{0.0f};
+    float cam_x{0.0f};
+    float cam_y{0.0f};
     int nb_etapes{0};
     int x{0};
     int y{0};

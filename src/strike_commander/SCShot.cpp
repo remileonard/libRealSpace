@@ -355,7 +355,7 @@ void MapShot::SetPoints(std::vector<MAP_POINT *> *points) {
     float dx = (float)((*this->points)[next_point_counter]->x - (*this->points)[point_counter]->x);
     float dy = (float)((*this->points)[next_point_counter]->y - (*this->points)[point_counter]->y);
     float dist = sqrtf(dx * dx + dy * dy);
-    const float SPEED = 2.0f; // pixels par étape
+    const float SPEED = 0.5f; // pixels par étape
     this->nb_etapes = (int)(dist / SPEED);
     if (this->nb_etapes < 1) this->nb_etapes = 1;
 
@@ -364,8 +364,10 @@ void MapShot::SetPoints(std::vector<MAP_POINT *> *points) {
     current_x = (float)(*this->points)[point_counter]->x;
     current_y = (float)(*this->points)[point_counter]->y;
 
-    this->x = (std::max)(0, (std::min)((int)current_x - 160, x_max - 320));
-    this->y = (std::max)(0, (std::min)((int)current_y - 100, y_max - 200));
+    this->cam_x = (float)(std::max)(0, (std::min)((int)current_x - 160, x_max - 320));
+    this->cam_y = (float)(std::max)(0, (std::min)((int)current_y - 100, y_max - 200));
+    this->x = (int)this->cam_x;
+    this->y = (int)this->cam_y;
 }
 
 void MapShot::runFrame(void) {
@@ -398,7 +400,7 @@ void MapShot::runFrame(void) {
         float dx = (float)((*this->points)[next_point_counter]->x - (*this->points)[point_counter]->x);
         float dy = (float)((*this->points)[next_point_counter]->y - (*this->points)[point_counter]->y);
         float dist = sqrtf(dx * dx + dy * dy);
-        const float SPEED = 2.0f;
+        const float SPEED = 0.5f;
         this->nb_etapes = (int)(dist / SPEED);
         if (this->nb_etapes < 1) this->nb_etapes = 1;
 
@@ -409,7 +411,7 @@ void MapShot::runFrame(void) {
     float dt = GameTimer::getInstance().getDeltaTime();
     this->move_accumulator += dt;
 
-    const float MOVE_INTERVAL = 1.0f / 12.0f;
+    const float MOVE_INTERVAL = 1.0f / 30.0f;
     if (this->move_accumulator >= MOVE_INTERVAL) {
         this->move_accumulator -= MOVE_INTERVAL;
         this->nb_etapes--;
@@ -419,34 +421,38 @@ void MapShot::runFrame(void) {
         current_y += point_y_move;
     }
 
-    const int MARGIN_X = 80;  // zone de déclenchement horizontale
-    const int MARGIN_Y = 50;  // zone de déclenchement verticale
-
-    // Position du point dans la fenêtre visible (espace écran)
+    const int MARGIN_X = 80;
+    const int MARGIN_Y = 50;
     int screen_x = (int)current_x - this->x;
     int screen_y = (int)current_y - this->y;
 
-    // Scroll horizontal
+    // Les marges déclenchent une cible, mais on part de la position courante par défaut
+    float target_x = this->cam_x;
+    float target_y = this->cam_y;
+
     if (screen_x < MARGIN_X) {
-        this->x = (int)current_x - MARGIN_X;
+        target_x = current_x - MARGIN_X;
     } else if (screen_x > 320 - MARGIN_X) {
-        this->x = (int)current_x - (320 - MARGIN_X);
+        target_x = current_x - (320 - MARGIN_X);
     }
-
-    // Scroll vertical
     if (screen_y < MARGIN_Y) {
-        this->y = (int)current_y - MARGIN_Y;
+        target_y = current_y - MARGIN_Y;
     } else if (screen_y > 200 - MARGIN_Y) {
-        this->y = (int)current_y - (200 - MARGIN_Y);
+        target_y = current_y - (200 - MARGIN_Y);
     }
 
-    // Clamp pour rester dans les limites de la grande map
-    this->x = (std::max)(0, (std::min)(this->x, x_max - 320));
-    this->y = (std::max)(0, (std::min)(this->y, y_max - 200));
-    
+    target_x = (std::max)(0.0f, (std::min)(target_x, (float)(x_max - 320)));
+    target_y = (std::max)(0.0f, (std::min)(target_y, (float)(y_max - 200)));
+
+    const float CAM_SPEED = 0.25f;
+    float lerp_t = 1.0f - expf(-CAM_SPEED * dt);
+    this->cam_x += (target_x - this->cam_x) * lerp_t;
+    this->cam_y += (target_y - this->cam_y) * lerp_t;
+    this->x = (int)this->cam_x;
+    this->y = (int)this->cam_y;
     //frameBufferA->framebuffer[(int)current_y * x_max + (int)current_x] = 246;
     if (original_pos.x != 0 && original_pos.y != 0) {
-        frameBufferA->line(original_pos.x, original_pos.y, current_x, current_y, 246);
+        frameBufferA->lineThick(original_pos.x, original_pos.y, current_x, current_y, 246, 3);
     }
     VGA.getFrameBuffer()->blitLargeBuffer(frameBuffer->framebuffer, x_max, y_max, this->x, this->y, 0, 0, 320, 200);
     float rx = (this->x / (x_max / 320.0f));

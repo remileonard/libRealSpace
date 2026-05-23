@@ -54,7 +54,25 @@ void FrameBuffer::plot_pixel(int x, int y, uint8_t color) {
 void FrameBuffer::line(int x1, int y1, int x2, int y2, uint8_t color) {
     this->lineWithBoxWithSkip(x1, y1, x2, y2, color, 0, this->width, 0, this->height, 1);
 }
-
+void FrameBuffer::lineThick(int x1, int y1, int x2, int y2, uint8_t color, int thickness) {
+    if (thickness <= 1) {
+        line(x1, y1, x2, y2, color);
+        return;
+    }
+    int half = thickness / 2;
+    int dx = abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
+    int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy;
+    while (true) {
+        for (int oy = -half; oy <= half; oy++)
+            for (int ox = -half; ox <= half; ox++)
+                plot_pixel(x1 + ox, y1 + oy, color);
+        if (x1 == x2 && y1 == y2) break;
+        int e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x1 += sx; }
+        if (e2 <= dx) { err += dx; y1 += sy; }
+    }
+}
 void FrameBuffer::lineWithSkip(int x1, int y1, int x2, int y2, uint8_t color, int skip) {
     this->lineWithBoxWithSkip(x1, y1, x2, y2, color, 0, this->width, 0, this->height, skip);
 }
