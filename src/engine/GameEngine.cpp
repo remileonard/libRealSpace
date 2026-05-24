@@ -265,8 +265,8 @@ void GameEngine::pumpEvents(void) {
         lastControllerPosition.y -= cy * 4;
     } else if (mx != 0 || my != 0) {
         if (direct_mouse_control) {
-            lastControllerPosition.x = (px * 320) / Screen->width;
-            lastControllerPosition.y = (py * 200) / Screen->height;
+            lastControllerPosition.x = (px * 320) / Screen->logical_width;
+            lastControllerPosition.y = (py * 200) / Screen->logical_height;
         } else {
             lastControllerPosition.x += mx;
             lastControllerPosition.y += my;

@@ -655,8 +655,8 @@ void SCStrike::checkKeyboard(void) {
     float dx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
     float dy = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
 
-    msy = dy - (Screen->height / 2);
-    msx = dx - (Screen->width / 2);
+    msy = dy - (Screen->logical_height / 2);
+    msx = dx - (Screen->logical_width / 2);
     //Mouse.setPosition({(int)dx, (int)dy});
     if (this->camera_mode == View::AUTO_PILOT) {
         return;

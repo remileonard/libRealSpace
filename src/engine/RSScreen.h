@@ -98,6 +98,8 @@ public:
     
     int32_t width;
     int32_t height;
+    int32_t logical_width;
+    int32_t logical_height;
     int32_t scale;
     bool is_spfx_finished{false};
     bool force_keyboard_capture{false};
