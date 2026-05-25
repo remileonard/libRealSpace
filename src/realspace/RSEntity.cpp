@@ -258,7 +258,8 @@ void RSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
     handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["OMOB"] = std::bind(&RSEntity::parseREAL_OBJT_OMOB, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] = std::bind(&RSEntity::parseREAL_OBJT_DEBR, this, std::placeholders::_1, std::placeholders::_2);
-
+    handlers["PODR"] = std::bind(&RSEntity::parseREAL_OBJT_PODR, this, std::placeholders::_1, std::placeholders::_2);
+    
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_AFTB(uint8_t *data, size_t size) {
@@ -324,6 +325,19 @@ void RSEntity::parseREAL_OBJT_TRCR(uint8_t *data, size_t size) {
     handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DATA, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM, this, std::placeholders::_1, std::placeholders::_2);
 
+
+    lexer.InitFromRAM(data, size, handlers);
+}
+void RSEntity::parseREAL_OBJT_PODR(uint8_t *data, size_t size) {
+    IFFSaxLexer lexer;
+    this->entity_type = EntityType::podr;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SIGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_TRGT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SMOK"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SMOK, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["WDAT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_WDAT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DATA, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
