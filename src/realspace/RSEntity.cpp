@@ -337,9 +337,26 @@ void RSEntity::parseREAL_OBJT_PODR(uint8_t *data, size_t size) {
     handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_TRGT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SMOK"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SMOK, this, std::placeholders::_1, std::placeholders::_2);
     handlers["WDAT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_WDAT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DATA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_PODR_DATA, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
+}
+void RSEntity::parseREAL_OBJT_PODR_DATA(uint8_t *data, size_t size){
+    ByteStream bs(data, size);
+    std::string podr_subweapon_name = bs.ReadString(8);
+    uint8_t podr_subweapon_number = bs.ReadByte();
+    WEAPS *podr_data = new WEAPS();
+    podr_data->name = podr_subweapon_name;
+    podr_data->nb_weap = podr_subweapon_number;
+    std::transform(podr_data->name.begin(), podr_data->name.end(), podr_data->name.begin(), ::toupper);
+    std::string tmpname = assetsManager.object_root_path + podr_data->name + ".IFF";
+    RSEntity *objct = new RSEntity();
+    TreEntry *entry = assetsManager.GetEntryByName(tmpname);
+    if (entry != nullptr) {
+        objct->InitFromRAM(entry->data, entry->size, tmpname);
+        podr_data->objct = objct;
+    }
+    this->weaps.push_back(podr_data);
 }
 void RSEntity::parseREAL_OBJT_JETP_INFO(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_EXPL(uint8_t *data, size_t size){}

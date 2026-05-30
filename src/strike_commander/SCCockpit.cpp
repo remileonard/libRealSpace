@@ -1610,8 +1610,17 @@ void SCCockpit::Update() {
             int weapon_id = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id;
             for (auto weap : this->player_plane->weaps_load) {
                 if (weap != nullptr && weap->objct->wdat->weapon_id == weapon_id) {
-                    weapons_count += weap->nb_weap;
-                }
+                    if (weap->objct->weaps.size() == 0) {
+                        weapons_count += weap->nb_weap;
+                    } else {
+                        for (auto w : weap->objct->weaps) {
+                            if (w != nullptr) {
+                                weapons_count += w->nb_weap;
+                            }
+                        }
+                    }
+                    
+                } 
             }
             if (this->current_target != nullptr) {
                 uint32_t weap_range =

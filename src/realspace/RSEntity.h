@@ -347,7 +347,7 @@ private:
     void parseREAL_APPR_POLY_DETA(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_DETA_LVLX(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_ATTR(uint8_t *data, size_t size);
-    
+    void parseREAL_OBJT_PODR_DATA(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_TRIS(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_TRIS_LNTH(uint8_t *data, size_t size);
     void parseREAL_APPR_POLY_TRIS_VTRI(uint8_t *data, size_t size);
