@@ -21,6 +21,7 @@ protected:
     SCSmokeSet &SmokeSet = SCSmokeSet::getInstance();
 public:
     bool is_simulated{false};
+    bool guidance{true};
     float x{0.0f};
     float y{0.0f};
     float z{0.0f};

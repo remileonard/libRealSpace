@@ -276,7 +276,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     float timeOfFlight = 0.5f;
     float debutTimeOfFlight = timeOfFlight;
     
-    float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
+    float projectile_speed = 1000.0f;
     
     Vector3D initial_trust{0, 0, 0};
 
@@ -560,10 +560,10 @@ void SCCockpit::RenderStraffingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
         (this->player_plane->z - this->player_plane->last_pz)
     };
     
-    float timeOfFlight = 4.0f;
+    float timeOfFlight = 0.5f;
     float debutTimeOfFlight = timeOfFlight;
     
-    float projectile_speed = 250.0f * (this->player_plane->tps / 60.0f);
+    float projectile_speed = 1000.0f / this->player_plane->tps;
     
     Vector3D initial_trust{0, 0, 0};
 
@@ -660,6 +660,7 @@ void SCCockpit::RenderStraffingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
 
     delete weap;
 }
+
 void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
     int hud_width = hudBottomRight.x - hudTopLeft.x;
     int hud_height = hudBottomRight.y - hudTopLeft.y;
@@ -686,7 +687,7 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hud
     GunSimulatedObject *weap = new GunSimulatedObject();
 
     
-    float thrustMagnitude = 50.0f * ((float)this->player_plane->tps / 60.0f); // comme avant
+    float thrustMagnitude = 1.0f; // comme avant
 
     Vector3D initial_trust{0, 0, 0};
     initial_trust = this->player_plane->getWeaponIntialVector(thrustMagnitude);

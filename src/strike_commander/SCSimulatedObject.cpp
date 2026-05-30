@@ -131,7 +131,15 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     Vector3D error = (to_target - position);
     
     // Force de poussée ajustée en fonction de la direction de l'erreur
-    Vector3D thrust_force = error * (thrust / error.Length());
+    Vector3D thrust_force;
+    if (this->guidance && this->target != nullptr) {
+        Vector3D error = (to_target - position);
+        thrust_force = error * (thrust / error.Length());
+    } else {
+        Vector3D vel_dir = velocity;
+        vel_dir.Normalize();
+        thrust_force = vel_dir * thrust;
+    }
     Vector3D other_way;
     error.Normalize();
     other_way = (error * thrust);

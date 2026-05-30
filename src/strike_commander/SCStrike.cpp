@@ -803,6 +803,9 @@ void SCStrike::checkKeyboard(void) {
                         case weapon_ids::ID_DURANDAL:
                             this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_CCIP;
                             break;
+                        case weapon_ids::ID_LAU3:
+                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
+                            break;
                         default:
                             this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
                             break;

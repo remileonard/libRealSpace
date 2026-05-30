@@ -1277,7 +1277,9 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::POD_SHOOT];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
+            weap->guidance = false;
             wobj = wobj->weaps[0]->objct;
+            this->wp_cooldown = 10;
             break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
