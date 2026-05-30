@@ -1222,15 +1222,12 @@ void SCPlane::RenderSimulatedObject() {
 }
 Vector3D SCPlane::getWeaponIntialVector(float speedFactor) {
     Vector3D initial_trust = {0,0,0};
-    Vector3D direction       = {
-        this->x - this->last_px, this->y - this->last_py,
-        this->z - this->last_pz
+    Vector3D planeVelocity       = {
+        (this->x - this->last_px) * this->tps, 
+        (this->y - this->last_py) * this->tps,
+        (this->z - this->last_pz) * this->tps
     };
-    float planeSpeed      = direction.Length();
-    float thrustMagnitude = planeSpeed * speedFactor;
-    initial_trust = this->forward * thrustMagnitude;
-
-    return initial_trust;
+    return planeVelocity + this->forward * speedFactor;
 
 }
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
@@ -1254,15 +1251,18 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         this->wp_cooldown--;
         return;
     }
-    switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
-        case 12:
+    RSEntity *wobj = nullptr;
+    wobj = this->weaps_load[weapon_hard_point_id]->objct;
+    switch (wobj->wdat->weapon_id) {
+        case ID_20MM:
             weap = new GunSimulatedObject();
-            initial_trust = this->getWeaponIntialVector(250.0f * (this->tps / 60.0f)); // coefficient ajustable
+            initial_trust = this->getWeaponIntialVector(1000.0f); // coefficient ajustable
             this->wp_cooldown = 3; // Cooldown between two shots
         break;
-        case 5:
-        case 6:
-            initial_trust = this->getWeaponIntialVector(50.0f * (this->tps / 60.0f));
+        case ID_MK20:
+        case ID_MK82:
+        case ID_DURANDAL:
+            initial_trust = this->getWeaponIntialVector(1.0f);
             weap = new GunSimulatedObject();
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
@@ -1270,6 +1270,15 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             }
             this->wp_cooldown = 10; // Cooldown between two shots
         break;
+        case ID_LAU3:
+            weap = new SCSimulatedObject();
+            initial_trust = this->getWeaponIntialVector(1.0f);
+            if (this->pilot->mission->sound.sounds.size() > 0) {
+                sound = this->pilot->mission->sound.sounds[SoundEffectIds::POD_SHOOT];
+                Mixer.playSoundVoc(sound->data, sound->size);
+            }
+            wobj = wobj->weaps[0]->objct;
+            break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
             if (this->pilot->mission->sound.sounds.size() > 0) {
@@ -1277,6 +1286,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
             weap = new SCSimulatedObject();
+            weap->target = target;
             this->wp_cooldown = 10; // Cooldown between two shots
         break;
     }
@@ -1299,9 +1309,16 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         }
     }
     if (!this->infinite_ammo) {
-        this->weaps_load[weapon_hard_point_id]->nb_weap--;
+        if (this->weaps_load[weapon_hard_point_id]->objct->weaps.size() > 0) {
+            this->weaps_load[weapon_hard_point_id]->objct->weaps[0]->nb_weap--;
+            if (this->weaps_load[weapon_hard_point_id]->objct->weaps[0]->nb_weap <= 0) {
+                this->weaps_load[weapon_hard_point_id]->nb_weap--;
+            }
+        } else {
+            this->weaps_load[weapon_hard_point_id]->nb_weap--;
+        }
     }
-    weap->obj = this->weaps_load[weapon_hard_point_id]->objct;
+    weap->obj = wobj;
 
     weap->x = this->x;
     weap->y = this->y;
@@ -1312,8 +1329,8 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
 
-    weap->weight = this->weaps_load[weapon_hard_point_id]->objct->weight_in_kg*2.205f;
-    weap->target = target;
+    weap->weight = wobj->weight_in_kg*2.205f;
+    
     this->weaps_object.push_back(weap);
 }
 void SCPlane::InitLoadout() {

@@ -184,6 +184,14 @@ void SCSimulatedObject::Simulate(int tps) {
                 return;
             }
         }
+    } else {
+        for (auto entity: this->mission->actors) {
+            if (this->CheckCollision(entity)) {
+                entity->hasBeenHit(this, this->shooter);
+                this->alive = false;
+                break;
+            }
+        }
     }
     this->smoke_positions.insert(this->smoke_positions.begin(), position);
     if (this->smoke_positions.size() > 20) {
