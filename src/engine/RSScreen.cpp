@@ -8,6 +8,7 @@
 
 #include "RSScreen.h"
 #include "Config.hpp"
+#include "GLExtensions.h"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl2.h"
@@ -82,6 +83,10 @@ void RSScreen::init(int width, int height, bool fullscreen){
         return;
     }
     SDL_GL_MakeCurrent(m_window, m_glContext);
+    if (!initGLExtensions()) {
+        printf("[RSScreen] Failed to load OpenGL extensions\n");
+        return;
+    }
     SDL_GL_SetSwapInterval(1); // vsync
 
     openScreen();
