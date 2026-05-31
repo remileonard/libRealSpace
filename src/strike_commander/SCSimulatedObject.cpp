@@ -3,8 +3,9 @@
 #define GRAVITY 9.8f
 #define DRAG_COEFFICIENT 0.010f  // Coefficient de traînée
 #define CROSS_SECTIONAL_AREA 0.10f  // Section transversale (m^2)
-#define LIFT_COEFFICIENT  50.0f
+#define LIFT_COEFFICIENT  11.0f
 #define MAX_VELOCITY 2000.0f  // Vitesse maximale autorisée en m/s
+#define RO_TO_SI 515.379f
 
 SCSimulatedObject::SCSimulatedObject() {             
 
@@ -31,16 +32,19 @@ void SCSimulatedObject::Render() {
 
     Renderer.drawModel(this->obj, position, orientaton);
     
-    int cpt=0;
-    int nb_smoke = (int) this->smoke_positions.size();
-    int cpt_smoke = 0;
-    for (auto pos: this->smoke_positions) {
-        float alpha = (nb_smoke - cpt_smoke) / ((float) nb_smoke);
-        cpt_smoke++;
-        if (cpt > this->SmokeSet.missile_smoke_textures.size()-1) {
-            cpt = 0;
+    if (this->obj->dynn_miss != nullptr && this->obj->dynn_miss->velovity_m_per_sec > 0) {
+    
+        int cpt=0;
+        int nb_smoke = (int) this->smoke_positions.size();
+        int cpt_smoke = 0;
+        for (auto pos: this->smoke_positions) {
+            float alpha = (nb_smoke - cpt_smoke) / ((float) nb_smoke);
+            cpt_smoke++;
+            if (cpt > this->SmokeSet.missile_smoke_textures.size()-1) {
+                cpt = 0;
+            }
+            Renderer.drawBillboard(pos, this->SmokeSet.missile_smoke_textures[cpt], 10, alpha);
         }
-        Renderer.drawBillboard(pos, this->SmokeSet.missile_smoke_textures[cpt], 10, alpha);
     }
 }
 
@@ -68,90 +72,153 @@ void cartesianToPolar(Vector3D v, float *phi, float *theta) {
 
 // Calcul de la force de frottement
 Vector3D SCSimulatedObject::calculate_drag(Vector3D velocity) {
-    float speed = velocity.Length();
-    int itemp;
-    itemp = ((int)this->y) >> 10;
-    if (itemp > 74) {
-        itemp = 74;
-    } else if (itemp < 0) {
-        itemp = 0;
-    }
-    float drag_magnitude = 0.5f * ro[itemp] * powf(speed,2) *DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA;
-    return velocity * (-drag_magnitude / speed);
+    float speed_per_tick = velocity.Length();
+    if (speed_per_tick < EPSILON) return { 0.0f, 0.0f, 0.0f };
+
+    float speed_mps = speed_per_tick * tps;  // cohérent avec calculate_lift
+
+    int itemp = ((int)this->y) >> 10;
+    if (itemp > 74) itemp = 74;
+    else if (itemp < 0) itemp = 0;
+
+    float drag_magnitude = 0.5f * ro[itemp] * RO_TO_SI * speed_mps * speed_mps * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA;
+    return velocity * (-drag_magnitude / speed_per_tick);
 }
 Vector3D SCSimulatedObject::calculate_lift(Vector3D velocity) {
-    float speed = velocity.Length()*tps*3.2808399f;
-    int itemp;
-    itemp = ((int)this->y) >> 10;
-    if (itemp > 74) {
-        itemp = 74;
-    } else if (itemp < 0) {
-        itemp = 0;
+    float speed_per_tick = velocity.Length();
+    if (speed_per_tick < EPSILON) {
+        return { 0.0f, 0.0f, 0.0f };
     }
-    float lift_magnitude = 0.5f * (ro[itemp]*tps) * powf(speed,2) * LIFT_COEFFICIENT * CROSS_SECTIONAL_AREA;
-    if (lift_magnitude> this->weight * GRAVITY) {
-        lift_magnitude = this->weight * GRAVITY;
+    if (this->obj->entity_type == EntityType::bomb) {
+        return { 0.0f, 0.0f, 0.0f };
     }
-    Vector3D lift_direction = {
-        0.0, lift_magnitude, 0.0
+    // Direction perpendiculaire à la vitesse dans le plan vertical
+    Vector3D vel_dir = velocity * (1.0f / speed_per_tick);
+    float dot_y = vel_dir.y;
+    Vector3D lift_dir = {
+        -vel_dir.x * dot_y,
+        1.0f - dot_y * dot_y,
+        -vel_dir.z * dot_y
     };
-    return lift_direction;
+    float lift_dir_len = lift_dir.Length();
+    if (lift_dir_len < EPSILON) {
+        return { 0.0f, 0.0f, 0.0f };
+    }
+
+    // Le lift compense exactement la gravité (indépendant de ro[] et de CL)
+    float lift_magnitude = this->weight * GRAVITY;
+    return lift_dir * (lift_magnitude / lift_dir_len);
 }
 std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     this->tps = tps;
-    float deltaTime = 1.0f / (float) tps;
-    float thrust = 10.0f;
+    float deltaTime = 1.0f / (float)tps;
+
+    float thrust = 0.0f;
     if (this->obj->dynn_miss != nullptr) {
-        thrust = (float)this->obj->dynn_miss->velovity_m_per_sec*1000.0f;
+        thrust = (float)this->obj->dynn_miss->velovity_m_per_sec * 1000.0f;
     }
-    Vector3D position = {
-        this->x,
-        this->y,
-        this->z
-    };
-    Vector3D velocity = {
-        this->vx,
-        this->vy,
-        this->vz
-    };
-    Vector3D to_target = {
-        0.0f,
-        0.0f,
-        0.0f
-    };
+
+    Vector3D position = { this->x, this->y, this->z };
+    Vector3D velocity = { this->vx, this->vy, this->vz };
+
+    Vector3D to_target = { 0.0f, 0.0f, 0.0f };
     if (this->target != nullptr) {
-        to_target.x = (float) this->target->object->position.x;
-        to_target.y = (float) this->target->object->position.y;
-        to_target.z = (float) this->target->object->position.z;
+        to_target.x = (float)this->target->object->position.x;
+        to_target.y = (float)this->target->object->position.y;
+        to_target.z = (float)this->target->object->position.z;
     }
-    Vector3D gravity_force = {0.0, -this->weight * GRAVITY, 0.0};
-    Vector3D drag_force = this->calculate_drag(velocity);
-    Vector3D lift_force = this->calculate_lift(velocity);
+
+    // --- Forces de base ---
+    Vector3D gravity_force = { 0.0f, -this->weight * GRAVITY, 0.0f };
+    Vector3D drag_force    = this->calculate_drag(velocity);
+    Vector3D lift_force    = this->calculate_lift(velocity);
+
     
-    Vector3D error = (to_target - position);
-    
-    // Force de poussée ajustée en fonction de la direction de l'erreur
-    Vector3D thrust_force;
-    if (this->guidance && this->target != nullptr) {
-        Vector3D error = (to_target - position);
-        thrust_force = error * (thrust / error.Length());
+    // --- Guidage aérodynamique ---
+    Vector3D thrust_force  = { 0.0f, 0.0f, 0.0f };
+    Vector3D steer_force   = { 0.0f, 0.0f, 0.0f };
+
+    float speed = velocity.Length();
+    float speed_mps = speed * tps;
+    Vector3D vel_dir = velocity;
+    vel_dir.Normalize();
+
+    float lift_y = lift_force.y;
+    float gravity_y = this->weight * GRAVITY;
+    printf("[LIFT DEBUG] lift=%.2f < gravity=%.2f (deficit=%.2f) speed_mps=%.1f y=%.1f\n",
+            lift_y, gravity_y, gravity_y - lift_y, speed_mps, this->y);
+    if (this->guidance && this->target != nullptr && speed > 1.0f) {
+        // Direction vers la cible
+        Vector3D to_target_dir = (to_target - position);
+        to_target_dir.Normalize();
+
+        // Composante latérale : partie de (to_target_dir) perpendiculaire à la vitesse
+        float dot = vel_dir.DotProduct(&to_target_dir);
+        Vector3D lateral = to_target_dir - vel_dir * dot;
+        float lateral_len = lateral.Length();
+
+        if (lateral_len > 0.001f) {
+            int itemp = ((int)this->y) >> 10;
+            if (itemp > 74) {
+                itemp = 74;
+            } else if (itemp < 0) {
+                itemp = 0;
+            }
+
+            // Force aérodynamique latérale ~ 0.5 * rho * v² * S_control
+            // AERO_CONTROL_COEFF est l'efficacité des surfaces de contrôle
+            const float AERO_CONTROL_COEFF = 5.0f;
+            float dyn_pressure = 0.5f * ro[itemp] * speed_mps * speed_mps;
+            float steer_magnitude;
+            if (this->obj->entity_type == EntityType::bomb) {
+                // Guidage direct (ordinateur de bord) — indépendant de ro[]
+                const float MAX_G_BOMB = 10.0f;
+                steer_magnitude = this->weight * MAX_G_BOMB * GRAVITY;
+            } else {
+                // Force aérodynamique pour les missiles
+                const float AERO_CONTROL_COEFF = 15.0f;
+                float dyn_pressure = 0.5f * ro[itemp] * RO_TO_SI * speed_mps * speed_mps;
+                steer_magnitude = dyn_pressure * AERO_CONTROL_COEFF * CROSS_SECTIONAL_AREA;
+                const float MAX_G = 50.0f;
+                float max_steer = this->weight * MAX_G * GRAVITY;
+                if (steer_magnitude > max_steer) {
+                    steer_magnitude = max_steer;
+                }
+            }
+
+            // Limite en g (ex: 20g max)
+            const float MAX_G = 50.0f;
+            float max_steer = this->weight * MAX_G * GRAVITY;
+            if (steer_magnitude > max_steer) steer_magnitude = max_steer;
+
+            steer_force = lateral * (steer_magnitude / lateral_len);
+        }
+
+        // Poussée moteur : le long de la vitesse (forward), pas vers la cible
+        thrust_force = vel_dir * thrust;
+
     } else {
-        Vector3D vel_dir = velocity;
-        vel_dir.Normalize();
+        // Pas de guidage : poussée dans la direction de la vitesse
         thrust_force = vel_dir * thrust;
     }
-    Vector3D other_way;
-    error.Normalize();
-    other_way = (error * thrust);
-    Vector3D total_force = gravity_force + drag_force + lift_force + thrust_force;
-    Vector3D acceleration = total_force * (1.0f/ this->weight);
-    velocity = (velocity+(acceleration*deltaTime)).limit(MAX_VELOCITY*deltaTime);
-    position = position+velocity;
+
+    Vector3D total_force = gravity_force + drag_force + lift_force + thrust_force + steer_force;
+    Vector3D acceleration = total_force * (1.0f / this->weight);
+    velocity = (velocity + (acceleration * deltaTime)).limit(MAX_VELOCITY * deltaTime);
+    position = position + velocity;
+
     this->run_iterations++;
     return { position, velocity };
 }
 bool SCSimulatedObject::CheckCollision(SCMissionActors *entity) { 
     BoudingBox *bb{nullptr};
+    Vector3D position = { this->x, this->y, this->z };
+    Vector3D targetPos = {
+        static_cast<float>(entity->object->position.x),
+        static_cast<float>(entity->object->position.y),
+        static_cast<float>(entity->object->position.z)
+    };
+    const float distanceThreshold = 50.0f; // Seuil de distance pour la collision
     if (entity->team_id == this->shooter->team_id) {
         return false;
     }
@@ -160,12 +227,16 @@ bool SCSimulatedObject::CheckCollision(SCMissionActors *entity) {
     }
     bb = entity->object->entity->GetBoudingBpx();
     if (bb != nullptr) {
-        if (this->x >= entity->object->position.x + bb->min.x && this->x <= entity->object->position.x + bb->max.x &&
-            this->y >= entity->object->position.y+bb->min.y && this->y   <= entity->object->position.y + bb->max.y &&
-            this->z >= entity->object->position.z+bb->min.z && this->z <= entity->object->position.z + bb->max.z) {
+        if (this->x >= targetPos.x + bb->min.x && this->x <= targetPos.x + bb->max.x &&
+            this->y >= targetPos.y+bb->min.y && this->y   <= targetPos.y + bb->max.y &&
+            this->z >= targetPos.z+bb->min.z && this->z <= targetPos.z + bb->max.z) {
             // Collision detected: mark both objects as not alive and update score.
             return true;
         }
+    }
+    float distance = (targetPos - position).Length();
+    if (distance < distanceThreshold) {
+        return true;
     }
     return false;
 }
@@ -178,19 +249,6 @@ void SCSimulatedObject::Simulate(int tps) {
             this->alive = false;
             this->target->hasBeenHit(this, this->shooter);
             return;
-        } else {
-            const float distanceThreshold = 50.0f;
-            Vector3D targetPos = {
-                static_cast<float>(this->target->object->position.x),
-                static_cast<float>(this->target->object->position.y),
-                static_cast<float>(this->target->object->position.z)
-            };
-            float distance = (targetPos - position).Length();
-            if (distance < distanceThreshold) {
-                this->target->hasBeenHit(this, this->shooter);
-                this->alive = false;
-                return;
-            }
         }
     } else {
         for (auto entity: this->mission->actors) {
@@ -224,7 +282,7 @@ void SCSimulatedObject::Simulate(int tps) {
 
     Vector3D length_vect = { this->x - this->last_px, this->y - this->last_py, this->z - this->last_pz };
     this->distance += length_vect.Length();
-    if (this->distance > this->obj->wdat->effective_range) {
+    if (this->distance > this->obj->wdat->effective_range && this->obj->dynn_miss != nullptr) {
         this->alive = false;
         if (!this->is_simulated) {
             this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
@@ -238,6 +296,10 @@ void SCSimulatedObject::Simulate(int tps) {
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
         }
+    } else if (this->distance > this->obj->wdat->effective_range && !no_gravity) {
+        if (this->obj->dynn_miss != nullptr) {
+            this->obj->dynn_miss->velovity_m_per_sec = 0;
+        }
     }
     if (this->y < this->mission->area->getY(this->x, this->z)) {
         if (!this->is_simulated) {
@@ -246,6 +308,11 @@ void SCSimulatedObject::Simulate(int tps) {
                 MemSound *sound;
                 sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
                 Mixer.playSoundVoc(sound->data, sound->size);
+            }
+            for (auto entity: this->mission->actors) {
+                if (this->CheckCollision(entity)) {
+                    entity->hasBeenHit(this, this->shooter);
+                }
             }
         }
         this->alive = false;

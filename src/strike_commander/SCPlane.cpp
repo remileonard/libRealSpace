@@ -1278,9 +1278,22 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
             weap->guidance = false;
+            weap->no_gravity = false;
             wobj = wobj->weaps[0]->objct;
             this->wp_cooldown = 10;
-            break;
+        break;
+        case ID_GBU15:
+            weap = new SCSimulatedObject();
+            initial_trust = this->getWeaponIntialVector(1.0f);
+            if (this->pilot->mission->sound.sounds.size() > 0) {
+                sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
+                Mixer.playSoundVoc(sound->data, sound->size);
+            }
+            weap->guidance = true;
+            weap->no_gravity = false;
+            weap->target = target;
+            this->wp_cooldown = 10;
+        break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
             if (this->pilot->mission->sound.sounds.size() > 0) {
