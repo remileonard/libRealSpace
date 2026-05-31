@@ -93,7 +93,7 @@ RLEShape *RSImageSet::GetShape(size_t index) {
     if (this->shapes.size() == 0) {
         return RLEShape::GetEmptyShape();
     }
-    if (index > this->shapes.size()) {
+    if (index >= this->shapes.size()) {
         return this->shapes[0];
     }
     return this->shapes[index];

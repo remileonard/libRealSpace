@@ -48,6 +48,8 @@ void DebugScreen::setTitle(const char* title){
 void DebugScreen::init(int w, int h, bool fullscreen){
     width = w;
     height = h;
+    logical_width = w;
+    logical_height = h;
 
     // 1. Initialiser SDL AVANT toute création de fenêtre
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK  | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0) {
@@ -248,11 +250,11 @@ void DebugScreen::refresh(void){
             ImGui::EndMenuBar();
         }
         ImVec2 winsize = ImGui::GetContentRegionAvail();
-        float width = winsize.x * 0.70f;
+        float dwidth = winsize.x * 0.70f;
         if (debugGameInstance == nullptr  || !debugGameInstance->hasActivity() || !this->show_ui) {
-            width = winsize.x; // If no game instance, use full width
+            dwidth = winsize.x; // If no game instance, use full width
         }
-        ImGui::BeginChild("Game", ImVec2(width, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
+        ImGui::BeginChild("Game", ImVec2(dwidth, 0), ImGuiChildFlags_Border | ImGuiWindowFlags_NoSavedSettings);
         if (!show_mouse) {
             const bool gameChildFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_None);
             const bool gameChildHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);

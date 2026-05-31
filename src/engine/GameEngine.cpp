@@ -257,7 +257,6 @@ void GameEngine::pumpEvents(void) {
     float cy = m_keyboard->getActionValue(InputAction::CONTROLLER_STICK_LEFT_Y);
 
     
-    
     // Conversion vers l’espace 320x200 legacy
     Point2D newPosition;
     if (cx != 0 || cy != 0) {

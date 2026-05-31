@@ -17,6 +17,21 @@
             }
         },
         {
+            "name": "windows-relwithdebinfo",
+            "displayName": "Visual Studio Community 2022 - x64 - RelWithDebInfo",
+            "generator": "Visual Studio 17 2022",
+            "toolset": "host=x86",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
             "name": "linux",
             "displayName": "GCC 13.2.0 x86_64-linux-gnu",
             "description": "Using compilers: C = /usr/bin/gcc, CXX = /usr/bin/g++",
@@ -89,6 +104,13 @@
             "name": "macos-clang-debug",
             "displayName": "macOS Clang Debug",
             "configurePreset": "macos",
+            "jobs": 8
+        },
+        {
+            "name": "windows-relwithdebinfo",
+            "displayName": "Visual Studio Community 2022 - x64 - RelWithDebInfo",
+            "configurePreset": "windows-relwithdebinfo",
+            "configuration": "RelWithDebInfo",
             "jobs": 8
         }
     ]
