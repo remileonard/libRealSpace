@@ -49,6 +49,5 @@ bool initGLExtensions();
 
 #else
 // macOS / Linux : les fonctions sont disponibles directement
-#include <OpenGL/gl.h>
 inline bool initGLExtensions() { return true; }
 #endif
