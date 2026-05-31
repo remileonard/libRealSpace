@@ -1,6 +1,6 @@
 #include "../../engine/Config.hpp"
 #include "../debugger/DebugControlMapping.h"
-
+#include "../../engine/EventManager.h"  
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl2.h"
@@ -46,6 +46,12 @@ int main(int argc, char* argv[]) {
     int  fx_pixel_scale  = config.getInt ("Video", "fx_pixel_scale", 1);
     bool super_eagle_2x  = config.getBool("Video", "super_eagle_2x", true);
 
+    DebugControlMapping controlMapping;
+    GameEngine::setInstance(std::make_unique<GameEngine>());
+    GameEngine *game = &GameEngine::instance();
+    EventManager::getInstance().enableImGuiForwarding(true);
+    game->init();
+    controlMapping.init();
     bool running = true;
     struct Resolution { int w, h, refresh; };
     std::vector<Resolution> resolutions;
@@ -140,8 +146,9 @@ int main(int argc, char* argv[]) {
                 
             }
             if (ImGui::BeginTabItem("Controls")) { 
-                DebugControlMapping controlMapping;
-                controlMapping.init();
+                if (controlMapping.m_capture.active) {
+                    controlMapping.updateCapture(0.1f);
+                }
                 controlMapping.renderUI();
                 ImGui::EndTabItem(); 
             }

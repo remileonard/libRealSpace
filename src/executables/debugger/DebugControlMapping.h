@@ -27,7 +27,8 @@ public:
     void runFrame() override;
     void renderUI() override;
     void renderMenu() override {}
-
+    CaptureState                m_capture;
+    void updateCapture(float dt);
 private:
     Keyboard*                   m_keyboard   = nullptr;
     std::vector<SDL_Joystick*>  m_joysticks;           // joysticks ouverts
@@ -35,7 +36,7 @@ private:
     std::vector<std::string>    m_joystickGUIDs;
 
     std::vector<MappableAction> m_actions;
-    CaptureState                m_capture;
+    
 
     // Snapshot des axes au début de la capture (pour détecter le mouvement)
     std::vector<std::vector<Sint16>> m_axisBaseline;
@@ -46,7 +47,7 @@ private:
     void closeJoysticks();
     void buildActionList();
     void startCapture(int actionIndex);
-    void updateCapture(float dt);
+    
     void applyBinding(int actionIndex, int joyIndex, int axisOrBtn, bool isAxis, float scale);
     std::string describeBinding(InputAction action) const;
 

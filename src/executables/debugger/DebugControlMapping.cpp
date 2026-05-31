@@ -20,7 +20,9 @@ DebugControlMapping::~DebugControlMapping() { closeJoysticks(); }
 void DebugControlMapping::init() {
     if (Game == nullptr) Game = &GameEngine::getInstance();
     m_keyboard = Game->getKeyboard();
-
+    if (m_keyboard == nullptr) {
+        printf("Error: Keyboard not initialized in GameEngine\n");
+    }
     openJoysticks();
     buildActionList();
 

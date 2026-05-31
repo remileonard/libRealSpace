@@ -343,9 +343,13 @@ void SCRenderer::init(int width, int height) {
     RSPalette palette;
     Config &config = Config::instance();
     TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
-    palette.initFromFileRam(entries->data, entries->size);
+    if (entries) {
+        palette.initFromFileRam(entries->data, entries->size);    
+        this->palette = *palette.GetColorPalette();
+    }
+    
     this->lodLevel = config.getInt("Game", "object_detail", 0);
-    this->palette = *palette.GetColorPalette();
+    
 
     this->width = width;
     this->height = height;
