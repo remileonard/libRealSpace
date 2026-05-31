@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     GameEngine::setInstance(std::make_unique<GameEngine>());
     GameEngine *game = &GameEngine::instance();
     EventManager::getInstance().enableImGuiForwarding(true);
+    AssetManager::getInstance().SetBase("./assets/");
     game->init();
     controlMapping.init();
     bool running = true;
