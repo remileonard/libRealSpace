@@ -1273,6 +1273,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         case ID_LAU3:
             weap = new SCSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1.0f);
+            initial_trust.Scale(1.0f/(float)tps);
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::POD_SHOOT];
                 Mixer.playSoundVoc(sound->data, sound->size);
@@ -1285,6 +1286,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         case ID_GBU15:
             weap = new SCSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1.0f);
+            initial_trust.Scale(1.0f/(float)tps);
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
                 Mixer.playSoundVoc(sound->data, sound->size);
@@ -1296,6 +1298,7 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
+            initial_trust.Scale(1.0f/(float)tps);
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::AIM9_SHOOT];
                 Mixer.playSoundVoc(sound->data, sound->size);

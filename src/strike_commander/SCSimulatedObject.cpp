@@ -139,7 +139,7 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     Vector3D steer_force   = { 0.0f, 0.0f, 0.0f };
 
     float speed = velocity.Length();
-    float speed_mps = speed * tps;
+    float speed_mps = speed * tps;  // Convertir la vitesse par tick en m/s pour les calculs aérodynamiques
     Vector3D vel_dir = velocity;
     vel_dir.Normalize();
 
