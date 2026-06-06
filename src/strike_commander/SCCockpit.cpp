@@ -127,10 +127,13 @@ void SCCockpit::init() {
     if (cockpit_def == nullptr) {
         if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-16DES.IFF") {
             cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F16-CKPT.IFF");
+            this->is_f16_cockpit = true;
         } else if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-22.IFF") {
             cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F22-CKPT.IFF");
+            this->is_f16_cockpit = false;
         } else if (player_plane->object->entity->name == "..\\..\\DATA\\OBJECTS\\F-22B.IFF") {
             cockpit_def = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\F22-CKPT.IFF");
+            this->is_f16_cockpit = false;
         }
     }
     if (cockpit_def != nullptr) {
@@ -151,7 +154,8 @@ void SCCockpit::init() {
             hud_framebuffer = new FrameBuffer(150, 128);
             mfd_right_framebuffer = new FrameBuffer(115, 95);
             mfd_left_framebuffer = new FrameBuffer(115, 95);
-            raws_framebuffer = new FrameBuffer(57, 46);
+            Point2D raws_size = {this->cockpit->MONI.INST.RAWS.ZOOM.GetWidth(), this->cockpit->MONI.INST.RAWS.ZOOM.GetHeight()};
+            raws_framebuffer = new FrameBuffer(raws_size.x, raws_size.y);
             target_framebuffer = new FrameBuffer(320, 200);
             alti_framebuffer = new FrameBuffer(33, 29);
             speed_framebuffer = new FrameBuffer(36, 29);

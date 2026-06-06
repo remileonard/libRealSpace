@@ -108,6 +108,7 @@ public:
     bool debug_print{false};
     bool big_cockpit{false};
     bool is_3d_cockpit{false};
+    bool is_f16_cockpit{true};
     // Offset angulaire pour le viseur cannon (en radians)
     // x = azimut, y = élévation
     // En 2D: {0, 0}, en 3D: ajuster selon la géométrie

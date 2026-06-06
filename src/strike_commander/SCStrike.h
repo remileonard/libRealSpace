@@ -162,6 +162,8 @@ protected:
     static void cleanupVirtualCockpitTextures();
     Vector2D gunsight_hud_offset{0.0f, -0.077f};
     bool zoom_cockpit{false};
+    void renderVirtualF16Cockpit();
+    void renderVirtualF22Cockpit();
 public:
     float verticalOffset{0.45f};
     /**
