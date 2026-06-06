@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <limits>
 
+#define MAX_VIEW_DISTANCE 120000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -358,7 +359,7 @@ void SCRenderer::init(int width, int height) {
     // glClearDepth(1.0f);								// Depth Buffer Setup
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
-    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
+    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, MAX_VIEW_DISTANCE + MAX_VIEW_DISTANCE*0.25f);
 
     light.SetWithCoo(300, 300, 300);
     initialized = true;
@@ -1425,8 +1426,69 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
         renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
     }
 }
+void SCRenderer::renderSkydome(int rings, int slices) {
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_CULL_FACE);
+
+    const float radius = MAX_VIEW_DISTANCE; // distance de rendu horizontale max
+    Point3D cam = camera.getPosition();
+
+    // -- Parois cylindriques (limitent la distance XZ) --
+    // Fond ouvert : pas de cap inférieur → sol sous la caméra toujours visible
+    const float yBot = cam.y - radius * 3.0f; // bien sous le sol
+    // yTop = cam.y : la base du cylindre rejoint exactement la base de la calotte
+    glBegin(GL_TRIANGLE_STRIP);
+    for (int s = 0; s <= slices; ++s) {
+        float theta = 2.0f * (float)M_PI * s / slices;
+        float cosT = cosf(theta), sinT = sinf(theta);
+        float x = cam.x + radius * cosT;
+        float z = cam.z + radius * sinT;
+
+        glColor3f(0.50f, 0.50f, 0.65f); // sous-horizon : gris-bleu
+        glVertex3f(x, yBot, z);
+
+        glColor3f(0.89f, 0.89f, 0.98f); // horizon : rejoint la base de la calotte
+        glVertex3f(x, cam.y, z);
+    }
+    glEnd();
+
+    // -- Calotte sphérique (ciel au-dessus de l'horizon) --
+    // phi : 0 (horizon, y=cam.y) → π/2 (zénith)
+    for (int r = 0; r < rings; ++r) {
+        float phi0 = (float)M_PI_2 * r / rings;
+        float phi1 = (float)M_PI_2 * (r + 1) / rings;
+        float t0 = (float)r / rings;
+        float t1 = (float)(r + 1) / rings;
+
+        float r0c = 0.89f - t0 * 0.30f, g0c = 0.89f - t0 * 0.30f, b0c = 0.98f - t0 * 0.20f;
+        float r1c = 0.89f - t1 * 0.30f, g1c = 0.89f - t1 * 0.30f, b1c = 0.98f - t1 * 0.20f;
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int s = 0; s <= slices; ++s) {
+            float theta = 2.0f * (float)M_PI * s / slices;
+            float cosT = cosf(theta), sinT = sinf(theta);
+
+            glColor3f(r0c, g0c, b0c);
+            glVertex3f(cam.x + radius * cosf(phi0) * cosT,
+                       cam.y + radius * sinf(phi0),
+                       cam.z + radius * cosf(phi0) * sinT);
+
+            glColor3f(r1c, g1c, b1c);
+            glVertex3f(cam.x + radius * cosf(phi1) * cosT,
+                       cam.y + radius * sinf(phi1),
+                       cam.z + radius * cosf(phi1) * sinT);
+        }
+        glEnd();
+    }
+
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE);
+}
 void SCRenderer::renderWorldSkyAndGround() {
-    static const float max_int = (BLOCK_WIDTH * BLOCK_PER_MAP_SIDE)*2;
+    /*static const float max_int = (BLOCK_WIDTH * BLOCK_PER_MAP_SIDE)*2;
     static const float max_height = 60000.0f;
     static const float min_height = -2000.0f;
 
@@ -1443,7 +1505,6 @@ void SCRenderer::renderWorldSkyAndGround() {
     glVertex3f(max_int, ground_min, max_int);
     glVertex3f(-max_int, ground_min, max_int);
     glEnd();
-    /**/
     glBegin(GL_QUADS);
     // sol
     glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
@@ -1501,7 +1562,8 @@ void SCRenderer::renderWorldSkyAndGround() {
     glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
     glVertex3f(max_int, max_height, -max_int);
 
-    glEnd();
+    glEnd();*/
+    this->renderSkydome(1, 32);
 }
 
 void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {

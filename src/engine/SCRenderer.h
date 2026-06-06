@@ -73,6 +73,7 @@ private:
     const AABB &computeBlockAABB(RSArea *area, int LOD, int blockId);
     void getNormal(RSEntity *object, Triangle *triangle, Vector3D *normal);
     void renderWorldSkyAndGround();
+    void renderSkydome(int rings, int slices);
 
 public:
     Camera camera;
