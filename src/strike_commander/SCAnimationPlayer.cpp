@@ -99,32 +99,14 @@ void SCAnimationPlayer::init(){
     std::string mdtxtdb_file_path = "..\\..\\DATA\\MIDGAMES\\MIDGAMES.IFF";
     TreEntry *mdtxtdb_entry = Assets.GetEntryByName(mdtxtdb_file_path.c_str());
     this->midgame_text_db->InitFromRAM(mdtxtdb_entry->data, mdtxtdb_entry->size);
-    std::vector<std::string> font_files = {
-        "FONT0",
-        "FONT1",
-        "FONT2",
-        "FONT3",
-        "FONT4",
-        "FONT5",
-        "FONT6",
-        "FONT7",
-        "FONT8",
-        "FONT9"
-    };
-    for (const auto& font_file : font_files) {
-        std::string font_file_path = "..\\..\\DATA\\FONTS\\" + font_file + ".PAK";
-        TreEntry *font_entry = Assets.GetEntryByName(font_file_path.c_str());
-        if (font_entry == nullptr) {
-            continue;
-        }
-        PakArchive font_archive;
-        font_archive.InitFromRAM(font_file.c_str(), font_entry->data, font_entry->size);
-        if (font_archive.GetNumEntries() > 0) {
-            RSFont *font = new RSFont();
-            font->InitFromPAK(&font_archive);
-            this->fonts.push_back(font);
-        }
-    }
+    RSFont *font{nullptr};
+    PakEntry *font_entry = this->mid[0]->GetEntry(27);
+    PakArchive *fontPak = new PakArchive();
+    fontPak->InitFromRAM("MID1.PAK", font_entry->data, font_entry->size);
+    font = new RSFont();
+    font->InitFromPAK(fontPak);
+    this->fonts.push_back(font);
+    this->fonts.push_back(FontManager.GetFont("..\\..\\DATA\\FONTS\\CONVFONT.SHP"));
 }
 
 void SCAnimationPlayer::runFrame(void){
@@ -396,6 +378,20 @@ void SCAnimationPlayer::runFrame(void){
 
     for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++)
         VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    for (auto textLine : shot->textes) {
+        if (textLine->key.empty()) {
+            continue;
+        }
+        if (textLine->id < 0 || textLine->id >= this->midgame_text_db->midgame_texts[textLine->key].DATA.size()) {
+            continue;
+        }
+        if (textLine->font_id < 0 || textLine->font_id >= this->fonts.size()) {
+            continue;
+        }
+        std::string text = this->midgame_text_db->midgame_texts[textLine->key].DATA[textLine->id];
+        Point2D position = {textLine->position_start.x, textLine->position_start.y};
+        VGA.getFrameBuffer()->printText(this->fonts[textLine->font_id], position, text, 0);
+    }
     VGA.vSync();
 }
 
