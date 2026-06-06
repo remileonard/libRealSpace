@@ -95,6 +95,36 @@ void SCAnimationPlayer::init(){
     this->shot_counter = 0;
     this->fps_counter = 0;
     this->fps = 1;
+    this->midgame_text_db = new RSMidgame();
+    std::string mdtxtdb_file_path = "..\\..\\DATA\\MIDGAMES\\MIDGAMES.IFF";
+    TreEntry *mdtxtdb_entry = Assets.GetEntryByName(mdtxtdb_file_path.c_str());
+    this->midgame_text_db->InitFromRAM(mdtxtdb_entry->data, mdtxtdb_entry->size);
+    std::vector<std::string> font_files = {
+        "FONT0",
+        "FONT1",
+        "FONT2",
+        "FONT3",
+        "FONT4",
+        "FONT5",
+        "FONT6",
+        "FONT7",
+        "FONT8",
+        "FONT9"
+    };
+    for (const auto& font_file : font_files) {
+        std::string font_file_path = "..\\..\\DATA\\FONTS\\" + font_file + ".PAK";
+        TreEntry *font_entry = Assets.GetEntryByName(font_file_path.c_str());
+        if (font_entry == nullptr) {
+            continue;
+        }
+        PakArchive font_archive;
+        font_archive.InitFromRAM(font_file.c_str(), font_entry->data, font_entry->size);
+        if (font_archive.GetNumEntries() > 0) {
+            RSFont *font = new RSFont();
+            font->InitFromPAK(&font_archive);
+            this->fonts.push_back(font);
+        }
+    }
 }
 
 void SCAnimationPlayer::runFrame(void){

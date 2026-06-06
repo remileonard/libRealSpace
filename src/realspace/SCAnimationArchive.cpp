@@ -267,6 +267,20 @@ void SCAnimationArchive::WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRIT
     writer.EndChunk();
 }
 
+void SCAnimationArchive::WriteTexts(IFFWriter &writer, const std::vector<MIDGAME_TEXT_LINE *>& textes) {
+    writer.StartChunk("TEXT");
+    for (MIDGAME_TEXT_LINE *text : textes) {
+        writer.StartChunk("TEXE");
+        writer.WriteUint16(text->key.length());
+        writer.WriteString(text->key.c_str(), text->key.length());
+        writer.WriteUint8(text->id);
+        writer.WriteUint8(text->font_id);
+        writer.WriteUint16(text->nb_frames);
+        writer.EndChunk();
+    }
+    writer.EndChunk();
+}
+
 void SCAnimationArchive::WriteForegrounds(IFFWriter& writer, const std::vector<MIDGAME_SHOT_BG*>& foregrounds) {
     writer.StartChunk("FGND");
     for (const MIDGAME_SHOT_BG* fg : foregrounds) {
@@ -320,6 +334,28 @@ void SCAnimationArchive::WriteForegrounds(IFFWriter& writer, const std::vector<M
     writer.EndChunk();
 }
 
+void SCAnimationArchive::HandleTEXT(uint8_t* data, size_t size) {
+    IFFSaxLexer lexer;
+    
+    std::unordered_map<std::string, std::function<void(uint8_t*, size_t)>> events;
+    events["TEXE"] = std::bind(&SCAnimationArchive::HandleTEXT_TEXE, this, std::placeholders::_1, std::placeholders::_2);
+    lexer.InitFromRAM(data, size, events);
+}
+void SCAnimationArchive::HandleTEXT_TEXE(uint8_t* data, size_t size) {
+    if (currentShot) {
+        ByteStream stream(data, size);
+        
+        MIDGAME_TEXT_LINE *text;
+        text = new MIDGAME_TEXT_LINE();
+        uint16_t keyLength = stream.ReadUShort();
+        text->key = stream.ReadString(keyLength);
+        text->id = stream.ReadByte();
+        text->font_id = stream.ReadByte();
+        text->nb_frames = stream.ReadUShort();
+        
+        currentShot->textes.push_back(text);
+    }
+}
 void SCAnimationArchive::HandleANIM(uint8_t* data, size_t size) {
     IFFSaxLexer lexer;
     

@@ -7,7 +7,7 @@
 //
 
 #pragma once
-
+#include "../realspace/RSMidgame.h"
 
 class SCAnimationPlayer: public IActivity {
 protected:
@@ -16,12 +16,13 @@ protected:
     GameEngine *Game = &GameEngine::instance();
     ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
     RSVGA &VGA = RSVGA::getInstance();
+    std::vector<RSFont*> fonts;
     PakArchive midgames;
     PakArchive optShps;
     PakArchive optPals;
     PakArchive convShps;
     PakArchive convPals;
-    std::unordered_map<uint8_t, MIDGAME_DATA> midgames_data;
+    RSMidgame *midgame_text_db{nullptr};
     std::vector<PakArchive*> mid;
     std::vector<PakArchive*> midvoc;
     

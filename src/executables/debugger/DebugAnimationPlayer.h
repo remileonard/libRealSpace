@@ -25,12 +25,13 @@ private:
     MIDGAME_SHOT_BG* p_foreground_editor{nullptr};
     MIDGAME_SHOT_CHARACTER* p_character_editor{nullptr};
     MIDGAME_SHOT* p_shot_editor{nullptr};
+    MIDGAME_TEXT_LINE* p_textline_editor{nullptr};
 
     // Fonctions helper pour showEditor()
     void resetEditorSelection();
     void selectEditorElement(MIDGAME_SHOT_BG* bg, MIDGAME_SHOT_SPRITE* sprite, 
                              MIDGAME_SHOT_BG* fg, MIDGAME_SHOT_CHARACTER* character, 
-                             MIDGAME_SHOT* shotPtr);
+                             MIDGAME_SHOT* shotPtr, MIDGAME_TEXT_LINE* textLine);
     MIDGAME_SHOT* createEmptyShot();
     float calculateSectionHeight(size_t elementCount, float sectionHeaderHeight, 
                                 float elementHeight, float elementSpacing, 
@@ -43,11 +44,12 @@ private:
     void addNewCharacter(MIDGAME_SHOT* shot);
     void addNewSprite(MIDGAME_SHOT* shot);
     void addNewForeground(MIDGAME_SHOT* shot);
+    void addNewTextLine(MIDGAME_SHOT *shot);
     std::string buildBackgroundLabel(MIDGAME_SHOT_BG* bg, size_t index);
     std::string buildCharacterLabel(MIDGAME_SHOT_CHARACTER* character, size_t index);
     std::string buildSpriteLabel(MIDGAME_SHOT_SPRITE* sprite, size_t index);
     std::string buildForegroundLabel(MIDGAME_SHOT_BG* fg, size_t index);
-
+    std::string buildTexteLineLabel(MIDGAME_TEXT_LINE* txt, size_t index);
 
     void drawShotSection(
         const char* title,
@@ -72,7 +74,7 @@ private:
     std::vector<ShotSectionElement> buildCharacterElements(MIDGAME_SHOT* shot);
     std::vector<ShotSectionElement> buildSpriteElements(MIDGAME_SHOT* shot);
     std::vector<ShotSectionElement> buildForegroundElements(MIDGAME_SHOT* shot);
-
+    std::vector<ShotSectionElement> buildTextLineElements(MIDGAME_SHOT* shot);
 public:
     DebugAnimationPlayer();
     ~DebugAnimationPlayer();
@@ -85,5 +87,6 @@ public:
     void editMidGameShotSprite(MIDGAME_SHOT_SPRITE* sprite);
     void editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER* character);
     void editMidGameShot(MIDGAME_SHOT *shot);
+    void editMidGameShotTextLine(MIDGAME_TEXT_LINE *textLine);
     void midvocChooser();
 };
