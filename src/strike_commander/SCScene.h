@@ -92,6 +92,9 @@ public:
 class LedgerScene : public SCScene {
     RSFont *font;
     int page{0};
+    bool turn_page_animation_playing{false};
+    int turn_page_animation_frame{0};
+    RSImageSet *turn_page_animation;
     std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick;
 
 public:
@@ -102,6 +105,12 @@ public:
     void Render();
     void TurnPage(std::vector<EFCT *> *script, uint8_t sprite_id) {
         page = (page + 1) % 2;
+        this->turn_page_animation_playing = true;
+        if (page == 0) {
+            this->turn_page_animation_frame = this->turn_page_animation->GetNumImages() - 1;
+        } else {
+            this->turn_page_animation_frame = 0;
+        }
         this->CreateZones();
     };
 };
@@ -127,7 +136,10 @@ class CatalogueScene : public SCScene {
     void placeOrder(std::vector<EFCT *> *script, uint8_t sprite_id);
     std::vector<SCZone *> * UpdateZones();
     std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick;
-
+    bool is_turning_page{false};
+    int turning_page_sens{0};
+    int turn_page_animation_frame{0};
+    RSImageSet *turn_page_animation{nullptr};
 public:
     CatalogueScene(PakArchive *optShps, PakArchive *optPals) : SCScene(optShps, optPals) {};
     std::vector<SCZone *> * init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick);

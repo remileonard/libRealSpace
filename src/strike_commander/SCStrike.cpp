@@ -1016,9 +1016,11 @@ void SCStrike::checkKeyboard(void) {
             
         }
     }
+    this->cockpit->is_shooting = false;
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
         if (target != nullptr) {
             this->player_plane->Shoot(this->player_plane->selected_weapon, target, this->current_mission);
+            this->cockpit->is_shooting = true;
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_MOUSE))) {

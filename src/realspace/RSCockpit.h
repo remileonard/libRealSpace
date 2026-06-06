@@ -139,11 +139,6 @@ private:
     AssetManager *asset_manager;
     std::vector<uint8_t> INFO;
     
-    RLEShape VTMP;
-    RSImageSet EJEC;
-    RSImageSet GUNF;
-    RSImageSet GHUD;
-    
     struct Chud {
         std::string FILE;
     } CHUD;
@@ -207,6 +202,10 @@ private:
 
 public:
 
+    RLEShape VTMP;
+    RSImageSet EJEC;
+    RSImageSet GUNF;
+    RSImageSet GHUD;
     RSImageSet ARTP;
     RealObjs REAL;
     Moni MONI;
