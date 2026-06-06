@@ -1950,7 +1950,8 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     }
 
     // Blitter le buffer indexé dans le FrameBuffer à la position pmfd_left
-    fb->blit(indexedBuffer.data(), pmfd_left.x+13, pmfd_left.y+11, mdfs_width, mdfs_height);
+    int decalage_x = 8;
+    fb->blit(indexedBuffer.data(), pmfd_left.x+decalage_x, pmfd_left.y+11, mdfs_width, mdfs_height);
     this->cockpit->MONI.SHAP.SetPosition(&pmfd_left);
     fb->drawShape(&this->cockpit->MONI.SHAP);
     Point2D center = {pmfd_left.x + mdfs_width / 2, pmfd_left.y + mdfs_height / 2};
