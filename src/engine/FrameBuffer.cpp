@@ -210,7 +210,6 @@ void FrameBuffer::printText(RSFont *font, Point2D coo, std::string text, uint8_t
     width = shape->GetWidth();
     this->printText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width);
 }
-
 void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize, bool isSmall, bool fixedWidth) {
 
     if (text == NULL)
@@ -227,6 +226,25 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
         return;
     if (coo->x > this->width)
         return;
+    std::vector<int> lineWidths;
+    int curW = 0;
+    for (size_t i = 0; i < size; i++) {
+        char c = text[start + i];
+        if (c == '\n') {
+            lineWidths.push_back(curW);
+            curW = 0;
+            continue;
+        }
+        if (c == ' ') { curW += (int)spaceSize; continue; }
+        RLEShape *s = font->GetShapeForChar(c);
+        if (s == nullptr) continue;
+        curW += fixedWidth ? s->GetHeight() : (s->GetWidth() + (int)interLetterSpace - 1);
+    }
+    lineWidths.push_back(curW); // dernière ligne
+
+    int maxWidth = *std::max_element(lineWidths.begin(), lineWidths.end());
+    int lineIndex = 0;
+    coo->x = startx + (maxWidth - lineWidths[0]) / 2;
     for (size_t i = 0; i < size; i++) {
 
         char chartoDraw = text[start + i];
@@ -252,9 +270,10 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
         }
         if (chartoDraw == '\n') {
             RLEShape *sp = font->GetShapeForChar('A');
-            coo->y += sp->GetHeight() + 1;
+            coo->y += sp->GetHeight() + 2;
             lineHeight = coo->y;
-            coo->x = startx;
+            lineIndex++;
+            coo->x = startx + (maxWidth - lineWidths[lineIndex]) / 2;
         }
         if (coo->y < 0)
             continue;
