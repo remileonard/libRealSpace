@@ -86,6 +86,9 @@ void SCAnimationArchive::WriteShot(IFFWriter& writer, const MIDGAME_SHOT* shot) 
     if (!shot->characters.empty()) {
         WriteCharacters(writer, shot->characters);
     }
+    if (!shot->textes.empty()) {
+        WriteTexts(writer, shot->textes);
+    }
     
     if (shot->sound_pak != nullptr && shot->sound_pak_entry_id >= 0) {
         writer.StartChunk("SOND");
@@ -276,6 +279,10 @@ void SCAnimationArchive::WriteTexts(IFFWriter &writer, const std::vector<MIDGAME
         writer.WriteUint8(text->id);
         writer.WriteUint8(text->font_id);
         writer.WriteUint16(text->nb_frames);
+        writer.WriteInt16(text->position_start.x);
+        writer.WriteInt16(text->position_start.y);
+        writer.WriteInt16(text->position_end.x);
+        writer.WriteInt16(text->position_end.y);
         writer.EndChunk();
     }
     writer.EndChunk();
@@ -352,7 +359,10 @@ void SCAnimationArchive::HandleTEXT_TEXE(uint8_t* data, size_t size) {
         text->id = stream.ReadByte();
         text->font_id = stream.ReadByte();
         text->nb_frames = stream.ReadUShort();
-        
+        text->position_start.x = stream.ReadShort();
+        text->position_start.y = stream.ReadShort();
+        text->position_end.x = stream.ReadShort();
+        text->position_end.y = stream.ReadShort();
         currentShot->textes.push_back(text);
     }
 }
@@ -380,6 +390,7 @@ void SCAnimationArchive::HandleSHOT(uint8_t* data, size_t size) {
     events["FGND"] = std::bind(&SCAnimationArchive::HandleFGND, this, std::placeholders::_1, std::placeholders::_2);
     events["SOND"] = std::bind(&SCAnimationArchive::HandleSOND, this, std::placeholders::_1, std::placeholders::_2);
     events["CHAR"] = std::bind(&SCAnimationArchive::HandleCHAR, this, std::placeholders::_1, std::placeholders::_2);
+    events["TEXT"] = std::bind(&SCAnimationArchive::HandleTEXT, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, events);
     
