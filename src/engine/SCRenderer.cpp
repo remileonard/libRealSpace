@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <limits>
 
-#define MAX_VIEW_DISTANCE 10000.0f
+#define MAX_VIEW_DISTANCE 200000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -1744,7 +1744,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
 
     renderMapOverlay(area);
 
-    glDisable(GL_FOG);
+    //glDisable(GL_FOG);
     glDisable(GL_BLEND);
     glDisable(GL_ALPHA_TEST);
     glFrontFace(GL_CCW);
