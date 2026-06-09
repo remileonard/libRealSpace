@@ -1427,55 +1427,84 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
     }
 }
 void SCRenderer::renderSkydome(int rings, int slices) {
+    // GL_ALWAYS + glDepthMask(GL_TRUE) conservés intentionnellement :
+    // le dôme sert de masque de profondeur — toute géométrie au-delà de
+    // MAX_VIEW_DISTANCE est occultée car sa depth sera >= celle de la sphère.
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
     glDepthMask(GL_TRUE);
     glDisable(GL_CULL_FACE);
 
-    const float radius = MAX_VIEW_DISTANCE; // distance de rendu horizontale max
+    // Légèrement < far plane (MAX_VIEW_DISTANCE * 1.25) pour rester dans
+    // la plage de précision utile du depth buffer.
+    const float radius = MAX_VIEW_DISTANCE * 0.98f;
     Point3D cam = camera.getPosition();
 
-    // -- Parois cylindriques (limitent la distance XZ) --
-    // Fond ouvert : pas de cap inférieur → sol sous la caméra toujours visible
-    const float yBot = cam.y - radius * 3.0f; // bien sous le sol
-    // yTop = cam.y : la base du cylindre rejoint exactement la base de la calotte
-    glBegin(GL_TRIANGLE_STRIP);
-    for (int s = 0; s <= slices; ++s) {
-        float theta = 2.0f * (float)M_PI * s / slices;
-        float cosT = cosf(theta), sinT = sinf(theta);
-        float x = cam.x + radius * cosT;
-        float z = cam.z + radius * sinT;
+    const float zenithR = 0.35f, zenithG = 0.50f, zenithB = 0.85f; // bleu profond
+    const float horizR  = 0.89f, horizG  = 0.89f, horizB  = 0.98f; // blanc-bleu
+    const float nadirR  = 0.50f, nadirG  = 0.46f, nadirB  = 0.38f; // brun-gris sol
 
-        glColor3f(0.50f, 0.50f, 0.65f); // sous-horizon : gris-bleu
-        glVertex3f(x, yBot, z);
-
-        glColor3f(0.89f, 0.89f, 0.98f); // horizon : rejoint la base de la calotte
-        glVertex3f(x, cam.y, z);
-    }
-    glEnd();
-
-    // -- Calotte sphérique (ciel au-dessus de l'horizon) --
-    // phi : 0 (horizon, y=cam.y) → π/2 (zénith)
+    // ── Hémisphère supérieure : équateur (phi=0) → zénith (phi=π/2) ──────
     for (int r = 0; r < rings; ++r) {
-        float phi0 = (float)M_PI_2 * r / rings;
-        float phi1 = (float)M_PI_2 * (r + 1) / rings;
-        float t0 = (float)r / rings;
-        float t1 = (float)(r + 1) / rings;
-
-        float r0c = 0.89f - t0 * 0.30f, g0c = 0.89f - t0 * 0.30f, b0c = 0.98f - t0 * 0.20f;
-        float r1c = 0.89f - t1 * 0.30f, g1c = 0.89f - t1 * 0.30f, b1c = 0.98f - t1 * 0.20f;
+        float t0  = (float)r       / rings;
+        float t1  = (float)(r + 1) / rings;
+        float phi0 = (float)M_PI_2 * t0;
+        float phi1 = (float)M_PI_2 * t1;
 
         glBegin(GL_TRIANGLE_STRIP);
         for (int s = 0; s <= slices; ++s) {
             float theta = 2.0f * (float)M_PI * s / slices;
-            float cosT = cosf(theta), sinT = sinf(theta);
+            float cosT  = cosf(theta), sinT = sinf(theta);
 
-            glColor3f(r0c, g0c, b0c);
+            glColor3f(horizR + t0*(zenithR - horizR),
+                      horizG + t0*(zenithG - horizG),
+                      horizB + t0*(zenithB - horizB));
             glVertex3f(cam.x + radius * cosf(phi0) * cosT,
                        cam.y + radius * sinf(phi0),
                        cam.z + radius * cosf(phi0) * sinT);
 
-            glColor3f(r1c, g1c, b1c);
+            glColor3f(horizR + t1*(zenithR - horizR),
+                      horizG + t1*(zenithG - horizG),
+                      horizB + t1*(zenithB - horizB));
+            glVertex3f(cam.x + radius * cosf(phi1) * cosT,
+                       cam.y + radius * sinf(phi1),
+                       cam.z + radius * cosf(phi1) * sinT);
+        }
+        glEnd();
+    }
+
+    // ── Hémisphère inférieure : équateur (phi=0) → nadir (phi=-π/2) ──────
+    // Remplace les parois cylindriques.
+    // Avantages :
+    //   • Pas de discontinuité géométrique à y=cam.y → fin du Z-fighting
+    //   • Toute la surface est à distance `radius` → précision depth uniforme
+    //   • Le masque de profondeur fonctionne dans toutes les directions
+    for (int r = 0; r < rings; ++r) {
+        float t0  = (float)r       / rings;
+        float t1  = (float)(r + 1) / rings;
+        float phi0 = -(float)M_PI_2 * t0;
+        float phi1 = -(float)M_PI_2 * t1;
+
+        // Courbe quadratique : changement de couleur rapide juste sous
+        // l'horizon (là où c'est visible), stable vers le nadir.
+        float ease0 = t0 * t0;
+        float ease1 = t1 * t1;
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int s = 0; s <= slices; ++s) {
+            float theta = 2.0f * (float)M_PI * s / slices;
+            float cosT  = cosf(theta), sinT = sinf(theta);
+
+            glColor3f(horizR + ease0*(nadirR - horizR),
+                      horizG + ease0*(nadirG - horizG),
+                      horizB + ease0*(nadirB - horizB));
+            glVertex3f(cam.x + radius * cosf(phi0) * cosT,
+                       cam.y + radius * sinf(phi0),
+                       cam.z + radius * cosf(phi0) * sinT);
+
+            glColor3f(horizR + ease1*(nadirR - horizR),
+                      horizG + ease1*(nadirG - horizG),
+                      horizB + ease1*(nadirB - horizB));
             glVertex3f(cam.x + radius * cosf(phi1) * cosT,
                        cam.y + radius * sinf(phi1),
                        cam.z + radius * cosf(phi1) * sinT);
@@ -1563,17 +1592,16 @@ void SCRenderer::renderWorldSkyAndGround() {
     glVertex3f(max_int, max_height, -max_int);
 
     glEnd();*/
-    this->renderSkydome(1, 32);
+    this->renderSkydome(6, 32);
 }
 
 void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
-    GLfloat fogColor[4] = {0.8f, 0.8f, 0.8f, 1.0f};
-    glFogi(GL_FOG_MODE, GL_EXP2);      // Fog Mode
-    glFogfv(GL_FOG_COLOR, fogColor);   // Set Fog Color
-    glFogf(GL_FOG_DENSITY, 0.0000015f); // How Dense Will The Fog Be
-    glHint(GL_FOG_HINT, GL_DONT_CARE); // Fog Hint Value
-    glFogf(GL_FOG_START, 5000.0f);     // Fog Start Depth
-    glFogf(GL_FOG_END, 16000.0f);      // Fog End Depth
+    GLfloat fogColor[4] = {0.89f, 0.89f, 0.98f, 1.0f};
+    glFogi(GL_FOG_MODE, GL_LINEAR);
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glFogf(GL_FOG_START, MAX_VIEW_DISTANCE * 0.40f); // début du fondu
+    glFogf(GL_FOG_END,   MAX_VIEW_DISTANCE * 0.93f); // finit AVANT le dôme
+    glHint(GL_FOG_HINT, GL_DONT_CARE);
     glEnable(GL_FOG);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
