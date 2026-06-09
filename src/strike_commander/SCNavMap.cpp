@@ -371,7 +371,7 @@ void SCNavMap::runFrame(void) {
                             (int32_t)wp->message->size(),
                             1,
                             this->navMap->font->GetShapeForChar('A')->GetWidth(),
-                            false, false
+                            true, false
                         );
                     }
                     c = 255;
@@ -426,7 +426,7 @@ void SCNavMap::runFrame(void) {
                         (char*) name.c_str(),
                         34,
                         0,
-                        (int32_t)name.size(),1,glyphW,false,false
+                        (int32_t)name.size(),1,glyphW,true,false
                     );
                     VGA.getFrameBuffer()->plot_pixel(newx, newy, 10);
                     VGA.getFrameBuffer()->circle_slow(newx, newy, 2, 1);

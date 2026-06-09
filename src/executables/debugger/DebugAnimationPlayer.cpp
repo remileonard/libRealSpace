@@ -173,10 +173,10 @@ void DebugAnimationPlayer::renderUI() {
                 this->midgames_shots[1][this->shot_counter]->sound_played = false;
             }
             ImGui::Separator();
-            ImGui::Text("Total shots: %d", this->midgames_shots[1].size());
+            ImGui::Text("Total shots: %zu", this->midgames_shots[1].size());
             if (this->midgames_shots[1].size() > 0 && this->shot_counter < this->midgames_shots[1].size()) {
                 MIDGAME_SHOT *shot = this->midgames_shots[1][this->shot_counter];
-                ImGui::Text("Shot %d/%d", this->shot_counter + 1, this->midgames_shots[1].size());
+                ImGui::Text("Shot %d/%zu", this->shot_counter + 1, this->midgames_shots[1].size());
                 ImGui::Text("Number of frames: %d", shot->nbframe);
                 ImGui::Text("Music ID: %d", shot->music);
                 if (shot->sound != nullptr) {
@@ -184,11 +184,11 @@ void DebugAnimationPlayer::renderUI() {
                 } else {
                     ImGui::Text("No sound available");
                 }
-                ImGui::Text("Backgrounds: %d", shot->background.size());
+                ImGui::Text("Backgrounds: %zu", shot->background.size());
                 for (size_t i = 0; i < shot->background.size(); i++) {
                     MIDGAME_SHOT_BG *bg = shot->background[i];
                     if (ImGui::TreeNode(("Background " + std::to_string(i + 1)).c_str())) {
-                        ImGui::Text("Background %d:", i + 1);
+                        ImGui::Text("Background %zu:", i + 1);
                         ImGui::Text("PAK Archive: %s", bg->pak != nullptr ? bg->pak->GetName() : "None");
                         ImGui::Text("Entry ID: %d", bg->pak_entry_id);
                         ImGui::Text("Sub frame id: %d", bg->shapeid);
@@ -201,7 +201,7 @@ void DebugAnimationPlayer::renderUI() {
                             displayPalette(bg->pal->GetColorPalette());
                         }
                         if (bg->image != nullptr) {
-                            ImGui::Text("Image has %d images", bg->image->GetNumImages());
+                            ImGui::Text("Image has %zu images", bg->image->GetNumImages());
                             if (this->fps_counter < shot->nbframe) {
                                 int frame_to_show = this->fps_counter % bg->image->GetNumImages();
                                 ImGui::Text("Showing frame %d", frame_to_show);
@@ -217,12 +217,12 @@ void DebugAnimationPlayer::renderUI() {
                         ImGui::TreePop();
                     }
                 }
-                ImGui::Text("Sprites: %d", shot->sprites.size());
+                ImGui::Text("Sprites: %zu", shot->sprites.size());
                 for (size_t i = 0; i < shot->sprites.size(); i++) {
                     MIDGAME_SHOT_SPRITE *sprt = shot->sprites[i];
                     if (ImGui::TreeNode(("Sprite " + std::to_string(i + 1)).c_str())) {
-                        ImGui::Text("Sprite %d:", i + 1);
-                        ImGui::Text("NumImages: %d", sprt->image->GetNumImages());
+                        ImGui::Text("Sprite %zu:", i + 1);
+                        ImGui::Text("NumImages: %zu", sprt->image->GetNumImages());
                         ImGui::Text("Pos Start: (%d,%d)", sprt->position_start.x, sprt->position_start.y);
                         ImGui::Text("Pos End: (%d,%d)", sprt->position_end.x, sprt->position_end.y);
                         ImGui::Text("Velocity: (%d,%d)", sprt->velocity.x, sprt->velocity.y);
@@ -288,7 +288,7 @@ void DebugAnimationPlayer::midgameChoser() {
         ImGui::EndCombo();
     }
     if (this->current_mid != nullptr) {
-        ImGui::Text("Archive: %s, NumEntries: %d", this->current_mid->GetName(), this->current_mid->GetNumEntries());
+        ImGui::Text("Archive: %s, NumEntries: %zu", this->current_mid->GetName(), this->current_mid->GetNumEntries());
         if (ImGui::BeginCombo("Entries", this->current_entry_index >= 0
                                              ? ("Entry " + std::to_string(this->current_entry_index)).c_str()
                                              : "None")) {
@@ -331,7 +331,7 @@ void DebugAnimationPlayer::midgamePaletteChoser() {
         ImGui::EndCombo();
     }
     if (this->current_palette_mid != nullptr) {
-        ImGui::Text("Archive: %s, NumEntries: %d", this->current_palette_mid->GetName(),
+        ImGui::Text("Archive: %s, NumEntries: %zu", this->current_palette_mid->GetName(),
                     this->current_palette_mid->GetNumEntries());
         if (ImGui::BeginCombo("Palettes", this->current_palette_entry_index >= 0
                                               ? ("Pal " + std::to_string(this->current_palette_entry_index)).c_str()
@@ -370,12 +370,13 @@ void DebugAnimationPlayer::resetEditorSelection() {
 }
 
 void DebugAnimationPlayer::selectEditorElement(MIDGAME_SHOT_BG *bg, MIDGAME_SHOT_SPRITE *sprite, MIDGAME_SHOT_BG *fg,
-                                               MIDGAME_SHOT_CHARACTER *character, MIDGAME_SHOT *shotPtr) {
+                                               MIDGAME_SHOT_CHARACTER *character, MIDGAME_SHOT *shotPtr, MIDGAME_TEXT_LINE *textLine) {
     this->p_bg_editor = bg;
     this->p_sprite_editor = sprite;
     this->p_foreground_editor = fg;
     this->p_character_editor = character;
     this->p_shot_editor = shotPtr;
+    this->p_textline_editor = textLine;
     resetEditorSelection();
 }
 
@@ -395,7 +396,7 @@ float DebugAnimationPlayer::calculateSectionHeight(size_t elementCount, float se
 
 std::string DebugAnimationPlayer::formatElementPosition(int startX, int startY, int endX, int endY) {
     char buffer[48];
-    sprintf(buffer, "(%d,%d)→(%d,%d)", startX, startY, endX, endY);
+    snprintf(buffer, 48, "(%d,%d)→(%d,%d)", startX, startY, endX, endY);
     return std::string(buffer);
 }
 
@@ -412,7 +413,7 @@ void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float &xOffs
         size_t insertPos = isBeforeShot ? shotIndex : shotIndex + 1;
         this->midgames_shots[1].insert(this->midgames_shots[1].begin() + insertPos, newShot);
         this->shot_counter = static_cast<int>(insertPos);
-        selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot);
+        selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot, nullptr);
     }
 
     ImGui::PopID();
@@ -533,7 +534,7 @@ void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float &xOffs
         size_t insertPos = isBeforeShot ? shotIndex : shotIndex + 1;
         this->midgames_shots[1].insert(this->midgames_shots[1].begin() + insertPos, newShot);
         this->shot_counter = static_cast<int>(insertPos);
-        selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot);
+        selectEditorElement(nullptr, nullptr, nullptr, nullptr, newShot, nullptr);
     }
 
     ImGui::PopID();
@@ -557,7 +558,7 @@ void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float &xOffs
             // Update editing state if needed
             MIDGAME_SHOT *currentShot = this->midgames_shots[1][shotIndex + 1];
             if (this->p_shot_editor == currentShot) {
-                selectEditorElement(nullptr, nullptr, nullptr, nullptr, currentShot);
+                selectEditorElement(nullptr, nullptr, nullptr, nullptr, currentShot, nullptr);
             }
         }
     }
@@ -638,7 +639,7 @@ void DebugAnimationPlayer::addNewBackground(MIDGAME_SHOT *shot) {
     newBg->pal = nullptr;
     newBg->use_external_palette = 0;
     shot->background.push_back(newBg);
-    selectEditorElement(newBg, nullptr, nullptr, nullptr, nullptr);
+    selectEditorElement(newBg, nullptr, nullptr, nullptr, nullptr, nullptr);
 }
 
 void DebugAnimationPlayer::addNewCharacter(MIDGAME_SHOT *shot) {
@@ -652,7 +653,7 @@ void DebugAnimationPlayer::addNewCharacter(MIDGAME_SHOT *shot) {
     newChara->head_id = 0;
     newChara->character_name.clear();
     shot->characters.push_back(newChara);
-    selectEditorElement(nullptr, nullptr, nullptr, newChara, nullptr);
+    selectEditorElement(nullptr, nullptr, nullptr, newChara, nullptr, nullptr);
 }
 
 void DebugAnimationPlayer::addNewSprite(MIDGAME_SHOT *shot) {
@@ -672,7 +673,7 @@ void DebugAnimationPlayer::addNewSprite(MIDGAME_SHOT *shot) {
     newSprite->start_frame = 0;
     newSprite->end_frame = 0;
     shot->sprites.push_back(newSprite);
-    selectEditorElement(nullptr, newSprite, nullptr, nullptr, nullptr);
+    selectEditorElement(nullptr, newSprite, nullptr, nullptr, nullptr, nullptr);
 }
 
 void DebugAnimationPlayer::addNewForeground(MIDGAME_SHOT *shot) {
@@ -689,7 +690,7 @@ void DebugAnimationPlayer::addNewForeground(MIDGAME_SHOT *shot) {
     newFg->pal = nullptr;
     newFg->use_external_palette = 0;
     shot->foreground.push_back(newFg);
-    selectEditorElement(nullptr, nullptr, newFg, nullptr, nullptr);
+    selectEditorElement(nullptr, nullptr, newFg, nullptr, nullptr, nullptr);
 }
 
 std::string DebugAnimationPlayer::buildBackgroundLabel(MIDGAME_SHOT_BG *bg, size_t index) {
@@ -729,6 +730,11 @@ std::string DebugAnimationPlayer::buildForegroundLabel(MIDGAME_SHOT_BG *bg, size
         filename = pak_name.substr(lastSlash + 1);
     }
     return "FG: " + filename + ":" + std::to_string(bg->pak_entry_id);
+}
+
+std::string DebugAnimationPlayer::buildTexteLineLabel(MIDGAME_TEXT_LINE *txt, size_t index) {
+    std::string key = txt->key;
+    return "TXT: " + key + ":" + std::to_string(txt->id);
 }
 
 void DebugAnimationPlayer::drawShotSection(const char *title, const char *emptyLabel, ImU32 color, int idOffset,
@@ -839,6 +845,21 @@ std::vector<ShotSectionElement> DebugAnimationPlayer::buildForegroundElements(MI
     }
     return elements;
 }
+std::vector<ShotSectionElement> DebugAnimationPlayer::buildTextLineElements(MIDGAME_SHOT *shot) {
+    std::vector<ShotSectionElement> elements;
+    for (size_t i = 0; i < shot->textes.size(); ++i) {
+        auto fg = shot->textes[i];
+        elements.push_back(
+            {
+                buildTexteLineLabel(fg, i),
+                ImVec2(static_cast<float>(fg->position_start.x), static_cast<float>(fg->position_start.y)),
+                ImVec2(static_cast<float>(fg->position_end.x), static_cast<float>(fg->position_end.y)),
+                fg
+            }
+        );
+    }
+    return elements;
+}
 
 void DebugAnimationPlayer::showEditor() {
     ImGui::Text("Éditeur de Shots - Timeline");
@@ -890,6 +911,8 @@ void DebugAnimationPlayer::showEditor() {
                                              emptyMessageHeight);
         shotHeight += calculateSectionHeight(shot->foreground.size(), sectionHeaderHeight, elementHeight,
                                              elementSpacing, emptyMessageHeight);
+        shotHeight += calculateSectionHeight(shot->textes.size(), sectionHeaderHeight, elementHeight,
+                                                 elementSpacing, emptyMessageHeight);
 
         ImVec2 shotPos(timelinePos.x + xOffset, timelinePos.y + 5.0f);
 
@@ -898,7 +921,7 @@ void DebugAnimationPlayer::showEditor() {
 
         float yOffset = 8.0f;
         char shotTitle[64];
-        sprintf(shotTitle, "Shot %zu (%d frames)", shotIndex + 1, shot->nbframe);
+        snprintf(shotTitle, 64, "Shot %zu (%d frames)", shotIndex + 1, shot->nbframe);
         drawList->AddText(ImVec2(shotPos.x + textPadding, shotPos.y + yOffset), IM_COL32(255, 255, 255, 255),
                           shotTitle);
         yOffset += shotTitleHeight;
@@ -909,7 +932,7 @@ void DebugAnimationPlayer::showEditor() {
             "Backgrounds:", "Aucun background", IM_COL32(60, 120, 180, 255), 0, shotIndex, shotPos, yOffset, bgElements,
             [&]() { addNewBackground(shot); },
             [&](void *ptr) {
-                selectEditorElement(static_cast<MIDGAME_SHOT_BG *>(ptr), nullptr, nullptr, nullptr, nullptr);
+                selectEditorElement(static_cast<MIDGAME_SHOT_BG *>(ptr), nullptr, nullptr, nullptr, nullptr, nullptr);
             },
             shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, elementHeight, elementSpacing);
 
@@ -919,7 +942,7 @@ void DebugAnimationPlayer::showEditor() {
             "Characters:", "Aucun character", IM_COL32(180, 60, 120, 255), 1, shotIndex, shotPos, yOffset,
             characterElements, [&]() { addNewCharacter(shot); },
             [&](void *ptr) {
-                selectEditorElement(nullptr, nullptr, nullptr, static_cast<MIDGAME_SHOT_CHARACTER *>(ptr), nullptr);
+                selectEditorElement(nullptr, nullptr, nullptr, static_cast<MIDGAME_SHOT_CHARACTER *>(ptr), nullptr, nullptr);
             },
             shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, elementHeight, elementSpacing);
 
@@ -929,7 +952,7 @@ void DebugAnimationPlayer::showEditor() {
             "Sprites:", "Aucun sprite", IM_COL32(180, 120, 60, 255), 2, shotIndex, shotPos, yOffset, spriteElements,
             [&]() { addNewSprite(shot); },
             [&](void *ptr) {
-                selectEditorElement(nullptr, static_cast<MIDGAME_SHOT_SPRITE *>(ptr), nullptr, nullptr, nullptr);
+                selectEditorElement(nullptr, static_cast<MIDGAME_SHOT_SPRITE *>(ptr), nullptr, nullptr, nullptr, nullptr);
             },
             shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, elementHeight, elementSpacing);
 
@@ -939,15 +962,24 @@ void DebugAnimationPlayer::showEditor() {
             "Foregrounds:", "Pas de foreground", IM_COL32(220, 120, 180, 255), 3, shotIndex, shotPos, yOffset,
             foregroundElements, [&]() { addNewForeground(shot); },
             [&](void *ptr) {
-                selectEditorElement(nullptr, nullptr, static_cast<MIDGAME_SHOT_BG *>(ptr), nullptr, nullptr);
+                selectEditorElement(nullptr, nullptr, static_cast<MIDGAME_SHOT_BG *>(ptr), nullptr, nullptr, nullptr);
             },
             shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, elementHeight, elementSpacing);
 
+        auto texteLineElements = buildTextLineElements(shot);
+        //TexteLines
+        drawShotSection(
+            "TextLines:", "Pas de textline", IM_COL32(120, 220, 180, 255), 4, shotIndex, shotPos, yOffset, texteLineElements,
+            [&]() { addNewTextLine(shot); },
+            [&](void *ptr) {
+                selectEditorElement(nullptr, nullptr, nullptr, nullptr,nullptr, static_cast<MIDGAME_TEXT_LINE *>(ptr));
+            },
+            shotWidth, textPadding, sectionHeaderHeight, emptyMessageHeight, elementHeight, elementSpacing);
         ImGui::SetCursorScreenPos(ImVec2(shotPos.x + textPadding, shotPos.y + shotHeight - buttonAreaHeight + 5.0f));
         ImGui::PushID(static_cast<int>(shotIndex));
         if (ImGui::Button("Éditer", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
             this->shot_counter = static_cast<int>(shotIndex);
-            selectEditorElement(nullptr, nullptr, nullptr, nullptr, shot);
+            selectEditorElement(nullptr, nullptr, nullptr, nullptr, shot, nullptr);
         }
         ImGui::SameLine(0, textPadding);
         if (ImGui::Button("Lire", ImVec2((shotWidth - textPadding * 4) / 3, 20))) {
@@ -980,9 +1012,24 @@ void DebugAnimationPlayer::showEditor() {
         editMidGameShotCharacter(this->p_character_editor);
     } else if (this->p_shot_editor != nullptr) {
         editMidGameShot(this->p_shot_editor);
-    } else {
+    } else if (this->p_textline_editor != nullptr) {
+        editMidGameShotTextLine(this->p_textline_editor);
+
+    }else {
         ImGui::Text("Sélectionnez un élément à éditer");
     }
+}
+void DebugAnimationPlayer::addNewTextLine(MIDGAME_SHOT *shot) {
+    MIDGAME_TEXT_LINE *newFg;
+    newFg = new MIDGAME_TEXT_LINE();
+    newFg->key = "";
+    newFg->id = -1;
+    newFg->position_start = {0, 0};
+    newFg->position_end = {0, 0};
+    newFg->nb_frames = 0;
+    newFg->font_id = 0;
+    shot->textes.push_back(newFg);
+    selectEditorElement(nullptr, nullptr, nullptr, nullptr, nullptr, newFg);
 }
 void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *chara) {
     static std::vector<GLuint> s_PrevFrameGLTex;
@@ -1014,7 +1061,7 @@ void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *char
         ImGui::EndCombo();
     }
     if (chara->image) {
-        ImGui::Text("NumImages: %d", chara->image->GetNumImages());
+        ImGui::Text("NumImages: %zu", chara->image->GetNumImages());
     } else {
         ImGui::Text("No image loaded");
     }
@@ -1187,7 +1234,61 @@ void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
         }
     }
 }
-void initIntHelper(int *value, int defaultValue) {
+void DebugAnimationPlayer::editMidGameShotTextLine(MIDGAME_TEXT_LINE *textLine){
+    if (!textLine)
+        return;
+    ImGui::Text("Édition du TextLine");
+    if (ImGui::BeginCombo("Key", textLine->key.empty() ? "None" : textLine->key.c_str())) {
+        for(auto key: this->midgame_text_db->midgame_texts){
+            if (ImGui::Selectable(key.first.c_str(), textLine->key == key.first)) {
+                textLine->key = key.first;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (!textLine->key.empty()) {
+        if (ImGui::BeginCombo("Text", textLine->id == -1 ? "None" : this->midgame_text_db->midgame_texts[textLine->key].DATA[textLine->id].c_str())) {
+            for(auto textline : this->midgame_text_db->midgame_texts[textLine->key].DATA){
+                if (ImGui::Selectable(textline.c_str(), textLine->id != 0 && textline == this->midgame_text_db->midgame_texts[textLine->key].DATA[textLine->id])) {
+                    auto it = std::find(this->midgame_text_db->midgame_texts[textLine->key].DATA.begin(), this->midgame_text_db->midgame_texts[textLine->key].DATA.end(), textline);
+                    if (it != this->midgame_text_db->midgame_texts[textLine->key].DATA.end()) {
+                        textLine->id = static_cast<int>(std::distance(this->midgame_text_db->midgame_texts[textLine->key].DATA.begin(), it));
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
+    int font_id = textLine->font_id;
+    if (ImGui::InputInt("Font ID", &font_id)) {
+        if (font_id < 0)
+            font_id = 0;
+        textLine->font_id = font_id;
+    }
+     int nb_frames = textLine->nb_frames;
+    if (ImGui::InputInt("Nombre de frames", &nb_frames)) {
+        if (nb_frames < 1)
+            nb_frames = 1;
+        textLine->nb_frames = nb_frames;
+    }
+     int start_x = textLine->position_start.x;
+    int start_y = textLine->position_start.y;
+    if (ImGui::InputInt("X##start", &start_x) || ImGui::InputInt("Y##start", &start_y)) {
+        textLine->position_start.x = start_x;
+        textLine->position_start.y = start_y;
+    }
+
+    // Position finale
+    ImGui::Text("Position finale");
+    int end_x = textLine->position_end.x;
+    int end_y = textLine->position_end.y;
+    if (ImGui::InputInt("X##end", &end_x) || ImGui::InputInt("Y##end", &end_y)) {
+        textLine->position_end.x = end_x;
+        textLine->position_end.y = end_y;
+    }
+}
+void initIntHelper(int *value, int defaultValue)
+{
     if (*value == EMPTY_VALUE || *value != defaultValue) {
         *value = defaultValue;
     }
@@ -1334,7 +1435,7 @@ void DebugAnimationPlayer::editMidGameShotBG(MIDGAME_SHOT_BG *bg) {
     if (bg->image) {
         ImGui::Separator();
         ImGui::Text("Aperçu de l'image");
-        ImGui::Text("Nombre d'images: %d", bg->image->GetNumImages());
+        ImGui::Text("Nombre d'images: %zu", bg->image->GetNumImages());
 
         static int preview_frame = bg->shapeid;
         if (ImGui::SliderInt("Frame", &preview_frame, 0, bg->image->GetNumImages() - 1)) {
@@ -1541,7 +1642,7 @@ void DebugAnimationPlayer::editMidGameShotSprite(MIDGAME_SHOT_SPRITE *sprite) {
     if (sprite->image) {
         ImGui::Separator();
         ImGui::Text("Aperçu de l'image");
-        ImGui::Text("Nombre d'images: %d", sprite->image->GetNumImages());
+        ImGui::Text("Nombre d'images: %zu", sprite->image->GetNumImages());
 
         static int preview_frame = 0;
         if (ImGui::SliderInt("Frame", &preview_frame, 0, sprite->image->GetNumImages() - 1)) {
@@ -1608,7 +1709,7 @@ void DebugAnimationPlayer::midvocChooser() {
         ImGui::EndCombo();
     }
     if (this->current_midvoc != nullptr) {
-        ImGui::Text("Num Entries: %d", this->current_midvoc->GetNumEntries());
+        ImGui::Text("Num Entries: %zu", this->current_midvoc->GetNumEntries());
         if (ImGui::InputInt("Entry Index", &this->current_midvoc_entry_index)) {
             if (this->current_midvoc_entry_index < 0) {
                 this->current_midvoc_entry_index = 0;

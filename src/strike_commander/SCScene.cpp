@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 #include "SCScene.h"
+#include "../engine/gametimer.h"
 
 #pragma warning(disable : 4996)
 template <typename... Args> std::string string_format(const std::string &format, Args... args) {
@@ -23,8 +24,7 @@ SCScene::SCScene(PakArchive *optShps, PakArchive *optPals) {
 
 SCScene::~SCScene() {}
 
-std::vector<SCZone *> *
-SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
+std::vector<SCZone *> * SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
     this->gameflow_scene = gf;
     this->sceneOpts      = sc_opts;
 
@@ -671,9 +671,7 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
     }
 }
 
-std::vector<SCZone *> *WeaponLoadoutScene::init(
-    GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick
-) {
+std::vector<SCZone *> *WeaponLoadoutScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
     if (sc_opts == nullptr) {
         return nullptr;
     }
@@ -746,12 +744,11 @@ void WeaponLoadoutScene::Render() {
     }
 }
 
-std::vector<SCZone *> *LedgerScene::init(
-    GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick
-) {
+std::vector<SCZone *> *LedgerScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
     this->gameflow_scene = gf;
     this->sceneOpts      = sc_opts;
     this->font           = FontManager.GetFont("..\\..\\DATA\\FONTS\\LEDGFONT.SHP");
+    this->turn_page_animation = this->getShape(41);
     this->zones.clear();
     for (auto bg : sceneOpts->background->images) {
         background *tmpbg = new background();
@@ -879,7 +876,33 @@ void LedgerScene::Render() {
         {    ID_20MM,     "20MM"},
     };
     int color = 0;
+    if (this->turn_page_animation_playing) {
+        static float old_time = 0;
+        static float acumulated_time = 0;
+        acumulated_time += GameTimer::getInstance().getDeltaTime();
+        float frame_duration = 1 / 12.f;
+        if (acumulated_time - old_time > frame_duration) {
+            if (this->page == 1) {
+                this->turn_page_animation_frame++;
+            } else {
+                this->turn_page_animation_frame--;
+            }
+            
+            old_time = acumulated_time;
+        }
+        if (this->page == 1 && this->turn_page_animation_frame >= this->turn_page_animation->GetNumImages()) {
+            this->turn_page_animation_frame = 0;
+            this->turn_page_animation_playing = false;
+        } else if (this->page == 0 && this->turn_page_animation_frame < 0) {
+            this->turn_page_animation_frame = this->turn_page_animation->GetNumImages() - 1;
+            this->turn_page_animation_playing = false;
+        } else {
+            fb->drawShape(this->turn_page_animation->GetShape(this->turn_page_animation_frame));
+            return;
+        }
+    }
     if (page == 0) {
+        this->turn_page_animation_frame = 0;
         fb->printText(this->font, {67, 64}, std::string("PREVIOUS CASH"), color);
         fb->printText(this->font, {177, 64}, std::to_string(GameState.cash), color);
 
@@ -909,9 +932,7 @@ void LedgerScene::Render() {
     }
 }
 
-std::vector<SCZone *> *CatalogueScene::init(
-    GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick
-) {
+std::vector<SCZone *> *CatalogueScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
     this->gameflow_scene = gf;
     this->sceneOpts      = sc_opts;
     this->zones.clear();
@@ -928,6 +949,7 @@ std::vector<SCZone *> *CatalogueScene::init(
 
     this->onclick               = onclick;
     this->current_page = 0;
+    this->turn_page_animation = this->getShape(154);
     this->pages = {
         {0, {
                 {88, std::bind(&CatalogueScene::turnPageForward, this, std::placeholders::_1, std::placeholders::_2)},
@@ -989,6 +1011,9 @@ void CatalogueScene::turnPageForward(std::vector<EFCT *> *script, uint8_t sprite
     if (this->current_page > this->pages.size() - 1) {
         this->current_page = (int) this->pages.size() - 1;
     }
+    this->is_turning_page = true;
+    this->turn_page_animation_frame = this->turn_page_animation->GetNumImages() - 1;
+    this->turning_page_sens = -1;
     this->UpdateZones();
 }
 void CatalogueScene::turnPageBackward(std::vector<EFCT *> *script, uint8_t sprite_id) {
@@ -996,6 +1021,9 @@ void CatalogueScene::turnPageBackward(std::vector<EFCT *> *script, uint8_t sprit
     if (this->current_page < 0) {
         this->current_page = 0;
     }
+    this->is_turning_page = true;
+    this->turning_page_sens = 1;
+    this->turn_page_animation_frame = 0;
     this->UpdateZones();
 }
 void CatalogueScene::orderItem(std::vector<EFCT *> *script, uint8_t sprite_id) {
@@ -1165,6 +1193,35 @@ std::vector<SCZone *> * CatalogueScene::UpdateZones() {
 }
 void CatalogueScene::Render() {
     SCScene::Render();
+    if (this->is_turning_page) {
+        static float old_time = 0;
+        static float acumulated_time = 0;
+        acumulated_time += GameTimer::getInstance().getDeltaTime();
+        float frame_duration = 1 / 12.f;
+        if (acumulated_time - old_time > frame_duration) {
+            if (this->turning_page_sens == 1) {
+                this->turn_page_animation_frame++;
+            } else {
+                this->turn_page_animation_frame--;
+            }
+            
+            old_time = acumulated_time;
+        }
+        if (this->turning_page_sens == 1 && this->turn_page_animation_frame >= this->turn_page_animation->GetNumImages()) {
+            this->turn_page_animation_frame = 0;
+            this->turning_page_sens = 0;
+            this->is_turning_page = false;
+        } else if (this->turning_page_sens == -1 && this->turn_page_animation_frame < 0) {
+            this->turn_page_animation_frame = this->turn_page_animation->GetNumImages() - 1;
+            this->is_turning_page = false;
+            this->turning_page_sens = 0;
+        } else {
+            FrameBuffer *fb = VGA.getFrameBuffer();
+            fb->drawShape(this->turn_page_animation->GetShape(this->turn_page_animation_frame));
+            return;
+        }
+    }
+    
     FrameBuffer *fb = VGA.getFrameBuffer();
     std::string current_cash = string_format("%08d", GameState.proj_cash);
     fb->printTextFixedWidth(this->calcfont, Point2D({257, 33}), current_cash, 1);
@@ -1239,9 +1296,7 @@ void CatalogueScene::Render() {
     
 }
 
-std::vector<SCZone *> *KillBoardScene::init(
-    GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick
-) {
+std::vector<SCZone *> *KillBoardScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
     this->sceneOpts  = sc_opts;
     PakEntry *entry  = this->optShps->GetEntry(123);
     this->rawPalette = nullptr;

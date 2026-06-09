@@ -46,6 +46,15 @@ typedef struct MIDGAME_SHOT_CHARACTER {
     int current_frame{0};
 } MIDGAME_SHOT_CHARACTER;
 
+typedef struct MIDGAME_TEXT_LINE {
+    std::string key;
+    int8_t id{-1};
+    int8_t font_id{-1};
+    uint16_t nb_frames{0};
+    Point2D position_start;
+    Point2D position_end;
+} MIDGAME_TEXT_LINE;
+
 typedef struct MIDGAME_SHAPE_DATA {
     PakArchive *pak;
     uint8_t shape_id;
@@ -75,6 +84,7 @@ typedef struct MIDGAME_SHOT_SPRITE {
     bool use_external_palette{false};
     int current_frame{1};
     bool repeat_animation{false};
+    std::vector<uint8_t> sequence;
 } MIDGAME_SHOT_SPRITE;
 
 typedef struct MIDGAME_SOUND {
@@ -88,6 +98,7 @@ typedef struct MIDGAME_SHOT {
     std::vector<MIDGAME_SHOT_SPRITE *>sprites;
     std::vector<MIDGAME_SHOT_BG *>foreground;
     std::vector<MIDGAME_SHOT_CHARACTER *>characters;
+    std::vector<MIDGAME_TEXT_LINE *> textes;
     int nbframe{0};
     int music{255};
     MIDGAME_SOUND *sound{nullptr};
@@ -97,19 +108,6 @@ typedef struct MIDGAME_SHOT {
     bool sound_played{false};
 } MIDGAME_SHOT;
 
-typedef struct MIDGAME_DATA_SHOT {
-    std::vector<MIDGAME_SHAPE_DATA> background;
-    std::vector<MIDGAME_SHAPE_DATA> forground;
-    std::vector<MIDGAME_SHAPE_DATA> sprites;
-    int nbframe;
-    uint8_t music{255};
-    PakEntry *sound{nullptr};
-    int sound_time_code{0};
-} MIDGAME_DATA_SHOT;
-
-typedef struct MIDGAME_DATA {
-    std::vector<MIDGAME_DATA_SHOT> shots;
-} MIDGAME_DATA;
 
 class SCAnimationArchive {
 public:
@@ -150,6 +148,7 @@ private:
     void WriteBackground(IFFWriter& writer, const MIDGAME_SHOT_BG* bg);
     void WriteSprites(IFFWriter& writer, const std::vector<MIDGAME_SHOT_SPRITE*>& sprites);
     void WriteSprite(IFFWriter& writer, const MIDGAME_SHOT_SPRITE* sprite);
+    void WriteTexts(IFFWriter& writer, const std::vector<MIDGAME_TEXT_LINE *>& textes);
     void WriteForegrounds(IFFWriter& writer, const std::vector<MIDGAME_SHOT_BG*>& foregrounds);
     
     // Handler pour l'IFFSaxLexer
@@ -166,6 +165,8 @@ private:
     void WriteCharacters(IFFWriter& writer, const std::vector<MIDGAME_SHOT_CHARACTER*>& characters);
     void HandleCHAR(uint8_t* data, size_t size);
     void HandleCHRC(uint8_t* data, size_t size);
+    void HandleTEXT(uint8_t* data, size_t size);
+    void HandleTEXT_TEXE(uint8_t* data, size_t size);
 
     // Utilitaires
     PakArchive* FindOrLoadPakArchive(const std::string& name);

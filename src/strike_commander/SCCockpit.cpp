@@ -11,6 +11,8 @@
 #include <iomanip>
 #include <algorithm>
 #include <climits>
+#include "../engine/gametimer.h"
+
 
 static bool projectRealToHUD( Vector3D targetWorld,  Matrix planeFromWorld,  Vector3D eyeLocal,
                               FrameBuffer *fb, int &outX, int &outY) {
@@ -1398,6 +1400,7 @@ void SCCockpit::Render(CockpitFace face) {
     VGA.setPalette(&this->palette);
     upscale = VGA.upscale;
     VGA.upscale = false;
+    static int frame_count = 0;
     fb = VGA.getFrameBuffer();
     fb->clear();
     if (debug_print) {
@@ -1431,7 +1434,31 @@ void SCCockpit::Render(CockpitFace face) {
             }
         }
         fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
+
         if (this->face  == CockpitFace::CP_FRONT || this->face  == CockpitFace::CP_BIG) {
+            if (this->is_shooting && this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == ID_20MM) {
+                RSImageSet *muzzle_flash_set = nullptr;
+                if (this->face == CockpitFace::CP_FRONT) {
+                    muzzle_flash_set = &this->cockpit->GUNF;
+                } else if (this->face == CockpitFace::CP_BIG) {
+                    muzzle_flash_set = &this->cockpit->GHUD;
+                }
+                if (muzzle_flash_set != nullptr) {
+                    int muzzle_index = frame_count % muzzle_flash_set->GetNumImages();
+                    static float acumulated_time = 0.0f;
+                    float time_per_frame = 1.0f / 12.0f;
+
+                    acumulated_time += GameTimer::getInstance().getDeltaTime();
+                    if (acumulated_time >= time_per_frame) {
+                        acumulated_time = 0.0f;
+                        frame_count++;
+                    }
+                    RLEShape *muzzle_shape = muzzle_flash_set->GetShape(muzzle_index);
+                    
+                    fb->drawShape(muzzle_shape);
+                }
+                    
+            }
             if (this->player_plane->weaps_load.size() > 0 &&
                 this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) {
                 if (this->radar_mode != RadarMode::ASST) {
@@ -1923,7 +1950,8 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     }
 
     // Blitter le buffer indexé dans le FrameBuffer à la position pmfd_left
-    fb->blit(indexedBuffer.data(), pmfd_left.x+13, pmfd_left.y+11, mdfs_width, mdfs_height);
+    int decalage_x = 8;
+    fb->blit(indexedBuffer.data(), pmfd_left.x+decalage_x, pmfd_left.y+11, mdfs_width, mdfs_height);
     this->cockpit->MONI.SHAP.SetPosition(&pmfd_left);
     fb->drawShape(&this->cockpit->MONI.SHAP);
     Point2D center = {pmfd_left.x + mdfs_width / 2, pmfd_left.y + mdfs_height / 2};

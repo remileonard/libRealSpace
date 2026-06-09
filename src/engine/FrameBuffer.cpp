@@ -80,8 +80,7 @@ void FrameBuffer::lineWithBox(int x1, int y1, int x2, int y2, uint8_t color, int
     this->lineWithBoxWithSkip(x1, y1, x2, y2, color, bx1, bx2, by1, by2, 1);
 }
 
-void FrameBuffer::lineWithBoxWithSkip(int x1, int y1, int x2, int y2, uint8_t color, int bx1, int bx2, int by1, int by2,
-                                      int skip) {
+void FrameBuffer::lineWithBoxWithSkip(int x1, int y1, int x2, int y2, uint8_t color, int bx1, int bx2, int by1, int by2, int skip) {
     if (x1 > this->width || x2 > this->width || y1 > this->height || y2 > this->height)
         return;
     int i, dx, dy, sdx, sdy, dxabs, dyabs, x, y, px, py;
@@ -189,8 +188,7 @@ void FrameBuffer::circle_slow(int x, int y, int radius, uint8_t color) {
         dy = (int)((float) radius * sin(acos(n)));
     }
 }
-void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
-                            size_t interLetterSpace, size_t spaceSize) {
+void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize) {
     this->printText_SM(font, coo, text, color, start, size, interLetterSpace, spaceSize, true, false);
 }
 void FrameBuffer::printTextFixedWidth(RSFont *font, Point2D coo, std::string text, uint8_t color) {
@@ -212,9 +210,7 @@ void FrameBuffer::printText(RSFont *font, Point2D coo, std::string text, uint8_t
     width = shape->GetWidth();
     this->printText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width);
 }
-
-void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
-                               size_t interLetterSpace, size_t spaceSize, bool isSmall, bool fixedWidth) {
+void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize, bool isSmall, bool fixedWidth) {
 
     if (text == NULL)
         return;
@@ -230,6 +226,25 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
         return;
     if (coo->x > this->width)
         return;
+    std::vector<int> lineWidths;
+    int curW = 0;
+    for (size_t i = 0; i < size; i++) {
+        char c = text[start + i];
+        if (c == '\n') {
+            lineWidths.push_back(curW);
+            curW = 0;
+            continue;
+        }
+        if (c == ' ') { curW += (int)spaceSize; continue; }
+        RLEShape *s = font->GetShapeForChar(c);
+        if (s == nullptr) continue;
+        curW += fixedWidth ? s->GetHeight() : (s->GetWidth() + (int)interLetterSpace - 1);
+    }
+    lineWidths.push_back(curW); // dernière ligne
+
+    int maxWidth = *std::max_element(lineWidths.begin(), lineWidths.end());
+    int lineIndex = 0;
+    coo->x = startx + (maxWidth - lineWidths[0]) / 2;
     for (size_t i = 0; i < size; i++) {
 
         char chartoDraw = text[start + i];
@@ -246,14 +261,19 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
         int32_t lineHeight = coo->y;
         coo->y -= shape->GetHeight();
 
-        if (isSmall &&
-            (chartoDraw == 'p' || chartoDraw == 'y' || chartoDraw == 'g' || chartoDraw == 'q' || chartoDraw == 'j'))
-            coo->y += 1;
+        if (isSmall && (chartoDraw == 'p' || chartoDraw == 'y' || chartoDraw == 'g' || chartoDraw == 'q' || chartoDraw == 'j')) {
+            RLEShape *sp = font->GetShapeForChar(chartoDraw);
+            RLEShape *spA = font->GetShapeForChar('a');
+            int diff =  sp->GetHeight() - spA->GetHeight();
+
+            coo->y += diff;
+        }
         if (chartoDraw == '\n') {
             RLEShape *sp = font->GetShapeForChar('A');
-            coo->y += sp->GetHeight() + 1;
+            coo->y += sp->GetHeight() + 2;
             lineHeight = coo->y;
-            coo->x = startx;
+            lineIndex++;
+            coo->x = startx + (maxWidth - lineWidths[lineIndex]) / 2;
         }
         if (coo->y < 0)
             continue;
