@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <limits>
 
-#define MAX_VIEW_DISTANCE 120000.0f
+#define MAX_VIEW_DISTANCE 10000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -1427,87 +1427,83 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
     }
 }
 void SCRenderer::renderSkydome(int rings, int slices) {
-    // GL_ALWAYS + glDepthMask(GL_TRUE) conservés intentionnellement :
-    // le dôme sert de masque de profondeur — toute géométrie au-delà de
-    // MAX_VIEW_DISTANCE est occultée car sa depth sera >= celle de la sphère.
+    // Le dôme ne doit JAMAIS recevoir le brouillard du terrain
+    GLboolean fogWasEnabled = glIsEnabled(GL_FOG);
+    glDisable(GL_FOG);
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
     glDepthMask(GL_TRUE);
     glDisable(GL_CULL_FACE);
 
-    // Légèrement < far plane (MAX_VIEW_DISTANCE * 1.25) pour rester dans
-    // la plage de précision utile du depth buffer.
     const float radius = MAX_VIEW_DISTANCE * 0.98f;
     Point3D cam = camera.getPosition();
 
-    const float zenithR = 0.35f, zenithG = 0.50f, zenithB = 0.85f; // bleu profond
-    const float horizR  = 0.89f, horizG  = 0.89f, horizB  = 0.98f; // blanc-bleu
-    const float nadirR  = 0.50f, nadirG  = 0.46f, nadirB  = 0.38f; // brun-gris sol
+    // ── Palette : horizon blanc → ciel bleu ─────────────────────────────
+    // Clé de couleur : t=0 (équateur) … t=1 (zénith)
+    static const float skyT[]   = { 0.00f, 0.08f, 0.25f, 0.60f, 1.00f };
+    static const float skyRGB[][3] = {
+        { 1.00f, 1.00f, 1.00f },   // horizon : filet blanc pur
+        { 0.72f, 0.83f, 0.97f },   // juste au-dessus : bleu très pâle
+        { 0.40f, 0.62f, 0.92f },   // ciel moyen
+        { 0.18f, 0.44f, 0.82f },   // bleu soutenu
+        { 0.08f, 0.28f, 0.72f },   // zénith : bleu profond
+    };
+    constexpr int N = 5;
 
-    // ── Hémisphère supérieure : équateur (phi=0) → zénith (phi=π/2) ──────
+    auto sampleSky = [&](float t, float& r, float& g, float& b) {
+        if (t <= 0.f) { r=skyRGB[0][0]; g=skyRGB[0][1]; b=skyRGB[0][2]; return; }
+        if (t >= 1.f) { r=skyRGB[N-1][0]; g=skyRGB[N-1][1]; b=skyRGB[N-1][2]; return; }
+        for (int i = 0; i < N-1; ++i) {
+            if (t >= skyT[i] && t <= skyT[i+1]) {
+                float f = (t - skyT[i]) / (skyT[i+1] - skyT[i]);
+                r = skyRGB[i][0] + f*(skyRGB[i+1][0]-skyRGB[i][0]);
+                g = skyRGB[i][1] + f*(skyRGB[i+1][1]-skyRGB[i][1]);
+                b = skyRGB[i][2] + f*(skyRGB[i+1][2]-skyRGB[i][2]);
+                return;
+            }
+        }
+    };
+
+    // ── Hémisphère supérieure ────────────────────────────────────────────
     for (int r = 0; r < rings; ++r) {
         float t0  = (float)r       / rings;
         float t1  = (float)(r + 1) / rings;
         float phi0 = (float)M_PI_2 * t0;
         float phi1 = (float)M_PI_2 * t1;
+        float r0,g0,b0, r1,g1,b1;
+        sampleSky(t0, r0,g0,b0);
+        sampleSky(t1, r1,g1,b1);
 
         glBegin(GL_TRIANGLE_STRIP);
         for (int s = 0; s <= slices; ++s) {
-            float theta = 2.0f * (float)M_PI * s / slices;
-            float cosT  = cosf(theta), sinT = sinf(theta);
-
-            glColor3f(horizR + t0*(zenithR - horizR),
-                      horizG + t0*(zenithG - horizG),
-                      horizB + t0*(zenithB - horizB));
-            glVertex3f(cam.x + radius * cosf(phi0) * cosT,
-                       cam.y + radius * sinf(phi0),
-                       cam.z + radius * cosf(phi0) * sinT);
-
-            glColor3f(horizR + t1*(zenithR - horizR),
-                      horizG + t1*(zenithG - horizG),
-                      horizB + t1*(zenithB - horizB));
-            glVertex3f(cam.x + radius * cosf(phi1) * cosT,
-                       cam.y + radius * sinf(phi1),
-                       cam.z + radius * cosf(phi1) * sinT);
+            float theta = 2.0f*(float)M_PI*s/slices;
+            float cosT=cosf(theta), sinT=sinf(theta);
+            glColor3f(r0,g0,b0);
+            glVertex3f(cam.x+radius*cosf(phi0)*cosT, cam.y+radius*sinf(phi0), cam.z+radius*cosf(phi0)*sinT);
+            glColor3f(r1,g1,b1);
+            glVertex3f(cam.x+radius*cosf(phi1)*cosT, cam.y+radius*sinf(phi1), cam.z+radius*cosf(phi1)*sinT);
         }
         glEnd();
     }
 
-    // ── Hémisphère inférieure : équateur (phi=0) → nadir (phi=-π/2) ──────
-    // Remplace les parois cylindriques.
-    // Avantages :
-    //   • Pas de discontinuité géométrique à y=cam.y → fin du Z-fighting
-    //   • Toute la surface est à distance `radius` → précision depth uniforme
-    //   • Le masque de profondeur fonctionne dans toutes les directions
+    // ── Hémisphère inférieure (masque depth + sol) ───────────────────────
+    static const float nadirRGB[3] = { 0.52f, 0.47f, 0.35f };
     for (int r = 0; r < rings; ++r) {
         float t0  = (float)r       / rings;
         float t1  = (float)(r + 1) / rings;
         float phi0 = -(float)M_PI_2 * t0;
         float phi1 = -(float)M_PI_2 * t1;
-
-        // Courbe quadratique : changement de couleur rapide juste sous
-        // l'horizon (là où c'est visible), stable vers le nadir.
-        float ease0 = t0 * t0;
-        float ease1 = t1 * t1;
+        float e0 = t0*t0, e1 = t1*t1; // ease-in quadratique
 
         glBegin(GL_TRIANGLE_STRIP);
         for (int s = 0; s <= slices; ++s) {
-            float theta = 2.0f * (float)M_PI * s / slices;
-            float cosT  = cosf(theta), sinT = sinf(theta);
-
-            glColor3f(horizR + ease0*(nadirR - horizR),
-                      horizG + ease0*(nadirG - horizG),
-                      horizB + ease0*(nadirB - horizB));
-            glVertex3f(cam.x + radius * cosf(phi0) * cosT,
-                       cam.y + radius * sinf(phi0),
-                       cam.z + radius * cosf(phi0) * sinT);
-
-            glColor3f(horizR + ease1*(nadirR - horizR),
-                      horizG + ease1*(nadirG - horizG),
-                      horizB + ease1*(nadirB - horizB));
-            glVertex3f(cam.x + radius * cosf(phi1) * cosT,
-                       cam.y + radius * sinf(phi1),
-                       cam.z + radius * cosf(phi1) * sinT);
+            float theta = 2.0f*(float)M_PI*s/slices;
+            float cosT=cosf(theta), sinT=sinf(theta);
+            glColor3f(1.f+e0*(nadirRGB[0]-1.f), 1.f+e0*(nadirRGB[1]-1.f), 1.f+e0*(nadirRGB[2]-1.f));
+            glVertex3f(cam.x+radius*cosf(phi0)*cosT, cam.y+radius*sinf(phi0), cam.z+radius*cosf(phi0)*sinT);
+            glColor3f(1.f+e1*(nadirRGB[0]-1.f), 1.f+e1*(nadirRGB[1]-1.f), 1.f+e1*(nadirRGB[2]-1.f));
+            glVertex3f(cam.x+radius*cosf(phi1)*cosT, cam.y+radius*sinf(phi1), cam.z+radius*cosf(phi1)*sinT);
         }
         glEnd();
     }
@@ -1515,6 +1511,8 @@ void SCRenderer::renderSkydome(int rings, int slices) {
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
     glEnable(GL_CULL_FACE);
+
+    if (fogWasEnabled) glEnable(GL_FOG);
 }
 void SCRenderer::renderWorldSkyAndGround() {
     /*static const float max_int = (BLOCK_WIDTH * BLOCK_PER_MAP_SIDE)*2;
@@ -1592,7 +1590,7 @@ void SCRenderer::renderWorldSkyAndGround() {
     glVertex3f(max_int, max_height, -max_int);
 
     glEnd();*/
-    this->renderSkydome(6, 32);
+    this->renderSkydome(12, 48);
 }
 
 void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
