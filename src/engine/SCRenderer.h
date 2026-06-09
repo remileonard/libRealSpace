@@ -8,6 +8,7 @@
 
 #pragma once
 #include <unordered_map>
+#include <unordered_set>
 #include "Camera.h"
 #include "../realspace/AssetManager.h"
 #include "../realspace/RSMission.h"
@@ -140,7 +141,9 @@ public:
     void renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, MapVertex *bottomRightVertex,
                     MapVertex *bottomVertex, RSArea *area, bool renderTexture);
 
-    void renderBlock(RSArea *area, int LOD, int blockID, bool renderTexture);
+    void renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
+                 const std::unordered_set<int>* skipRight  = nullptr,
+                 const std::unordered_set<int>* skipBottom = nullptr);
     void renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock);
     void renderWorldByID(RSArea *area, int LOD, int verticesPerBlock, int blockId);
     void renderObjects(RSArea *area, size_t blockID);
