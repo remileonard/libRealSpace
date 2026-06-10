@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <limits>
 
-#define MAX_VIEW_DISTANCE 200000.0f
+#define MAX_VIEW_DISTANCE 160000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -1627,187 +1627,43 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     Plane frustum[6];
     extractFrustumPlanes(frustum);
 
-    // Calcule des blocks visibles (une seule fois)
     Vector3D pos = camera.getPosition();
-    int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
-    int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
-    int blocX = (int)(pos.x + centerX) / BLOCK_WIDTH;
-    int blocY = (int)(pos.z + centerY) / BLOCK_WIDTH;
-
-    // Prépare les offsets autour de la caméra
-    std::unordered_map<uint8_t, Point2D> blockid_offset;
-    int index = 0;
-    int distance = 3;      // rayon de recherche en LOD fin
-    const int safeRing = 0; // anneau forcé visible
-    for (int y = -distance; y <= distance; y++) {
-        for (int x = -distance; x <= distance; x++) {
-            blockid_offset[index] = {x, y};
-            index++;
-        }
-    }
-
-    // Visibilité: hiLOD (LOD) + loLOD (LOD+1) calculées une seule fois
     std::vector<int> visibleHiLOD;
-    std::vector<int> visibleLoLOD;
-    std::vector<uint8_t> marked(BLOCKS_PER_MAP, 0); // évite les doublons
 
-    // 1) Anneau proche + culling pour les blocs proches en LOD fin
-    for (int i = 0; i < (int)blockid_offset.size() - 1; ++i) {
-        int dx = blockid_offset[i].x;
-        int dy = blockid_offset[i].y;
-        int ring = (std::max)(std::abs(dx), std::abs(dy));
-        int final_block_id = (blocY + dy) * BLOCK_PER_MAP_SIDE + (blocX + dx);
-        if (final_block_id < 0 || final_block_id >= BLOCKS_PER_MAP)
-            continue;
-
-        if (ring <= safeRing) {
-            visibleHiLOD.push_back(final_block_id);
-            marked[final_block_id] = 1;
-            continue;
-        }
-
-        const AABB& box = computeBlockAABB(area, LOD, final_block_id);
-        if (isAABBVisible(box, frustum)) {
-            visibleHiLOD.push_back(final_block_id);
-            marked[final_block_id] = 1;
-        }
-    }
-
-    // 2) Reste de la carte en LOD+1 si visible
     for (int i = 0; i < BLOCKS_PER_MAP; ++i) {
-        if (marked[i]) continue;
-        const AABB& box = computeBlockAABB(area, LOD + 1, i);
-        if (isAABBVisible(box, frustum)) {
-            visibleLoLOD.push_back(i);
-        }
+        int bx = i % BLOCK_PER_MAP_SIDE;
+        int by = i / BLOCK_PER_MAP_SIDE;
+        float block_cx = ((float)bx - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
+        float block_cz = ((float)by - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
+        float dx = pos.x - block_cx;
+        float dz = pos.z - block_cz;
+        if (dx*dx + dz*dz > (float)MAX_VIEW_DISTANCE * (float)MAX_VIEW_DISTANCE)
+            continue;
+        const AABB& box = computeBlockAABB(area, LOD, i);
+        if (isAABBVisible(box, frustum))
+            visibleHiLOD.push_back(i);
     }
+
+
     GLenum terrainFront = GL_CCW;
-    int refId = -1; bool refHi = false;
-    if (!visibleHiLOD.empty()) { refId = visibleHiLOD[0]; refHi = true; }
-    else if (!visibleLoLOD.empty()) { refId = visibleLoLOD[0]; refHi = false; }
+    int refId = -1; 
+    bool refHi = false;
+    if (!visibleHiLOD.empty()) {
+        AreaBlock* refBlk = area->GetAreaBlockByID(LOD, visibleHiLOD[0]);
+        terrainFront = DetectTerrainFrontFace(refBlk);
+    }
     if (refId >= 0) {
         AreaBlock* refBlk = area->GetAreaBlockByID(refHi ? LOD : (LOD+1), refId);
         terrainFront = DetectTerrainFrontFace(refBlk);
     }
     glFrontFace(terrainFront);
     // Passe géométrie (non texturée)
-    // === LOD Boundary Stitching ===
-    std::unordered_set<int> hiSet(visibleHiLOD.begin(), visibleHiLOD.end());
-    std::unordered_set<int> loSet(visibleLoLOD.begin(), visibleLoLOD.end());
-
-    // Triangulation de jonction par fusion deux-pointeurs (gère tout ratio, entier ou non)
-    auto stitchEdge = [&](const std::vector<MapVertex*>& A, const std::vector<MapVertex*>& B) {
-        int nA = (int)A.size() - 1;
-        int nB = (int)B.size() - 1;
-        if (nA <= 0 || nB <= 0) return;
-
-        auto emitTri = [](MapVertex* v0, MapVertex* v1, MapVertex* v2) {
-            glColor4fv(v0->color); glVertex3f(v0->v.x, v0->v.y, v0->v.z);
-            glColor4fv(v1->color); glVertex3f(v1->v.x, v1->v.y, v1->v.z);
-            glColor4fv(v2->color); glVertex3f(v2->v.x, v2->v.y, v2->v.z);
-        };
-
-        int a = 0, b = 0;
-        while (a < nA || b < nB) {
-            if (a >= nA) {
-                emitTri(A[a], B[b], B[b + 1]); b++;
-            } else if (b >= nB) {
-                emitTri(A[a], A[a + 1], B[b]); a++;
-            } else {
-                float tA = (float)(a + 1) / nA;
-                float tB = (float)(b + 1) / nB;
-                if (tA <= tB) { emitTri(A[a], A[a + 1], B[b]); a++; }
-                else          { emitTri(A[a], B[b], B[b + 1]); b++; }
-            }
-        }
-    };
-
-    // Construire les skip maps :
-    // - hiBlock skipe ses coutures vers loBlock
-    // - loBlock skipe ses coutures vers hiBlock (évite les coutures cross-LOD incorrectes)
-    std::unordered_map<int, std::unordered_set<int>> skipRightMap, skipBottomMap;
-    for (int hiId : visibleHiLOD) {
-        int bx = hiId % BLOCK_PER_MAP_SIDE, by = hiId / BLOCK_PER_MAP_SIDE;
-        if (bx < BLOCK_PER_MAP_SIDE - 1 && loSet.count(hiId + 1))
-            skipRightMap[hiId].insert(hiId + 1);
-        if (by < BLOCK_PER_MAP_SIDE - 1 && loSet.count(hiId + BLOCK_PER_MAP_SIDE))
-            skipBottomMap[hiId].insert(hiId + BLOCK_PER_MAP_SIDE);
-    }
-    for (int loId : visibleLoLOD) {
-        int bx = loId % BLOCK_PER_MAP_SIDE, by = loId / BLOCK_PER_MAP_SIDE;
-        if (bx < BLOCK_PER_MAP_SIDE - 1 && hiSet.count(loId + 1))
-            skipRightMap[loId].insert(loId + 1);
-        if (by < BLOCK_PER_MAP_SIDE - 1 && hiSet.count(loId + BLOCK_PER_MAP_SIDE))
-            skipBottomMap[loId].insert(loId + BLOCK_PER_MAP_SIDE);
-    }
-
-    // Passe géométrie (non texturée)
     glBegin(GL_TRIANGLES);
     for (int id : visibleHiLOD) {
-        auto* skipR = skipRightMap.count(id)  ? &skipRightMap[id]  : nullptr;
-        auto* skipB = skipBottomMap.count(id) ? &skipBottomMap[id] : nullptr;
-        renderBlock(area, LOD, id, false, skipR, skipB);
-    }
-    for (int id : visibleLoLOD) {
-        auto* skipR = skipRightMap.count(id)  ? &skipRightMap[id]  : nullptr;
-        auto* skipB = skipBottomMap.count(id) ? &skipBottomMap[id] : nullptr;
-        renderBlock(area, LOD + 1, id, false, skipR, skipB);
+        renderBlock(area, LOD, id, false);
     }
     glEnd();
 
-    // Coutures LOD : culling désactivé (le winding varie selon la direction)
-    glDisable(GL_CULL_FACE);
-    glBegin(GL_TRIANGLES);
-    for (int hiId : visibleHiLOD) {
-        AreaBlock* hi = area->GetAreaBlockByID(LOD, hiId);
-        if (!hi) continue;
-        int sH = hi->sideSize;
-        int bx = hiId % BLOCK_PER_MAP_SIDE, by = hiId / BLOCK_PER_MAP_SIDE;
-
-        // Voisin DROIT
-        if (bx < BLOCK_PER_MAP_SIDE - 1 && loSet.count(hiId + 1)) {
-            AreaBlock* lo = area->GetAreaBlockByID(LOD + 1, hiId + 1);
-            if (lo) {
-                std::vector<MapVertex*> A, B;
-                for (int y = 0; y < sH; y++) A.push_back(hi->GetVertice(sH - 1, y));
-                for (int y = 0; y < lo->sideSize; y++) B.push_back(lo->GetVertice(0, y));
-                stitchEdge(A, B);
-            }
-        }
-        // Voisin BAS
-        if (by < BLOCK_PER_MAP_SIDE - 1 && loSet.count(hiId + BLOCK_PER_MAP_SIDE)) {
-            AreaBlock* lo = area->GetAreaBlockByID(LOD + 1, hiId + BLOCK_PER_MAP_SIDE);
-            if (lo) {
-                std::vector<MapVertex*> A, B;
-                for (int x = 0; x < sH; x++) A.push_back(hi->GetVertice(x, sH - 1));
-                for (int x = 0; x < lo->sideSize; x++) B.push_back(lo->GetVertice(x, 0));
-                stitchEdge(A, B);
-            }
-        }
-        // Voisin GAUCHE
-        if (bx > 0 && loSet.count(hiId - 1)) {
-            AreaBlock* lo = area->GetAreaBlockByID(LOD + 1, hiId - 1);
-            if (lo) {
-                std::vector<MapVertex*> A, B;
-                for (int y = 0; y < sH; y++) A.push_back(hi->GetVertice(0, y));
-                for (int y = 0; y < lo->sideSize; y++) B.push_back(lo->GetVertice(lo->sideSize - 1, y));
-                stitchEdge(A, B);
-            }
-        }
-        // Voisin HAUT
-        if (by > 0 && loSet.count(hiId - BLOCK_PER_MAP_SIDE)) {
-            AreaBlock* lo = area->GetAreaBlockByID(LOD + 1, hiId - BLOCK_PER_MAP_SIDE);
-            if (lo) {
-                std::vector<MapVertex*> A, B;
-                for (int x = 0; x < sH; x++) A.push_back(hi->GetVertice(x, 0));
-                for (int x = 0; x < lo->sideSize; x++) B.push_back(lo->GetVertice(x, lo->sideSize - 1));
-                stitchEdge(A, B);
-            }
-        }
-    }
-    glEnd();
-    glEnable(GL_CULL_FACE);
-    
     // Passe textures: réutilise les mêmes listes visibles (pas de culling)
     glEnable(GL_TEXTURE_2D);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -1815,9 +1671,6 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     textureSortedVertex.clear();
     for (int id : visibleHiLOD) {
         renderBlock(area, LOD, id, true);
-    }
-    for (int id : visibleLoLOD) {
-        renderBlock(area, LOD + 1, id, true);
     }
 
     for (auto const &x : textureSortedVertex) {
