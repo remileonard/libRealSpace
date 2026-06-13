@@ -141,7 +141,7 @@ public:
     void renderColoredTriangle(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2);
     bool isTextured(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2);
     void renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, MapVertex *bottomRightVertex,
-                    MapVertex *bottomVertex, RSArea *area, bool renderTexture);
+                    MapVertex *bottomVertex, RSArea *area);
 
     void renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
                  const std::unordered_set<int>* skipRight  = nullptr,

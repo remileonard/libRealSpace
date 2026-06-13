@@ -1101,10 +1101,9 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     if (object->vertices.size() == 0)
         return;
 
-    if (lodLevel >= object->NumLods()) {
-        printf("Unable to render this Level Of Details (out of range): Max level is  %zu %zu\n",
-               (object->NumLods() - 1), lodLevel);
-        return;
+    size_t currentLodLevel = lodLevel;
+    if (currentLodLevel >= object->NumLods()) {
+        currentLodLevel = object->NumLods() - 1;
     }
     
     for (auto img: object->images) {
@@ -1136,13 +1135,13 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     glAlphaFunc(GL_GREATER, 0.1f);
     
 
-    drawModelColorPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    drawModelColorPass(object, currentLodLevel, vertexNormals, ambientLamber, lightEye, MV);
 
     if (this->is_textured) {
-        drawModelTexturePass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+        drawModelTexturePass(object, currentLodLevel, vertexNormals, ambientLamber, lightEye, MV);
     }
     
-    drawModelTransparentPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    drawModelTransparentPass(object, currentLodLevel, vertexNormals, ambientLamber, lightEye, MV);
     
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_DEPTH_TEST);
@@ -1327,18 +1326,18 @@ void SCRenderer::renderColoredTriangle(MapVertex *tri0, MapVertex *tri1, MapVert
 }
 
 void SCRenderer::renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, MapVertex *bottomRightVertex,
-                            MapVertex *bottomVertex, RSArea *area, bool renderTexture) {
+                            MapVertex *bottomVertex, RSArea *area) {
 
-    if (!renderTexture) {
-        if (currentVertex->lowerImageID == 0xFF || !this->is_textured) {
-            // Render lower triangle
-            renderColoredTriangle(currentVertex, bottomRightVertex, bottomVertex);
-        }
-        if (currentVertex->upperImageID == 0xFF || !this->is_textured) {
-            // Render Upper triangles
-            renderColoredTriangle(currentVertex, rightVertex, bottomRightVertex);
-        }
-    } else if (this->is_textured){
+    
+    if (currentVertex->lowerImageID == 0xFF || !this->is_textured) {
+        // Render lower triangle
+        renderColoredTriangle(currentVertex, bottomRightVertex, bottomVertex);
+    }
+    if (currentVertex->upperImageID == 0xFF || !this->is_textured) {
+        // Render Upper triangles
+        renderColoredTriangle(currentVertex, rightVertex, bottomRightVertex);
+    }
+    if (this->is_textured){
 
         if (currentVertex->lowerImageID != 0xFF) {
             VertexVector &vcache = textureSortedVertex[currentVertex->lowerImageID];
@@ -1380,7 +1379,7 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
             MapVertex *bottomRightVertex = &block->vertice[(x + 1) + (y + 1) * sideSize];
             MapVertex *bottomVertex = &block->vertice[x + (y + 1) * sideSize];
 
-            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area);
         }
     }
     
@@ -1396,7 +1395,7 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
                 MapVertex *bottomRightVertex = rightBlock->GetVertice(0, y + 1);
                 MapVertex *bottomVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y + 1);
 
-                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area);
             }
         }
     }
@@ -1413,7 +1412,7 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
                 MapVertex *bottomRightVertex = bottomBlock->GetVertice(x + 1, 0);
                 MapVertex *bottomVertex = bottomBlock->GetVertice(x, 0);
 
-                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area);
             }
         }
     }
@@ -1435,7 +1434,7 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
             MapVertex *bottomRightVertex = rightBottonBlock->GetVertice(0, 0);
             MapVertex *bottomVertex = bottomBlock->GetVertice(currentBlock->sideSize - 1, 0);
 
-            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area);
         }
     }
     
@@ -1763,6 +1762,8 @@ void SCRenderer::renderWorldToTexture(RSArea *area) {
 
     this->renderWorldSkyAndGround();
     /**/
+    bool save_is_textured = this->is_textured;
+    this->is_textured = false;
     textureSortedVertex.clear();
     // Render your scene here
     glBegin(GL_TRIANGLES);
@@ -1801,9 +1802,7 @@ void SCRenderer::renderWorldToTexture(RSArea *area) {
         glEnd();
     }
     glDisable(GL_TEXTURE_2D);
-
-    
-    
+    this->is_textured = save_is_textured;
 }
 void SCRenderer::initRenderToTexture() {
     if (this->texture == 0) {
