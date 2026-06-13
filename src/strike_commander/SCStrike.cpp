@@ -1534,6 +1534,8 @@ void SCStrike::init(void) {
     Game->direct_mouse_control = true;
     this->pilote_lookat = {0, 0};
     this->registerSimulatorInputs();
+    Config &cfg = Config::getInstance();
+    this->world_lod = cfg.getInt("Game", "world_detail", 0);
     this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
 }
 

@@ -350,7 +350,7 @@ void SCRenderer::init(int width, int height) {
     }
     
     this->lodLevel = config.getInt("Game", "object_detail", 0);
-    
+    this->is_textured = config.getBool("Game", "show_texture", true);
 
     this->width = width;
     this->height = height;

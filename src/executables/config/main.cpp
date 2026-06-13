@@ -39,7 +39,8 @@ int main(int argc, char* argv[]) {
     // [Game]
     int object_detail = config.getInt("Game", "object_detail", 0);
     int world_detail  = config.getInt("Game", "world_detail", 0);
-
+    int max_view_distance = config.getInt("Game", "max_view_distance", 300000);
+    bool show_texture = config.getBool("Game", "show_texture", true);
     // [Video]
     bool fx_cpc_palette  = config.getBool("Video", "fx_cpc_palette", false);
     bool fx_scanlines    = config.getBool("Video", "fx_scanlines", false);
@@ -118,8 +119,10 @@ int main(int argc, char* argv[]) {
                     ImGui::Checkbox("Fullscreen", &fullscreen);
                 }
                 if (ImGui::CollapsingHeader("Game", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::SliderInt("Object Detail", &object_detail, 0, 5);
-                    ImGui::SliderInt("World Detail",  &world_detail,  0, 5);
+                    ImGui::SliderInt("Object Detail", &object_detail, 0, 2);
+                    ImGui::SliderInt("World Detail",  &world_detail,  0, 2);
+                    ImGui::SliderInt("Max view distance", &max_view_distance, 10000, 300000);
+                    ImGui::Checkbox("Show Texture", &show_texture);
                 }
                 if (ImGui::CollapsingHeader("Video", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::Checkbox("CPC Palette",   &fx_cpc_palette);
@@ -135,6 +138,8 @@ int main(int argc, char* argv[]) {
                     config.setBool("Window", "fullscreen",  fullscreen);
                     config.setInt ("Game",   "object_detail", object_detail);
                     config.setInt ("Game",   "world_detail",  world_detail);
+                    config.setInt ("Game",   "max_view_distance", max_view_distance);
+                    config.setBool("Game",   "show_texture",  show_texture);
                     config.setBool("Video",  "fx_cpc_palette", fx_cpc_palette);
                     config.setBool("Video",  "fx_scanlines",   fx_scanlines);
                     config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);
