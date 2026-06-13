@@ -390,7 +390,7 @@ void SCAnimationPlayer::runFrame(void){
         }
         std::string text = this->midgame_text_db->midgame_texts[textLine->key].DATA[textLine->id];
         Point2D position = {textLine->position_start.x, textLine->position_start.y};
-        VGA.getFrameBuffer()->printText(this->fonts[textLine->font_id], position, text, 0);
+        VGA.getFrameBuffer()->printText(this->fonts[textLine->font_id], position, text, textLine->color);
     }
     VGA.vSync();
 }

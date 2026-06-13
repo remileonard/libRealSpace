@@ -235,7 +235,10 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
             curW = 0;
             continue;
         }
-        if (c == ' ') { curW += (int)spaceSize; continue; }
+        if (c == ' ') { 
+            curW += (int)spaceSize;
+            continue;
+        }
         RLEShape *s = font->GetShapeForChar(c);
         if (s == nullptr) continue;
         curW += fixedWidth ? s->GetHeight() : (s->GetWidth() + (int)interLetterSpace - 1);
@@ -265,7 +268,6 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
             RLEShape *sp = font->GetShapeForChar(chartoDraw);
             RLEShape *spA = font->GetShapeForChar('a');
             int diff =  sp->GetHeight() - spA->GetHeight();
-
             coo->y += diff;
         }
         if (chartoDraw == '\n') {
@@ -281,11 +283,21 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
             continue;
         if (coo->x < 0)
             continue;
-        if (coo->x + static_cast<int32_t>(spaceSize) > this->width)
-            continue;
+        bool isOutOfBounds = false;
+        if (coo->x + static_cast<int32_t>(spaceSize) > this->width) {
+            RLEShape *sp = font->GetShapeForChar('A');
+            coo->x = startx;
+            coo->y += sp->GetHeight() + 2;
+            lineHeight = coo->y;
+            lineIndex++;
+            isOutOfBounds = true;
+        }
         shape->SetPosition(coo);
         drawShape(shape);
         coo->y = lineHeight;
+        if (isOutOfBounds) {
+            coo->y += shape->GetHeight();
+        }
 
         if (chartoDraw == ' ') {
             coo->x += static_cast<int32_t>(spaceSize);

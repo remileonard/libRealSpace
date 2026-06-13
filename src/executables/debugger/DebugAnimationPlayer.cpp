@@ -1271,7 +1271,7 @@ void DebugAnimationPlayer::editMidGameShotTextLine(MIDGAME_TEXT_LINE *textLine){
             nb_frames = 1;
         textLine->nb_frames = nb_frames;
     }
-     int start_x = textLine->position_start.x;
+    int start_x = textLine->position_start.x;
     int start_y = textLine->position_start.y;
     if (ImGui::InputInt("X##start", &start_x) || ImGui::InputInt("Y##start", &start_y)) {
         textLine->position_start.x = start_x;
@@ -1285,6 +1285,12 @@ void DebugAnimationPlayer::editMidGameShotTextLine(MIDGAME_TEXT_LINE *textLine){
     if (ImGui::InputInt("X##end", &end_x) || ImGui::InputInt("Y##end", &end_y)) {
         textLine->position_end.x = end_x;
         textLine->position_end.y = end_y;
+    }
+    int color = textLine->color;
+    if (ImGui::InputInt("Color", &color)) {
+        if (color < 0)
+            color = 0;
+        textLine->color = color;
     }
 }
 void initIntHelper(int *value, int defaultValue)

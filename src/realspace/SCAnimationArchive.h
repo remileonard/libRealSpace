@@ -53,6 +53,7 @@ typedef struct MIDGAME_TEXT_LINE {
     uint16_t nb_frames{0};
     Point2D position_start;
     Point2D position_end;
+    uint8_t color{255};
 } MIDGAME_TEXT_LINE;
 
 typedef struct MIDGAME_SHAPE_DATA {

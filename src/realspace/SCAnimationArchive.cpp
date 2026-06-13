@@ -283,6 +283,7 @@ void SCAnimationArchive::WriteTexts(IFFWriter &writer, const std::vector<MIDGAME
         writer.WriteInt16(text->position_start.y);
         writer.WriteInt16(text->position_end.x);
         writer.WriteInt16(text->position_end.y);
+        writer.WriteUint8(text->color);
         writer.EndChunk();
     }
     writer.EndChunk();
@@ -363,6 +364,7 @@ void SCAnimationArchive::HandleTEXT_TEXE(uint8_t* data, size_t size) {
         text->position_start.y = stream.ReadShort();
         text->position_end.x = stream.ReadShort();
         text->position_end.y = stream.ReadShort();
+        text->color = stream.ReadByte();
         currentShot->textes.push_back(text);
     }
 }
