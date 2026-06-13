@@ -16,7 +16,7 @@ protected:
     std::vector<EFCT *> *efect;
     std::vector<SCZone *> zones;
     GAMEFLOW_SCEN *gameflow_scene;
-
+    RSImageSet *chk{nullptr};
     std::vector<background *> layers;
     uint8_t *rawPalette;
     uint8_t *forPalette;
@@ -27,6 +27,9 @@ protected:
     SCZone *createZone(SPRT *sprts, uint8_t sprtId);
     int fps{12};
     bool music{true};
+    int scene_id{0};
+    int frame_counter{1000};
+    int frame_animation{0};
     RSMixer &Mixer = RSMixer::getInstance();
     RSVGA &VGA = RSVGA::getInstance();
     SCState &GameState = SCState::getInstance();

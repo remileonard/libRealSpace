@@ -44,6 +44,22 @@ std::vector<SCZone *> * SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::fun
     this->forPalette = this->optPals->GetEntry(forPalTID)->data;
 
     uint8_t optionScenID = gameflow_scene->info.ID;
+    chk = nullptr;
+    this->scene_id = optionScenID;
+    frame_counter = 1000;
+    frame_animation = 0;
+    if (optionScenID == 107) {
+        AssetManager &ast = AssetManager::getInstance();
+        TreEntry *entry = ast.GetEntryByName("..\\..\\DATA\\MIDGAMES\\CHICK.SHP");
+        if (entry != nullptr) {
+            PakEntry *subPAK;
+            subPAK = new PakEntry();
+            subPAK->data = entry->data;
+            subPAK->size = entry->size;
+            chk = new RSImageSet();
+            chk->InitFromPakEntry(subPAK);
+        }
+    }
     for (auto sprite : this->gameflow_scene->sprt) {
         uint8_t sprtId = sprite->info.ID;
         // le clck dans sprite semble indiquer qu'il faut jouer l'animation après avoir cliquer et donc executer le
@@ -101,6 +117,8 @@ std::vector<SCZone *> * SCScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::fun
             }
 
             sprt->id           = sprite->info.ID;
+            
+            
             sprt->shapid       = optsprtId;
             sprt->unkown       = sprite->info.UNKOWN;
             sprt->efect        = sprite->efct;
@@ -156,6 +174,18 @@ void SCScene::Render() {
         ByteStream paletteReader;
         paletteReader.Set((this->forPalette), 772);
         this->palette.ReadPatch(&paletteReader);
+    }
+    if (this->chk != nullptr && this->scene_id == 107) {
+        frame_counter--;
+        if (frame_counter < 0) {
+            if (fpsupdate) {
+                frame_animation++;
+                if (frame_animation > 8) {
+                    frame_animation = 8;
+                }
+            }
+            VGA.getFrameBuffer()->drawShape(this->chk->GetShape(frame_animation));
+        }
     }
     VGA.setPalette(&this->palette);
     if (this->zones.size() > 0) {
