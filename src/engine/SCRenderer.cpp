@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <limits>
 
+#define MAX_VIEW_DISTANCE 160000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -358,7 +359,7 @@ void SCRenderer::init(int width, int height) {
     // glClearDepth(1.0f);								// Depth Buffer Setup
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
-    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, BLOCK_WIDTH * BLOCK_PER_MAP_SIDE * 4);
+    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, MAX_VIEW_DISTANCE + MAX_VIEW_DISTANCE*0.25f);
 
     light.SetWithCoo(300, 300, 300);
     initialized = true;
@@ -1357,7 +1358,9 @@ void SCRenderer::renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, Ma
     }
 }
 
-void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
+void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
+                 const std::unordered_set<int>* skipRight,
+                 const std::unordered_set<int>* skipBottom) {
 
     AreaBlock *block = area->GetAreaBlockByID(LOD, i);
     if (block == nullptr) {
@@ -1377,56 +1380,153 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
             renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
         }
     }
-
+    
     // Inter-block right side
     if (i % BLOCK_PER_MAP_SIDE != 17) {
-        AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, static_cast<size_t>(i));
-        AreaBlock *rightBlock = area->GetAreaBlockByID(LOD, static_cast<size_t>(i + 1));
+        int rightId = static_cast<int>(i + 1);
+        if (!skipRight || !skipRight->count(rightId)) {     // <-- ajout
+            AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, (size_t)i);
+            AreaBlock *rightBlock   = area->GetAreaBlockByID(LOD, (size_t)rightId);
+            for (uint32_t y = 0; y < sideSize - 1; y++) {
+                MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y);
+                MapVertex *rightVertex = rightBlock->GetVertice(0, y);
+                MapVertex *bottomRightVertex = rightBlock->GetVertice(0, y + 1);
+                MapVertex *bottomVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y + 1);
 
-        for (uint32_t y = 0; y < sideSize - 1; y++) {
-            MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y);
-            MapVertex *rightVertex = rightBlock->GetVertice(0, y);
-            MapVertex *bottomRightVertex = rightBlock->GetVertice(0, y + 1);
-            MapVertex *bottomVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y + 1);
-
-            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            }
         }
     }
 
     // Inter-block bottom side
     if (i / BLOCK_PER_MAP_SIDE != 17) {
+    int bottomId = i + BLOCK_PER_MAP_SIDE;
+        if (!skipBottom || !skipBottom->count(bottomId)) {  // <-- ajout
+            AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
+            AreaBlock *bottomBlock  = area->GetAreaBlockByID(LOD, bottomId);
+            for (uint32_t x = 0; x < sideSize - 1; x++) {
+                MapVertex *currentVertex = currentBlock->GetVertice(x, currentBlock->sideSize - 1);
+                MapVertex *rightVertex = currentBlock->GetVertice(x + 1, currentBlock->sideSize - 1);
+                MapVertex *bottomRightVertex = bottomBlock->GetVertice(x + 1, 0);
+                MapVertex *bottomVertex = bottomBlock->GetVertice(x, 0);
 
-        AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
-        AreaBlock *bottomBlock = area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE);
-
-        for (uint32_t x = 0; x < sideSize - 1; x++) {
-            MapVertex *currentVertex = currentBlock->GetVertice(x, currentBlock->sideSize - 1);
-            MapVertex *rightVertex = currentBlock->GetVertice(x + 1, currentBlock->sideSize - 1);
-            MapVertex *bottomRightVertex = bottomBlock->GetVertice(x + 1, 0);
-            MapVertex *bottomVertex = bottomBlock->GetVertice(x, 0);
-
-            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            }
         }
     }
 
     // Inter bottom-right quad
     if (i % BLOCK_PER_MAP_SIDE != 17 && i / BLOCK_PER_MAP_SIDE != 17) {
+        int rightId  = i + 1;
+        int bottomId = i + BLOCK_PER_MAP_SIDE;
+        bool skipR = skipRight  && skipRight->count(rightId);
+        bool skipB = skipBottom && skipBottom->count(bottomId);
+        if (!skipR && !skipB) { 
+            AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
+            AreaBlock *rightBlock = area->GetAreaBlockByID(LOD, i + 1);
+            AreaBlock *rightBottonBlock = area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE);
+            AreaBlock *bottomBlock = area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE);
 
-        AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
-        AreaBlock *rightBlock = area->GetAreaBlockByID(LOD, i + 1);
-        AreaBlock *rightBottonBlock = area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE);
-        AreaBlock *bottomBlock = area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE);
+            MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, currentBlock->sideSize - 1);
+            MapVertex *rightVertex = rightBlock->GetVertice(0, currentBlock->sideSize - 1);
+            MapVertex *bottomRightVertex = rightBottonBlock->GetVertice(0, 0);
+            MapVertex *bottomVertex = bottomBlock->GetVertice(currentBlock->sideSize - 1, 0);
 
-        MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, currentBlock->sideSize - 1);
-        MapVertex *rightVertex = rightBlock->GetVertice(0, currentBlock->sideSize - 1);
-        MapVertex *bottomRightVertex = rightBottonBlock->GetVertice(0, 0);
-        MapVertex *bottomVertex = bottomBlock->GetVertice(currentBlock->sideSize - 1, 0);
-
-        renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+        }
     }
+    
+}
+void SCRenderer::renderSkydome(int rings, int slices) {
+    // Le dôme ne doit JAMAIS recevoir le brouillard du terrain
+    GLboolean fogWasEnabled = glIsEnabled(GL_FOG);
+    glDisable(GL_FOG);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_CULL_FACE);
+
+    const float radius = MAX_VIEW_DISTANCE * 0.98f;
+    Point3D cam = camera.getPosition();
+
+    // ── Palette : horizon blanc → ciel bleu ─────────────────────────────
+    // Clé de couleur : t=0 (équateur) … t=1 (zénith)
+    static const float skyT[]   = { 0.00f, 0.08f, 0.25f, 0.60f, 1.00f };
+    static const float skyRGB[][3] = {
+        { 1.00f, 1.00f, 1.00f },   // horizon : filet blanc pur
+        { 0.72f, 0.83f, 0.97f },   // juste au-dessus : bleu très pâle
+        { 0.40f, 0.62f, 0.92f },   // ciel moyen
+        { 0.18f, 0.44f, 0.82f },   // bleu soutenu
+        { 0.08f, 0.28f, 0.72f },   // zénith : bleu profond
+    };
+    constexpr int N = 5;
+
+    auto sampleSky = [&](float t, float& r, float& g, float& b) {
+        if (t <= 0.f) { r=skyRGB[0][0]; g=skyRGB[0][1]; b=skyRGB[0][2]; return; }
+        if (t >= 1.f) { r=skyRGB[N-1][0]; g=skyRGB[N-1][1]; b=skyRGB[N-1][2]; return; }
+        for (int i = 0; i < N-1; ++i) {
+            if (t >= skyT[i] && t <= skyT[i+1]) {
+                float f = (t - skyT[i]) / (skyT[i+1] - skyT[i]);
+                r = skyRGB[i][0] + f*(skyRGB[i+1][0]-skyRGB[i][0]);
+                g = skyRGB[i][1] + f*(skyRGB[i+1][1]-skyRGB[i][1]);
+                b = skyRGB[i][2] + f*(skyRGB[i+1][2]-skyRGB[i][2]);
+                return;
+            }
+        }
+    };
+
+    // ── Hémisphère supérieure ────────────────────────────────────────────
+    for (int r = 0; r < rings; ++r) {
+        float t0  = (float)r       / rings;
+        float t1  = (float)(r + 1) / rings;
+        float phi0 = (float)M_PI_2 * t0;
+        float phi1 = (float)M_PI_2 * t1;
+        float r0,g0,b0, r1,g1,b1;
+        sampleSky(t0, r0,g0,b0);
+        sampleSky(t1, r1,g1,b1);
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int s = 0; s <= slices; ++s) {
+            float theta = 2.0f*(float)M_PI*s/slices;
+            float cosT=cosf(theta), sinT=sinf(theta);
+            glColor3f(r0,g0,b0);
+            glVertex3f(cam.x+radius*cosf(phi0)*cosT, cam.y+radius*sinf(phi0), cam.z+radius*cosf(phi0)*sinT);
+            glColor3f(r1,g1,b1);
+            glVertex3f(cam.x+radius*cosf(phi1)*cosT, cam.y+radius*sinf(phi1), cam.z+radius*cosf(phi1)*sinT);
+        }
+        glEnd();
+    }
+
+    // ── Hémisphère inférieure (masque depth + sol) ───────────────────────
+    static const float nadirRGB[3] = { 0.52f, 0.47f, 0.35f };
+    for (int r = 0; r < rings; ++r) {
+        float t0  = (float)r       / rings;
+        float t1  = (float)(r + 1) / rings;
+        float phi0 = -(float)M_PI_2 * t0;
+        float phi1 = -(float)M_PI_2 * t1;
+        float e0 = t0*t0, e1 = t1*t1; // ease-in quadratique
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int s = 0; s <= slices; ++s) {
+            float theta = 2.0f*(float)M_PI*s/slices;
+            float cosT=cosf(theta), sinT=sinf(theta);
+            glColor3f(1.f+e0*(nadirRGB[0]-1.f), 1.f+e0*(nadirRGB[1]-1.f), 1.f+e0*(nadirRGB[2]-1.f));
+            glVertex3f(cam.x+radius*cosf(phi0)*cosT, cam.y+radius*sinf(phi0), cam.z+radius*cosf(phi0)*sinT);
+            glColor3f(1.f+e1*(nadirRGB[0]-1.f), 1.f+e1*(nadirRGB[1]-1.f), 1.f+e1*(nadirRGB[2]-1.f));
+            glVertex3f(cam.x+radius*cosf(phi1)*cosT, cam.y+radius*sinf(phi1), cam.z+radius*cosf(phi1)*sinT);
+        }
+        glEnd();
+    }
+
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE);
+
+    if (fogWasEnabled) glEnable(GL_FOG);
 }
 void SCRenderer::renderWorldSkyAndGround() {
-    static const float max_int = (BLOCK_WIDTH * BLOCK_PER_MAP_SIDE)*2;
+    /*static const float max_int = (BLOCK_WIDTH * BLOCK_PER_MAP_SIDE)*2;
     static const float max_height = 60000.0f;
     static const float min_height = -2000.0f;
 
@@ -1443,7 +1543,6 @@ void SCRenderer::renderWorldSkyAndGround() {
     glVertex3f(max_int, ground_min, max_int);
     glVertex3f(-max_int, ground_min, max_int);
     glEnd();
-    /**/
     glBegin(GL_QUADS);
     // sol
     glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
@@ -1501,17 +1600,17 @@ void SCRenderer::renderWorldSkyAndGround() {
     glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
     glVertex3f(max_int, max_height, -max_int);
 
-    glEnd();
+    glEnd();*/
+    this->renderSkydome(12, 48);
 }
 
 void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
-    GLfloat fogColor[4] = {0.8f, 0.8f, 0.8f, 1.0f};
-    glFogi(GL_FOG_MODE, GL_EXP2);      // Fog Mode
-    glFogfv(GL_FOG_COLOR, fogColor);   // Set Fog Color
-    glFogf(GL_FOG_DENSITY, 0.0000015f); // How Dense Will The Fog Be
-    glHint(GL_FOG_HINT, GL_DONT_CARE); // Fog Hint Value
-    glFogf(GL_FOG_START, 5000.0f);     // Fog Start Depth
-    glFogf(GL_FOG_END, 16000.0f);      // Fog End Depth
+    GLfloat fogColor[4] = {0.89f, 0.89f, 0.98f, 1.0f};
+    glFogi(GL_FOG_MODE, GL_LINEAR);
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glFogf(GL_FOG_START, MAX_VIEW_DISTANCE * 0.40f); // début du fondu
+    glFogf(GL_FOG_END,   MAX_VIEW_DISTANCE * 0.93f); // finit AVANT le dôme
+    glHint(GL_FOG_HINT, GL_DONT_CARE);
     glEnable(GL_FOG);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1528,64 +1627,31 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     Plane frustum[6];
     extractFrustumPlanes(frustum);
 
-    // Calcule des blocks visibles (une seule fois)
     Vector3D pos = camera.getPosition();
-    int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
-    int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
-    int blocX = (int)(pos.x + centerX) / BLOCK_WIDTH;
-    int blocY = (int)(pos.z + centerY) / BLOCK_WIDTH;
-
-    // Prépare les offsets autour de la caméra
-    std::unordered_map<uint8_t, Point2D> blockid_offset;
-    int index = 0;
-    int distance = 3;      // rayon de recherche en LOD fin
-    const int safeRing = 0; // anneau forcé visible
-    for (int y = -distance; y <= distance; y++) {
-        for (int x = -distance; x <= distance; x++) {
-            blockid_offset[index] = {x, y};
-            index++;
-        }
-    }
-
-    // Visibilité: hiLOD (LOD) + loLOD (LOD+1) calculées une seule fois
     std::vector<int> visibleHiLOD;
-    std::vector<int> visibleLoLOD;
-    std::vector<uint8_t> marked(BLOCKS_PER_MAP, 0); // évite les doublons
 
-    // 1) Anneau proche + culling pour les blocs proches en LOD fin
-    for (int i = 0; i < (int)blockid_offset.size() - 1; ++i) {
-        int dx = blockid_offset[i].x;
-        int dy = blockid_offset[i].y;
-        int ring = (std::max)(std::abs(dx), std::abs(dy));
-        int final_block_id = (blocY + dy) * BLOCK_PER_MAP_SIDE + (blocX + dx);
-        if (final_block_id < 0 || final_block_id >= BLOCKS_PER_MAP)
-            continue;
-
-        if (ring <= safeRing) {
-            visibleHiLOD.push_back(final_block_id);
-            marked[final_block_id] = 1;
-            continue;
-        }
-
-        const AABB& box = computeBlockAABB(area, LOD, final_block_id);
-        if (isAABBVisible(box, frustum)) {
-            visibleHiLOD.push_back(final_block_id);
-            marked[final_block_id] = 1;
-        }
-    }
-
-    // 2) Reste de la carte en LOD+1 si visible
     for (int i = 0; i < BLOCKS_PER_MAP; ++i) {
-        if (marked[i]) continue;
-        const AABB& box = computeBlockAABB(area, LOD + 1, i);
-        if (isAABBVisible(box, frustum)) {
-            visibleLoLOD.push_back(i);
-        }
+        int bx = i % BLOCK_PER_MAP_SIDE;
+        int by = i / BLOCK_PER_MAP_SIDE;
+        float block_cx = ((float)bx - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
+        float block_cz = ((float)by - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
+        float dx = pos.x - block_cx;
+        float dz = pos.z - block_cz;
+        if (dx*dx + dz*dz > (float)MAX_VIEW_DISTANCE * (float)MAX_VIEW_DISTANCE)
+            continue;
+        const AABB& box = computeBlockAABB(area, LOD, i);
+        if (isAABBVisible(box, frustum))
+            visibleHiLOD.push_back(i);
     }
+
+
     GLenum terrainFront = GL_CCW;
-    int refId = -1; bool refHi = false;
-    if (!visibleHiLOD.empty()) { refId = visibleHiLOD[0]; refHi = true; }
-    else if (!visibleLoLOD.empty()) { refId = visibleLoLOD[0]; refHi = false; }
+    int refId = -1; 
+    bool refHi = false;
+    if (!visibleHiLOD.empty()) {
+        AreaBlock* refBlk = area->GetAreaBlockByID(LOD, visibleHiLOD[0]);
+        terrainFront = DetectTerrainFrontFace(refBlk);
+    }
     if (refId >= 0) {
         AreaBlock* refBlk = area->GetAreaBlockByID(refHi ? LOD : (LOD+1), refId);
         terrainFront = DetectTerrainFrontFace(refBlk);
@@ -1596,9 +1662,6 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     for (int id : visibleHiLOD) {
         renderBlock(area, LOD, id, false);
     }
-    for (int id : visibleLoLOD) {
-        renderBlock(area, LOD + 1, id, false);
-    }
     glEnd();
 
     // Passe textures: réutilise les mêmes listes visibles (pas de culling)
@@ -1608,9 +1671,6 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     textureSortedVertex.clear();
     for (int id : visibleHiLOD) {
         renderBlock(area, LOD, id, true);
-    }
-    for (int id : visibleLoLOD) {
-        renderBlock(area, LOD + 1, id, true);
     }
 
     for (auto const &x : textureSortedVertex) {
@@ -1656,7 +1716,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
 
     renderMapOverlay(area);
 
-    glDisable(GL_FOG);
+    //glDisable(GL_FOG);
     glDisable(GL_BLEND);
     glDisable(GL_ALPHA_TEST);
     glFrontFace(GL_CCW);
