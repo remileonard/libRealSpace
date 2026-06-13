@@ -1918,7 +1918,7 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
 
     // Convertir le buffer RGBA redimensionné en buffer indexé palette 8 bits via LUT
     std::vector<uint8_t> indexedBuffer(mdfs_width * mdfs_height);
-    int buffer_size = mdfs_width * mdfs_height;
+    int buffer_size = (mdfs_width * mdfs_height)-1;
     for (int i = 0; i < mdfs_width * mdfs_height; i++) {
         uint8_t r = rgbaPixels[i * 4 + 0];
         uint8_t g = rgbaPixels[i * 4 + 1];
