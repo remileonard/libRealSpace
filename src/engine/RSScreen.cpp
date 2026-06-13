@@ -276,6 +276,7 @@ void RSScreen::initPostProcess() {
                 // Perturber la couleur avec le dithering avant la recherche palette
                 vec3 dithered = color.rgb + (threshold - 0.5) * 0.25;
                 color.rgb = nearestCPC(clamp(dithered, 0.0, 1.0));
+                //color.rgb = nearestCPC(clamp(color.rgb, 0.0, 1.0));
             }
 
             if (useScanlines == 1) {
