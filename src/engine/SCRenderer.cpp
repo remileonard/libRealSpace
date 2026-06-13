@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <limits>
 
-#define MAX_VIEW_DISTANCE 200000.0f
+#define MAX_VIEW_DISTANCE 160000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -1358,7 +1358,9 @@ void SCRenderer::renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, Ma
     }
 }
 
-void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
+void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture,
+                 const std::unordered_set<int>* skipRight,
+                 const std::unordered_set<int>* skipBottom) {
 
     AreaBlock *block = area->GetAreaBlockByID(LOD, i);
     if (block == nullptr) {
@@ -1378,53 +1380,62 @@ void SCRenderer::renderBlock(RSArea *area, int LOD, int i, bool renderTexture) {
             renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
         }
     }
-
+    
     // Inter-block right side
     if (i % BLOCK_PER_MAP_SIDE != 17) {
-        AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, static_cast<size_t>(i));
-        AreaBlock *rightBlock = area->GetAreaBlockByID(LOD, static_cast<size_t>(i + 1));
+        int rightId = static_cast<int>(i + 1);
+        if (!skipRight || !skipRight->count(rightId)) {     // <-- ajout
+            AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, (size_t)i);
+            AreaBlock *rightBlock   = area->GetAreaBlockByID(LOD, (size_t)rightId);
+            for (uint32_t y = 0; y < sideSize - 1; y++) {
+                MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y);
+                MapVertex *rightVertex = rightBlock->GetVertice(0, y);
+                MapVertex *bottomRightVertex = rightBlock->GetVertice(0, y + 1);
+                MapVertex *bottomVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y + 1);
 
-        for (uint32_t y = 0; y < sideSize - 1; y++) {
-            MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y);
-            MapVertex *rightVertex = rightBlock->GetVertice(0, y);
-            MapVertex *bottomRightVertex = rightBlock->GetVertice(0, y + 1);
-            MapVertex *bottomVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, y + 1);
-
-            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            }
         }
     }
 
     // Inter-block bottom side
     if (i / BLOCK_PER_MAP_SIDE != 17) {
+    int bottomId = i + BLOCK_PER_MAP_SIDE;
+        if (!skipBottom || !skipBottom->count(bottomId)) {  // <-- ajout
+            AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
+            AreaBlock *bottomBlock  = area->GetAreaBlockByID(LOD, bottomId);
+            for (uint32_t x = 0; x < sideSize - 1; x++) {
+                MapVertex *currentVertex = currentBlock->GetVertice(x, currentBlock->sideSize - 1);
+                MapVertex *rightVertex = currentBlock->GetVertice(x + 1, currentBlock->sideSize - 1);
+                MapVertex *bottomRightVertex = bottomBlock->GetVertice(x + 1, 0);
+                MapVertex *bottomVertex = bottomBlock->GetVertice(x, 0);
 
-        AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
-        AreaBlock *bottomBlock = area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE);
-
-        for (uint32_t x = 0; x < sideSize - 1; x++) {
-            MapVertex *currentVertex = currentBlock->GetVertice(x, currentBlock->sideSize - 1);
-            MapVertex *rightVertex = currentBlock->GetVertice(x + 1, currentBlock->sideSize - 1);
-            MapVertex *bottomRightVertex = bottomBlock->GetVertice(x + 1, 0);
-            MapVertex *bottomVertex = bottomBlock->GetVertice(x, 0);
-
-            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+                renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            }
         }
     }
 
     // Inter bottom-right quad
     if (i % BLOCK_PER_MAP_SIDE != 17 && i / BLOCK_PER_MAP_SIDE != 17) {
+        int rightId  = i + 1;
+        int bottomId = i + BLOCK_PER_MAP_SIDE;
+        bool skipR = skipRight  && skipRight->count(rightId);
+        bool skipB = skipBottom && skipBottom->count(bottomId);
+        if (!skipR && !skipB) { 
+            AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
+            AreaBlock *rightBlock = area->GetAreaBlockByID(LOD, i + 1);
+            AreaBlock *rightBottonBlock = area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE);
+            AreaBlock *bottomBlock = area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE);
 
-        AreaBlock *currentBlock = area->GetAreaBlockByID(LOD, i);
-        AreaBlock *rightBlock = area->GetAreaBlockByID(LOD, i + 1);
-        AreaBlock *rightBottonBlock = area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE);
-        AreaBlock *bottomBlock = area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE);
+            MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, currentBlock->sideSize - 1);
+            MapVertex *rightVertex = rightBlock->GetVertice(0, currentBlock->sideSize - 1);
+            MapVertex *bottomRightVertex = rightBottonBlock->GetVertice(0, 0);
+            MapVertex *bottomVertex = bottomBlock->GetVertice(currentBlock->sideSize - 1, 0);
 
-        MapVertex *currentVertex = currentBlock->GetVertice(currentBlock->sideSize - 1, currentBlock->sideSize - 1);
-        MapVertex *rightVertex = rightBlock->GetVertice(0, currentBlock->sideSize - 1);
-        MapVertex *bottomRightVertex = rightBottonBlock->GetVertice(0, 0);
-        MapVertex *bottomVertex = bottomBlock->GetVertice(currentBlock->sideSize - 1, 0);
-
-        renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+            renderQuad(currentVertex, rightVertex, bottomRightVertex, bottomVertex, area, renderTexture);
+        }
     }
+    
 }
 void SCRenderer::renderSkydome(int rings, int slices) {
     // Le dôme ne doit JAMAIS recevoir le brouillard du terrain
@@ -1616,64 +1627,31 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     Plane frustum[6];
     extractFrustumPlanes(frustum);
 
-    // Calcule des blocks visibles (une seule fois)
     Vector3D pos = camera.getPosition();
-    int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
-    int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
-    int blocX = (int)(pos.x + centerX) / BLOCK_WIDTH;
-    int blocY = (int)(pos.z + centerY) / BLOCK_WIDTH;
-
-    // Prépare les offsets autour de la caméra
-    std::unordered_map<uint8_t, Point2D> blockid_offset;
-    int index = 0;
-    int distance = 3;      // rayon de recherche en LOD fin
-    const int safeRing = 0; // anneau forcé visible
-    for (int y = -distance; y <= distance; y++) {
-        for (int x = -distance; x <= distance; x++) {
-            blockid_offset[index] = {x, y};
-            index++;
-        }
-    }
-
-    // Visibilité: hiLOD (LOD) + loLOD (LOD+1) calculées une seule fois
     std::vector<int> visibleHiLOD;
-    std::vector<int> visibleLoLOD;
-    std::vector<uint8_t> marked(BLOCKS_PER_MAP, 0); // évite les doublons
 
-    // 1) Anneau proche + culling pour les blocs proches en LOD fin
-    for (int i = 0; i < (int)blockid_offset.size() - 1; ++i) {
-        int dx = blockid_offset[i].x;
-        int dy = blockid_offset[i].y;
-        int ring = (std::max)(std::abs(dx), std::abs(dy));
-        int final_block_id = (blocY + dy) * BLOCK_PER_MAP_SIDE + (blocX + dx);
-        if (final_block_id < 0 || final_block_id >= BLOCKS_PER_MAP)
-            continue;
-
-        if (ring <= safeRing) {
-            visibleHiLOD.push_back(final_block_id);
-            marked[final_block_id] = 1;
-            continue;
-        }
-
-        const AABB& box = computeBlockAABB(area, LOD, final_block_id);
-        if (isAABBVisible(box, frustum)) {
-            visibleHiLOD.push_back(final_block_id);
-            marked[final_block_id] = 1;
-        }
-    }
-
-    // 2) Reste de la carte en LOD+1 si visible
     for (int i = 0; i < BLOCKS_PER_MAP; ++i) {
-        if (marked[i]) continue;
-        const AABB& box = computeBlockAABB(area, LOD + 1, i);
-        if (isAABBVisible(box, frustum)) {
-            visibleLoLOD.push_back(i);
-        }
+        int bx = i % BLOCK_PER_MAP_SIDE;
+        int by = i / BLOCK_PER_MAP_SIDE;
+        float block_cx = ((float)bx - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
+        float block_cz = ((float)by - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
+        float dx = pos.x - block_cx;
+        float dz = pos.z - block_cz;
+        if (dx*dx + dz*dz > (float)MAX_VIEW_DISTANCE * (float)MAX_VIEW_DISTANCE)
+            continue;
+        const AABB& box = computeBlockAABB(area, LOD, i);
+        if (isAABBVisible(box, frustum))
+            visibleHiLOD.push_back(i);
     }
+
+
     GLenum terrainFront = GL_CCW;
-    int refId = -1; bool refHi = false;
-    if (!visibleHiLOD.empty()) { refId = visibleHiLOD[0]; refHi = true; }
-    else if (!visibleLoLOD.empty()) { refId = visibleLoLOD[0]; refHi = false; }
+    int refId = -1; 
+    bool refHi = false;
+    if (!visibleHiLOD.empty()) {
+        AreaBlock* refBlk = area->GetAreaBlockByID(LOD, visibleHiLOD[0]);
+        terrainFront = DetectTerrainFrontFace(refBlk);
+    }
     if (refId >= 0) {
         AreaBlock* refBlk = area->GetAreaBlockByID(refHi ? LOD : (LOD+1), refId);
         terrainFront = DetectTerrainFrontFace(refBlk);
@@ -1684,9 +1662,6 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     for (int id : visibleHiLOD) {
         renderBlock(area, LOD, id, false);
     }
-    for (int id : visibleLoLOD) {
-        renderBlock(area, LOD + 1, id, false);
-    }
     glEnd();
 
     // Passe textures: réutilise les mêmes listes visibles (pas de culling)
@@ -1696,9 +1671,6 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     textureSortedVertex.clear();
     for (int id : visibleHiLOD) {
         renderBlock(area, LOD, id, true);
-    }
-    for (int id : visibleLoLOD) {
-        renderBlock(area, LOD + 1, id, true);
     }
 
     for (auto const &x : textureSortedVertex) {
