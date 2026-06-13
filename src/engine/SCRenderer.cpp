@@ -350,8 +350,8 @@ void SCRenderer::init(int width, int height) {
     }
     
     this->lodLevel = config.getInt("Game", "object_detail", 0);
-    this->is_textured = config.getBool("Game", "show_texture", true);
-
+    this->show_textured = config.getBool("Game", "show_texture", true);
+    this->show_fog = config.getBool("Game", "show_fog", true);
     this->width = width;
     this->height = height;
 
@@ -744,11 +744,11 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
         if (triangle->property == RSEntity::SC_TRANSPARENT)
             continue;
         float alpha = 1.0f;
-        if (triangle->property == 6 && this->is_textured) {
+        if (triangle->property == 6 && this->show_textured) {
             continue;
             
         }
-        if (triangle->property == 9 && this->is_textured) {
+        if (triangle->property == 9 && this->show_textured) {
             continue;
         }
         bool twoSided = false;
@@ -804,11 +804,11 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
             if (triangle->property == RSEntity::SC_TRANSPARENT)
                 continue;
             float alpha = 1.0f;
-            if (triangle->property == 6 && this->is_textured) {
+            if (triangle->property == 6 && this->show_textured) {
                 continue;
                 
             }
-            if (triangle->property == 9 && this->is_textured) {
+            if (triangle->property == 9 && this->show_textured) {
                 continue;
                 
             }
@@ -1137,7 +1137,7 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
 
     drawModelColorPass(object, currentLodLevel, vertexNormals, ambientLamber, lightEye, MV);
 
-    if (this->is_textured) {
+    if (this->show_textured) {
         drawModelTexturePass(object, currentLodLevel, vertexNormals, ambientLamber, lightEye, MV);
     }
     
@@ -1329,16 +1329,15 @@ void SCRenderer::renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, Ma
                             MapVertex *bottomVertex, RSArea *area) {
 
     
-    if (currentVertex->lowerImageID == 0xFF || !this->is_textured) {
+    if (currentVertex->lowerImageID == 0xFF || !this->show_textured) {
         // Render lower triangle
         renderColoredTriangle(currentVertex, bottomRightVertex, bottomVertex);
     }
-    if (currentVertex->upperImageID == 0xFF || !this->is_textured) {
+    if (currentVertex->upperImageID == 0xFF || !this->show_textured) {
         // Render Upper triangles
         renderColoredTriangle(currentVertex, rightVertex, bottomRightVertex);
     }
-    if (this->is_textured){
-
+    if (this->show_textured){
         if (currentVertex->lowerImageID != 0xFF) {
             VertexVector &vcache = textureSortedVertex[currentVertex->lowerImageID];
             VertexCache v = {currentVertex, bottomRightVertex, bottomVertex};
@@ -1608,13 +1607,17 @@ void SCRenderer::renderWorldSkyAndGround() {
 
 void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     GLfloat fogColor[4] = {0.89f, 0.89f, 0.98f, 1.0f};
-    glFogi(GL_FOG_MODE, GL_LINEAR);
-    glFogfv(GL_FOG_COLOR, fogColor);
-    glFogf(GL_FOG_START, this->max_view_distance * 0.40f); // début du fondu
-    glFogf(GL_FOG_END,   this->max_view_distance * 0.93f); // finit AVANT le dôme
-    glHint(GL_FOG_HINT, GL_DONT_CARE);
-    glEnable(GL_FOG);
-
+    if (this->show_fog) {
+        glFogi(GL_FOG_MODE, GL_LINEAR);
+        glFogfv(GL_FOG_COLOR, fogColor);
+        glFogf(GL_FOG_START, this->max_view_distance * 0.40f); // début du fondu
+        glFogf(GL_FOG_END,   this->max_view_distance * 0.93f); // finit AVANT le dôme
+        glHint(GL_FOG_HINT, GL_DONT_CARE);
+        glEnable(GL_FOG);
+    } else {
+        glDisable(GL_FOG);
+    }
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     this->renderWorldSkyAndGround();
@@ -1661,19 +1664,15 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     glFrontFace(terrainFront);
     // Passe géométrie (non texturée)
     glBegin(GL_TRIANGLES);
+    textureSortedVertex.clear();
     for (int id : visibleHiLOD) {
-        renderBlock(area, LOD, id, false);
+        renderBlock(area, LOD, id, true);
     }
     glEnd();
 
     // Passe textures: réutilise les mêmes listes visibles (pas de culling)
     glEnable(GL_TEXTURE_2D);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-
-    textureSortedVertex.clear();
-    for (int id : visibleHiLOD) {
-        renderBlock(area, LOD, id, true);
-    }
 
     for (auto const &x : textureSortedVertex) {
         RSImage *image = area->GetImageByID(x.first);
@@ -1762,8 +1761,8 @@ void SCRenderer::renderWorldToTexture(RSArea *area) {
 
     this->renderWorldSkyAndGround();
     /**/
-    bool save_is_textured = this->is_textured;
-    this->is_textured = false;
+    bool save_is_textured = this->show_textured;
+    this->show_textured = false;
     textureSortedVertex.clear();
     // Render your scene here
     glBegin(GL_TRIANGLES);
@@ -1802,7 +1801,7 @@ void SCRenderer::renderWorldToTexture(RSArea *area) {
         glEnd();
     }
     glDisable(GL_TEXTURE_2D);
-    this->is_textured = save_is_textured;
+    this->show_textured = save_is_textured;
 }
 void SCRenderer::initRenderToTexture() {
     if (this->texture == 0) {

@@ -935,7 +935,9 @@ void DebugStrike::renderMenu() {
         ImGui::SliderFloat("Max view distance", &renderer.max_view_distance, 1000.0f, 300000.0f, "%.1f");
         ImGui::SliderInt("World LOD", &this->world_lod, 0, 2);
         ImGui::SliderInt("Object LOD", &renderer.lodLevel, 0, 2);
-        ImGui::Checkbox("Textures", &renderer.is_textured);
+        ImGui::Checkbox("Textures", &renderer.show_textured);
+        ImGui::Checkbox("Show Fog", &renderer.show_fog);
+        
         ImGui::End();
     }
     if (show_textures) {

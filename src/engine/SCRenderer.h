@@ -96,9 +96,11 @@ public:
     float verticalOffset{0.45f};
     float fov{45.0f};
     float max_view_distance{160000.0f};
+    bool show_fog{true};
+    bool show_textured{true};
     int lodLevel{0};
     GLuint texture{0};
-    bool is_textured{true};
+    
     SCRenderer();
     ~SCRenderer();
 
