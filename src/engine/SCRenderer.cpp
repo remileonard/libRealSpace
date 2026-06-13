@@ -1807,16 +1807,16 @@ void SCRenderer::initRenderToTexture() {
     if (this->texture == 0) {
         glGenTextures(1, &this->texture);
         glBindTexture(GL_TEXTURE_2D, this->texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 107, 75, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
-    glViewport(0, 0, 128, 128);
+    glViewport(0, 0, 107, 75);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 void SCRenderer::getRenderToTexture() {
     glBindTexture(GL_TEXTURE_2D, this->texture);
-    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 128, 128, 0);
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 107, 75, 0);
 }
 void SCRenderer::initRenderCameraView(){ 
     Matrix *projectionMatrix = camera.getProjectionMatrix();

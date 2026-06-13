@@ -1894,8 +1894,8 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
 
 
     // Récupérer les dimensions de la texture
-    int texWidth  = 128;
-    int texHeight = 128;
+    int texWidth  = 107;
+    int texHeight = 75;
 
     int mdfs_height = this->cockpit->MONI.SHAP.GetHeight()-20;
     int mdfs_width = this->cockpit->MONI.SHAP.GetWidth()-8;
@@ -1910,26 +1910,6 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // Créer un buffer RGBA redimensionné (nearest-neighbor)
-    std::vector<uint8_t> resizedRGBA(mdfs_width * mdfs_height * 4);
-    for (int dy = 0; dy < mdfs_height; dy++) {
-        for (int dx = 0; dx < mdfs_width; dx++) {
-            int sx = (int)(dx * texWidth  / (float)mdfs_width);
-            int sy = (int)(dy * texHeight / (float)mdfs_height);
-            sx = (std::min)(sx, texWidth  - 1);
-            sy = (std::min)(sy, texHeight - 1);
-
-            // Inverser l'axe Y : OpenGL a l'origine en bas, le FrameBuffer en haut
-            int sy_flipped = (texHeight - 1) - sy;
-
-            int srcIdx = (sy_flipped * texWidth + sx) * 4;
-            int dstIdx = (dy * mdfs_width + dx) * 4;
-            resizedRGBA[dstIdx + 0] = rgbaPixels[srcIdx + 0];
-            resizedRGBA[dstIdx + 1] = rgbaPixels[srcIdx + 1];
-            resizedRGBA[dstIdx + 2] = rgbaPixels[srcIdx + 2];
-            resizedRGBA[dstIdx + 3] = rgbaPixels[srcIdx + 3];
-        }
-    }
 
     // Construire la LUT si la palette a changé
     if (this->palette_lut_dirty) {
@@ -1938,15 +1918,15 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
 
     // Convertir le buffer RGBA redimensionné en buffer indexé palette 8 bits via LUT
     std::vector<uint8_t> indexedBuffer(mdfs_width * mdfs_height);
-
+    int buffer_size = mdfs_width * mdfs_height;
     for (int i = 0; i < mdfs_width * mdfs_height; i++) {
-        uint8_t r = resizedRGBA[i * 4 + 0];
-        uint8_t g = resizedRGBA[i * 4 + 1];
-        uint8_t b = resizedRGBA[i * 4 + 2];
+        uint8_t r = rgbaPixels[i * 4 + 0];
+        uint8_t g = rgbaPixels[i * 4 + 1];
+        uint8_t b = rgbaPixels[i * 4 + 2];
 
         // Quantifier sur 5 bits et former la clé
         uint32_t key = (((uint32_t)r >> 3) << 10) | (((uint32_t)g >> 3) << 5) | ((uint32_t)b >> 3);
-        indexedBuffer[i] = this->palette_lut[key];
+        indexedBuffer[buffer_size-i] = this->palette_lut[key];
     }
 
     // Blitter le buffer indexé dans le FrameBuffer à la position pmfd_left
