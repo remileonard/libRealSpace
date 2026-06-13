@@ -1114,9 +1114,9 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     
     float ambientLamber = 0.4f;
 
-    Lod *lod = &object->lods[lodLevel];
+    Lod *lod = &object->lods[currentLodLevel];
     std::vector<Vector3D> vertexNormals;
-    ComputeVertexNormalsForLOD(object, lodLevel, camera.getPosition(), vertexNormals);
+    ComputeVertexNormalsForLOD(object, currentLodLevel, camera.getPosition(), vertexNormals);
 
     // Prépare les matrices pour faire l’éclairage en espace œil
     float MV[16];
