@@ -74,6 +74,7 @@ public:
     virtual void fxTurnOnTv();
     bool fx_cpc_palette{false};  // quantification palette CPC 6128
     bool fx_scanlines{false};    // scanlines CRT
+    bool fx_fxaa{false};         // FXAA anti-aliasing
     float fx_pixel_scale{1.0f};   // pixelation scale (1.0 = normal, 2.0 = double size, etc.)
     virtual void initPostProcess();
     // --- VR stéréo (optionnel) ---

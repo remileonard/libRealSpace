@@ -47,6 +47,7 @@ int main(int argc, char* argv[]) {
     bool fx_scanlines    = config.getBool("Video", "fx_scanlines", false);
     int  fx_pixel_scale  = config.getInt ("Video", "fx_pixel_scale", 1);
     bool super_eagle_2x  = config.getBool("Video", "super_eagle_2x", true);
+    bool fx_fxaa         = config.getBool("Video", "fx_fxaa", true);
 
     DebugControlMapping controlMapping;
     GameEngine::setInstance(std::make_unique<GameEngine>());
@@ -130,6 +131,7 @@ int main(int argc, char* argv[]) {
                     ImGui::Checkbox("CPC Palette",   &fx_cpc_palette);
                     ImGui::Checkbox("Scanlines",     &fx_scanlines);
                     ImGui::InputInt("Pixel Scale",   &fx_pixel_scale);
+                    ImGui::Checkbox("FXAA",           &fx_fxaa);
                     ImGui::Checkbox("Super Eagle 2x",&super_eagle_2x);
                 }
 
@@ -147,6 +149,7 @@ int main(int argc, char* argv[]) {
                     config.setBool("Video",  "fx_scanlines",   fx_scanlines);
                     config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);
                     config.setBool("Video",  "super_eagle_2x",  super_eagle_2x);
+                    config.setBool("Video",  "fx_fxaa",          fx_fxaa);
                     config.save(configPath);
                 }
                 ImGui::SameLine();

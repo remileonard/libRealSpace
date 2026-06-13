@@ -131,6 +131,7 @@ void RSScreen::initPostProcess() {
     this->fx_cpc_palette = config.getBool("video", "fx_cpc_palette", false);
     this->fx_scanlines   = config.getBool("video", "fx_scanlines", false);
     this->fx_pixel_scale = config.getInt("video", "fx_pixel_scale", 1);
+    this->fx_fxaa = config.getBool("video", "fx_fxaa", false);
     const char* vertSrc = R"(
         void main() {
             gl_TexCoord[0] = gl_MultiTexCoord0;
@@ -147,7 +148,60 @@ void RSScreen::initPostProcess() {
         uniform int useScanlines;
         uniform int useCPC;
         uniform float pixelScale;
+        uniform int useFXAA;
 
+
+        // Luminosité perçue d'une couleur
+        float luma(vec3 rgb) {
+            return dot(rgb, vec3(0.299, 0.587, 0.114));
+        }
+
+        vec4 applyFXAA(sampler2D tex, vec2 uv, float w, float h) {
+            vec2 texel = vec2(1.0 / w, 1.0 / h);
+
+            float lumaC  = luma(texture2D(tex, uv).rgb);
+            float lumaN  = luma(texture2D(tex, uv + vec2( 0.0,  texel.y)).rgb);
+            float lumaS  = luma(texture2D(tex, uv + vec2( 0.0, -texel.y)).rgb);
+            float lumaE  = luma(texture2D(tex, uv + vec2( texel.x,  0.0)).rgb);
+            float lumaW  = luma(texture2D(tex, uv + vec2(-texel.x,  0.0)).rgb);
+
+            float lumaMin = min(lumaC, min(min(lumaN, lumaS), min(lumaE, lumaW)));
+            float lumaMax = max(lumaC, max(max(lumaN, lumaS), max(lumaE, lumaW)));
+            float contrast = lumaMax - lumaMin;
+
+            // Pas de bord détecté → pas d'AA
+            if (contrast < max(0.0312, lumaMax * 0.125))
+                return texture2D(tex, uv);
+
+            // Direction du bord
+            float lumaH = abs(lumaN + lumaS - 2.0 * lumaC) * 2.0
+                        + abs(luma(texture2D(tex, uv + vec2(-texel.x,  texel.y)).rgb)
+                            + luma(texture2D(tex, uv + vec2( texel.x,  texel.y)).rgb) - 2.0 * lumaN)
+                        + abs(luma(texture2D(tex, uv + vec2(-texel.x, -texel.y)).rgb)
+                            + luma(texture2D(tex, uv + vec2( texel.x, -texel.y)).rgb) - 2.0 * lumaS);
+            float lumaV = abs(lumaE + lumaW - 2.0 * lumaC) * 2.0
+                        + abs(luma(texture2D(tex, uv + vec2( texel.x,  texel.y)).rgb)
+                            + luma(texture2D(tex, uv + vec2( texel.x, -texel.y)).rgb) - 2.0 * lumaE)
+                        + abs(luma(texture2D(tex, uv + vec2(-texel.x,  texel.y)).rgb)
+                            + luma(texture2D(tex, uv + vec2(-texel.x, -texel.y)).rgb) - 2.0 * lumaW);
+
+            bool isHorizontal = lumaH >= lumaV;
+            vec2 offset = isHorizontal ? vec2(0.0, texel.y) : vec2(texel.x, 0.0);
+
+            float luma1 = isHorizontal ? lumaS : lumaW;
+            float luma2 = isHorizontal ? lumaN : lumaE;
+            float gradient1 = abs(luma1 - lumaC);
+            float gradient2 = abs(luma2 - lumaC);
+            vec2 dir = (gradient1 >= gradient2) ? -offset : offset;
+
+            vec4 colorA = texture2D(tex, uv + dir * 0.5);
+            vec4 colorB = texture2D(tex, uv - dir * 0.5);
+            float lumaB = luma(mix(colorA, colorB, 0.5).rgb);
+
+            if (lumaB < lumaMin || lumaB > lumaMax)
+                return colorA;
+            return mix(colorA, colorB, 0.5);
+        }
         float bayerThreshold(vec2 fragCoord) {
             mat4 m = mat4(
                 0.0, 12.0,  3.0, 15.0,
@@ -160,6 +214,51 @@ void RSScreen::initPostProcess() {
             int iy = int(mod(floor(gl_FragCoord.y / pixelScale), 4.0));
             return m[ix][iy] / 16.0;
         }
+        vec3 getCPCColor(int i) {
+            if (i ==  0) return vec3(0.0157, 0.0157, 0.0157); // #040404
+            if (i ==  1) return vec3(0.5020, 0.5020, 0.5020); // #808080
+            if (i ==  2) return vec3(1.0000, 1.0000, 1.0000); // #ffffff
+            if (i ==  3) return vec3(0.5020, 0.0000, 0.0000); // #800000
+            if (i ==  4) return vec3(1.0000, 0.0000, 0.0000); // #ff0000
+            if (i ==  5) return vec3(1.0000, 0.5020, 0.5020); // #ff8080
+            if (i ==  6) return vec3(1.0000, 0.4980, 0.0000); // #ff7f00
+            if (i ==  7) return vec3(1.0000, 1.0000, 0.5020); // #ffff80
+            if (i ==  8) return vec3(1.0000, 1.0000, 0.0000); // #ffff00
+            if (i ==  9) return vec3(0.5020, 0.5020, 0.0000); // #808000
+            if (i == 10) return vec3(0.0000, 0.5020, 0.0000); // #008000
+            if (i == 11) return vec3(0.0039, 1.0000, 0.0000); // #01ff00
+            if (i == 12) return vec3(0.5020, 1.0000, 0.0000); // #80ff00
+            if (i == 13) return vec3(0.5020, 1.0000, 0.5020); // #80ff80
+            if (i == 14) return vec3(0.0039, 1.0000, 0.5020); // #01ff80
+            if (i == 15) return vec3(0.0000, 0.5020, 0.5020); // #008080
+            if (i == 16) return vec3(0.0039, 1.0000, 1.0000); // #01ffff
+            if (i == 17) return vec3(0.5020, 1.0000, 1.0000); // #80ffff
+            if (i == 18) return vec3(0.0000, 0.5020, 1.0000); // #0080ff
+            if (i == 19) return vec3(0.0000, 0.0000, 1.0000); // #0000ff
+            if (i == 20) return vec3(0.0000, 0.0000, 0.4980); // #00007f
+            if (i == 21) return vec3(0.4980, 0.0000, 1.0000); // #7f00ff
+            if (i == 22) return vec3(0.5020, 0.5020, 1.0000); // #8080ff
+            if (i == 23) return vec3(1.0000, 0.5020, 1.0000); // #ff80ff
+            if (i == 24) return vec3(1.0000, 0.0000, 1.0000); // #ff00ff
+            if (i == 25) return vec3(1.0000, 0.0000, 0.5020); // #ff0080
+            if (i == 26) return vec3(0.5020, 0.0000, 0.5020); // #800080
+            return vec3(0.0);
+        }
+
+        vec3 nearestCPC(vec3 color) {
+            float minDist = 1e10;
+            vec3 best = color;
+            for (int i = 0; i < 27; i++) {
+                vec3 p = getCPCColor(i);
+                vec3 d = color - p;
+                float dist = dot(d, d);
+                if (dist < minDist) {
+                    minDist = dist;
+                    best = p;
+                }
+            }
+            return best;
+        }
         void main() {
             vec2 uv = gl_TexCoord[0].xy;
             if (pixelScale > 1.0) {
@@ -168,9 +267,15 @@ void RSScreen::initPostProcess() {
             }
             vec4 color = texture2D(screenTexture, uv);
 
+            if (useFXAA == 1) {
+                color = applyFXAA(screenTexture, uv, screenWidth / pixelScale, screenHeight / pixelScale);
+            }
+
             if (useCPC == 1) {
                 float threshold = bayerThreshold(gl_FragCoord.xy);
-                color.rgb = floor(color.rgb * 2.0 + threshold) / 2.0;
+                // Perturber la couleur avec le dithering avant la recherche palette
+                vec3 dithered = color.rgb + (threshold - 0.5) * 0.25;
+                color.rgb = nearestCPC(clamp(dithered, 0.0, 1.0));
             }
 
             if (useScanlines == 1) {
@@ -224,7 +329,7 @@ void RSScreen::initPostProcess() {
 }
 
 void RSScreen::refresh(void) {
-    if (m_postProcessReady && (fx_cpc_palette || fx_scanlines)) {
+    if (m_postProcessReady && (fx_cpc_palette || fx_scanlines || fx_pixel_scale > 1 || fx_fxaa)) {
         // 1. Allouer la texture de capture si nécessaire
         if (m_postProcessTexture == 0) {
             glGenTextures(1, &m_postProcessTexture);
@@ -260,7 +365,7 @@ void RSScreen::refresh(void) {
         glUniform1f(glGetUniformLocation(m_shaderProgram, "pixelScale"),   (float)fx_pixel_scale);
         glUniform1i(glGetUniformLocation(m_shaderProgram, "useCPC"),       fx_cpc_palette ? 1 : 0);
         glUniform1i(glGetUniformLocation(m_shaderProgram, "useScanlines"), fx_scanlines   ? 1 : 0);
-       
+        glUniform1i(glGetUniformLocation(m_shaderProgram, "useFXAA"), fx_fxaa ? 1 : 0);
         GLint vp[4];
         glGetIntegerv(GL_VIEWPORT, vp);
         // vp[0]=x, vp[1]=y, vp[2]=w, vp[3]=h
