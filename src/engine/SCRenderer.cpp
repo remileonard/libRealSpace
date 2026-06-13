@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <limits>
 
-#define MAX_VIEW_DISTANCE 160000.0f
 SCRenderer &Renderer = SCRenderer::getInstance();
 
 static inline void FixEntityWinding(RSEntity* obj) {
@@ -338,11 +337,12 @@ void SCRenderer::setPlayerPosition(Point3D *position) { camera.SetPosition(posit
 
 void SCRenderer::init(int width, int height) {
     AssetManager &assets = AssetManager::instance();
-
+    Config &config = Config::instance();
+    this->max_view_distance = config.getInt("Game", "max_view_distance", 160000);
     this->counter = 0;
 
     RSPalette palette;
-    Config &config = Config::instance();
+    
     TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
     if (entries) {
         palette.initFromFileRam(entries->data, entries->size);    
@@ -359,7 +359,8 @@ void SCRenderer::init(int width, int height) {
     // glClearDepth(1.0f);								// Depth Buffer Setup
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
-    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, MAX_VIEW_DISTANCE + MAX_VIEW_DISTANCE*0.25f);
+
+    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, 300000.0f);
 
     light.SetWithCoo(300, 300, 300);
     initialized = true;
@@ -1447,7 +1448,7 @@ void SCRenderer::renderSkydome(int rings, int slices) {
     glDepthMask(GL_TRUE);
     glDisable(GL_CULL_FACE);
 
-    const float radius = MAX_VIEW_DISTANCE * 0.98f;
+    const float radius = this->max_view_distance * 0.98f;
     Point3D cam = camera.getPosition();
 
     // ── Palette : horizon blanc → ciel bleu ─────────────────────────────
@@ -1608,8 +1609,8 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     GLfloat fogColor[4] = {0.89f, 0.89f, 0.98f, 1.0f};
     glFogi(GL_FOG_MODE, GL_LINEAR);
     glFogfv(GL_FOG_COLOR, fogColor);
-    glFogf(GL_FOG_START, MAX_VIEW_DISTANCE * 0.40f); // début du fondu
-    glFogf(GL_FOG_END,   MAX_VIEW_DISTANCE * 0.93f); // finit AVANT le dôme
+    glFogf(GL_FOG_START, this->max_view_distance * 0.40f); // début du fondu
+    glFogf(GL_FOG_END,   this->max_view_distance * 0.93f); // finit AVANT le dôme
     glHint(GL_FOG_HINT, GL_DONT_CARE);
     glEnable(GL_FOG);
 
@@ -1637,7 +1638,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
         float block_cz = ((float)by - (float)BLOCK_PER_MAP_SIDE_DIV_2) * (float)BLOCK_WIDTH + (float)BLOCK_WIDTH * 0.5f;
         float dx = pos.x - block_cx;
         float dz = pos.z - block_cz;
-        if (dx*dx + dz*dz > (float)MAX_VIEW_DISTANCE * (float)MAX_VIEW_DISTANCE)
+        if (dx*dx + dz*dz > (float)this->max_view_distance * (float)this->max_view_distance)
             continue;
         const AABB& box = computeBlockAABB(area, LOD, i);
         if (isAABBVisible(box, frustum))

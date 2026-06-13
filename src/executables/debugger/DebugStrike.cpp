@@ -893,6 +893,7 @@ void DebugStrike::renderMenu() {
     static bool show_textures = false;
     static bool show_music_player = false;
     static bool show_ai = false;
+    static bool show_visual_config = false;
 
     static bool show_offcam = false;
     static bool show_load_plane = false;
@@ -916,6 +917,7 @@ void DebugStrike::renderMenu() {
         ImGui::MenuItem("Load plane", NULL, &show_load_plane);
         ImGui::MenuItem("Radar", NULL, &show_radar);
         ImGui::MenuItem("Show Textures", NULL, &show_textures);
+        ImGui::MenuItem("Visual config", NULL, &show_visual_config);
         ImGui::EndMenu();
     }
     int sceneid = -1;
@@ -926,6 +928,14 @@ void DebugStrike::renderMenu() {
                 this->player_plane->tps, this->current_mission->mission->mission_data.name.c_str(),
                 this->miss_file_name.c_str(), area_id);
 
+    if (show_visual_config) {
+        ImGui::Begin("Visual Config", &show_visual_config);
+        ImGui::Text("Visual Config");
+        ImGui::Text("Max view distance");
+        SCRenderer &renderer = SCRenderer::getInstance();
+        ImGui::SliderFloat("Max view distance", &renderer.max_view_distance, 1000.0f, 300000.0f, "%.1f");
+        ImGui::End();
+    }
     if (show_textures) {
         this->showTextures();
     }
