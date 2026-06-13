@@ -98,6 +98,7 @@ public:
     float max_view_distance{160000.0f};
     int lodLevel{0};
     GLuint texture{0};
+    bool is_textured{true};
     SCRenderer();
     ~SCRenderer();
 

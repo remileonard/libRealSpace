@@ -2011,7 +2011,7 @@ void SCStrike::runFrame(void) {
 
     auto renderScene = [&](int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit) {
         Renderer.bindCameraProjectionAndViewViewport(viewportW, viewportH, projVerticalOffset);
-        Renderer.renderWorldSolid(area, BLOCK_LOD_MAX, 400);
+        Renderer.renderWorldSolid(area, this->world_lod, 400);
 
         if (this->show_bbox) {
             for (auto rrarea: this->current_mission->mission->mission_data.areas) {

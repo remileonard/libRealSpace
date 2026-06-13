@@ -164,6 +164,7 @@ protected:
     bool zoom_cockpit{false};
     void renderVirtualF16Cockpit();
     void renderVirtualF22Cockpit();
+    int world_lod{BLOCK_LOD_MAX};
 public:
     float verticalOffset{0.45f};
     /**

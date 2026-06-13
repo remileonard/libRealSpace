@@ -744,11 +744,11 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
         if (triangle->property == RSEntity::SC_TRANSPARENT)
             continue;
         float alpha = 1.0f;
-        if (triangle->property == 6) {
+        if (triangle->property == 6 && this->is_textured) {
             continue;
             
         }
-        if (triangle->property == 9) {
+        if (triangle->property == 9 && this->is_textured) {
             continue;
         }
         bool twoSided = false;
@@ -804,11 +804,11 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
             if (triangle->property == RSEntity::SC_TRANSPARENT)
                 continue;
             float alpha = 1.0f;
-            if (triangle->property == 6) {
+            if (triangle->property == 6 && this->is_textured) {
                 continue;
                 
             }
-            if (triangle->property == 9) {
+            if (triangle->property == 9 && this->is_textured) {
                 continue;
                 
             }
@@ -1138,7 +1138,9 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
 
     drawModelColorPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
 
-    drawModelTexturePass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    if (this->is_textured) {
+        drawModelTexturePass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    }
     
     drawModelTransparentPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
     
@@ -1328,15 +1330,15 @@ void SCRenderer::renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, Ma
                             MapVertex *bottomVertex, RSArea *area, bool renderTexture) {
 
     if (!renderTexture) {
-        if (currentVertex->lowerImageID == 0xFF) {
+        if (currentVertex->lowerImageID == 0xFF || !this->is_textured) {
             // Render lower triangle
             renderColoredTriangle(currentVertex, bottomRightVertex, bottomVertex);
         }
-        if (currentVertex->upperImageID == 0xFF) {
+        if (currentVertex->upperImageID == 0xFF || !this->is_textured) {
             // Render Upper triangles
             renderColoredTriangle(currentVertex, rightVertex, bottomRightVertex);
         }
-    } else {
+    } else if (this->is_textured){
 
         if (currentVertex->lowerImageID != 0xFF) {
             VertexVector &vcache = textureSortedVertex[currentVertex->lowerImageID];
