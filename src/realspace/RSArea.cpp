@@ -360,11 +360,8 @@ void RSArea::ParseHeightMap(void) {
     ParseBlocks(BLOCK_LOD_MIN, entry, 5);
 
     BuildSkirts();
-    Config &cfg = Config::getInstance();
-    bool clouds_enabled = cfg.getBool("Game", "clouds_enabled", false);
-    if (clouds_enabled) {
-        generateClouds(100, 15000, BLOCK_PER_MAP_SIDE * BLOCK_WIDTH);
-    }
+    generateClouds(100, 15000, BLOCK_PER_MAP_SIDE * BLOCK_WIDTH);
+    
 }
 
 RSImage *RSArea::GetImageByID(size_t ID) { return textures[0]->GetImageById(ID); }

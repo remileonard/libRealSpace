@@ -352,6 +352,7 @@ void SCRenderer::init(int width, int height) {
     this->lodLevel = config.getInt("Game", "object_detail", 0);
     this->show_textured = config.getBool("Game", "show_texture", true);
     this->show_fog = config.getBool("Game", "show_fog", true);
+    this->show_clouds = config.getBool("Game", "clouds_enabled", false);
     this->width = width;
     this->height = height;
 
@@ -360,10 +361,13 @@ void SCRenderer::init(int width, int height) {
     glDisable(GL_DEPTH_TEST); // Disable Depth Testing
     glShadeModel(GL_SMOOTH);
 
-    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, 300000.0f);
+    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, this->max_view_distance+this->max_view_distance*0.2f);
 
     light.SetWithCoo(300, 300, 300);
     initialized = true;
+}
+void SCRenderer::resetCameraPerspective() {
+    camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, this->max_view_distance+this->max_view_distance*0.2f);
 }
 
 void SCRenderer::setClearColor(uint8_t red, uint8_t green, uint8_t blue) {
@@ -1610,9 +1614,10 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     this->renderWorldSkyAndGround();
-    this->renderClouds(area);
-    /**/
-    // Active culling pour le terrain
+    if (this->show_clouds) {
+        this->renderClouds(area);
+    }
+    
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     textureSortedVertex.clear();

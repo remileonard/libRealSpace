@@ -95,9 +95,10 @@ public:
     static bool hasInstance() { return (bool)s_instance; }
     float verticalOffset{0.45f};
     float fov{45.0f};
-    float max_view_distance{160000.0f};
+    int max_view_distance{160000};
     bool show_fog{true};
     bool show_textured{true};
+    bool show_clouds{false};
     int lodLevel{0};
     GLuint texture{0};
     
@@ -107,7 +108,7 @@ public:
     void init(int width, int height);
 
     void clear(void);
-
+    void resetCameraPerspective();
     void drawParticle(Vector3D pos, float alpha);
 
     void drawModel(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation, Vector3D ajustement,

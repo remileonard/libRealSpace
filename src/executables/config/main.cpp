@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
     int max_view_distance = config.getInt("Game", "max_view_distance", 300000);
     bool show_texture = config.getBool("Game", "show_texture", true);
     bool show_fog     = config.getBool("Game", "show_fog", true);
+    bool clouds_enabled = config.getBool("Game", "clouds_enabled", false);
     // [Video]
     bool fx_cpc_palette  = config.getBool("Video", "fx_cpc_palette", false);
     bool fx_scanlines    = config.getBool("Video", "fx_scanlines", false);
