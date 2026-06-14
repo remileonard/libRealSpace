@@ -4,7 +4,7 @@
 #include <chrono>
 #include <thread>
 
-#define TARGET_FPS 30.0f
+#define TARGET_FPS 90.0f
 class VRTimer : public Timer {
 public:
     VRTimer() {
