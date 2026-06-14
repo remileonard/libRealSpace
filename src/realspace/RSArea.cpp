@@ -7,6 +7,7 @@
 //
 
 #include "RSArea.h"
+#include "../engine/Config.hpp"
 #include "../engine/SCRenderer.h"
 #include <cmath>
 
@@ -359,6 +360,11 @@ void RSArea::ParseHeightMap(void) {
     ParseBlocks(BLOCK_LOD_MIN, entry, 5);
 
     BuildSkirts();
+    Config &cfg = Config::getInstance();
+    bool clouds_enabled = cfg.getBool("Game", "clouds_enabled", false);
+    if (clouds_enabled) {
+        generateClouds(100, 15000, BLOCK_PER_MAP_SIDE * BLOCK_WIDTH);
+    }
 }
 
 RSImage *RSArea::GetImageByID(size_t ID) { return textures[0]->GetImageById(ID); }
@@ -665,7 +671,32 @@ void RSArea::parseTERA_TXMS_MAPS(uint8_t *data, size_t size) {
         printf("Texture Set Ref [%3zu] 0x0x%X[%-8s] %02X (%2u files).\n", i, fastID, setName, unknown, numImages);
     }
 }
+void RSArea::generateClouds(int count, float altitude, float spread) {
+    clouds.clear();
+    srand(42);
 
+    for (int i = 0; i < count; ++i) {
+        Cloud c;
+        c.position.x = ((rand() % 2000) - 1000) / 1000.0f * spread;
+        c.position.y = altitude + ((rand() % 200) - 100);
+        c.position.z = ((rand() % 2000) - 1000) / 1000.0f * spread;
+        c.alpha = 0.65f + (rand() % 30) / 100.0f;
+
+        int puffCount = 4 + rand() % 4; // 4 à 7 puffs par nuage
+        for (int p = 0; p < puffCount; ++p) {
+            CloudPuff puff;
+            float baseR = (rand() % 8000) + (rand() % 6000);
+            puff.ox = ((rand() % 20000) - 10000);
+            puff.oy = ((rand() % 400));
+            puff.oz = ((rand() % 20000) - 10000);
+            puff.rx = baseR * (0.8f + (rand()%80)/100.0f);
+            puff.ry = baseR * 0.45f;
+            puff.rz = baseR * (0.8f + (rand()%80)/100.0f);
+            c.puffs.push_back(puff);
+        }
+        clouds.push_back(c);
+    }
+}
 void RSArea::BuildSkirts() {
     skirts_.tris.clear();
     if (BLOCKS_PER_MAP == 0) return;

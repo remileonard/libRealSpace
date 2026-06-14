@@ -1526,83 +1526,72 @@ void SCRenderer::renderSkydome(int rings, int slices) {
 
     if (fogWasEnabled) glEnable(GL_FOG);
 }
+void SCRenderer::renderEllipsoid(float cx, float cy, float cz, float rx, float ry, float rz, int rings, int slices, float r, float g, float b, float baseAlpha) {
+    for (int ring = 0; ring < rings; ++ring) {
+        float phi0 = (float)M_PI * ring / rings - (float)M_PI_2;
+        float phi1 = (float)M_PI * (ring + 1) / rings - (float)M_PI_2;
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int s = 0; s <= slices; ++s) {
+            float theta = 2.0f * (float)M_PI * s / slices;
+            float cosT = cosf(theta), sinT = sinf(theta);
+
+            for (int pass = 0; pass < 2; ++pass) {
+                float phi = (pass == 0) ? phi0 : phi1;
+                float cosPhi = cosf(phi), sinPhi = sinf(phi);
+                // Dégradé : bas transparent, haut opaque
+                float t = (sinPhi + 1.0f) * 0.5f;
+                glColor4f(r, g, b, baseAlpha * t);
+                glVertex3f(cx + rx * cosPhi * cosT,
+                           cy + ry * sinPhi,
+                           cz + rz * cosPhi * sinT);
+            }
+        }
+        glEnd();
+    }
+}
+void SCRenderer::renderClouds(RSArea *area) {
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);  // ou GL_LEQUAL sans depth write
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    Point3D cam = camera.getPosition();
+
+    // Trier back-to-front pour l'alpha blending correct
+    std::vector<const Cloud*> sorted;
+    for (auto& c : area->clouds) sorted.push_back(&c);
+    std::sort(sorted.begin(), sorted.end(), [&](const Cloud* a, const Cloud* b) {
+        float da = (a->position.x-cam.x)*(a->position.x-cam.x)
+                 + (a->position.z-cam.z)*(a->position.z-cam.z);
+        float db = (b->position.x-cam.x)*(b->position.x-cam.x)
+                 + (b->position.z-cam.z)*(b->position.z-cam.z);
+        return da > db; // plus loin d'abord
+    });
+
+    for (const Cloud* c : sorted) {
+        for (const auto& p : c->puffs) {
+            this->renderEllipsoid(
+                c->position.x + p.ox,
+                c->position.y + p.oy,
+                c->position.z + p.oz,
+                p.rx, p.ry, p.rz,
+                6, 12,           // rings, slices (peu de polys = perf ok)
+                1.0f, 1.0f, 1.0f, // blanc
+                c->alpha
+            );
+        }
+    }
+
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+}
 void SCRenderer::renderWorldSkyAndGround() {
-    /*static const float max_int = (BLOCK_WIDTH * BLOCK_PER_MAP_SIDE)*2;
-    static const float max_height = 60000.0f;
-    static const float min_height = -2000.0f;
-
-    GLfloat skycolor[2][3] = {
-        {150.0f / 255.0f, 150.0f / 255.0f, 250.0f / 255.0f},
-        {100.0f / 255.0f, 100.0f / 255.0f, 200.0f / 255.0f},
-    };
-
-    float ground_min{-1000.1f};
-    glBegin(GL_QUADS);
-    glColor3f(0.0f,0.4f,0.0f);
-    glVertex3f(-max_int, ground_min, -max_int);
-    glVertex3f(max_int, ground_min, -max_int);
-    glVertex3f(max_int, ground_min, max_int);
-    glVertex3f(-max_int, ground_min, max_int);
-    glEnd();
-    glBegin(GL_QUADS);
-    // sol
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(-max_int, min_height, -max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(max_int, min_height, -max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(max_int, min_height, max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(-max_int, min_height, max_int);
-
-    // ciel
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(-max_int, max_height, -max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(max_int, max_height, -max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(max_int, max_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(-max_int, max_height, max_int);
-
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(-max_int, min_height, max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(max_int, min_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(max_int, max_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(-max_int, max_height, max_int);
-
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(-max_int, min_height, -max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(max_int, min_height, -max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(max_int, max_height, -max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(-max_int, max_height, -max_int);
-
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(-max_int, min_height, -max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(-max_int, min_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(-max_int, max_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(-max_int, max_height, -max_int);
-
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(max_int, min_height, -max_int);
-    glColor3f(skycolor[0][0], skycolor[0][1], skycolor[0][2]);
-    glVertex3f(max_int, min_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(max_int, max_height, max_int);
-    glColor3f(skycolor[1][0], skycolor[1][1], skycolor[1][2]);
-    glVertex3f(max_int, max_height, -max_int);
-
-    glEnd();*/
     this->renderSkydome(12, 48);
+
 }
 
 void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
@@ -1621,6 +1610,7 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     this->renderWorldSkyAndGround();
+    this->renderClouds(area);
     /**/
     // Active culling pour le terrain
     glEnable(GL_CULL_FACE);

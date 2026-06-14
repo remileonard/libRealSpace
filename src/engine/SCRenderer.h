@@ -133,9 +133,9 @@ public:
     void uploadTextureContentToGPU(Texture *texture);
     void deleteTextureInGPU(Texture *texture);
     void drawTexturedQuad(Vector3D pos, Vector3D orientation,  std::vector<Vector3D> quad, Texture *tex);
-
+    void renderEllipsoid(float cx, float cy, float cz, float rx, float ry, float rz, int rings, int slices, float r, float g, float b, float baseAlpha);
     VGAPalette *getPalette(void);
-
+    void renderClouds(RSArea *area);
     // Map Rendering
 
     void renderTexturedTriangle(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2, RSArea *area, int triangleType,

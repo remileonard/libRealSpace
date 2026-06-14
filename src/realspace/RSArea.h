@@ -24,6 +24,18 @@ typedef struct MapObject{
     
 } MapObject;
 
+struct CloudPuff {
+    float ox, oy, oz;   // offset relatif au centre du nuage
+    float rx, ry, rz;   // demi-axes de l'ellipsoïde
+};
+
+struct Cloud {
+    Vector3D position;           // centre monde (altitude fixe)
+    std::vector<CloudPuff> puffs;
+    float alpha;
+};
+
+
 typedef struct AreaBlock{
     
     size_t width;
@@ -107,11 +119,13 @@ public:
     //Per block objects list
     std::vector<MapObject> objects;
     std::vector<AreaOverlay> objectOverlay;
+    std::vector<Cloud> clouds;
     float elevation[BLOCKS_PER_MAP];
 	TreArchive *tre;
     float getGroundLevel(int BLOC, float x, float y);
     float getY(float x, float z);
     void BuildSkirts();                  // pré-calcul des jupes (une fois après ParseHeightMap)
+    void generateClouds(int count, float altitude, float spread);
     const PrecomputedSkirts& GetSkirts() const { return skirts_; }
 private:
     AssetManager &assetsManager = AssetManager::getInstance();
