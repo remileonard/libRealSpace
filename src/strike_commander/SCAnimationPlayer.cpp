@@ -241,12 +241,6 @@ void SCAnimationPlayer::runFrame(void){
             FrameBuffer *texture = new FrameBuffer(320, 200);
             texture->fillWithColor(255);
             texture->drawShape(shp);
-            shp = chara->image->GetShape(chara->head_id);
-            texture->drawShape(shp);
-            shp = chara->image->GetShape(chara->cloth_id);
-            texture->drawShape(shp);
-            shp = chara->image->GetShape(chara->expression_id);
-            texture->drawShape(shp);
             if (chara->talking) {
                 static int talk_frame = 0;
                 if (fpsupdate) {
@@ -255,6 +249,12 @@ void SCAnimationPlayer::runFrame(void){
                 shp = chara->image->GetShape(3+talk_frame);
                 texture->drawShape(shp);
             }
+            shp = chara->image->GetShape(chara->head_id);
+            texture->drawShape(shp);
+            shp = chara->image->GetShape(chara->cloth_id);
+            texture->drawShape(shp);
+            shp = chara->image->GetShape(chara->expression_id);
+            texture->drawShape(shp);
             fb->blitWithMask(texture->framebuffer, chara->position_start.x, chara->position_start.y, 320, 200,255);
             delete texture;
         }

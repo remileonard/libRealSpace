@@ -1563,9 +1563,16 @@ void SCRenderer::renderClouds(RSArea *area) {
 
     Point3D cam = camera.getPosition();
 
+
     // Trier back-to-front pour l'alpha blending correct
     std::vector<const Cloud*> sorted;
-    for (auto& c : area->clouds) sorted.push_back(&c);
+    for (auto& c : area->clouds) {
+        if (c.position.x < cam.x - this->max_view_distance || c.position.x > cam.x + this->max_view_distance ||
+            c.position.z < cam.z - this->max_view_distance || c.position.z > cam.z + this->max_view_distance) {
+            continue; // trop loin
+        }
+        sorted.push_back(&c);
+    }
     std::sort(sorted.begin(), sorted.end(), [&](const Cloud* a, const Cloud* b) {
         float da = (a->position.x-cam.x)*(a->position.x-cam.x)
                  + (a->position.z-cam.z)*(a->position.z-cam.z);
