@@ -247,6 +247,14 @@ void SCAnimationPlayer::runFrame(void){
             texture->drawShape(shp);
             shp = chara->image->GetShape(chara->expression_id);
             texture->drawShape(shp);
+            if (chara->talking) {
+                static int talk_frame = 0;
+                if (fpsupdate) {
+                    talk_frame = (talk_frame + 1) % 10;
+                }
+                shp = chara->image->GetShape(3+talk_frame);
+                texture->drawShape(shp);
+            }
             fb->blitWithMask(texture->framebuffer, chara->position_start.x, chara->position_start.y, 320, 200,255);
             delete texture;
         }

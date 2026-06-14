@@ -528,8 +528,20 @@ void DebugAnimationPlayer::renderInsertShotButton(size_t shotIndex, float &xOffs
 
             // Share the image pointer since characters use ConvAssetManager
             newChar->image = character->image;
+            newChar->talking = character->talking;
 
             newShot->characters.push_back(newChar);
+        }
+
+        for (auto *textLine : shot->textes) {
+            MIDGAME_TEXT_LINE *newTextLine = new MIDGAME_TEXT_LINE();
+            newTextLine->color = textLine->color;
+            newTextLine->id = textLine->id;
+            newTextLine->position_end = textLine->position_end;
+            newTextLine->position_start = textLine->position_start;
+            newTextLine->font_id = textLine->font_id;
+            newTextLine->color = textLine->color;
+            newShot->textes.push_back(newTextLine);
         }
         size_t insertPos = isBeforeShot ? shotIndex : shotIndex + 1;
         this->midgames_shots[1].insert(this->midgames_shots[1].begin() + insertPos, newShot);
@@ -606,6 +618,9 @@ void DebugAnimationPlayer::deleteShotAtIndex(size_t shotIndex) {
             character->image = nullptr;
         delete character;
     }
+    for (auto *textLine : shotToDelete->textes) {
+        delete textLine;
+    }
 
     delete shotToDelete;
 
@@ -622,6 +637,7 @@ void DebugAnimationPlayer::deleteShotAtIndex(size_t shotIndex) {
         this->p_sprite_editor = nullptr;
         this->p_foreground_editor = nullptr;
         this->p_character_editor = nullptr;
+        this->p_textline_editor = nullptr;
     }
 }
 
@@ -651,6 +667,7 @@ void DebugAnimationPlayer::addNewCharacter(MIDGAME_SHOT *shot) {
     newChara->cloth_id = 0;
     newChara->expression_id = 0;
     newChara->head_id = 0;
+    newChara->talking = false;
     newChara->character_name.clear();
     shot->characters.push_back(newChara);
     selectEditorElement(nullptr, nullptr, nullptr, newChara, nullptr, nullptr);
@@ -1104,6 +1121,10 @@ void DebugAnimationPlayer::editMidGameShotCharacter(MIDGAME_SHOT_CHARACTER *char
         if (expression_id < 0)
             expression_id = 0;
         chara->expression_id = expression_id;
+    }
+    bool talking = chara->talking;
+    if (ImGui::Checkbox("Talking", &talking)) {
+        chara->talking = talking;
     }
     ImGui::Separator();
     ImGui::Text("Preview du character");
