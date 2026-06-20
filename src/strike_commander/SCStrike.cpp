@@ -954,12 +954,14 @@ void SCStrike::checkKeyboard(void) {
     if (this->camera_mode == View::AUTO_PILOT) {
         return;
     }
-    if (this->mouse_control) {
-        this->player_plane->control_stick_x = msx;
-        this->player_plane->control_stick_y = msy;
-    } else {
-        this->player_plane->control_stick_x = 0;
-        this->player_plane->control_stick_y = 0;
+    if (!this->autopilot) {
+        if (this->mouse_control) {
+            this->player_plane->control_stick_x = msx;
+            this->player_plane->control_stick_y = msy;
+        } else {
+            this->player_plane->control_stick_x = 0;
+            this->player_plane->control_stick_y = 0;
+        }
     }
     if (this->camera_mode == View::REAL) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;

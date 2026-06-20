@@ -650,7 +650,7 @@ void SCMission::update() {
         ai_actor->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
         ai_actor->attack_pos_offset.y = 0.0f; // Same altitude
     
-        ai_actor->pilot->AutoPilot();
+        ai_actor->pilot->FlyTo();
         
         Vector3D npos;
         ai_actor->plane->getPosition(&npos);

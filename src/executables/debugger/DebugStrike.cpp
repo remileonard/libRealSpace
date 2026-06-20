@@ -52,7 +52,7 @@ void DebugStrike::simInfo() {
 
     ImGui::Text("Pitch %.3f, Yaw %.3f, roll %.3f", this->player_plane->elevationf, this->player_plane->azimuthf,
                 this->player_plane->twist);
-    ImGui::Text("Pich input %.3f, Roll input %d, Yaw input %.3f", this->player_plane->elevation_speedf, this->player_plane->roll_speed, this->player_plane->azimuth_speedf);
+    ImGui::Text("Pich speed %.3f, Roll speed %.3f, Yaw speed %.3f", this->player_plane->elevation_speedf, this->player_plane->roll_speed, this->player_plane->azimuth_speedf);
     ImGui::Text("CCIRP pitch[%.3f] yaw[%.3f]", this->player_plane->m_pitch_var, this->player_plane->m_yaw_var);
     ImGui::Text("Y %.3f, On ground %d", this->player_plane->y, this->player_plane->on_ground);
     ImGui::Text("flight [roller:%4f, elevator:%4f, rudder:%4f]", this->player_plane->rollers,
@@ -249,6 +249,7 @@ void DebugStrike::simConfig() {
     static int throttle = 0;
     static int speed = 0;
     static bool go_to_nav = false;
+    static bool go_autopilot = false;
     ImGui::DragInt("set altitude", &altitude, 100, 0, 30000);
     ImGui::DragInt("set throttle", &throttle, 10, 0, 100);
     ImGui::DragInt("set azimuth", &azimuth, 1, 0, 360);
@@ -274,11 +275,12 @@ void DebugStrike::simConfig() {
     }
     ImGui::SameLine();
     ImGui::PushID(1);
-    if (this->autopilot) {
+    if (go_autopilot) {
         this->pilot.target_speed = -speed;
         this->pilot.target_climb = altitude;
         this->pilot.target_azimut = (float)azimuth * 10.0f;
-        this->pilot.AutoPilot();
+        this->autopilot = true;
+        this->pilot.FlyTo();
         ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(120.0f / 355.0f, 100.0f / 100.0f, 60.0f / 100.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.8f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.7f));
@@ -289,7 +291,12 @@ void DebugStrike::simConfig() {
     }
     if (ImGui::Button("Autopilot")) {
         this->pilot.plane = this->player_plane;
-        this->autopilot = !this->autopilot;
+        go_autopilot = !go_autopilot;
+        if (go_autopilot) {
+            this->autopilot = true;
+        } else {
+            this->autopilot = false;
+        }
         go_to_nav = false;
     }
     ImGui::PopStyleColor(3);
@@ -298,8 +305,9 @@ void DebugStrike::simConfig() {
     if (go_to_nav) {
         this->pilot.plane = this->player_plane;
         this->pilot.target_speed = -speed;
+        this->autopilot = true;
         this->pilot.SetTargetWaypoint(this->current_mission->waypoints[this->nav_point_id]->spot->position);
-        this->pilot.AutoPilot();
+        this->pilot.FlyTo();
         ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(120.0f / 355.0f, 100.0f / 100.0f, 60.0f / 100.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.8f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.7f));
@@ -313,7 +321,12 @@ void DebugStrike::simConfig() {
         this->pilot.plane = this->player_plane;
         this->pilot.SetTargetWaypoint(this->current_mission->waypoints[this->nav_point_id]->spot->position);
         go_to_nav = !go_to_nav;
-        this->autopilot = false;
+        if (go_to_nav) {
+            this->autopilot = true;
+        } else {
+            this->autopilot = false;
+        }
+        go_autopilot = false;
     }
     ImGui::PopStyleColor(3);
     ImGui::PopID();
