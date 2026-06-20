@@ -86,3 +86,29 @@ float InvSqrt(float x);
 float tenthOfDegreeToRad(float angle);
 float degreeToRad(float angle);
 float radToDegree(float angle);
+
+float norm3600(float angle) {
+    while (angle >= 3600.0f) {
+        angle -= 3600.0f;
+    }
+    while (angle < 0.0f) {
+        angle += 3600.0f;
+    }
+    return angle;
+};
+float signed1800(float angle) {
+    while (angle > 1800.0f) {
+        angle -= 3600.0f;
+    }
+    while (angle < -1800.0f) {
+        angle += 3600.0f;
+    }
+    return angle;
+};
+float signedRoll(float roll) {
+    roll = norm3600(roll);
+    if (roll > 1800.0f) {
+        roll -= 3600.0f;
+    }
+    return roll;
+};
