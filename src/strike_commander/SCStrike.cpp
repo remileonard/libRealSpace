@@ -989,7 +989,9 @@ void SCStrike::checkKeyboard(void) {
                 Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
             }
         }
-        this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
+        if (this->player_plane->GetThrottle() < 100) {
+            this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
+        }
         if (this->current_mission->sound.sounds.size() > 0) {
             if (!Mixer.isSoundPlaying(5)) {
                 if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
@@ -1004,7 +1006,9 @@ void SCStrike::checkKeyboard(void) {
     }
     
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_DOWN))) {
-        this->player_plane->SetThrottle(this->player_plane->GetThrottle() - 1);
+        if (this->player_plane->GetThrottle() > -30) {
+            this->player_plane->SetThrottle(this->player_plane->GetThrottle() - 1);
+        }
         if (this->player_plane->GetThrottle() == 0) {
             if (!Mixer.isSoundPlaying(5)) {
                 if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
