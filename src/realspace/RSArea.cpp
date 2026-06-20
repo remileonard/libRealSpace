@@ -10,7 +10,15 @@
 #include "../engine/Config.hpp"
 #include "../engine/SCRenderer.h"
 #include <cmath>
+#include <random>
+std::mt19937 rng(42);
 
+int randInt (int max) {
+    return std::uniform_int_distribution<int>(0, max - 1)(rng);
+}
+float randFloat(float min, float max) {
+    return std::uniform_real_distribution<float>(min, max)(rng);
+}
 
 RSArea::RSArea() {
 
@@ -360,7 +368,7 @@ void RSArea::ParseHeightMap(void) {
     ParseBlocks(BLOCK_LOD_MIN, entry, 5);
 
     BuildSkirts();
-    generateClouds(rand()%500, 15000, 15.0f);
+    generateClouds(randInt(500), 15000, 15.0f);
     
 }
 
@@ -670,44 +678,38 @@ void RSArea::parseTERA_TXMS_MAPS(uint8_t *data, size_t size) {
 }
 void RSArea::generateClouds(int count, float altitude, float spread) {
     clouds.clear();
-    srand(42);
+
     int m_width = BLOCK_PER_MAP_SIDE * BLOCK_WIDTH;
     int halfWidth = m_width / 2;
     for (int i = 0; i < count; ++i) {
         Cloud c;
-        c.position.x = ((rand() % m_width) - halfWidth);
-        c.position.y = altitude + ((rand() % 2000) - 1000);
-        c.position.z = ((rand() % m_width) - halfWidth);
-        c.alpha = 0.70f + (rand() % 25) / 100.0f;
+        c.position.x = randInt(m_width) - halfWidth;
+        c.position.y = altitude + randInt(10000) - 10000;
+        c.position.z = randInt(m_width) - halfWidth;
+        c.alpha = randFloat(0.70f, 0.95f);
 
-        // Empreinte horizontale du nuage
-        float cloudRadius = 1200.0f + (rand() % 6000);
+        float cloudRadius = randFloat(1200.0f, 7200.0f);
 
-        int puffCount = 7 + rand() % 5; // 7 à 11 puffs
+        int puffCount = 7 + randInt(5);
         for (int p = 0; p < puffCount; ++p) {
             CloudPuff puff;
-
-            // Placement polaire biaisé vers le centre (dist² = plus dense au centre)
-            float angle = (rand() % 6284) / 1000.0f; // 0..2π
-            float dist  = (rand() % 1000) / 1000.0f;
-            dist = dist * dist; // biais centre
+            float angle = randFloat(0.0f, 6.284f);
+            float dist  = randFloat(0.0f, 1.0f);
+            dist = dist * dist;
 
             puff.ox = cosf(angle) * dist * cloudRadius;
             puff.oz = sinf(angle) * dist * cloudRadius;
 
-            // Forme dôme : les puffs centraux montent plus haut (cauliflower)
-            float centerFactor = 1.0f - dist; // 1 au centre, 0 au bord
+            float centerFactor = 1.0f - dist;
             puff.oy = centerFactor * centerFactor * cloudRadius * 0.55f;
 
-            // Taille : plus grand au centre, ±30% aléatoire
             float puffR = cloudRadius * (0.38f + centerFactor * 0.42f);
-            puffR *= 0.75f + (rand() % 50) / 100.0f;
+            puffR *= randFloat(0.75f, 1.25f);
 
-            // rx/rz légèrement asymétriques pour casser la symétrie
-            float stretch = 0.75f + (rand() % 50) / 100.0f; // 0.75..1.25
+            float stretch = randFloat(0.75f, 1.25f);
             puff.rx = puffR * stretch;
             puff.rz = puffR / stretch;
-            puff.ry = puffR * (0.28f + (rand() % 15) / 100.0f); // aplati (~30%)
+            puff.ry = puffR * randFloat(0.28f, 0.43f);
 
             c.puffs.push_back(puff);
         }
