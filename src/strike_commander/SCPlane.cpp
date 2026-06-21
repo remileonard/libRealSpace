@@ -78,7 +78,6 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
         this->x - this->last_px, this->y - this->last_py,
         this->z - this->last_pz
     };
-    float planeSpeed = direction.Length();
     
     if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
         if (target->plane != nullptr) {
@@ -89,24 +88,22 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
         }
     }
     
-    float thrustMagnitude = -planeSpeed;
     
     // Ajuster le thrust selon le type d'arme
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
-        case 12: // Gun
-            thrustMagnitude = planeSpeed * 250.0f * (this->tps / 60.0f);
+        case weapon_ids::ID_20MM:
+            initial_trust = this->getWeaponIntialVector(1000.0f);
             break;
-        case 5:
-        case 6: // Bombs
-            thrustMagnitude = planeSpeed * 50.0f * (this->tps / 60.0f);
+        case weapon_ids::ID_MK20:
+        case weapon_ids::ID_MK82:
+        case weapon_ids::ID_DURANDAL:
+            initial_trust = this->getWeaponIntialVector(1.0f);
             break;
-        default: // Missiles
-            thrustMagnitude = planeSpeed * 100.0f * (this->tps / 60.0f);
+        default:
+            initial_trust = this->getWeaponIntialVector(1.0f);
             break;
     }
-    
-    initial_trust = this->forward * thrustMagnitude;
-    
+    float thrustMagnitude = initial_trust.Length();
     
     // Prédiction pour les tirs IA comme dans Shoot()
     if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
@@ -216,6 +213,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
             break;
         case weapon_ids::ID_MK20:
         case weapon_ids::ID_MK82:
+        case weapon_ids::ID_DURANDAL:
             weap = new GunSimulatedObject();
             if (this->pilot->mission->sound.sounds.size() > 0) {
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
