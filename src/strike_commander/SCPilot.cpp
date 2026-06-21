@@ -359,16 +359,25 @@ void SCPilot::FlyTo() {
     bank_limit = std::clamp(bank_limit, 250.0f, 600.0f);
     if (this->actor != nullptr &&
         this->actor->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET) {
-        bank_limit = std::clamp(bank_limit * 1.25f, 250.0f, 800.0f);
+        bank_limit = std::clamp(bank_limit * 1.25f, 250.0f, 900.0f);
     }
 
     // Angle de bank vise (convention roll_signed) : virer a droite => bank NEGATIF.
-    const float HEADING_DEADZONE = 15.0f; // 1.5 deg : cap considere atteint
-    float bank_cmd = std::clamp(heading_err * 2.5f, -bank_limit, bank_limit);
-    if (fabsf(heading_err) < HEADING_DEADZONE) {
-        bank_cmd = 0.0f; // cap atteint -> ailes a plat (roll-out)
-    }
+        const float HEADING_DEADZONE = 15.0f; // 1.5 deg : cap considere atteint
 
+    // --- Serrage du virage : par le ROULIS (le tangage ne sert qu'a l'altitude) ---
+    float turn_demand = std::clamp((fabsf(heading_err) - HEADING_DEADZONE) / 250.0f, 0.0f, 1.0f);
+    float g_scale = this->plane->object->entity->jdyn->MAX_G / 10.0f;
+    float skill   = (this->actor && this->actor->profile)
+                  ? (this->actor->profile->ai.atrb.AA / 16.0f) : 0.5f;
+
+    // On incline davantage pour tourner plus fort (la portance sup. part a l'horizontale).
+    float extra_bank = 250.0f * turn_demand * g_scale * (0.6f + 0.8f * skill);
+    float hard_bank_limit = std::clamp(bank_limit + extra_bank, 250.0f, 850.0f);
+    float bank_cmd = std::clamp(heading_err * 2.5f, -hard_bank_limit, hard_bank_limit);
+    if (fabsf(heading_err) < HEADING_DEADZONE) {
+        bank_cmd = 0.0f;
+    }
     if (bank_cmd < -1.0f) {
         this->turnState = TURN_RIGHT;
     } else if (bank_cmd > 1.0f)  {
@@ -395,19 +404,13 @@ void SCPilot::FlyTo() {
     float vario_cmd = std::clamp(alt_err * 0.08f, -150.0f, 200.0f);
     float vario_err = vario_cmd - this->plane->vy;
 
-    // ============ G DE VIRAGE : tirer pour resserrer une fois incline ============
-    // Plus on est incline et plus il reste de cap, plus on tire (sur-portance -> vx -> yaw).
-    float bank_ratio    = fabsf(roll_signed) / 900.0f;                 // 0 a plat, 1 a 90 deg
-    float turn_demand   = std::clamp((fabsf(heading_err) - HEADING_DEADZONE) / 250.0f, 0.0f, 1.0f);
-    float g_scale = this->plane->object->entity->jdyn->MAX_G / 10.0f;
-    float skill   = (this->actor && this->actor->profile) ? (this->actor->profile->ai.atrb.AA / 16.0f) : 0.5f;
-    float turn_g_pull = 250.0f * bank_ratio * turn_demand * g_scale * (0.6f + 0.8f * skill);
-    float pitch_cmd = 1.35f * vario_err
-                    + fabsf(roll_signed) * 0.055f   // tenue d'altitude en virage (existant)
-                    + turn_g_pull;                  // surcharge volontaire pour serrer
-
-    pitch_cmd = std::clamp(pitch_cmd, -220.0f, 420.0f); // plafond haut releve pour autoriser le pull
-
+    // Feed-forward de facteur de charge : tirer juste ce qu'il faut pour tenir
+    // l'altitude a l'inclinaison courante => pas de montee parasite.
+    float bank_rad       = tenthOfDegreeToRad(fabsf(roll_signed));
+    float load_factor_ff = 1.0f / std::max(0.20f, cosf(bank_rad)) - 1.0f;
+    float pitch_cmd = 1.35f * vario_err + load_factor_ff * 120.0f;
+    pitch_cmd = std::clamp(pitch_cmd, -220.0f, 320.0f);
+    
     float pitch_err = pitch_cmd - this->plane->pitch;
     float desired_pitch_speed = 0.6f * pitch_err - 2.00f * this->plane->pitch_speed;
 
