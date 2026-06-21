@@ -363,13 +363,12 @@ void SCPilot::FlyTo() {
     }
 
     // Angle de bank vise (convention roll_signed) : virer a droite => bank NEGATIF.
-        const float HEADING_DEADZONE = 15.0f; // 1.5 deg : cap considere atteint
+    const float HEADING_DEADZONE = 15.0f; // 1.5 deg : cap considere atteint
 
     // --- Serrage du virage : par le ROULIS (le tangage ne sert qu'a l'altitude) ---
     float turn_demand = std::clamp((fabsf(heading_err) - HEADING_DEADZONE) / 250.0f, 0.0f, 1.0f);
     float g_scale = this->plane->object->entity->jdyn->MAX_G / 10.0f;
-    float skill   = (this->actor && this->actor->profile)
-                  ? (this->actor->profile->ai.atrb.AA / 16.0f) : 0.5f;
+    float skill   = (this->actor && this->actor->profile) ? (this->actor->profile->ai.atrb.AA / 16.0f) : 0.5f;
 
     // On incline davantage pour tourner plus fort (la portance sup. part a l'horizontale).
     float extra_bank = 250.0f * turn_demand * g_scale * (0.6f + 0.8f * skill);
