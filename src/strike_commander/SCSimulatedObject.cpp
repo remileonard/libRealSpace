@@ -114,8 +114,10 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     float deltaTime = 1.0f / (float)tps;
 
     float thrust = 0.0f;
+    float mps = MAX_VELOCITY;  // Vitesse maximale par défaut
     if (this->obj->dynn_miss != nullptr) {
-        thrust = (float)this->obj->dynn_miss->velovity_m_per_sec * 1000.0f;
+        mps = this->obj->dynn_miss->velovity_m_per_sec;
+        thrust = (mps * mps * 0.5f * this->obj->weight_in_kg) / this->obj->wdat->effective_range;
     }
 
     Vector3D position = { this->x, this->y, this->z };
@@ -145,8 +147,8 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
 
     float lift_y = lift_force.y;
     float gravity_y = this->weight * GRAVITY;
-    printf("[LIFT DEBUG] lift=%.2f < gravity=%.2f (deficit=%.2f) speed_mps=%.1f y=%.1f\n",
-            lift_y, gravity_y, gravity_y - lift_y, speed_mps, this->y);
+    printf("[LIFT DEBUG] lift=%.2f < gravity=%.2f (deficit=%.2f) max_speed=%.1f, speed_mps=%.1f thrust=%.1f, y=%.1f\n",
+            lift_y, gravity_y, gravity_y - lift_y, mps, speed_mps, thrust, this->y);
     if (this->guidance && this->target != nullptr && speed > 1.0f) {
         // Direction vers la cible
         Vector3D to_target_dir = (to_target - position);
@@ -204,7 +206,7 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
 
     Vector3D total_force = gravity_force + drag_force + lift_force + thrust_force + steer_force;
     Vector3D acceleration = total_force * (1.0f / this->weight);
-    velocity = (velocity + (acceleration * deltaTime)).limit(MAX_VELOCITY * deltaTime);
+    velocity = (velocity + (acceleration * deltaTime)).limit(mps * deltaTime);
     position = position + velocity;
 
     this->run_iterations++;
