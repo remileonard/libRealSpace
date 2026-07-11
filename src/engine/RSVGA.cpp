@@ -12,7 +12,9 @@
 #include "../realspace/RSPalette.h"
 #include "SDL2/SDL_opengl_glext.h"
 // Ajouter après la fonction applyEagle2x existante
-
+static inline uint8_t clampu8i(int v) {
+    return (uint8_t)((v < 0) ? 0 : (v > 255 ? 255 : v));
+}
 // Fonction auxiliaire pour comparer deux couleurs (utilisée par SuperEagle)
 bool colorEqual(uint32_t c1, uint32_t c2, int threshold = 0) {
     if (c1 == c2) return true;
@@ -177,12 +179,17 @@ RSVGA::~RSVGA() {
         free(this->upscaled_framebuffer);
     }
 }
+
 void RSVGA::init(int width, int height) {
     this->width = width;
     this->height = height;
     AssetManager &assets = AssetManager::instance();
     Config &config = Config::instance();
     this->upscale = config.getBool("Video", "super_eagle_2x", false);
+    
+    this->widescreen_ambilight = config.getBool("Video", "widescreen_ambilight", true);
+    this->ambilight_sample_width = config.getInt("Video", "ambilight_sample_width", 12);
+    
     RSPalette palette;
     TreEntry *entries = (TreEntry *)assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
     
@@ -211,6 +218,13 @@ void RSVGA::init(int width, int height) {
     uint8_t *data = (uint8_t *)calloc(1, 320 * 200 * 4);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 320, 200, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     free(data);
+
+    glGenTextures(1, &sideTextureID);
+    glBindTexture(GL_TEXTURE_2D, sideTextureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void RSVGA::activate(void) {
@@ -273,53 +287,182 @@ void RSVGA::fadeOut(int steps, int delayMs) {
     displayBuffer((uint32_t *)data, 320, 200);
 }
 
-void RSVGA::displayBuffer(uint32_t *buffer, int width, int height) {
-    int w = (int) ((float) this->height * (4.0f/3.0f));
-    int x = (this->width - w) /2;
-    glViewport(x,0,w,this->height);
-    glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
-    glLoadIdentity();            // Reset The Projection Matrix
-    glOrtho(0, width, 0, height, -10, 10);
-    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-    glLoadIdentity();
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-    glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-    if (this->upscale)  {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-    } else {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+void RSVGA::displayBuffer(uint32_t *buffer, int bufferWidth, int bufferHeight) {
+    if (buffer == nullptr || bufferWidth <= 0 || bufferHeight <= 0) {
+        return;
     }
+
+    // Viewport central conservant le ratio 4:3.
+    int gameWidth = (int)((float)this->height * (4.0f / 3.0f));
+
+    // Si la fenêtre est plus étroite que le rendu 4:3,
+    // on évite tout viewport négatif.
+    if (gameWidth > this->width) {
+        gameWidth = this->width;
+    }
+
+    int sideWidth = (this->width - gameWidth) / 2;
+    int gameX = sideWidth;
+
+    // Configuration de la projection logique.
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, bufferWidth, 0, bufferHeight, -10, 10);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
+
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // La texture principale est téléversée une seule fois par frame.
+    if (this->upscale) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    } else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA,
+        bufferWidth,
+        bufferHeight,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        buffer
+    );
+
+    // ---------------------------------------------------------
+    // Bandes latérales rapides.
+    //
+    // On étire uniquement une petite portion des bords de la
+    // texture centrale. GL_LINEAR adoucit automatiquement le
+    // résultat. Aucun buffer CPU supplémentaire n'est utilisé.
+    // ---------------------------------------------------------
+    if (widescreen_ambilight && sideWidth > 0) {
+        int edgePixels = ambilight_sample_width;
+
+        if (edgePixels < 1) {
+            edgePixels = 1;
+        }
+
+        if (edgePixels > bufferWidth / 4) {
+            edgePixels = bufferWidth / 4;
+        }
+
+        float edgeU = (float)edgePixels / (float)bufferWidth;
+
+        float alpha = ambilight_intensity;
+
+        if (alpha < 0.0f) {
+            alpha = 0.0f;
+        }
+
+        if (alpha > 1.0f) {
+            alpha = 1.0f;
+        }
+
+        // Les bandes utilisent le filtrage linéaire.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // -----------------------------------------------------
+        // Bande gauche.
+        // On étire les premières colonnes de la texture.
+        // -----------------------------------------------------
+        glViewport(0, 0, sideWidth, this->height);
+
+        glColor4f(1.0f, 1.0f, 1.0f, alpha);
+
+        glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 1.0f);
+            glVertex2d(0, 0);
+
+            glTexCoord2f(edgeU, 1.0f);
+            glVertex2d(bufferWidth, 0);
+
+            glTexCoord2f(edgeU, 0.0f);
+            glVertex2d(bufferWidth, bufferHeight);
+
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex2d(0, bufferHeight);
+        glEnd();
+
+        // -----------------------------------------------------
+        // Bande droite.
+        // On étire les dernières colonnes de la texture.
+        // -----------------------------------------------------
+        glViewport(gameX + gameWidth, 0, sideWidth, this->height);
+
+        glColor4f(1.0f, 1.0f, 1.0f, alpha);
+
+        glBegin(GL_QUADS);
+            glTexCoord2f(1.0f - edgeU, 1.0f);
+            glVertex2d(0, 0);
+
+            glTexCoord2f(1.0f, 1.0f);
+            glVertex2d(bufferWidth, 0);
+
+            glTexCoord2f(1.0f, 0.0f);
+            glVertex2d(bufferWidth, bufferHeight);
+
+            glTexCoord2f(1.0f - edgeU, 0.0f);
+            glVertex2d(0, bufferHeight);
+        glEnd();
+    }
+
+    // La texture principale est téléversée une seule fois par frame.
+    if (this->upscale) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    } else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+    // ---------------------------------------------------------
+    // Image centrale 4:3.
+    // ---------------------------------------------------------
+    glViewport(gameX, 0, gameWidth, this->height);
+
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     glBegin(GL_QUADS);
-    glTexCoord2f(0, 1);
-    glVertex2d(0, 0);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex2d(0, 0);
 
-    glTexCoord2f(1, 1);
-    glVertex2d(width, 0);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex2d(bufferWidth, 0);
 
-    glTexCoord2f(1, 0);
-    glVertex2d(width, height);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex2d(bufferWidth, bufferHeight);
 
-    glTexCoord2f(0, 0);
-    glVertex2d(0, height);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex2d(0, bufferHeight);
     glEnd();
 
+    // Restaurer un état OpenGL raisonnable.
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
     glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
 }
 
 void RSVGA::vSync(void) {

@@ -49,6 +49,8 @@ int main(int argc, char* argv[]) {
     int  fx_pixel_scale  = config.getInt ("Video", "fx_pixel_scale", 1);
     bool super_eagle_2x  = config.getBool("Video", "super_eagle_2x", true);
     bool fx_fxaa         = config.getBool("Video", "fx_fxaa", true);
+    bool widescreen_ambilight = config.getBool("Video", "widescreen_ambilight", true);
+    int ambilight_sample_width = config.getInt("Video", "ambilight_sample_width", 1);
 
     DebugControlMapping controlMapping;
     GameEngine::setInstance(std::make_unique<GameEngine>());
@@ -134,6 +136,9 @@ int main(int argc, char* argv[]) {
                     ImGui::InputInt("Pixel Scale",   &fx_pixel_scale);
                     ImGui::Checkbox("FXAA",           &fx_fxaa);
                     ImGui::Checkbox("Super Eagle 2x",&super_eagle_2x);
+                    ImGui::Checkbox("Widescreen Ambilight", &widescreen_ambilight);
+                    ImGui::SliderInt("Ambilight Sample Width", &ambilight_sample_width, 1, 10);
+
                 }
 
                 ImGui::Separator();
@@ -151,6 +156,8 @@ int main(int argc, char* argv[]) {
                     config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);
                     config.setBool("Video",  "super_eagle_2x",  super_eagle_2x);
                     config.setBool("Video",  "fx_fxaa",          fx_fxaa);
+                    config.setBool("Video",  "widescreen_ambilight", widescreen_ambilight);
+                    config.setInt ("Video",  "ambilight_sample_width", ambilight_sample_width);
                     config.save(configPath);
                 }
                 ImGui::SameLine();

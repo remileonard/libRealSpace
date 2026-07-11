@@ -29,11 +29,10 @@ void SCSimulatedObject::Render() {
 
     Vector3D position = { this->x, this->y, this->z };
     Vector3D orientaton = { this->azimuthf, this->elevationf, 0.0f };
-
+    
     Renderer.drawModel(this->obj, position, orientaton);
     
-    if (this->obj->dynn_miss != nullptr && this->obj->dynn_miss->velovity_m_per_sec > 0) {
-    
+    if (this->obj->dynn_miss != nullptr) {
         int cpt=0;
         int nb_smoke = (int) this->smoke_positions.size();
         int cpt_smoke = 0;
@@ -107,6 +106,10 @@ Vector3D SCSimulatedObject::calculate_lift(Vector3D velocity) {
 
     // Le lift compense exactement la gravité (indépendant de ro[] et de CL)
     float lift_magnitude = this->weight * GRAVITY;
+    if (this->no_thrust) {
+        lift_magnitude = 0;
+    }
+    
     return lift_dir * (lift_magnitude / lift_dir_len);
 }
 std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
@@ -118,6 +121,10 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     if (this->obj->dynn_miss != nullptr) {
         mps = this->obj->dynn_miss->velovity_m_per_sec;
         thrust = (mps * mps * 0.5f * this->obj->weight_in_kg) / this->obj->wdat->effective_range;
+    }
+    if (this->no_thrust) {
+        thrust = 0;
+        this->no_gravity = false;
     }
 
     Vector3D position = { this->x, this->y, this->z };
@@ -261,7 +268,16 @@ void SCSimulatedObject::Simulate(int tps) {
             }
         }
     }
-    this->smoke_positions.insert(this->smoke_positions.begin(), position);
+    float dist;
+    Vector3D pos = {
+        this->x,
+        this->y,
+        this->z
+    };
+    dist = (this->shooter->plane->position - pos).Length();
+    if (dist > 20) {
+        this->smoke_positions.insert(this->smoke_positions.begin(), position);
+    }
     if (this->smoke_positions.size() > 20) {
         this->smoke_positions.pop_back();
     }
@@ -285,23 +301,7 @@ void SCSimulatedObject::Simulate(int tps) {
     Vector3D length_vect = { this->x - this->last_px, this->y - this->last_py, this->z - this->last_pz };
     this->distance += length_vect.Length();
     if (this->distance > this->obj->wdat->effective_range && this->obj->dynn_miss != nullptr) {
-        this->alive = false;
-        if (!this->is_simulated) {
-            this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-            if (this->mission->sound.sounds.size() > 0) {
-                MemSound *sound;
-                if (this->obj->entity_type == EntityType::tracer) {
-                    sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                } else {
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                }
-                Mixer.playSoundVoc(sound->data, sound->size);
-            }
-        }
-    } else if (this->distance > this->obj->wdat->effective_range && !no_gravity) {
-        if (this->obj->dynn_miss != nullptr) {
-            this->obj->dynn_miss->velovity_m_per_sec = 0;
-        }
+        this->no_thrust = true;
     }
     if (this->y < this->mission->area->getY(this->x, this->z)) {
         if (!this->is_simulated) {

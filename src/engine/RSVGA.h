@@ -1,11 +1,3 @@
-//
-//  VGA.h
-//  libRealSpace
-//
-//  Created by Fabien Sanglard on 1/27/2014.
-//  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
-//
-
 #pragma once
 #ifdef _WIN32
 #include <Windows.h>
@@ -40,18 +32,35 @@ private:
     inline static std::unique_ptr<RSVGA> s_instance{};
     void displayBuffer(uint32_t* buffer, int width, int height);
     RSScreen *Screen = &RSScreen::instance();
+
+    // --- Widescreen Ambilight ---
+    uint32_t sideTextureID{0};
+    uint32_t *left_side_buffer{nullptr};
+    uint32_t *right_side_buffer{nullptr};
+    int side_buffer_w{0};
+    int side_buffer_h{0};
+
 public:
     bool upscale{false};
-    
+
+    // toggle ambilight widescreen fill
+    bool widescreen_ambilight{true};
+    // largeur d'échantillonnage sur les bords source (en px)
+    int ambilight_sample_width{12};
+    // rayon du flou horizontal
+    int ambilight_blur_radius{4};
+    // assombrissement des bandes (0.0 = noir, 1.0 = pleine intensité)
+    float ambilight_intensity{0.55f};
+
     static RSVGA& getInstance() {
         if (!RSVGA::hasInstance()) {
             RSVGA::setInstance(std::make_unique<RSVGA>());
         }
         RSVGA& instance = RSVGA::instance();
         return instance;
-    };    
+    };
     static RSVGA& instance() {
-        return *s_instance; 
+        return *s_instance;
     }
     static void setInstance(std::unique_ptr<RSVGA> inst) {
         s_instance = std::move(inst);
@@ -74,12 +83,11 @@ public:
     void redistributionCouleurs();
     void restaurerPalette();
     void interpolerPalettes(VGAPalette* palette1, VGAPalette* palette2, float facteur);
-    
+
     float contrastFactor = 1.0f;
     float brightnessFactor = 1.0f;
     uint8_t tintR = 0;
     uint8_t tintG = 0;
     uint8_t tintB = 0;
     float tintIntensity = 0.0f;
-
 };
