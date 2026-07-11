@@ -8,6 +8,22 @@
 #include <SDL_opengl.h>
 #include <string>
 
+static std::string _labelPrefix(const char* const label)
+{
+	float width = ImGui::CalcItemWidth();
+
+	float x = ImGui::GetCursorPosX();
+	ImGui::Text(label); 
+	ImGui::SameLine(); 
+	ImGui::SetCursorPosX(x + width * 0.5f + ImGui::GetStyle().ItemInnerSpacing.x);
+	ImGui::SetNextItemWidth(-1);
+
+	std::string labelID = "##";
+	labelID += label;
+
+	return labelID;
+}
+
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -16,7 +32,7 @@ int main(int argc, char* argv[]) {
 
     SDL_Window* window = SDL_CreateWindow("Config Editor",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        500, 400, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+        500, 550, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1);
@@ -103,7 +119,7 @@ int main(int argc, char* argv[]) {
             if (ImGui::BeginTabItem("General")) {
                 if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen)) {
                     // Construire les labels à la volée
-                    if (ImGui::BeginCombo("Resolution", 
+                    if (ImGui::BeginCombo(_labelPrefix("Resolution").c_str(), 
                         (std::to_string(resolutions[selectedRes].w) + "x" +
                         std::to_string(resolutions[selectedRes].h)).c_str()))
                     {
@@ -121,23 +137,23 @@ int main(int argc, char* argv[]) {
                         }
                         ImGui::EndCombo();
                     }
-                    ImGui::Checkbox("Fullscreen", &fullscreen);
+                    ImGui::Checkbox(_labelPrefix("Fullscreen").c_str(), &fullscreen);
                 }
                 if (ImGui::CollapsingHeader("Game", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::SliderInt("Object Detail", &object_detail, 0, 2);
-                    ImGui::SliderInt("World Detail",  &world_detail,  0, 2);
-                    ImGui::SliderInt("Max view distance", &max_view_distance, 10000, 300000);
-                    ImGui::Checkbox("Show Texture", &show_texture);
-                    ImGui::Checkbox("Show Fog", &show_fog);
+                    ImGui::SliderInt(_labelPrefix("Object Detail").c_str(), &object_detail, 0, 2);
+                    ImGui::SliderInt(_labelPrefix("World Detail").c_str(),  &world_detail,  0, 2);
+                    ImGui::SliderInt(_labelPrefix("Max view distance").c_str(), &max_view_distance, 10000, 300000);
+                    ImGui::Checkbox(_labelPrefix("Show Texture").c_str(), &show_texture);
+                    ImGui::Checkbox(_labelPrefix("Show Fog").c_str(), &show_fog);
                 }
                 if (ImGui::CollapsingHeader("Video", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::Checkbox("CPC Palette",   &fx_cpc_palette);
-                    ImGui::Checkbox("Scanlines",     &fx_scanlines);
-                    ImGui::InputInt("Pixel Scale",   &fx_pixel_scale);
-                    ImGui::Checkbox("FXAA",           &fx_fxaa);
-                    ImGui::Checkbox("Super Eagle 2x",&super_eagle_2x);
-                    ImGui::Checkbox("Widescreen Ambilight", &widescreen_ambilight);
-                    ImGui::SliderInt("Ambilight Sample Width", &ambilight_sample_width, 1, 10);
+                    ImGui::Checkbox(_labelPrefix("CPC Palette").c_str(),   &fx_cpc_palette);
+                    ImGui::Checkbox(_labelPrefix("Scanlines").c_str(),     &fx_scanlines);
+                    ImGui::SliderInt(_labelPrefix("Pixel Scale").c_str(),   &fx_pixel_scale, 1, 4);
+                    ImGui::Checkbox(_labelPrefix("FXAA").c_str(),           &fx_fxaa);
+                    ImGui::Checkbox(_labelPrefix("Super Eagle 2x").c_str(),&super_eagle_2x);
+                    ImGui::Checkbox(_labelPrefix("Widescreen Ambilight").c_str(), &widescreen_ambilight);
+                    ImGui::SliderInt(_labelPrefix("Ambilight Sample Width").c_str(), &ambilight_sample_width, 1, 10);
 
                 }
 
