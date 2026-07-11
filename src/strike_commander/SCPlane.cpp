@@ -273,7 +273,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     weap->vx = initial_trust.x;
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
-    weap->weight = this->weaps_load[weapon_hard_point_id]->objct->weight_in_kg * 2.205f;
+    weap->weight = this->weaps_load[weapon_hard_point_id]->objct->weight_in_kg;
     weap->target = target;
     
     // Décrémenter le nombre d'armes disponibles
@@ -1228,6 +1228,34 @@ Vector3D SCPlane::getWeaponIntialVector(float speedFactor) {
     return planeVelocity + this->forward * speedFactor;
 
 }
+Vector3D SCPlane::applyGunSpread(Vector3D velocity, float spreadDeg) {
+    float speed = velocity.Length();
+    if (speed < 1e-4f) return velocity;
+    Vector3D dir = velocity * (1.0f / speed);
+
+    // Base orthonormée (right, up) perpendiculaire à 'dir'
+    Vector3D worldUp = {0.0f, 1.0f, 0.0f};
+    Vector3D right = worldUp.CrossProduct(&dir);
+    if (right.Length() < 1e-4f) {
+        worldUp = {1.0f, 0.0f, 0.0f};
+        right = worldUp.CrossProduct(&dir);
+    }
+    right.Normalize();
+    Vector3D up = dir.CrossProduct(&right);
+    up.Normalize();
+
+    float spreadRad = spreadDeg * (float)M_PI / 180.0f;
+
+    // Angle de déviation dans [0, spreadRad] et direction de déviation sur le cercle
+    float randAngle = std::fabs(mrandom(1000) / 1000.0f) * spreadRad;
+    float randRot   = (mrandom(1000) / 1000.0f) * (float)M_PI; // couvre [-π, π] = cercle complet
+
+    Vector3D deviated_dir = dir * cosf(randAngle)
+                           + (right * cosf(randRot) + up * sinf(randRot)) * sinf(randAngle);
+    deviated_dir.Normalize();
+
+    return deviated_dir * speed;
+}
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
     weap_loadout = this->weaps_load[weapon_hard_point_id];
@@ -1255,7 +1283,9 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
         case ID_20MM:
             weap = new GunSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1000.0f); // coefficient ajustable
+            initial_trust = this->applyGunSpread(initial_trust, 0.4f); // ~0.4° de dispersion
             this->wp_cooldown = 3; // Cooldown between two shots
+
         break;
         case ID_MK20:
         case ID_MK82:

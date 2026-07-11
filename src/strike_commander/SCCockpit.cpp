@@ -366,7 +366,7 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     weap->vx = initial_trust.x;
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
-    weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg * 2.205f;
+    weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg;
     weap->azimuthf = this->player_plane->azimuthf;
     weap->elevationf = this->player_plane->elevationf;
     weap->target = nullptr;
@@ -604,7 +604,7 @@ void SCCockpit::RenderStraffingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     weap->vx = initial_trust.x;
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
-    weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg * 2.205f;
+    weap->weight = this->player_plane->weaps_load[0]->objct->weight_in_kg;
     weap->azimuthf = this->player_plane->azimuthf;
     weap->elevationf = this->player_plane->elevationf;
     weap->target = nullptr;
@@ -706,7 +706,7 @@ void SCCockpit::RenderBombSight(FrameBuffer *fb, Point2D hudTopLeft, Point2D hud
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
 
-    weap->weight = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->weight_in_kg * 2.205f;
+    weap->weight = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->weight_in_kg;
     weap->azimuthf = this->player_plane->yaw;
     weap->elevationf = this->player_plane->pitch;
     weap->target = nullptr;

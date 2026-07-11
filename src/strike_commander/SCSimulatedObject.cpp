@@ -32,7 +32,7 @@ void SCSimulatedObject::Render() {
     
     Renderer.drawModel(this->obj, position, orientaton);
     
-    if (this->obj->dynn_miss != nullptr) {
+    if (this->obj->dynn_miss != nullptr && this->no_thrust == false) {
         int cpt=0;
         int nb_smoke = (int) this->smoke_positions.size();
         int cpt_smoke = 0;
@@ -74,9 +74,10 @@ Vector3D SCSimulatedObject::calculate_drag(Vector3D velocity) {
     float speed_per_tick = velocity.Length();
     if (speed_per_tick < EPSILON) return { 0.0f, 0.0f, 0.0f };
 
-    float speed_mps = speed_per_tick * tps;  // cohérent avec calculate_lift
+    float speed_mps = speed_per_tick * tps;
 
-    int itemp = ((int)this->y) >> 10;
+    float altitude_ft = this->y * 3.28084f;      // y est en mètres
+    int itemp = (int)(altitude_ft / 1000.0f);
     if (itemp > 74) itemp = 74;
     else if (itemp < 0) itemp = 0;
 
@@ -107,7 +108,7 @@ Vector3D SCSimulatedObject::calculate_lift(Vector3D velocity) {
     // Le lift compense exactement la gravité (indépendant de ro[] et de CL)
     float lift_magnitude = this->weight * GRAVITY;
     if (this->no_thrust) {
-        lift_magnitude = 0;
+        lift_magnitude = lift_magnitude * 0.98f; // Réduire le lift si pas de poussée
     }
     
     return lift_dir * (lift_magnitude / lift_dir_len);
@@ -274,8 +275,13 @@ void SCSimulatedObject::Simulate(int tps) {
         this->y,
         this->z
     };
-    dist = (this->shooter->plane->position - pos).Length();
-    if (dist > 20) {
+    if (this->shooter->plane != nullptr) {
+        dist = (this->shooter->plane->position - pos).Length();
+    } else {
+        dist = (this->shooter->object->position - pos).Length();
+    }
+    
+    if (dist > 30 && this->no_thrust == false) {
         this->smoke_positions.insert(this->smoke_positions.begin(), position);
     }
     if (this->smoke_positions.size() > 20) {
@@ -439,15 +445,10 @@ void GunSimulatedObject::Simulate(int tps) {
 void GunSimulatedObject::Render() {
     if (this->obj->vertices.size() == 0) {
         Vector3D pos = {this->x, this->y, this->z};
-        Vector3D end = {this->vx, this->vy, this->vz};
-        if (this->smoke_positions.size() >= 1) {
-            end = this->smoke_positions[0];
-            end = end - pos;
-        }
-        end.Normalize();
-        end = end * 20.0f;
-        Vector3D color = {1.0f, 1.0f, 0.0f};
-        Renderer.drawLine(pos, end, color);
+        Vector3D dir =  {this->vx, this->vy, this->vz};
+        dir.Normalize();
+        Vector3D color = {1.0f, 0.85f, 0.3f}; // jaune-orangé typique d'un traceur
+        Renderer.drawTracer(pos, dir, 20.0f /*longueur monde*/, 3.0f /*largeur en px*/, color, 0.9f);
     } else {
         Vector3D pos = {this->x, this->y, this->z};
         Vector3D orient = {this->azimuthf, this->elevationf, 0.0f};

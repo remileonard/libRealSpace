@@ -38,7 +38,7 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
     this->sim_object->vx = velocity.x;
     this->sim_object->vy = velocity.y;
     this->sim_object->vz = velocity.z;
-    this->sim_object->weight = obj->weight_in_kg * 2.205f;
+    this->sim_object->weight = obj->weight_in_kg;
     
     // Sauvegarder les valeurs initiales
     float init_x = position.x;

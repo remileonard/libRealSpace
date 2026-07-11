@@ -155,7 +155,7 @@ protected:
     RSMixer &Mixer = RSMixer::getInstance();
      // Stocke le prédicteur de trajectoire
     SCWeaponPredictor* weapon_predictor = nullptr;
-    
+    Vector3D applyGunSpread(Vector3D velocity, float spreadDeg);
     // Trajectoire actuellement affichée
     bool is_showing_trajectory{false};
     int trajectory_display_counter{0};

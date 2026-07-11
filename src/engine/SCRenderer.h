@@ -128,6 +128,7 @@ public:
     void drawModelTexturePass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawModelTransparentPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawBillboard(Vector3D pos, Texture *tex, float size, float alpha = 1.0f);
+    void drawTracer(Vector3D pos, Vector3D velocityDir, float length, float pixelWidth, Vector3D color, float alpha);
     void displayModel(RSEntity *object, size_t lodLevel);
      
     void createTextureInGPU(Texture *texture);

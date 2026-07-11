@@ -596,13 +596,77 @@ void SCRenderer::drawLine(Vector3D start, Vector3D end, Vector3D color, Vector3D
 void SCRenderer::drawLine(Vector3D start, Vector3D end, Vector3D color) {
     glPushMatrix();
     glTranslatef(start.x, start.y, start.z);
-    glLineWidth(2.2f);
+    glLineWidth(10.0f);
     glBegin(GL_LINES);
     glColor3f(color.x, color.y, color.z);
     glVertex3f(0.0f,0.0f,0.0f);
     glVertex3f(end.x, end.y, end.z);
     glEnd();
     glPopMatrix();
+}
+void SCRenderer::drawTracer(Vector3D pos, Vector3D velocityDir, float length, float pixelWidth, Vector3D color, float alpha) {
+    if (!initialized) return;
+
+    Point3D camPos = camera.getPosition();
+    Vector3D look = { camPos.x - pos.x, camPos.y - pos.y, camPos.z - pos.z };
+    float dist = look.Length();
+    if (dist < 1e-4f) return;
+    look = look * (1.0f / dist);
+
+    float dirLen = velocityDir.Length();
+    if (dirLen < 1e-4f) return;
+    Vector3D dir = velocityDir * (1.0f / dirLen);
+
+    // Composante de 'dir' perpendiculaire à 'look' (foreshortening naturel)
+    float dotLook = dir.DotProduct(&look);
+    Vector3D upRaw = dir - look * dotLook;
+    float upRawLen = upRaw.Length();          // dans [0,1]: 1 = perpendiculaire à la vue, 0 = dans l'axe de vue
+
+    Vector3D up;
+    if (upRawLen > 1e-4f) {
+        up = upRaw * (1.0f / upRawLen);
+    } else {
+        // Direction quasi-nulle après projection: n'importe quelle base orthogonale convient,
+        // car halfLen sera ~0 (le trait sera visuellement un point).
+        Vector3D worldUp = {0.0f, 1.0f, 0.0f};
+        up = worldUp - look * worldUp.DotProduct(&look);
+        float l = up.Length();
+        up = (l > 1e-4f) ? up * (1.0f / l) : Vector3D{1.0f, 0.0f, 0.0f};
+    }
+
+    Vector3D right = up.CrossProduct(&look);
+    right.Normalize();
+
+    float fovRad = this->fov * (float)M_PI / 180.0f;
+    float halfWidth = (pixelWidth * dist * tanf(fovRad * 0.5f)) / (this->height * 0.5f);
+
+    // La longueur visible dépend de l'angle entre la trajectoire et l'axe de vue (foreshortening réel)
+    float halfLen = (length * 0.5f) * upRawLen;
+    if (halfLen < halfWidth) halfLen = halfWidth; // garde un minimum "point" visible
+
+    Vector3D rOff = right * halfWidth;
+    Vector3D uOff = up * halfLen;
+
+    Vector3D front = pos + uOff;
+    Vector3D back  = pos - uOff;
+
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glDepthMask(GL_FALSE);
+
+    glBegin(GL_QUADS);
+    glColor4f(color.x, color.y, color.z, alpha);
+    glVertex3f(back.x  - rOff.x, back.y  - rOff.y, back.z  - rOff.z);
+    glVertex3f(back.x  + rOff.x, back.y  + rOff.y, back.z  + rOff.z);
+    glVertex3f(front.x + rOff.x, front.y + rOff.y, front.z + rOff.z);
+    glVertex3f(front.x - rOff.x, front.y - rOff.y, front.z - rOff.z);
+    glEnd();
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
 }
 void SCRenderer::drawSprite(Vector3D pos, Texture *tex, float zoom) {
     size_t cpt=0;
