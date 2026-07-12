@@ -224,9 +224,8 @@ void VRScreen::renderImGuiToTexture() {
     xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage(imgui)");
     
     // Sauvegarder l'état OpenGL complet
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glPushAttrib(GL_VIEWPORT_BIT | GL_SCISSOR_BIT | GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_TRANSFORM_BIT);
     glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-    
     GLint oldFbo = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &oldFbo);
     
@@ -1480,7 +1479,6 @@ void VRScreen::refresh(void) {
 		glReadBuffer(GL_BACK);
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, dstX, dstY, srcX, srcY, copyW, copyH);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glFlush();
 	}
 
 	XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
