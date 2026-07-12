@@ -221,6 +221,12 @@ bool SCSimulatedObject::CheckCollision(SCMissionActors *entity) {
     if (entity == shooter) {
         return false;
     }
+    if (entity->is_destroyed) {
+        return false;
+    }
+    if (entity->object->alive == false) {
+        return false;
+    }
     bb = entity->object->entity->GetBoudingBpx();
     if (bb != nullptr) {
         if (this->x >= targetPos.x + bb->min.x && this->x <= targetPos.x + bb->max.x &&
