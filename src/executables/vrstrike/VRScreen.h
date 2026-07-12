@@ -27,6 +27,7 @@ extern "C" {
 #include <vector>
 
 #include "../../commons/Matrix.h"
+#include "vrtimer.h"
 
 // OpenXR: types Win32 + OpenGL
 #if defined(_WIN32)
@@ -41,7 +42,7 @@ extern "C" {
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
-class VRScreen: public RSScreen{
+class VRScreen: public RSScreen, public IVRFrameDriver {
 private:
     // --- OpenXR state ---
     XrInstance m_xrInstance{XR_NULL_HANDLE};
@@ -105,7 +106,6 @@ private:
 
     int64_t m_colorSwapchainFormat{0};
 
-    // ...existing code...
     bool m_showTimingDebug = true;
     
     // Historique pour graphiques
@@ -142,6 +142,21 @@ private:
     XrPosef m_imguiPanelPose = {{0,0,0,1}, {0,0,0}};
     bool m_imguiPoseValid = false;
 
+    // --- Cycle de frame XR centralisé ---
+    XrFrameState m_currentFrameState{XR_TYPE_FRAME_STATE};  // état de la frame du tick
+    bool m_frameStarted{false};      // entre xrBeginFrame et xrEndFrame
+    bool m_frameShouldRender{false}; // copie de frameState.shouldRender
+
+    // Throttle ImGui (panneau debug : pas besoin de 90 Hz).
+    uint32_t m_imguiFrameDivider{3};
+    uint32_t m_imguiFrameCounter{0};
+
+    // Helpers internes.
+    void presentStereoFrame();   // mode 3D (projection)
+    void presentCinemaFrame();   // mode cinéma (quad)
+    void endFrameNoLayers();     // xrEndFrame 0 layer (défensif)
+    void updateImguiPanelPose(XrTime predictedDisplayTime);
+    void buildImguiQuadLayer(XrCompositionLayerQuad& outQuad) const;
 
 public:
     
@@ -181,4 +196,6 @@ public:
                         Matrix& outProjection,
                         Matrix& outView);
     void endStereoFrame();
+    bool xrBeginTickFrame(XrTime& predictedDisplayTime, bool& shouldRender) override;
+    bool xrSessionActive() const override { return m_sessionRunning; }
 };

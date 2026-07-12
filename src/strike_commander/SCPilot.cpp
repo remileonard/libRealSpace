@@ -406,7 +406,7 @@ void SCPilot::FlyTo() {
     // Feed-forward de facteur de charge : tirer juste ce qu'il faut pour tenir
     // l'altitude a l'inclinaison courante => pas de montee parasite.
     float bank_rad       = tenthOfDegreeToRad(fabsf(roll_signed));
-    float load_factor_ff = 1.0f / std::max(0.20f, cosf(bank_rad)) - 1.0f;
+    float load_factor_ff = 1.0f / (std::max)(0.20f, cosf(bank_rad)) - 1.0f;
     float pitch_cmd = 1.35f * vario_err + load_factor_ff * 120.0f;
     pitch_cmd = std::clamp(pitch_cmd, -220.0f, 320.0f);
     

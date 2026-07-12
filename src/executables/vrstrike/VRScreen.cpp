@@ -163,7 +163,10 @@ void VRScreen::setTitle(const char* title) {
 void VRScreen::init(int width, int height, bool fullscreen) {
 	// 1) Initialiser SDL + créer le contexte OpenGL via l'impl existante.
 	RSScreen::init(width, height, false);
-	GameTimer::getInstance().setTimer(std::make_unique<VRTimer>());
+
+    auto timer = std::make_unique<VRTimer>();
+    timer->setFrameDriver(this);              // <-- le timer pilotera xrWaitFrame
+    GameTimer::getInstance().setTimer(std::move(timer));
 
 	// 2) Initialiser ImGui
     IMGUI_CHECKVERSION();
@@ -285,9 +288,6 @@ void VRScreen::renderImGuiToTexture() {
         ImGui::Render();
         ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
     }
-    
-    glFlush();
-    glFinish();
     
 cleanup:
     // Restaurer matrices
@@ -987,15 +987,14 @@ void VRScreen::ensureStereoFbo(int32_t w, int32_t h) {
 }
 
 bool VRScreen::vrPrepareStereoFrame(bool& outShouldRender) {
-	if (!m_hasGlFbo) {
-		outShouldRender = false;
-		return false;
-	}
-	// Si l'activité appelle l'API stéréo, on force le mode projection.
-	m_presentMode = PresentMode::StereoProjection;
-	const bool ok = prepareStereoFrame();
-	outShouldRender = ok && stereoShouldRender();
-	return ok;
+    if (!m_hasGlFbo) {
+        outShouldRender = false;
+        return false;
+    }
+    m_presentMode = PresentMode::StereoProjection;
+    const bool ok = prepareStereoFrame();
+    outShouldRender = ok && stereoShouldRender();
+    return ok;
 }
 
 bool VRScreen::vrBeginStereoEye(uint32_t eye,
@@ -1006,6 +1005,7 @@ bool VRScreen::vrBeginStereoEye(uint32_t eye,
 						VRStereoEyeRenderInfo& out) {
 	Matrix proj;
 	Matrix view;
+	
 	const bool ok = beginStereoEye(eye, worldFromLocal, metersToWorld, zNear, zFar, proj, view);
 	if (!ok) {
 		return false;
@@ -1032,55 +1032,18 @@ int32_t VRScreen::stereoEyeHeight(uint32_t eye) const {
 }
 
 bool VRScreen::prepareStereoFrame() {
-	if (m_xrInstance == XR_NULL_HANDLE || m_xrSession == XR_NULL_HANDLE) {
-		return false;
-	}
-
-	ensureSessionRunning();
-	if (!m_sessionRunning) {
-		return false;
-	}
-
-	// Éviter double begin (si l'activité appelle 2x par erreur).
-	if (m_stereoFrameBegun) {
-		return true;
-	}
-
-	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO, nullptr};
-	m_stereoFrameState = {XR_TYPE_FRAME_STATE, nullptr};
-	if (!xrCheck(xrWaitFrame(m_xrSession, &waitInfo, &m_stereoFrameState), "xrWaitFrame(stereo)")) {
-		return false;
-	}
-
-	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO, nullptr};
-	if (!xrCheck(xrBeginFrame(m_xrSession, &beginInfo), "xrBeginFrame(stereo)")) {
-		return false;
-	}
-
-	m_stereoFrameBegun = true;
-	m_stereoShouldRender = m_stereoFrameState.shouldRender;
-	m_projectionLayerReady = false;
-
-	std::fill(m_stereoImageAcquired.begin(), m_stereoImageAcquired.end(), false);
-
-	if (!m_stereoShouldRender) {
-		return true;
-	}
-
-	// Localiser les vues.
-	XrViewLocateInfo locateInfo{XR_TYPE_VIEW_LOCATE_INFO, nullptr};
-	locateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-	locateInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
-	locateInfo.space = m_xrAppSpace;
-
-	XrViewState viewState{XR_TYPE_VIEW_STATE, nullptr};
-	uint32_t viewCountOutput = 0;
-	if (!xrCheck(xrLocateViews(m_xrSession, &locateInfo, &viewState,
-			(uint32_t)m_views.size(), &viewCountOutput, m_views.data()), "xrLocateViews")) {
-		return true; // frame begun, mais pas de vues => on rendra 0 layer.
-	}
-
-	return true;
+    // La frame a déjà été démarrée par VRTimer::update() → xrBeginTickFrame().
+    // Plus AUCUN xrWaitFrame/xrBeginFrame ici.
+    if (!m_frameStarted) {
+        return false;
+    }
+    // Synchronise les drapeaux stéréo sur l'état de la frame courante.
+    m_stereoFrameState   = m_currentFrameState;
+    m_stereoFrameBegun   = true;             // signale à refresh() qu'on est en 3D
+    m_stereoShouldRender = m_frameShouldRender;
+    m_projectionLayerReady = false;
+    std::fill(m_stereoImageAcquired.begin(), m_stereoImageAcquired.end(), false);
+    return true;
 }
 
 bool VRScreen::beginStereoEye(uint32_t eye,
@@ -1091,14 +1054,14 @@ bool VRScreen::beginStereoEye(uint32_t eye,
                         Matrix& outProjection,
                         Matrix& outView) {
     if (!m_hasGlFbo) {
-        return false;
-    }
-    if (!m_stereoFrameBegun || !m_stereoShouldRender) {
-        return false;
-    }
+		return false;
+	} 
+    if (!m_frameStarted || !m_stereoShouldRender) {
+		return false;
+	}
     if (eye >= m_projectionSwapchains.size() || eye >= m_views.size()) {
-        return false;
-    }
+		return false;
+	}
 
     auto& sc = m_projectionSwapchains[eye];
     uint32_t imageIndex = 0;
@@ -1193,339 +1156,368 @@ void VRScreen::endStereoFrame() {
 }
 
 void VRScreen::refresh(void) {
-	// Si OpenXR n'est pas prêt, on garde le comportement classique.
-	if (m_xrInstance == XR_NULL_HANDLE || m_xrSession == XR_NULL_HANDLE) {
-		RSScreen::refresh();
-		return;
-	}
-
-	
-
-	
-	ensureSessionRunning();
-	if (!m_sessionRunning) {
-		// Mirror window update.
-		RSScreen::refresh();
-		return;
-	}
-
-	// Mode stéréo: si une frame a été commencée dans l'activité, on finalise ici.
-	if (m_presentMode == PresentMode::StereoProjection && m_stereoFrameBegun) {
-        VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
-        vrTimer->updateWithXrTime(m_stereoFrameState.predictedDisplayTime);
-        
-        // Calculer la pose du panneau ImGui si pas encore fait
-        if (!m_imguiPoseValid && m_xrViewSpace != XR_NULL_HANDLE && m_xrAppSpace != XR_NULL_HANDLE) {
-            XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION, nullptr};
-            if (xrCheck(xrLocateSpace(m_xrViewSpace, m_xrAppSpace, m_stereoFrameState.predictedDisplayTime, &viewInApp),
-                        "xrLocateSpace(VIEW->LOCAL,imgui)")) {
-                const XrSpaceLocationFlags need = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
-                if ((viewInApp.locationFlags & need) == need) {
-                    const XrVector3f p = viewInApp.pose.position;
-                    const XrQuaternionf q = viewInApp.pose.orientation;
-
-                    const float x = q.x, y = q.y, z = q.z, w = q.w;
-                    const float vx = 0.0f, vy = 0.0f, vz = -1.0f;
-                    const float cx1 = y * vz - z * vy;
-                    const float cy1 = z * vx - x * vz;
-                    const float cz1 = x * vy - y * vx;
-                    const float cx2 = y * cz1 - z * cy1;
-                    const float cy2 = z * cx1 - x * cz1;
-                    const float cz2 = x * cy1 - y * cx1;
-                    float fx = vx + 2.0f * (w * cx1 + cx2);
-                    float fz = vz + 2.0f * (w * cz1 + cz2);
-
-                    float len = std::sqrt(fx * fx + fz * fz);
-                    if (len < 1e-4f) {
-                        fx = 0.0f;
-                        fz = -1.0f;
-                        len = 1.0f;
-                    }
-                    fx /= len;
-                    fz /= len;
-
-                    // Position du panneau
-					const float distance = 0.8f;        // Distance devant
-					const float rightOffset = 0.0f;     // Décalage à droite
-					const float downOffset = -1.7f;     // Décalage vers le bas
-					
-					// Calculer le vecteur right (perpendiculaire à forward dans le plan XZ)
-					float rx = fz;
-					float rz = -fx;
-					
-					m_imguiPanelPose.position = {
-						p.x + fx * distance + rx * rightOffset, 
-						p.y + downOffset,
-						p.z + fz * distance + rz * rightOffset
-					};
-
-					// Orientation pour un panneau incliné
-					const float tiltAngle = -45.0f * 3.14159f / 180.0f; // 45 degrés d'inclinaison
-					
-					// Quaternion pour rotation autour de Y (yaw - direction)
-					const float dirX = -fx;
-					const float dirZ = -fz;
-					const float yaw = std::atan2(dirX, dirZ);
-					const float halfYaw = 0.5f * yaw;
-					const float sinYaw = std::sin(halfYaw);
-					const float cosYaw = std::cos(halfYaw);
-					
-					// Quaternion pour rotation autour de X (pitch - inclinaison)
-					const float halfTilt = 0.5f * tiltAngle;
-					const float sinTilt = std::sin(halfTilt);
-					const float cosTilt = std::cos(halfTilt);
-					
-					// Combiner les deux rotations: d'abord yaw (Y), puis tilt (X)
-					m_imguiPanelPose.orientation.x = sinTilt * cosYaw;
-					m_imguiPanelPose.orientation.y = sinYaw * cosTilt;
-					m_imguiPanelPose.orientation.z = cosTilt * cosYaw * sinYaw - sinTilt * cosYaw * sinYaw;
-					m_imguiPanelPose.orientation.w = cosTilt * cosYaw;
-					
-					// Normaliser le quaternion
-					float qlen = std::sqrt(
-						m_imguiPanelPose.orientation.x * m_imguiPanelPose.orientation.x +
-						m_imguiPanelPose.orientation.y * m_imguiPanelPose.orientation.y +
-						m_imguiPanelPose.orientation.z * m_imguiPanelPose.orientation.z +
-						m_imguiPanelPose.orientation.w * m_imguiPanelPose.orientation.w
-					);
-					if (qlen > 1e-6f) {
-						m_imguiPanelPose.orientation.x /= qlen;
-						m_imguiPanelPose.orientation.y /= qlen;
-						m_imguiPanelPose.orientation.z /= qlen;
-						m_imguiPanelPose.orientation.w /= qlen;
-					}
-
-					m_imguiPoseValid = true;
-                }
-            }
-        }
-        
-        // Rendre ImGui dans sa texture
-        renderImGuiToTexture();
-        
-        // Préparer les layers pour xrEndFrame
-        std::vector<const XrCompositionLayerBaseHeader*> layers;
-        
-        // Layer principal (projection stéréo)
-        if (m_stereoShouldRender && m_projectionLayerReady) {
-            layers.push_back(reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_projectionLayer));
-        }
-        
-        // Layer ImGui (QUAD)
-        XrCompositionLayerQuad imguiQuad{XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
-        if (m_showTimingDebug && m_imguiPoseValid && m_imguiSwapchain.handle != XR_NULL_HANDLE) {
-            imguiQuad.space = m_xrAppSpace;
-            imguiQuad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
-            imguiQuad.pose = m_imguiPanelPose;
-            
-            // Taille du panneau (en mètres)
-            float aspect = (m_imguiSwapchain.height > 0) ? 
-                (m_imguiSwapchain.width / (float)m_imguiSwapchain.height) : 1.3333f;
-            float panelHeight = 0.5f; // Petit panneau
-            float panelWidth = panelHeight * aspect;
-            imguiQuad.size = {panelWidth, panelHeight};
-            
-            imguiQuad.subImage.swapchain = m_imguiSwapchain.handle;
-            imguiQuad.subImage.imageRect.offset = {0, 0};
-            imguiQuad.subImage.imageRect.extent = {m_imguiSwapchain.width, m_imguiSwapchain.height};
-            imguiQuad.subImage.imageArrayIndex = 0;
-            
-            layers.push_back(reinterpret_cast<const XrCompositionLayerBaseHeader*>(&imguiQuad));
-        }
-        
-        XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO};
-        endInfo.displayTime = m_stereoFrameState.predictedDisplayTime;
-        endInfo.environmentBlendMode = m_environmentBlendMode;
-        endInfo.layerCount = (uint32_t)layers.size();
-        endInfo.layers = layers.empty() ? nullptr : layers.data();
-
-        xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(stereo)");
-        m_stereoFrameBegun = false;
-        m_projectionLayerReady = false;
-        
-        // Mirror desktop: afficher l'œil gauche
-        if (m_mirrorValid && m_window) {
-            int winW = 0, winH = 0;
-            SDL_GL_GetDrawableSize(m_window, &winW, &winH);
-            drawMirrorTextureToWindow(m_mirrorTex, winW, winH);
-        }
-        
+    // OpenXR indisponible -> desktop classique.
+    if (m_xrInstance == XR_NULL_HANDLE || m_xrSession == XR_NULL_HANDLE) {
         RSScreen::refresh();
         return;
     }
 
-	// Frame timing
-	XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO, nullptr};
-	XrFrameState frameState{XR_TYPE_FRAME_STATE, nullptr};
-	if (!xrCheck(xrWaitFrame(m_xrSession, &waitInfo, &frameState), "xrWaitFrame")) {
-		RSScreen::refresh();
-		return;
-	}
-	// Mettre à jour le timer VR avec le temps OpenXR
-	VRTimer* vrTimer = static_cast<VRTimer*>(GameTimer::getInstance().getTimer());
-	vrTimer->updateWithXrTime(frameState.predictedDisplayTime);
+    // Aucune frame XR démarrée ce tick (session non active, ou wait échoué) :
+    // on se contente du mirror desktop.
+    if (!m_frameStarted) {
+        RSScreen::refresh();
+        return;
+    }
 
-	XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO, nullptr};
-	xrCheck(xrBeginFrame(m_xrSession, &beginInfo), "xrBeginFrame");
+    // Le runtime ne veut rien afficher : fermer avec 0 layer (le moins coûteux).
+    if (!m_frameShouldRender) {
+        endFrameNoLayers();
+        RSScreen::refresh();
+        return;
+    }
 
-	if (!frameState.shouldRender) {
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
-		endInfo.displayTime = frameState.predictedDisplayTime;
-		endInfo.environmentBlendMode = m_environmentBlendMode;
-		endInfo.layerCount = 0;
-		endInfo.layers = nullptr;
-		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
-		RSScreen::refresh();
-		return;
-	}
+    // Aiguillage présentation.
+    // Mode 3D RÉEL = mode projection ET l'activité a effectivement préparé les yeux.
+    const bool stereoActive =
+        (m_presentMode == PresentMode::StereoProjection) && m_stereoFrameBegun;
 
-	// Calculer une pose "cinéma" une fois: écran fixé dans l'espace LOCAL.
-	// On se base sur la pose VIEW (tête) exprimée dans LOCAL au moment du premier rendu.
-	if (!m_cinemaPoseValid && m_xrViewSpace != XR_NULL_HANDLE && m_xrAppSpace != XR_NULL_HANDLE) {
-		XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION, nullptr};
-		if (xrCheck(xrLocateSpace(m_xrViewSpace, m_xrAppSpace, frameState.predictedDisplayTime, &viewInApp),
-					"xrLocateSpace(VIEW->LOCAL)")) {
-			const XrSpaceLocationFlags need = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
-			if ((viewInApp.locationFlags & need) == need) {
-				const XrVector3f p = viewInApp.pose.position;
-				const XrQuaternionf q = viewInApp.pose.orientation;
+    if (stereoActive) {
+        presentStereoFrame();   // simulation : layer projection (+ quad ImGui)
+    } else {
+        presentCinemaFrame();   // tout le reste : quad "écran cinéma"
+    }
 
-				// Forward vector (OpenXR: -Z is forward). Rotate (0,0,-1) by quaternion.
-				const float x = q.x, y = q.y, z = q.z, w = q.w;
-				// v' = v + 2*cross(q.xyz, cross(q.xyz, v) + w*v)
-				const float vx = 0.0f, vy = 0.0f, vz = -1.0f;
-				const float cx1 = y * vz - z * vy;
-				const float cy1 = z * vx - x * vz;
-				const float cz1 = x * vy - y * vx;
-				const float cx2 = y * cz1 - z * cy1;
-				const float cy2 = z * cx1 - x * cz1;
-				const float cz2 = x * cy1 - y * cx1;
-				float fx = vx + 2.0f * (w * cx1 + cx2);
-				float fz = vz + 2.0f * (w * cz1 + cz2);
+    RSScreen::refresh();        // mirror desktop + swap
+}
 
-				// Projeté sur le plan XZ pour un écran type cinéma (ignore pitch/roll).
-				float len = std::sqrt(fx * fx + fz * fz);
-				if (len < 1e-4f) {
-					fx = 0.0f;
-					fz = -1.0f;
-					len = 1.0f;
-				}
-				fx /= len;
-				fz /= len;
+void VRScreen::presentStereoFrame() {
+    const XrFrameState& st = m_currentFrameState;
 
-				// Positionner l'écran à distance fixe devant l'utilisateur au moment du lock.
-				// Plus la distance est faible, plus l'écran paraît grand.
-				const float distance = 2.0f;
-				m_cinemaPose.position = {p.x + fx * distance, p.y, p.z + fz * distance};
+    updateImguiPanelPose(st.predictedDisplayTime);
 
-				// Orientation: le QUAD "regarde" l'utilisateur.
-				// Le front du quad correspond à +Z en orientation identité (visible à z négatif).
-				// Donc on aligne +Z sur (-forward).
-				const float dirX = -fx;
-				const float dirZ = -fz;
-				const float yaw = std::atan2(dirX, dirZ);
-				const float half = 0.5f * yaw;
-				m_cinemaPose.orientation = {0.0f, std::sin(half), 0.0f, std::cos(half)};
+    const bool wantImgui =
+        m_showTimingDebug && m_imguiPoseValid && m_imguiSwapchain.handle != XR_NULL_HANDLE;
+    if (wantImgui && ++m_imguiFrameCounter >= m_imguiFrameDivider) {
+        m_imguiFrameCounter = 0;
+        renderImGuiToTexture();   // sans glFinish()
+    }
 
-				m_cinemaPoseValid = true;
-			}
-		}
-	}
+    // Tableau fixe (pas d'allocation par frame).
+    const XrCompositionLayerBaseHeader* layers[2];
+    uint32_t layerCount = 0;
 
-	// On utilise un layer QUAD: une seule image, visible par les deux yeux,
-	// le runtime applique automatiquement la stéréo + le head tracking.
-	// Copy SDL backbuffer -> swapchain texture
-	int drawableW = 0, drawableH = 0;
-	if (m_window) {
-		SDL_GL_GetDrawableSize(m_window, &drawableW, &drawableH);
-	}
+    if (m_stereoShouldRender && m_projectionLayerReady) {
+        layers[layerCount++] =
+            reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_projectionLayer);
+    }
 
-	if (m_swapchains.empty()) {
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
-		endInfo.displayTime = frameState.predictedDisplayTime;
-		endInfo.environmentBlendMode = m_environmentBlendMode;
-		endInfo.layerCount = 0;
-		endInfo.layers = nullptr;
-		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
-		RSScreen::refresh();
-		return;
-	}
+    XrCompositionLayerQuad imguiQuad{XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
+    if (wantImgui) {
+        buildImguiQuadLayer(imguiQuad);
+        layers[layerCount++] =
+            reinterpret_cast<const XrCompositionLayerBaseHeader*>(&imguiQuad);
+    }
 
-	auto& sc = m_swapchains[0];
-	uint32_t imageIndex = 0;
-	XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
-	if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage")) {
-		XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
-		endInfo.displayTime = frameState.predictedDisplayTime;
-		endInfo.environmentBlendMode = m_environmentBlendMode;
-		endInfo.layerCount = 0;
-		endInfo.layers = nullptr;
-		xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
-		RSScreen::refresh();
-		return;
-	}
+    XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
+    endInfo.displayTime = st.predictedDisplayTime;
+    endInfo.environmentBlendMode = m_environmentBlendMode;
+    endInfo.layerCount = layerCount;
+    endInfo.layers = layerCount ? layers : nullptr;
+    xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(stereo)");
 
-	XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
-	waitImg.timeout = XR_INFINITE_DURATION;
-	xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage");
+    // Reset de l'état de frame.
+    m_frameStarted = false;
+    m_stereoFrameBegun = false;
+    m_projectionLayerReady = false;
+    if (auto* t = static_cast<VRTimer*>(GameTimer::getInstance().getTimer())) {
+        t->markFramePresented();
+    }
 
-	const GLuint targetTex = sc.images[imageIndex].image;
-	const int copyW = std::max(0, std::min(drawableW, sc.width));
-	const int copyH = std::max(0, std::min(drawableH, sc.height));
-	// Centrer la zone copiée (si tailles différentes) pour éviter un rendu "en bas à gauche".
-	const int srcX = std::max(0, (drawableW - copyW) / 2);
-	const int srcY = std::max(0, (drawableH - copyH) / 2);
-	const int dstX = std::max(0, (sc.width - copyW) / 2);
-	const int dstY = std::max(0, (sc.height - copyH) / 2);
-	if (targetTex != 0 && copyW > 0 && copyH > 0) {
-		glBindTexture(GL_TEXTURE_2D, targetTex);
-		glReadBuffer(GL_BACK);
-		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, dstX, dstY, srcX, srcY, copyW, copyH);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glFlush();
-	}
+    if (m_mirrorValid && m_window) {
+        int winW = 0, winH = 0;
+        SDL_GL_GetDrawableSize(m_window, &winW, &winH);
+        drawMirrorTextureToWindow(m_mirrorTex, winW, winH);
+    }
+}
 
-	XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
-	xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage");
+void VRScreen::presentCinemaFrame() {
+    const XrFrameState& st = m_currentFrameState;
 
-	// Construire un quad "écran cinéma" fixé dans l'espace.
-	// Important: un layer projection requiert un rendu par-oeil. Ici on veut une "écran" VR.
-	XrCompositionLayerQuad quad{XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
-	quad.space = m_xrAppSpace;
-	quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
-	quad.pose = m_cinemaPose;
+    // Pose cinéma : calculée une seule fois (identique à l'existant).
+    if (!m_cinemaPoseValid && m_xrViewSpace != XR_NULL_HANDLE && m_xrAppSpace != XR_NULL_HANDLE) {
+        XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION, nullptr};
+        if (xrCheck(xrLocateSpace(m_xrViewSpace, m_xrAppSpace, st.predictedDisplayTime, &viewInApp),
+                    "xrLocateSpace(VIEW->LOCAL,cinema)")) {
+            const XrSpaceLocationFlags need =
+                XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+            if ((viewInApp.locationFlags & need) == need) {
+                // ... calcul forward projeté XZ + m_cinemaPose (inchangé) ...
+                m_cinemaPoseValid = true;
+            }
+        }
+    }
 
-	// Taille physique du panneau (mètres). Ajustable.
-	float aspect = (sc.height > 0) ? (sc.width / (float)sc.height) : 1.3333f;
-	// Augmenter cette valeur pour un "grand écran".
-	float quadHeight = 4.0f;
-	float quadWidth = quadHeight * aspect;
-	quad.size = {quadWidth, quadHeight};
+    if (m_swapchains.empty()) {
+        endFrameNoLayers();
+        return;
+    }
 
-	quad.subImage.swapchain = sc.handle;
-	quad.subImage.imageRect.offset = {0, 0};
-	quad.subImage.imageRect.extent = {sc.width, sc.height};
-	quad.subImage.imageArrayIndex = 0;
+    int drawableW = 0, drawableH = 0;
+    if (m_window) SDL_GL_GetDrawableSize(m_window, &drawableW, &drawableH);
 
-	const XrCompositionLayerBaseHeader* layers[] = {
-		reinterpret_cast<const XrCompositionLayerBaseHeader*>(&quad)
-	};
+    auto& sc = m_swapchains[0];
+    uint32_t imageIndex = 0;
+    XrSwapchainImageAcquireInfo acqInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO, nullptr};
+    if (!xrCheck(xrAcquireSwapchainImage(sc.handle, &acqInfo, &imageIndex), "xrAcquireSwapchainImage(cinema)")) {
+        endFrameNoLayers();
+        return;
+    }
+    XrSwapchainImageWaitInfo waitImg{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr};
+    waitImg.timeout = XR_INFINITE_DURATION;
+    xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage(cinema)");
 
-	XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
-	endInfo.displayTime = frameState.predictedDisplayTime;
-	endInfo.environmentBlendMode = m_environmentBlendMode;
-	endInfo.layerCount = 1;
-	endInfo.layers = layers;
-	xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame");
+    // ImGui directement dans le backbuffer (throttlé) avant la copie.
+    if (m_showTimingDebug && ++m_imguiFrameCounter >= m_imguiFrameDivider) {
+        m_imguiFrameCounter = 0;
+        ImGui_ImplOpenGL2_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+        renderTimingDebugWindow();
+        ImGui::Render();
+        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+    }
 
-	// Rendu ImGui avant le swap pour mode QUAD
-    ImGui_ImplOpenGL2_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
-    renderTimingDebugWindow();
-    ImGui::Render();
-    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+    // Copie centrée (sans glFlush : xrReleaseSwapchainImage pose la barrière).
+    const GLuint targetTex = sc.images[imageIndex].image;
+    const int copyW = std::max(0, std::min(drawableW, sc.width));
+    const int copyH = std::max(0, std::min(drawableH, sc.height));
+    const int srcX = std::max(0, (drawableW - copyW) / 2);
+    const int srcY = std::max(0, (drawableH - copyH) / 2);
+    const int dstX = std::max(0, (sc.width  - copyW) / 2);
+    const int dstY = std::max(0, (sc.height - copyH) / 2);
+    if (targetTex != 0 && copyW > 0 && copyH > 0) {
+        glBindTexture(GL_TEXTURE_2D, targetTex);
+        glReadBuffer(GL_BACK);
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, dstX, dstY, srcX, srcY, copyW, copyH);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-	// Mirror window update (swap + clear)
-	RSScreen::refresh();
+    XrSwapchainImageReleaseInfo relInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO, nullptr};
+    xrCheck(xrReleaseSwapchainImage(sc.handle, &relInfo), "xrReleaseSwapchainImage(cinema)");
+
+    XrCompositionLayerQuad quad{XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
+    quad.space = m_xrAppSpace;
+    quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+    quad.pose = m_cinemaPose;
+    const float aspect = (sc.height > 0) ? (sc.width / (float)sc.height) : 1.3333f;
+    const float quadHeight = 4.0f;
+    quad.size = {quadHeight * aspect, quadHeight};
+    quad.subImage.swapchain = sc.handle;
+    quad.subImage.imageRect.offset = {0, 0};
+    quad.subImage.imageRect.extent = {sc.width, sc.height};
+    quad.subImage.imageArrayIndex = 0;
+
+    const XrCompositionLayerBaseHeader* layers[1] = {
+        reinterpret_cast<const XrCompositionLayerBaseHeader*>(&quad)
+    };
+
+    XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
+    endInfo.displayTime = st.predictedDisplayTime;
+    endInfo.environmentBlendMode = m_environmentBlendMode;
+    endInfo.layerCount = 1;
+    endInfo.layers = layers;
+    xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(cinema)");
+
+    m_frameStarted = false;
+    if (auto* t = static_cast<VRTimer*>(GameTimer::getInstance().getTimer())) {
+        t->markFramePresented();
+    }
+}
+void VRScreen::endFrameNoLayers() {
+    if (!m_frameStarted) return;
+    XrFrameEndInfo endInfo{XR_TYPE_FRAME_END_INFO, nullptr};
+    endInfo.displayTime = m_currentFrameState.predictedDisplayTime;
+    endInfo.environmentBlendMode = m_environmentBlendMode;
+    endInfo.layerCount = 0;
+    endInfo.layers = nullptr;
+    xrCheck(xrEndFrame(m_xrSession, &endInfo), "xrEndFrame(empty)");
+    m_frameStarted = false;
+    m_stereoFrameBegun = false;
+    m_projectionLayerReady = false;
+    if (auto* t = static_cast<VRTimer*>(GameTimer::getInstance().getTimer())) {
+        t->markFramePresented();
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// xrBeginTickFrame : UNIQUE xrWaitFrame/xrBeginFrame du tick.
+// Appelé par VRTimer::update() AVANT runFrame(), pour que la physique
+// dispose du predictedDisplayTime du compositeur.
+// ─────────────────────────────────────────────────────────────────────────────
+bool VRScreen::xrBeginTickFrame(XrTime& predictedDisplayTime, bool& shouldRender) {
+    if (m_xrInstance == XR_NULL_HANDLE || m_xrSession == XR_NULL_HANDLE) {
+        return false;
+    }
+
+    pollXrEvents();
+    ensureSessionRunning();
+    if (!m_sessionRunning) {
+        return false;
+    }
+
+    // Sécurité : si une frame précédente n'a jamais été présentée (cas anormal),
+    // on la ferme sans layer pour rééquilibrer le runtime.
+    if (m_frameStarted) {
+        endFrameNoLayers();
+    }
+
+    XrFrameWaitInfo waitInfo{XR_TYPE_FRAME_WAIT_INFO, nullptr};
+    m_currentFrameState = {XR_TYPE_FRAME_STATE, nullptr};
+    if (!xrCheck(xrWaitFrame(m_xrSession, &waitInfo, &m_currentFrameState), "xrWaitFrame")) {
+        return false;
+    }
+
+    XrFrameBeginInfo beginInfo{XR_TYPE_FRAME_BEGIN_INFO, nullptr};
+    if (!xrCheck(xrBeginFrame(m_xrSession, &beginInfo), "xrBeginFrame")) {
+        return false;
+    }
+
+    m_frameStarted = true;
+    m_frameShouldRender = m_currentFrameState.shouldRender;
+
+    // Si le mode stéréo est actif, on pré-localise les vues ici pour que
+    // beginStereoEye() (appelé dans runFrame) n'ait plus qu'à acquérir l'image.
+    if (m_presentMode == PresentMode::StereoProjection && m_frameShouldRender) {
+        XrViewLocateInfo locateInfo{XR_TYPE_VIEW_LOCATE_INFO, nullptr};
+        locateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        locateInfo.displayTime = m_currentFrameState.predictedDisplayTime;
+        locateInfo.space = m_xrAppSpace;
+
+        XrViewState viewState{XR_TYPE_VIEW_STATE, nullptr};
+        uint32_t viewCountOutput = 0;
+        xrCheck(xrLocateViews(m_xrSession, &locateInfo, &viewState,
+                (uint32_t)m_views.size(), &viewCountOutput, m_views.data()), "xrLocateViews");
+    }
+
+    predictedDisplayTime = m_currentFrameState.predictedDisplayTime;
+    shouldRender = m_frameShouldRender;
+    return true;
+}
+void VRScreen::updateImguiPanelPose(XrTime predictedDisplayTime) {
+    if (m_imguiPoseValid) {
+        return;
+    }
+    if (m_xrViewSpace == XR_NULL_HANDLE || m_xrAppSpace == XR_NULL_HANDLE) {
+        return;
+    }
+
+    XrSpaceLocation viewInApp{XR_TYPE_SPACE_LOCATION, nullptr};
+    if (!xrCheck(xrLocateSpace(m_xrViewSpace, m_xrAppSpace, predictedDisplayTime, &viewInApp),
+                 "xrLocateSpace(VIEW->LOCAL,imgui)")) {
+        return;
+    }
+
+    const XrSpaceLocationFlags need =
+        XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+    if ((viewInApp.locationFlags & need) != need) {
+        return;
+    }
+
+    const XrVector3f p = viewInApp.pose.position;
+    const XrQuaternionf q = viewInApp.pose.orientation;
+
+    // Forward headset: rotation de (0,0,-1) par q (formule vectorielle quaternion)
+    const float x = q.x, y = q.y, z = q.z, w = q.w;
+    const float vx = 0.0f, vy = 0.0f, vz = -1.0f;
+
+    const float cx1 = y * vz - z * vy;
+    const float cy1 = z * vx - x * vz;
+    const float cz1 = x * vy - y * vx;
+    const float cx2 = y * cz1 - z * cy1;
+    const float cy2 = z * cx1 - x * cz1;
+    const float cz2 = x * cy1 - y * cx1;
+
+    float fx = vx + 2.0f * (w * cx1 + cx2);
+    float fz = vz + 2.0f * (w * cz1 + cz2);
+
+    // Projection XZ (panel “stable” horizontalement)
+    float len = std::sqrt(fx * fx + fz * fz);
+    if (len < 1e-4f) {
+        fx = 0.0f;
+        fz = -1.0f;
+        len = 1.0f;
+    }
+    fx /= len;
+    fz /= len;
+
+    // Position du panneau
+    const float distance = 0.8f;
+    const float rightOffset = 0.0f;
+    const float downOffset = -1.7f;
+
+    const float rx = fz;
+    const float rz = -fx;
+
+    m_imguiPanelPose.position = {
+        p.x + fx * distance + rx * rightOffset,
+        p.y + downOffset,
+        p.z + fz * distance + rz * rightOffset
+    };
+
+    // Orientation: yaw vers l'utilisateur + tilt vers le bas
+    const float tiltAngle = -45.0f * 3.14159265359f / 180.0f;
+
+    const float dirX = -fx;
+    const float dirZ = -fz;
+    const float yaw = std::atan2(dirX, dirZ);
+
+    // qYaw (axe Y)
+    const float halfYaw = 0.5f * yaw;
+    const float sy = std::sin(halfYaw);
+    const float cy = std::cos(halfYaw);
+
+    // qTilt (axe X)
+    const float halfTilt = 0.5f * tiltAngle;
+    const float sx = std::sin(halfTilt);
+    const float cx = std::cos(halfTilt);
+
+    // q = qYaw * qTilt
+    // (x,y,z,w) Hamilton
+    XrQuaternionf out{};
+    out.x = cy * sx;
+    out.y = sy * cx;
+    out.z = -sy * sx;
+    out.w = cy * cx;
+
+    // Normalisation
+    float qlen = std::sqrt(out.x * out.x + out.y * out.y + out.z * out.z + out.w * out.w);
+    if (qlen > 1e-6f) {
+        out.x /= qlen;
+        out.y /= qlen;
+        out.z /= qlen;
+        out.w /= qlen;
+    } else {
+        out = {0.0f, 0.0f, 0.0f, 1.0f};
+    }
+
+    m_imguiPanelPose.orientation = out;
+    m_imguiPoseValid = true;
+}
+
+void VRScreen::buildImguiQuadLayer(XrCompositionLayerQuad& outQuad) const {
+    outQuad = {XR_TYPE_COMPOSITION_LAYER_QUAD, nullptr};
+    outQuad.space = m_xrAppSpace;
+    outQuad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+    outQuad.pose = m_imguiPanelPose;
+
+    const float aspect =
+        (m_imguiSwapchain.height > 0) ? (m_imguiSwapchain.width / (float)m_imguiSwapchain.height) : 1.3333f;
+    const float panelHeight = 0.5f;
+    const float panelWidth = panelHeight * aspect;
+    outQuad.size = {panelWidth, panelHeight};
+
+    outQuad.subImage.swapchain = m_imguiSwapchain.handle;
+    outQuad.subImage.imageArrayIndex = 0;
+    outQuad.subImage.imageRect.offset = {0, 0};
+    outQuad.subImage.imageRect.extent = {m_imguiSwapchain.width, m_imguiSwapchain.height};
 }
