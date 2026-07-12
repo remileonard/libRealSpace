@@ -92,26 +92,13 @@ Vector3D SCSimulatedObject::calculate_lift(Vector3D velocity) {
     if (this->obj->entity_type == EntityType::bomb) {
         return { 0.0f, 0.0f, 0.0f };
     }
-    // Direction perpendiculaire à la vitesse dans le plan vertical
-    Vector3D vel_dir = velocity * (1.0f / speed_per_tick);
-    float dot_y = vel_dir.y;
-    Vector3D lift_dir = {
-        -vel_dir.x * dot_y,
-        1.0f - dot_y * dot_y,
-        -vel_dir.z * dot_y
-    };
-    float lift_dir_len = lift_dir.Length();
-    if (lift_dir_len < EPSILON) {
-        return { 0.0f, 0.0f, 0.0f };
-    }
 
     // Le lift compense exactement la gravité (indépendant de ro[] et de CL)
     float lift_magnitude = this->weight * GRAVITY;
     if (this->no_thrust) {
         lift_magnitude = lift_magnitude * 0.98f; // Réduire le lift si pas de poussée
     }
-    
-    return lift_dir * (lift_magnitude / lift_dir_len);
+    return {0, lift_magnitude, 0};
 }
 std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
     this->tps = tps;
@@ -178,7 +165,6 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
             // Force aérodynamique latérale ~ 0.5 * rho * v² * S_control
             // AERO_CONTROL_COEFF est l'efficacité des surfaces de contrôle
             const float AERO_CONTROL_COEFF = 5.0f;
-            float dyn_pressure = 0.5f * ro[itemp] * speed_mps * speed_mps;
             float steer_magnitude;
             if (this->obj->entity_type == EntityType::bomb) {
                 // Guidage direct (ordinateur de bord) — indépendant de ro[]
