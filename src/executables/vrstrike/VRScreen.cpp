@@ -285,9 +285,7 @@ void VRScreen::renderImGuiToTexture() {
         ImGui::Render();
         ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
     }
-    
-    glFlush();
-    glFinish();
+
     
 cleanup:
     // Restaurer matrices
