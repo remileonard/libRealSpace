@@ -1395,11 +1395,13 @@ void SCCockpit::Render(CockpitFace face) {
     this->face = face;
     FrameBuffer *fb{nullptr};
     bool upscale = false;
-
+    bool wide_screen = false;
     VGA.activate();
     VGA.setPalette(&this->palette);
     upscale = VGA.upscale;
+    wide_screen = VGA.wide_screen;
     VGA.upscale = false;
+    VGA.wide_screen = false;
     static int frame_count = 0;
     fb = VGA.getFrameBuffer();
     fb->clear();
@@ -1572,6 +1574,7 @@ void SCCockpit::Render(CockpitFace face) {
     }
     VGA.vSync();
     VGA.upscale = upscale;
+    VGA.wide_screen = wide_screen;
 }
 void SCCockpit::Update() {
     this->yaw_speed = this->yaw - (this->player_plane->azimuthf / 10.0f);

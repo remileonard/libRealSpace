@@ -188,6 +188,7 @@ void RSVGA::init(int width, int height) {
     this->upscale = config.getBool("Video", "super_eagle_2x", false);
     
     this->widescreen_ambilight = config.getBool("Video", "widescreen_ambilight", true);
+    this->wide_screen = this->widescreen_ambilight;
     this->ambilight_sample_width = config.getInt("Video", "ambilight_sample_width", 12);
     
     RSPalette palette;
@@ -301,7 +302,7 @@ void RSVGA::displayBuffer(uint32_t *buffer, int bufferWidth, int bufferHeight) {
         gameWidth = this->width;
     }
 
-    int sideWidth = (this->width - gameWidth) / 2;
+    int sideWidth = (this->width - gameWidth) / 2 ;
     int gameX = sideWidth;
 
     // Configuration de la projection logique.
@@ -354,7 +355,7 @@ void RSVGA::displayBuffer(uint32_t *buffer, int bufferWidth, int bufferHeight) {
     // texture centrale. GL_LINEAR adoucit automatiquement le
     // résultat. Aucun buffer CPU supplémentaire n'est utilisé.
     // ---------------------------------------------------------
-    if (widescreen_ambilight && sideWidth > 0) {
+    if (widescreen_ambilight && sideWidth > 0 && wide_screen) {
         int edgePixels = ambilight_sample_width;
 
         if (edgePixels < 1) {
@@ -385,7 +386,7 @@ void RSVGA::displayBuffer(uint32_t *buffer, int bufferWidth, int bufferHeight) {
         // Bande gauche.
         // On étire les premières colonnes de la texture.
         // -----------------------------------------------------
-        glViewport(0, 0, sideWidth, this->height);
+        glViewport(0, 0, sideWidth+1, this->height);
 
         glColor4f(1.0f, 1.0f, 1.0f, alpha);
 
@@ -407,7 +408,7 @@ void RSVGA::displayBuffer(uint32_t *buffer, int bufferWidth, int bufferHeight) {
         // Bande droite.
         // On étire les dernières colonnes de la texture.
         // -----------------------------------------------------
-        glViewport(gameX + gameWidth, 0, sideWidth, this->height);
+        glViewport(gameX + gameWidth -1, 0, sideWidth, this->height);
 
         glColor4f(1.0f, 1.0f, 1.0f, alpha);
 

@@ -42,7 +42,7 @@ private:
 
 public:
     bool upscale{false};
-
+    bool wide_screen{false};
     // toggle ambilight widescreen fill
     bool widescreen_ambilight{true};
     // largeur d'échantillonnage sur les bords source (en px)
