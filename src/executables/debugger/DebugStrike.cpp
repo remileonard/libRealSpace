@@ -173,7 +173,7 @@ void DebugStrike::loadPlane() {
             fuel = (float) plane_to_load->jdyn->FUEL;
             twist_rate = 30.0f;
             roll_rate = 100.0f;
-            new_plane = new SCJdynPlane(10.0f, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
+            new_plane = new SCJdynPlane(plane_to_load->jdyn->MAX_G, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
                                         thrust, envergure, 0.83f, 120, this->current_mission->area, player_plane->x,
                                         player_plane->y, player_plane->z);
             new_plane->yaw = player_plane->azimuthf;
