@@ -160,8 +160,11 @@ protected:
     bool is_showing_trajectory{false};
     int trajectory_display_counter{0};
 public:
+    std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>> system_health;
     short alive;
     unsigned int status;
+    int flare_timer{0};
+    int chaff_timer{0};
     int wp_cooldown{0};
     float mach{0.0f};
     float mcc{0.0f};

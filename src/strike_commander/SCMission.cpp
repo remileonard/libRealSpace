@@ -157,7 +157,11 @@ void SCMission::loadMission() {
                             part->position.z
                         );
                         actor->plane->yaw = (360 - part->azymuth) * 10.0f;
-                        
+                        for (auto &sys: actor->object->entity->sysm) {
+                            for (auto &subsys: sys.second) {
+                                actor->plane->system_health[sys.first][subsys.first] = subsys.second;
+                            }
+                        }
                         part->weapon_load.shrink_to_fit();
                         if (part->weapon_load.size() > 0) {
                             std::string weapon_path_name = Assets.object_root_path + part->weapon_load + ".IFF";
@@ -219,6 +223,11 @@ void SCMission::loadMission() {
                         part->position.y,
                         part->position.z
                     );
+                    for (auto &sys: actor->object->entity->sysm) {
+                        for (auto &subsys: sys.second) {
+                            actor->plane->system_health[sys.first][subsys.first] = subsys.second;
+                        }
+                    }
                     actor->plane->yaw = (360 - part->azymuth) * 10.0f;
                     actor->plane->simple_simulation = false;
                     actor->plane->yaw = (360 - part->azymuth) * (float) M_PI / 180.0f;

@@ -1010,6 +1010,30 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
 }
 void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
     int damage = weapon->obj->wdat->damage;
+    if (this->plane != nullptr) {
+        int nb_systems = this->plane->system_health.size();
+        int system_to_hit = std::rand() % nb_systems;
+        std::string system_name;
+        int i = 0;
+        for (auto system: this->plane->system_health) {
+            if (i == system_to_hit) {
+                system_name = system.first;
+                break;
+            }
+            i++;
+        }
+        int sub_system_to_hit = std::rand() % this->plane->system_health[system_name].size();
+        i = 0;
+        for (auto &sub_system: this->plane->system_health[system_name]) {
+            if (i == sub_system_to_hit) {
+                sub_system.second -= damage;
+                if (sub_system.second < 0) {
+                    sub_system.second = 0;
+                }
+                break;
+            }
+        }
+    }
     this->health -= damage;
     if (this->object->alive == false) {
         return;
