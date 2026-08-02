@@ -244,6 +244,7 @@ void SCMission::loadMission() {
         part->entity = area_actor.entity;
         part->position = area_actor.position;
         actor->actor_name = area_actor.name;
+        actor->health = area_actor.entity->health;
         actor->plane = nullptr;
         actor->pilot = nullptr;
         actor->actor_id = part->id;
