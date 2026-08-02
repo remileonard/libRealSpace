@@ -26,6 +26,7 @@ public:
     SCMission *mission{nullptr};
     SCMissionActors *target{nullptr};
     SCMissionActors *attacker{nullptr};
+    SCSimulatedObject *weapon_shooted_at_me{nullptr};
     prog_op current_objective;
     Vector3D formation_pos_offset{150.0f, 0.0f, 0.0f};
     Vector3D attack_pos_offset{0.0f, 0.0f, -1000.0f};

@@ -452,6 +452,15 @@ void RSCockpit::parseMONI_INST_MWRN(uint8_t* data, size_t size) {
 }
 void RSCockpit::parseMONI_INST_MWRN_INFO(uint8_t* data, size_t size) {
     this->MONI.INST.MWRN.INFO = std::vector<uint8_t>(data, data + size);
+    ByteStream* reader = new ByteStream(data, size);
+    reader->ReadUShort();
+    reader->ReadUShort();
+    this->MONI.INST.MWRN.zoom_x = reader->ReadUShort();
+    this->MONI.INST.MWRN.zoom_y = reader->ReadUShort();
+    this->MONI.INST.MWRN.x = reader->ReadUShort();
+    this->MONI.INST.MWRN.y = reader->ReadUShort();
+    
+
 }
 void RSCockpit::parseMONI_INST_MWRN_SHAP(uint8_t* data, size_t size) {
     uint8_t *data2;

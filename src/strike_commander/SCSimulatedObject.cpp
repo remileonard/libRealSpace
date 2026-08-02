@@ -245,11 +245,14 @@ bool SCSimulatedObject::CheckCollision(SCMissionActors *entity) {
 void SCSimulatedObject::Simulate(int tps) {
     Vector3D position, velocity;
     std::tie(position, velocity) = this->ComputeTrajectory(tps);
-
+    if (this->target != nullptr) {
+        this->target->weapon_shooted_at_me = this;
+    }
     if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
             this->alive = false;
             this->target->hasBeenHit(this, this->shooter);
+            this->target->weapon_shooted_at_me = nullptr;
             return;
         }
     } else {
@@ -257,6 +260,7 @@ void SCSimulatedObject::Simulate(int tps) {
             if (this->CheckCollision(entity)) {
                 entity->hasBeenHit(this, this->shooter);
                 this->alive = false;
+                this->target->weapon_shooted_at_me = nullptr;
                 break;
             }
         }
@@ -316,6 +320,9 @@ void SCSimulatedObject::Simulate(int tps) {
             }
         }
         this->alive = false;
+        if (this->target != nullptr) {
+            this->target->weapon_shooted_at_me = nullptr;
+        }
     }
 }
 std::tuple<Vector3D, Vector3D> GunSimulatedObject::ComputeTrajectory(int tps) {

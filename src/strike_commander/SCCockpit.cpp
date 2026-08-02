@@ -1496,8 +1496,10 @@ void SCCockpit::Render(CockpitFace face) {
                 this->RenderRAWS({84, 112}, fb);
                 this->RenderAlti({161, 166}, fb);
                 this->RenderSpeedOmetter({125, 166}, fb);
+                this->RenderMasterWarning({0, 0}, fb);
             } else if (this->face == CockpitFace::CP_BIG) {
                 this->RenderRAWSBig({84, 112}, fb);
+                this->RenderMasterWarning({0, 0}, fb);
             }
             Point2D pmfd_right = {0, 200 - this->cockpit->MONI.SHAP.GetHeight()};
             Point2D pmfd_left = {320 - this->cockpit->MONI.SHAP.GetWidth() - 1,
@@ -1851,6 +1853,48 @@ void SCCockpit::RenderSpeedOmetter(Point2D pmfd_left = {125, 166}, FrameBuffer *
                          center.y - (int)(needleLength * cosf(speedAngle))};
     // Draw the needle
     fb->line(center.x, center.y, needleEnd.x, needleEnd.y, 223); // Draw the speed needle
+}
+
+void SCCockpit::RenderMasterWarning(Point2D master_warning_pos, FrameBuffer *fb) {
+    if (!fb) {
+        fb = VGA.getFrameBuffer();
+    }
+    if (this->cockpit->MONI.INST.MWRN.ARTS.GetNumImages() == 0) {
+        return;
+    }
+    RLEShape *shape{nullptr};
+    int ir_warning = 0;
+    int rd_warning = 0;
+    switch (this->face) {
+    case CockpitFace::CP_FRONT:
+        master_warning_pos.x = this->cockpit->MONI.INST.MWRN.x;
+        master_warning_pos.y = this->cockpit->MONI.INST.MWRN.y;
+        shape = this->cockpit->MONI.INST.MWRN.ARTS.GetShape(3);
+        ir_warning = 4;
+        rd_warning = 5;
+        break;
+    case CockpitFace::CP_BIG:
+        shape = this->cockpit->MONI.INST.MWRN.ARTS.GetShape(0);
+        master_warning_pos.x = this->cockpit->MONI.INST.MWRN.zoom_x - shape->GetWidth()+1;
+        master_warning_pos.y = this->cockpit->MONI.INST.MWRN.zoom_y - shape->GetHeight()+1;
+        ir_warning = 1;
+        rd_warning = 2;
+        break;
+    default:
+        return;
+    }
+    
+    shape->SetPosition(&master_warning_pos);
+    fb->drawShape(shape);
+    if (this->current_mission->player->weapon_shooted_at_me != nullptr) {
+        static int flash_timer = 0;
+        flash_timer++;
+        if (flash_timer % 20 < 10) {
+            RLEShape *flash_shape = this->cockpit->MONI.INST.MWRN.ARTS.GetShape(ir_warning);
+            flash_shape->SetPosition(&master_warning_pos);
+            fb->drawShape(flash_shape);
+        }
+    }
 }
 
 bool SCCockpit::RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb) {
