@@ -51,6 +51,32 @@ enum CockpitFace {
     CP_REAR = 3,
     CP_BIG = 4
 };
+enum SubSystemIds {
+    SUBSY_RWING = 1,
+    SUBSY_LWING = 2,
+    SUBSY_GUN = 3,
+    SUBSY_FLAPS = 4,
+    SUBSY_ELEVATOR = 5,
+    SUBSY_ENGINE = 6,
+    SUBSY_RUDDER = 7,
+    SUBSY_RADAR = 8,
+    SUBSY_COCKPIT = 9,
+    SUBSY_BRAKE = 10,
+    SUBSY_LANDING_GEAR = 11
+};
+static std::unordered_map<SubSystemIds,std::unordered_map<std::string, std::string>> subsystem_names = {
+    {SUBSY_RWING, {{"RWING", "RWING"}}},
+    {SUBSY_LWING, {{"LWING", "LWING"}}},
+    {SUBSY_GUN, {{"FUSELAGE", "GUN"}}},
+    {SUBSY_FLAPS, {{"LWING", "FLAPS"}}},
+    {SUBSY_ELEVATOR, {{"LELAVE", "ELEVATOR"}}},
+    {SUBSY_ENGINE, {{"FUSELAGE", "ENGINE"}}},
+    {SUBSY_RUDDER, {{"RUDDER", "RUDDER"}}},
+    {SUBSY_RADAR, {{"FUSELAGE", "RADAR"}}},
+    {SUBSY_COCKPIT, {{"COCKPIT", "PLAYER"}}},
+    {SUBSY_BRAKE, {{"FUSELAGE", "BRAKES"}}},
+    {SUBSY_LANDING_GEAR, {{"FUSELAGE", "LANDGEAR"}}}
+};
 static std::unordered_map<weapon_ids, weapon_type_shp_id> weapon_inv_to_loadout = {
     {ID_AIM9J, AIM9J},
     {ID_AIM9M, AIM9M},

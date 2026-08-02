@@ -1379,6 +1379,19 @@ void SCCockpit::RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb) {
     RLEShape *damage_shape = this->cockpit->MONI.MFDS.DAMG.ARTS.GetShape(0);
     damage_shape->SetPosition(&damage_pos);
     fb->drawShape(damage_shape);
+    for (auto sysm : subsystem_names) {
+        auto& subsystem_id = sysm.second;
+        for (auto& kv : subsystem_id) {
+            std::string main_system = kv.first;
+            std::string sub_system = kv.second;
+
+            if (this->player_plane->system_health[main_system][sub_system] == 0) {
+                damage_shape = this->cockpit->MONI.MFDS.DAMG.ARTS.GetShape(sysm.first);
+                damage_shape->SetPosition(&damage_pos);
+                fb->drawShape(damage_shape);
+            }
+        }
+    }
 }
 
 /**
