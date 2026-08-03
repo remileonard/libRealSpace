@@ -155,13 +155,16 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
     bool is_new_target = false;
     bool is_ground_target = false;
     if (this->is_destroyed) {
-        return false;
+        return true;
     }
     if (this->plane != nullptr && this->plane->alive == 0) {
-        return false;
+        return true;
+    }
+    if (this->plane != nullptr && this->plane->object->alive == 0) {
+        return true;
     }
     if (this->pilot == nullptr) {
-        return false;
+        return true;
     }
     if (this->target == nullptr) {
         should_talk = true;
@@ -1194,8 +1197,58 @@ bool SCMissionActorsPlayer::setMessage(uint8_t arg) {
 }
 
 void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
-    // for the moment, the player cannot be hit
-    return;
+    if (this->object->alive == false) {
+        return;
+    }
+    int damage = weapon->obj->wdat->damage;
+    if (this->plane != nullptr) {
+        int nb_systems = this->plane->system_health.size();
+        int system_to_hit = std::rand() % nb_systems;
+        std::string system_name;
+        int i = 0;
+        for (auto system: this->plane->system_health) {
+            if (i == system_to_hit) {
+                system_name = system.first;
+                break;
+            }
+            i++;
+        }
+        int sub_system_to_hit = std::rand() % this->plane->system_health[system_name].size();
+        i = 0;
+        for (auto &sub_system: this->plane->system_health[system_name]) {
+            if (i == sub_system_to_hit) {
+                sub_system.second -= damage;
+                if (sub_system.second < 0) {
+                    sub_system.second = 0;
+                }
+                break;
+            }
+        }
+    }
+    this->health -= damage;
+    
+    if (this->health <= 0 && this->object->alive) {
+        this->object->alive = false;
+        if (this->object->entity->explos != nullptr) {
+            SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
+            this->mission->explosions.push_back(explosion);
+            if (this->mission->sound.sounds.size() > 0) {   
+                MemSound *sound;
+                if (weapon->obj->entity_type == EntityType::tracer) {
+                    sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
+                } else {
+                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+                }
+                RSMixer::getInstance().playSoundVoc(sound->data, sound->size);
+            }
+        }
+        attacker->score += 100;
+        if (this->plane != nullptr) {
+            attacker->plane_down += 1;
+        } else {
+            attacker->ground_down += 1;
+        }
+    }
 }
 
 bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {

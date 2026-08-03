@@ -1126,7 +1126,6 @@ void SCPlane::getPosition(Point3D *position) {
 void SCPlane::Render() {
     
     if (this->object != nullptr) {
-        
         Vector3D pos = {
             this->x, this->y, this->z
         };
@@ -1168,6 +1167,11 @@ void SCPlane::Render() {
             }
         }
         Renderer.drawModelWithChilds(this->object->entity, Renderer.lodLevel, pos, orientation, wheel_index, thrust, weapons);
+        if (this->object->alive == false) {
+            this->RenderSmoke();
+        } else {
+            this->RenderSimulatedObject();
+        }
     }
 }
 void SCPlane::RenderSmoke() {

@@ -293,11 +293,15 @@ bool RLEShape::Expand(uint8_t *dst, size_t *byteRead) {
                 int span_start = i;
                 while (i < len && src_row[i] != 255) i++;
                 int span_len = i - span_start;
-                if (colorOffset == 0) {
+                if (colorOffset == 0 && colorReplacement == 0) {
                     memcpy(dst_row + span_start, src_row + span_start, span_len);
-                } else {
+                } else if (colorOffset != 0 && colorReplacement == 0) {
                     for (int j = 0; j < span_len; j++) {
                         dst_row[span_start + j] = src_row[span_start + j] + colorOffset;
+                    }
+                } else if (colorReplacement != 0) {
+                    for (int j = 0; j < span_len; j++) {
+                        dst_row[span_start + j] = colorReplacement;
                     }
                 }
             }

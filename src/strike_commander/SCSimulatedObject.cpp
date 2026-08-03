@@ -260,7 +260,9 @@ void SCSimulatedObject::Simulate(int tps) {
             if (this->CheckCollision(entity)) {
                 entity->hasBeenHit(this, this->shooter);
                 this->alive = false;
-                this->target->weapon_shooted_at_me = nullptr;
+                if (this->target != nullptr) {
+                    this->target->weapon_shooted_at_me = nullptr;
+                }
                 break;
             }
         }

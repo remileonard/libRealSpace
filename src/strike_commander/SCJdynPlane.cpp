@@ -345,6 +345,9 @@ void SCJdynPlane::updatePosition() {
     
 }
 void SCJdynPlane::processInput() {
+    if (this->object->alive == false) {
+        return;
+    }
     float dt = GameTimer::getInstance().getDeltaTime();
     
     int itemp {0};
@@ -539,6 +542,22 @@ void SCJdynPlane::checkStatus() {
                     this->status = MEXPLODE;
                 }
             }
+        } else {
+            this->velocity.x = 0.0f;
+            this->velocity.y = 0.0f;
+            this->velocity.z = 0.0f;
+            this->vx = 0.0f;
+            this->vy = 0.0f;
+            this->vz = 0.0f;
+            this->acceleration.x = 0.0f;
+            this->acceleration.y = 0.0f;
+            this->acceleration.z = 0.0f;
+            this->airspeed = 0;
+            this->ax = 0.0f;
+            this->ay = 0.0f;
+            this->az = 0.0f;
+            this->thrust = 0;
+            this->object->alive = 0;
         }
         //this->ptw.v[3][1] = this->y = groundlevel;
         this->on_ground = TRUE;
@@ -570,6 +589,12 @@ void SCJdynPlane::checkStatus() {
     }
 }
 void SCJdynPlane::computeLift() {
+    if (this->object->alive == false) {
+        this->lift = 0.0f;
+        this->lift_drag_force = 0.0f;
+        this->lift_force = 0.0f;
+        return;
+    }
     int itemp {0};
     this->Lmax = this->object->entity->jdyn->MAX_G * this->gravity;
     this->Lmin = -0.5f * this->object->entity->jdyn->MAX_G * this->gravity;
@@ -692,6 +717,9 @@ void SCJdynPlane::computeGravity() {
 }
 void SCJdynPlane::computeThrust() {
     float dt = GameTimer::getInstance().getDeltaTime();
+    if (this->object->alive == false) {
+        this->thrust = 0;
+    }
     this->thrust_force = 0.01f * dt * dt * this->thrust * this->Mthrust;
 }
 void SCJdynPlane::updateAcceleration() {

@@ -2069,12 +2069,6 @@ void SCStrike::runFrame(void) {
                         Renderer.renderBBox(position+actor->attack_pos_offset, bb->min, bb->max);
                     } else {
                         actor->plane->Render();
-                        if (actor->plane->alive) {
-                            actor->plane->RenderSimulatedObject();
-                        }
-                    }
-                    if (actor->plane->object->alive == false) {
-                        actor->plane->RenderSmoke();
                     }
                 }
             } else if (actor->object->entity != nullptr) {
@@ -2123,7 +2117,6 @@ void SCStrike::runFrame(void) {
             expl->render();
         }
 
-        this->player_plane->RenderSimulatedObject();
         this->cockpit->cam = camera;
 
         Vector3D centerPoint = {0,0,-10};

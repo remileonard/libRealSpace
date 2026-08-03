@@ -32,7 +32,8 @@ private:
     ByteStream stream;
     size_t size;
 
-    uint8_t colorOffset;
+    uint8_t colorOffset{0};
+    uint8_t colorReplacement{0};
     uint8_t *expand_buffer{nullptr};
     size_t uncompressed_size{0};
     
@@ -73,4 +74,5 @@ public:
     int32_t GetLeft(void) { return leftDist; }
     int32_t GetBottom(void) { return botDist; }
     void SetColorOffset(uint8_t offset) { this->colorOffset = offset; }
+    void SetColorReplacement(uint8_t replacement) { this->colorReplacement = replacement; }
 };

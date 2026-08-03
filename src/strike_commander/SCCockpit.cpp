@@ -1384,10 +1384,15 @@ void SCCockpit::RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb) {
         for (auto& kv : subsystem_id) {
             std::string main_system = kv.first;
             std::string sub_system = kv.second;
-
-            if (this->player_plane->system_health[main_system][sub_system] == 0) {
+            bool is_damaged = false;
+            uint16_t max_health = this->player_plane->object->entity->sysm[main_system][sub_system];
+            is_damaged = (this->player_plane->system_health[main_system][sub_system] < max_health);
+            if (is_damaged) {
                 damage_shape = this->cockpit->MONI.MFDS.DAMG.ARTS.GetShape(sysm.first);
                 damage_shape->SetPosition(&damage_pos);
+                if (this->player_plane->system_health[main_system][sub_system]!=0) {
+                    damage_shape->SetColorReplacement(237);
+                }
                 fb->drawShape(damage_shape);
             }
         }
