@@ -107,6 +107,7 @@ protected:
     
 
     int nocrash{1};
+    
     int IN_BOX(int llx, int urx, int llz, int urz);
     int report_card(int descent, float roll, int vx, int vz, int wheels);
     
@@ -271,6 +272,7 @@ public:
     SCMissionActors *pilot {nullptr};
     bool takeoff{false};
     bool landed{false};
+    bool crached{false};
     float pitch{0.0f};
     float roll{0.0f};
     float yaw{0.0f};

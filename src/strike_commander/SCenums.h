@@ -245,7 +245,23 @@ static std::unordered_map<std::string, uint8_t> pilot_profile = {
     {"HAWK", 7}
 };
 
-enum View { FRONT = 0, FOLLOW, RIGHT, LEFT, REAR, REAL, TARGET, EYE_ON_TARGET, MISSILE_CAM, OBJECT, AUTO_PILOT, CONTROLLER_LOOK };
+enum View { 
+    FRONT = 0,
+    FOLLOW,
+    RIGHT,
+    LEFT,
+    REAR,
+    REAL,
+    TARGET,
+    EYE_ON_TARGET,
+    MISSILE_CAM,
+    OBJECT,
+    AUTO_PILOT,
+    CONTROLLER_LOOK,
+    CRASH_VIEW_P1,
+    CRASH_VIEW_P2,
+    CRASH_VIEW_P3,
+};
 
 enum CatalogItems {
     CAT_AIM9J = 73,

@@ -110,7 +110,8 @@ public:
     bool is_3d_cockpit{false};
     bool is_f16_cockpit{true};
     bool is_shooting{false};
-    
+    RSImageSet* crashed_animation_frames;
+    RSImageSet* eject_animation_frames;
     // Offset angulaire pour le viseur cannon (en radians)
     // x = azimut, y = élévation
     // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
@@ -141,5 +142,6 @@ public:
     void RenderSpeedBandRoll(Point2D speed_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *speed_band);
     void RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *heading_compas);
     void RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer *fb, SLADD *ladd, RSFont *ft);
+    void RenderCrashedAnimation();
 };
 #endif

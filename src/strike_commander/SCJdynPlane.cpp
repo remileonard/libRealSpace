@@ -542,6 +542,16 @@ void SCJdynPlane::checkStatus() {
                     this->status = MEXPLODE;
                 }
             }
+            if (this->airspeed < 30 && this->thrust < 20) {
+                this->thrust = 0;
+                this->vx = 0.0f;
+                this->vy = 0.0f;
+                this->vz = 0.0f;
+                this->airspeed = 0;
+                if (this->takeoff) {
+                    this->landed = true;
+                }
+            }
         } else {
             this->velocity.x = 0.0f;
             this->velocity.y = 0.0f;
@@ -558,19 +568,11 @@ void SCJdynPlane::checkStatus() {
             this->az = 0.0f;
             this->thrust = 0;
             this->object->alive = 0;
+            this->crached = true;
         }
         //this->ptw.v[3][1] = this->y = groundlevel;
         this->on_ground = TRUE;
-        if (this->airspeed < 30 && this->thrust < 20) {
-            this->thrust = 0;
-            this->vx = 0.0f;
-            this->vy = 0.0f;
-            this->vz = 0.0f;
-            this->airspeed = 0;
-            if (this->takeoff) {
-                this->landed = true;
-            }
-        }
+        
         if (this->status > MEXPLODE) {
             /* kill negative elevation */
             if (this->pitch < 0) {

@@ -1887,6 +1887,9 @@ void SCStrike::runFrame(void) {
     Renderer.getRenderToTexture();
     Renderer.verticalOffset = -0.45f;
     Renderer.initRenderCameraView();
+    if (this->player_plane->crached) {
+        this->camera_mode = View::CRASH_VIEW_P1;
+    }
     switch (this->camera_mode) {
     case View::AUTO_PILOT: {
         if (this->autopilot_timeout > -AUTOPILOTE_TIMEOUT) {
@@ -1923,6 +1926,14 @@ void SCStrike::runFrame(void) {
     case View::REAR:
         this->setCameraRLR();
         break;
+    case View::CRASH_VIEW_P1:
+        this->pilote_lookat.x = 180;
+        this->setCameraRLR();
+    break;
+    case View::CRASH_VIEW_P2:
+        this->pilote_lookat.x = 0;
+        this->setCameraRLR();
+    break;
     case View::TARGET: {
         if (this->target == nullptr) {
             this->camera_mode = View::FRONT;
@@ -2158,6 +2169,11 @@ void SCStrike::runFrame(void) {
         case View::REAR:
             if (!forceVirtualCockpit) {
                 this->cockpit->Render(CockpitFace::CP_REAR);
+                break;
+            }
+        case View::CRASH_VIEW_P1:
+            if (!forceVirtualCockpit) {
+                this->cockpit->RenderCrashedAnimation();
                 break;
             }
         case View::EYE_ON_TARGET:
