@@ -121,15 +121,25 @@ void SCCockpit::init() {
     TreEntry *crashed_animation_entry = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\EJECT.PAK");
     pak_crash = new PakArchive();
     pak_crash->InitFromRAM("EJECT", crashed_animation_entry->data, crashed_animation_entry->size);
-    this->crashed_animation_frames = new RSImageSet();
-    for (size_t i = 0; i < pak_crash->GetNumEntries()-1; i++) {
+    this->crashed_animation_frames_p1 = new RSImageSet();
+    this->crashed_animation_frames_p2 = new RSImageSet();
+    for (size_t i = 0; i < 5; i++) {
         ByteStream *reader = new ByteStream(pak_crash->GetEntry(i)->data, pak_crash->GetEntry(i)->size);
         uint32_t size = reader->ReadUInt32LE();
         uint8_t *data2 = (uint8_t*) malloc(size);
         memcpy(data2, pak_crash->GetEntry(i)->data, size);
         PakArchive *pak = new PakArchive();
         pak->InitFromRAM("EJECT", data2, size);
-        this->crashed_animation_frames->InitFromPakArchive(pak,0);
+        this->crashed_animation_frames_p1->InitFromPakArchive(pak,0);
+    }
+    for (size_t i = 5; i < 8; i++) {
+        ByteStream *reader = new ByteStream(pak_crash->GetEntry(i)->data, pak_crash->GetEntry(i)->size);
+        uint32_t size = reader->ReadUInt32LE();
+        uint8_t *data2 = (uint8_t*) malloc(size);
+        memcpy(data2, pak_crash->GetEntry(i)->data, size);
+        PakArchive *pak = new PakArchive();
+        pak->InitFromRAM("EJECT", data2, size);
+        this->crashed_animation_frames_p2->InitFromPakArchive(pak,0);
     }
     this->eject_animation_frames = new RSImageSet();
     this->eject_animation_frames->InitFromPakEntry(pak_crash->GetEntry(8));
@@ -2527,16 +2537,16 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
     }
 }
 
-void SCCockpit::RenderCrashedAnimation() {
-    static int frame = 0;
+bool SCCockpit::RenderOverlayAnimation(RSImageSet *overlay_animation) {
     static int frame_counter = 0;
     if (frame_counter == 0) {
         frame++;
     }
-    if (frame >= this->crashed_animation_frames->GetNumImages()) {
-        frame = 0;
+    if (frame >= overlay_animation->GetNumImages()) {
+        return true;
     }
-    frame_counter = (frame_counter + 1) % 12;
+    frame_counter = (frame_counter + 1) % 12; // Avancer d'une frame tous les 3 appels
+
     bool upscale = VGA.upscale;
     bool wide_screen = VGA.wide_screen;
     VGA.upscale = false;
@@ -2545,7 +2555,7 @@ void SCCockpit::RenderCrashedAnimation() {
     VGA.setPalette(&this->palette);
     FrameBuffer *fb = VGA.getFrameBuffer();
     fb->clear();
-    RLEShape *anframe = this->crashed_animation_frames->GetShape(frame);
+    RLEShape *anframe = overlay_animation->GetShape(frame);
     Point2D pos = {0,0};
     anframe->SetPosition(&pos);
     fb->drawShape(anframe);
@@ -2553,4 +2563,5 @@ void SCCockpit::RenderCrashedAnimation() {
     VGA.upscale = upscale;
     VGA.wide_screen = wide_screen;
     
+    return false;
 }

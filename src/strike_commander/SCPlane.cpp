@@ -537,14 +537,26 @@ void SCPlane::Simulate() {
     this->object->entity->position.x = this->x;
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
+    const float rise_speed = 1.0f; // Adjust this value to control the rise speed of the smoke
     if (this->object->alive == false) {
-        
-        this->smoke_positions.insert(this->smoke_positions.begin(), {this->x, this->y, this->z});
+        Vector3D smoke_position = {this->x, this->y, this->z};
+
+        this->smoke_positions.insert(this->smoke_positions.begin(), smoke_position);
         if (this->smoke_anim_counters.size() < this->smoke_set->smoke_textures.size() + 10) {
             this->smoke_anim_counters.insert(this->smoke_anim_counters.begin(), 0);
         }
         if (this->smoke_positions.size() > this->smoke_set->smoke_textures.size() + 10) {
             this->smoke_positions.pop_back();
+            if (this->smoke_anim_counters.size() > this->smoke_set->smoke_textures.size() + 10) {
+                this->smoke_anim_counters.pop_back();
+            }
+        }
+
+        // fait monter chaque puff indépendamment de l'ordre d'insertion/suppression
+        if (this->crached) {
+            for (auto &pos : this->smoke_positions) {
+                pos.y += rise_speed;
+            }
         }
     }
     this->tick_counter++;

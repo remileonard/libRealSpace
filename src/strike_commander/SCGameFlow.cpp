@@ -673,9 +673,12 @@ void SCGameFlow::runFrame(void) {
         delete this->frequest;
         this->frequest = nullptr;
     }
-    
-    
     if (this->cutsenes.size() > 0) {
+        if (GameState.player_dead) {
+            this->cutsenes.pop();
+            this->playMidGame(33);
+            return;
+        }
         SCShot *c = this->cutsenes.front();
         this->cutsenes.pop();
         Game->addActivity(c);
@@ -685,6 +688,9 @@ void SCGameFlow::runFrame(void) {
         SCAnimationPlayer *c = this->mid_games.front();
         this->mid_games.pop();
         Game->addActivity(c);
+        if (GameState.player_dead) {
+            this->stop();
+        }
         return;
     }
     if (this->convs.size() > 0) {
@@ -769,6 +775,7 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
         {15, "./assets/MID_15.IFF"},
         {17, "./assets/MID_17.IFF"},
         {20, "./assets/MID_20.IFF"},
+        {33, "./assets/MID_33.IFF"},
         {36, "./assets/MID_36.IFF"},
     };
     if (midgame_file_map.find(midGameId) != midgame_file_map.end()) {
@@ -809,19 +816,19 @@ void SCGameFlow::playEndMission() {
 bool SCGameFlow::playFlyMission(uint8_t flyMissionId) {
     uint8_t flymID = flyMissionId;
     GameState.mission_flyed = flymID;
-    this->missionToFly = (char *)malloc(13);
-    sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
-    strtoupper(this->missionToFly, this->missionToFly);
+    const std::string extension = ".IFF";
+    std::string missionFilePath = *this->gameFlowParser.game.mlst->data[flymID] + extension;
+    std::transform(missionFilePath.begin(), missionFilePath.end(), missionFilePath.begin(), ::toupper);
+    if (this->missionToFly != nullptr) {
+        free(this->missionToFly);
+    }
+    this->missionToFly = (char *)malloc(missionFilePath.size() + 1);
+    std::strcpy(this->missionToFly, missionFilePath.c_str());
     return true;
 }
 
 bool SCGameFlow::playFlyMission2(uint8_t flyMissionId) {
-    uint8_t flymID = flyMissionId;
-    GameState.mission_flyed = flymID;
-    this->missionToFly = (char *)malloc(13);
-    sprintf(this->missionToFly, "%s.IFF", this->gameFlowParser.game.mlst->data[flymID]->c_str());
-    strtoupper(this->missionToFly, this->missionToFly);
-    return true;
+    return this->playFlyMission(flyMissionId);
 }
 
 void SCGameFlow::lookAtLedger() {

@@ -188,6 +188,7 @@ public:
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();
     void setCameraLookat(Vector3D obj_pos);
+    void setCameraLookat(Vector3D obj_pos, Vector3D offset);
     /**
      * @brief Checks for keyboard input
      */

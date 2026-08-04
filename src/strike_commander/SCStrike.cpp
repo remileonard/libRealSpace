@@ -1697,11 +1697,11 @@ void SCStrike::setCameraRLR() {
         -tenthOfDegreeToRad(this->player_plane->twist)
     );
 }
-void SCStrike::setCameraLookat(Vector3D obj_pos) {
+void SCStrike::setCameraLookat(Vector3D obj_pos, Vector3D offset) {
     Vector3D pos = {
-        this->player_plane->x,
-        this->player_plane->y,
-        this->player_plane->z
+        this->player_plane->x + offset.x,
+        this->player_plane->y + offset.y,
+        this->player_plane->z + offset.z
     };
     Vector3D dir = {
         obj_pos.x - pos.x,
@@ -1770,6 +1770,10 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
     camera->SetPosition(&camPos);
     camera->lookAt(&lookAt ,&up);
 }
+void SCStrike::setCameraLookat(Vector3D obj_pos) {
+    Vector3D offset = {0, 0, 0};
+    this->setCameraLookat(obj_pos, offset);
+}
 /**
  * @brief Executes a single frame of the game simulation.
  *
@@ -1797,9 +1801,11 @@ void SCStrike::runFrame(void) {
         if (this->current_mission->mission_over && this->current_mission->mission_won) {
             this->Mixer.playMusic(13); // play victory music
         } else if (this->current_mission->mission_over && !this->current_mission->mission_won) {
-            this->Mixer.playMusic(12); // play victory music
+            this->Mixer.playMusic(12);
         } else if (this->current_mission->in_combat) {
             this->Mixer.playMusic(5);
+        } else if (this->player_plane->crached) {
+            this->Mixer.playMusic(12);
         } else {
             this->Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
         }
@@ -1820,7 +1826,9 @@ void SCStrike::runFrame(void) {
             GameState.ground_kills += this->current_mission->player->ground_down;
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] =GameState.air_kills;
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = GameState.ground_kills;
-            
+            if (this->player_plane->crached) {
+                GameState.player_dead = true;
+            }
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
                     if (team->plane != nullptr && team->actor_name != "PLAYER") {
@@ -1887,8 +1895,9 @@ void SCStrike::runFrame(void) {
     Renderer.getRenderToTexture();
     Renderer.verticalOffset = -0.45f;
     Renderer.initRenderCameraView();
-    if (this->player_plane->crached) {
+    if (this->player_plane->crached && this->camera_mode != View::CRASH_VIEW_P2 && this->camera_mode != View::CRASH_VIEW_P3 && this->camera_mode != View::CRASH_VIEW_P1) {
         this->camera_mode = View::CRASH_VIEW_P1;
+        this->cockpit->frame = 0;
     }
     switch (this->camera_mode) {
     case View::AUTO_PILOT: {
@@ -1933,6 +1942,23 @@ void SCStrike::runFrame(void) {
     case View::CRASH_VIEW_P2:
         this->pilote_lookat.x = 0;
         this->setCameraRLR();
+    break;
+    case View::CRASH_VIEW_P3:
+        {   
+            static float crash_cam_distance = 20.0f;
+            static float crash_cam_distance_max = 100.0f;
+            static float crash_cam_travel = 0.1f;
+            if (crash_cam_distance > crash_cam_distance_max) {
+                crash_cam_distance = crash_cam_distance_max;
+            }
+            if (crash_cam_travel > crash_cam_distance_max) {
+                crash_cam_travel = crash_cam_distance_max;
+            }
+            crash_cam_distance += 0.1f;
+            crash_cam_travel += 0.1f;
+            this->setCameraLookat(this->player_plane->position, {crash_cam_travel, 20, crash_cam_distance});
+        }
+        
     break;
     case View::TARGET: {
         if (this->target == nullptr) {
@@ -2140,6 +2166,7 @@ void SCStrike::runFrame(void) {
         case View::TARGET:
         case View::OBJECT:
         case View::AUTO_PILOT:
+        case View::CRASH_VIEW_P3:
         case View::FOLLOW:
             if (!this->show_bbox) {
                 this->player_plane->Render();
@@ -2173,7 +2200,17 @@ void SCStrike::runFrame(void) {
             }
         case View::CRASH_VIEW_P1:
             if (!forceVirtualCockpit) {
-                this->cockpit->RenderCrashedAnimation();
+                if (this->cockpit->RenderOverlayAnimation(this->cockpit->crashed_animation_frames_p1)) {
+                    this->camera_mode = View::CRASH_VIEW_P2;
+                    this->cockpit->frame = 0;
+                }
+                break;
+            }
+        case View::CRASH_VIEW_P2:
+            if (!forceVirtualCockpit) {
+                if (this->cockpit->RenderOverlayAnimation(this->cockpit->crashed_animation_frames_p2)) {
+                    this->camera_mode = View::CRASH_VIEW_P3;
+                }
                 break;
             }
         case View::EYE_ON_TARGET:
