@@ -248,6 +248,27 @@ void SCSimulatedObject::Simulate(int tps) {
     if (this->target != nullptr) {
         this->target->weapon_shooted_at_me = this;
     }
+    if (this->target != nullptr && this->target->plane != nullptr) {
+        RSEntity *weapon_entity = this->obj;
+        switch (weapon_entity->wdat->weapon_id) {
+        case ID_AIM9J:
+        case ID_AIM9M:
+        case ID_SA2:
+            if (this->target->plane->chaff_timer > 0) {
+                this->target->weapon_shooted_at_me = nullptr;
+                this->target = nullptr;
+            }
+            break;
+        case ID_SA6:
+        case ID_AIM120:
+            if (this->target->plane->flare_timer > 0) {
+                this->target->weapon_shooted_at_me = nullptr;
+                this->target = nullptr;
+            }
+            break; 
+        }
+        
+    }
     if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
             this->alive = false;

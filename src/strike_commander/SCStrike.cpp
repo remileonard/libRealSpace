@@ -18,6 +18,7 @@
 #define RENDER_DISTANCE 40000.0f
 #define AUTOPILOTE_TIMEOUT 1000
 #define AUTOPILOTE_SPEED 4
+#define CHAFF_FLARE_TIMEOUT 5.0f
 
 static Matrix invertRigidBodyMatrix(const Matrix& m) {
     Matrix out;
@@ -1154,6 +1155,20 @@ void SCStrike::checkKeyboard(void) {
         this->cockpit->show_comm = !this->cockpit->show_comm;
         this->mfd_timeout = 400;
     }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::CHAFF))) {
+        if (this->player_plane->chaffs > 0) {
+            this->player_plane->chaffs--;
+            this->player_plane->chaff_timer = CHAFF_FLARE_TIMEOUT;
+        }
+        
+        
+    }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLARE))) {
+        if (this->player_plane->flares > 0) {
+            this->player_plane->flares--;
+            this->player_plane->flare_timer = CHAFF_FLARE_TIMEOUT;
+        }
+    }
     
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
@@ -2161,6 +2176,7 @@ void SCStrike::runFrame(void) {
         centerPoint = camera->getPosition()+camera->getForward()*10.0f;
         Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
         Renderer.drawPoint(this->cockpit->targetImpactPointWorld, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+        this->player_plane->RenderSimulatedObject();
         switch (this->camera_mode) {
         case View::MISSILE_CAM:
         case View::TARGET:

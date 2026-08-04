@@ -42,6 +42,8 @@ enum weapon_ids {
     ID_DURANDAL = 7,
     ID_GBU15 = 8,
     ID_AIM120 = 9,
+    ID_SA2 = 10,
+    ID_SA6 = 11,
     ID_20MM = 12,
 };
 enum CockpitFace {
@@ -99,6 +101,13 @@ static std::unordered_map<weapon_ids, std::string> weapon_names = {
     {weapon_ids::ID_DURANDAL, "DUR"},
     {weapon_ids::ID_GBU15, "GBU-15"},
     {weapon_ids::ID_AIM120, "AIM-120"}
+};
+enum weapon_category {
+    WCAT_GUN = 0,
+    WCAT_IR = 1,
+    WCAT_RD = 2,
+    WCAT_BOMB = 3,
+    WCAT_POD = 4,
 };
 enum prog_compare_return_values {
     PROG_CMP_EQUAL = 1,          // 000001

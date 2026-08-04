@@ -96,7 +96,13 @@ void SCJdynPlane::Simulate() {
         ftps = 1.0f;
     }
     this->tps = (uint32_t)(ftps + 0.5f);
-
+    if (this->chaff_timer > 0) {
+        this->chaff_timer -= dt;
+    }
+    if (this->flare_timer > 0) {
+        this->flare_timer -= dt;
+    }
+    
     this->gravity = GRAVITY * dt * dt;
     this->fps_knots = 1.944f / dt;
     this->groundlevel = this->area->getY(this->x, this->z);

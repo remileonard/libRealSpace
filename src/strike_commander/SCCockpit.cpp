@@ -862,12 +862,14 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
     Point2D pmfd_right_weapon_chaff{pmfd_right_weapon.x - 7 +
                                         this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
                                     pmfd_right_weapon.y + 4 * 9};
-    fb->printText(this->big_font, &pmfd_right_weapon_chaff, const_cast<char *>("C:30"), 0, 0, 4, 2, 2);
+    std::string chaff_count = "C:"+std::to_string(this->player_plane->chaffs);
+    std::string flare_count = "F:"+std::to_string(this->player_plane->flares);
+    fb->printText(this->big_font, &pmfd_right_weapon_chaff, (char *)chaff_count.c_str(), 0, 0, 4, 2, 2);
 
     Point2D pmfd_right_weapon_flare{pmfd_right_weapon.x - 7 +
                                         this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
                                     pmfd_right_weapon.y + 5 * 9};
-    fb->printText(this->big_font, &pmfd_right_weapon_flare, const_cast<char *>("F:30"), 0, 0, 4, 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_flare, (char *)flare_count.c_str(), 0, 0, 4, 2, 2);
 }
 
 void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb = nullptr) {
@@ -1931,12 +1933,29 @@ void SCCockpit::RenderMasterWarning(Point2D master_warning_pos, FrameBuffer *fb)
     shape->SetPosition(&master_warning_pos);
     fb->drawShape(shape);
     if (this->current_mission->player->weapon_shooted_at_me != nullptr) {
-        static int flash_timer = 0;
-        flash_timer++;
-        if (flash_timer % 20 < 10) {
-            RLEShape *flash_shape = this->cockpit->MONI.INST.MWRN.ARTS.GetShape(ir_warning);
-            flash_shape->SetPosition(&master_warning_pos);
-            fb->drawShape(flash_shape);
+        if (this->current_mission->player->weapon_shooted_at_me->target == this->current_mission->player) {
+            static int flash_timer = 0;
+            flash_timer++;
+            if (flash_timer % 20 < 10) {
+                RSEntity *weapon_entity = this->current_mission->player->weapon_shooted_at_me->obj;
+                int warning_type = 0;
+                if (weapon_entity != nullptr && weapon_entity->wdat != nullptr) {
+                    switch (weapon_entity->wdat->weapon_id) {
+                    case ID_AIM9J:
+                    case ID_AIM9M:
+                    case ID_SA2:
+                        warning_type = ir_warning;
+                        break;
+                    case ID_SA6:
+                    case ID_AIM120:
+                        ir_warning = rd_warning;
+                        break; 
+                    }
+                }
+                RLEShape *flash_shape = this->cockpit->MONI.INST.MWRN.ARTS.GetShape(ir_warning);
+                flash_shape->SetPosition(&master_warning_pos);
+                fb->drawShape(flash_shape);
+            }
         }
     }
 }

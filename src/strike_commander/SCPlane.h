@@ -164,8 +164,10 @@ public:
     std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>> system_health;
     short alive;
     unsigned int status;
-    int flare_timer{0};
-    int chaff_timer{0};
+    float flare_timer{0.0f};
+    float chaff_timer{0.0f};
+    int chaffs{30};
+    int flares{30};
     int wp_cooldown{0};
     float mach{0.0f};
     float mcc{0.0f};
