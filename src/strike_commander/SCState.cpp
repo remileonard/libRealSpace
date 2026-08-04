@@ -216,4 +216,5 @@ void SCState::Reset() {
     this->over_head = 0;
     this->proj_cash = 0;
     this->tune_modifier = 1;
+    this->player_dead = false;
 }
