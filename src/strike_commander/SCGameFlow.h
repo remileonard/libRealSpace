@@ -97,6 +97,7 @@ protected:
     RLEShape *test_shape{nullptr};
     SCScene *scen{nullptr};
     SCFileRequester *frequest{nullptr};
+    bool isGameOver{false};
     void clicked(std::vector<EFCT *> *script, uint8_t id);
     void loadGame(std::string filename);
     void saveGame(std::string filename);

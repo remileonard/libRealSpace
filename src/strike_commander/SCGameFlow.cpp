@@ -678,6 +678,7 @@ RSImageSet *SCGameFlow::getShape(uint8_t shpid) {
  * @throws None
  */
 void SCGameFlow::runFrame(void) {
+    
     if (this->frequest != nullptr && !this->frequest->opened) {
         delete this->frequest;
         this->frequest = nullptr;
@@ -704,15 +705,15 @@ void SCGameFlow::runFrame(void) {
         SCAnimationPlayer *c = this->mid_games.front();
         this->mid_games.pop();
         Game->addActivity(c);
-        if (GameState.player_dead) {
-            this->stop();
-        }
         return;
     }
     if (this->convs.size() > 0) {
         SCConvPlayer *c = this->convs.front();
         this->convs.pop();
         Game->addActivity(c);
+        if (isGameOver) {
+            this->stop();
+        }
         return;
     }
     if (this->fly_mission.size() > 0) {
@@ -735,7 +736,13 @@ void SCGameFlow::runFrame(void) {
         this->runEffect();
         return;
     }
-
+    if (this->scen != nullptr && this->scen->sceneOpts->infos.ID == 11) {
+        if (GameState.cash < 0) {
+            this->playConv(GAMEOVER_NO_MONEY);
+            this->isGameOver = true;
+            return;
+        }
+    }
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - this->fps > 12;
     if (fpsupdate) {
