@@ -2247,7 +2247,7 @@ void SCStrike::runFrame(void) {
             }
         case View::CRASH_VIEW_P1:
             if (!forceVirtualCockpit) {
-                if (this->cockpit->RenderOverlayAnimation(this->cockpit->crashed_animation_frames_p1)) {
+                if (this->cockpit->RenderCrashAnimationP1()) {
                     this->camera_mode = View::CRASH_VIEW_P2;
                     this->cockpit->frame = 0;
                 }
@@ -2255,7 +2255,7 @@ void SCStrike::runFrame(void) {
             }
         case View::CRASH_VIEW_P2:
             if (!forceVirtualCockpit) {
-                if (this->cockpit->RenderOverlayAnimation(this->cockpit->crashed_animation_frames_p2)) {
+                if (this->cockpit->RenderCrashAnimationP2()) {
                     this->camera_mode = View::CRASH_VIEW_P3;
                 }
                 break;

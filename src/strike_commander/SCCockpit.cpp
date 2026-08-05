@@ -2565,38 +2565,18 @@ bool SCCockpit::RenderOverlayAnimation(RSImageSet *overlay_animation) {
         return true;
     }
     frame_counter = (frame_counter + 1) % 12; // Avancer d'une frame tous les 3 appels
-
-    bool upscale = VGA.upscale;
-    bool wide_screen = VGA.wide_screen;
-    VGA.upscale = false;
-    VGA.wide_screen = false;
-    VGA.activate();
-    VGA.setPalette(&this->palette);
     FrameBuffer *fb = VGA.getFrameBuffer();
-    fb->clear();
     RLEShape *anframe = overlay_animation->GetShape(frame);
     Point2D pos = {0,0};
     anframe->SetPosition(&pos);
     fb->drawShape(anframe);
-    VGA.vSync();
-    VGA.upscale = upscale;
-    VGA.wide_screen = wide_screen;
-    
     return false;
 }
 
 bool SCCockpit::RenderEjectionAnimation() {
-    static int frame_counter = 0;
-    if (frame_counter == 0) {
-        frame++;
-    }
-    if (frame >= this->eject_animation_frames->GetNumImages()) {
-        return true;
-    }
-    frame_counter = (frame_counter + 1) % 12; // Avancer d'une frame tous les 3 appels
-
     bool upscale = VGA.upscale;
     bool wide_screen = VGA.wide_screen;
+    bool is_done = false;
     VGA.upscale = false;
     VGA.wide_screen = false;
     VGA.activate();
@@ -2604,15 +2584,57 @@ bool SCCockpit::RenderEjectionAnimation() {
     FrameBuffer *fb = VGA.getFrameBuffer();
     fb->clear();
     RLEShape *eject_bg = this->cockpit->EJEC.GetShape(1);
-    RLEShape *anframe = eject_animation_frames->GetShape(frame);
     Point2D pos = {0,0};
-    anframe->SetPosition(&pos);
     eject_bg->SetPosition(&pos);
     fb->drawShape(eject_bg);
-    fb->drawShape(anframe);
+    is_done = this->RenderOverlayAnimation(this->eject_animation_frames);
     VGA.vSync();
     VGA.upscale = upscale;
     VGA.wide_screen = wide_screen;
     
-    return false;
+    return is_done;
+}
+
+bool SCCockpit::RenderCrashAnimationP1() {
+    bool upscale = VGA.upscale;
+    bool wide_screen = VGA.wide_screen;
+    bool is_done = false;
+    VGA.upscale = false;
+    VGA.wide_screen = false;
+    VGA.activate();
+    VGA.setPalette(&this->palette);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->clear();
+    RLEShape *eject_bg = this->cockpit->EJEC.GetShape(2);
+    Point2D pos = {0,0};
+    eject_bg->SetPosition(&pos);
+    fb->drawShape(eject_bg);
+    is_done = this->RenderOverlayAnimation(this->crashed_animation_frames_p1);
+    VGA.vSync();
+    VGA.upscale = upscale;
+    VGA.wide_screen = wide_screen;
+    
+    return is_done;
+}
+
+bool SCCockpit::RenderCrashAnimationP2() {
+    bool upscale = VGA.upscale;
+    bool wide_screen = VGA.wide_screen;
+    bool is_done = false;
+    VGA.upscale = false;
+    VGA.wide_screen = false;
+    VGA.activate();
+    VGA.setPalette(&this->palette);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->clear();
+    RLEShape *eject_bg = this->cockpit->ARTP.GetShape(0);
+    Point2D pos = {0,0};
+    eject_bg->SetPosition(&pos);
+    fb->drawShape(eject_bg);
+    is_done = this->RenderOverlayAnimation(this->crashed_animation_frames_p2);
+    VGA.vSync();
+    VGA.upscale = upscale;
+    VGA.wide_screen = wide_screen;
+    
+    return is_done;
 }

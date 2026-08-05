@@ -146,5 +146,7 @@ public:
     void RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer *fb, SLADD *ladd, RSFont *ft);
     bool RenderOverlayAnimation(RSImageSet *overlay_animation);
     bool RenderEjectionAnimation();
+    bool RenderCrashAnimationP1();
+    bool RenderCrashAnimationP2();
 };
 #endif
