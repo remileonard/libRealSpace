@@ -943,13 +943,13 @@ void LedgerScene::Render() {
         fb->printText(this->font, {178, 76}, std::to_string(GameState.weapons_costs), color);
 
         fb->printText(this->font, {67, 87}, std::string("CURRENT CASH"), color);
-        fb->printText(this->font, {178, 87}, std::to_string(GameState.proj_cash), color);
+        fb->printText(this->font, {178, 87}, std::to_string(GameState.proj_cash - GameState.weapons_costs), color);
 
         fb->printText(this->font, {67, 99}, std::string("PROJ OVERHEAD"), color);
         fb->printText(this->font, {178, 99}, std::to_string(GameState.over_head), color);
 
         fb->printText(this->font, {67, 105}, std::string("PROJ CASH"), color);
-        fb->printText(this->font, {178, 105}, std::to_string(GameState.proj_cash - GameState.over_head - GameState.weapons_costs - GameState.f16_replacements), color);
+        fb->printText(this->font, {178, 105}, std::to_string(GameState.proj_cash - GameState.weapons_costs - GameState.over_head), color);
     } else if (page == 1) {
         int y = 64;
         for (auto weap : GameState.weapon_inventory) {

@@ -1880,8 +1880,7 @@ void SCStrike::runFrame(void) {
                 GameState.missions_flags.push_back(flags.second);
             }
             //GameState.cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000;
-            GameState.proj_cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000 - GameState.over_head - GameState.weapons_costs - GameState.f16_replacements ;
-            GameState.weapons_costs = 0;
+            
             GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0]>0;
             //GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
             //GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
@@ -1897,6 +1896,9 @@ void SCStrike::runFrame(void) {
                 GameState.f16_replacements += 500000;
                 GameState.lost_aircraft += 1;
             }
+            GameState.cash = GameState.proj_cash - GameState.over_head;
+            GameState.proj_cash = GameState.cash + this->current_mission->gameflow_registers[1]*1000 - GameState.weapons_costs - GameState.f16_replacements  ;
+            GameState.weapons_costs = 0;
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
                     if (team->plane != nullptr && team->actor_name != "PLAYER") {
