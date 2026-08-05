@@ -41,6 +41,7 @@ public:
     int32_t air_kills{0};
     bool player_dead{false};
     bool player_ejected{false};
+    int32_t lost_aircraft{0};
 
     static SCState& getInstance() {
         if (!SCState::hasInstance()) {

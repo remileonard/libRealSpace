@@ -424,6 +424,9 @@ void SCGameFlow::runEffect() {
                         GameState.proj_cash += chng->cash->value*1000;
                         break;
                     }
+                    if (GameState.cash == 0) {
+                        GameState.cash = GameState.proj_cash;
+                    }
                 }
                 if (chng->over != nullptr) {
                     switch (chng->over->op) {

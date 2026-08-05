@@ -1593,6 +1593,7 @@ void SCStrike::init(void) {
     Config &cfg = Config::getInstance();
     this->world_lod = cfg.getInt("Game", "world_detail", 0);
     this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
+    GameState.f16_replacements=0;
 }
 
 RSEntity * SCStrike::loadWeapon(std::string name) {
@@ -1893,6 +1894,8 @@ void SCStrike::runFrame(void) {
             }
             if (this->player_plane->ejected) {
                 GameState.player_ejected = true;
+                GameState.f16_replacements += 500000;
+                GameState.lost_aircraft += 1;
             }
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
