@@ -1960,7 +1960,7 @@ void SCStrike::runFrame(void) {
     Renderer.getRenderToTexture();
     Renderer.verticalOffset = -0.45f;
     Renderer.initRenderCameraView();
-    if (this->player_plane->crached && this->camera_mode != View::CRASH_VIEW_P2 && this->camera_mode != View::CRASH_VIEW_P3 && this->camera_mode != View::CRASH_VIEW_P1) {
+    if (this->player_plane->crached && !this->player_plane->ejected && this->camera_mode != View::CRASH_VIEW_P2 && this->camera_mode != View::CRASH_VIEW_P3 && this->camera_mode != View::CRASH_VIEW_P1) {
         this->camera_mode = View::CRASH_VIEW_P1;
         this->cockpit->frame = 0;
     }
