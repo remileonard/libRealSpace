@@ -513,3 +513,117 @@ void DumbSimulatedObject::Render() {
         1.0f
     );
 }
+
+EjectionSeatSimulatedObject::EjectionSeatSimulatedObject() {
+    AssetManager &Assets = AssetManager::getInstance();
+    std::string path = "..\\..\\DATA\\OBJECTS\\EJECSEAT.IFF";
+    TreEntry *smk = Assets.GetEntryByName(path.c_str());
+    this->ejection_seat_obj = new RSEntity();
+    this->ejection_seat_obj->InitFromRAM(smk->data, smk->size, "EJECSEAT.IFF");
+    smk = Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\EJGUY.IFF");
+    this->pilot_obj = new RSEntity();
+    this->pilot_obj->InitFromRAM(smk->data, smk->size, "EJGUY.IFF");
+    this->weight = 150.0f;
+}
+
+EjectionSeatSimulatedObject::~EjectionSeatSimulatedObject() {
+    if (this->ejection_seat_obj != nullptr) {
+        delete this->ejection_seat_obj;
+        this->ejection_seat_obj = nullptr;
+    }
+}
+
+void EjectionSeatSimulatedObject::Simulate(int tps) {
+    this->tps = tps;
+    Vector3D position = {
+        this->x,
+        this->y,
+        this->z
+    };
+    Vector3D velocity = {
+        this->vx,
+        this->vy,
+        this->vz
+    };
+    Vector3D gravity_force = { 0.0f, -this->weight * GRAVITY, 0.0f };
+    Vector3D ejection_force = { 0.0f, this->ejection_seat_velocity * this->weight, 0.0f };
+    float deltaTime = 1.0f / (float)tps;
+    this->ejection_seat_velocity -= 10.0f*deltaTime; // Décélération progressive de la poussée
+    if (this->ejection_seat_velocity < 0.0f) {
+        this->ejection_seat_velocity = 0.0f;
+    }
+    Vector3D total_force = gravity_force + ejection_force;
+    Vector3D acceleration = total_force * (1.0f / this->weight);
+    velocity = (velocity + (acceleration * deltaTime));
+    position = position + velocity * deltaTime;
+    this->vx = velocity.x;
+    this->vy = velocity.y;
+    this->vz = velocity.z;
+    this->x = position.x;
+    this->y = position.y;
+    this->z = position.z;
+    if (this->y < this->mission->area->getY(this->x, this->z)) {
+        this->alive = false;
+    }
+}
+void EjectionSeatSimulatedObject::Render() {
+    Vector3D position = { this->x, this->y, this->z };
+    Vector3D orientation = { 0.0f, -1.5f, 0.0f };
+    Renderer.drawModel(this->ejection_seat_obj, position, orientation);
+    if (this->vy > 0.0f) {
+        Renderer.drawModel(this->pilot_obj, position, orientation);
+    }
+}
+
+EjectedPilotSimulatedObject::EjectedPilotSimulatedObject() {
+    AssetManager &Assets = AssetManager::getInstance();
+    std::string path = "..\\..\\DATA\\OBJECTS\\CHUTE.IFF";
+    TreEntry *smk = Assets.GetEntryByName(path.c_str());
+    this->ejected_pilot_obj = new RSEntity();
+    this->ejected_pilot_obj->InitFromRAM(smk->data, smk->size, "EJECSEAT.IFF");
+    this->weight = 20.0f;
+}
+
+EjectedPilotSimulatedObject::~EjectedPilotSimulatedObject() {
+    if (this->ejected_pilot_obj != nullptr) {
+        delete this->ejected_pilot_obj;
+        this->ejected_pilot_obj = nullptr;
+    }
+}
+
+void EjectedPilotSimulatedObject::Simulate(int tps) {
+    this->tps = tps;
+    Vector3D position = {
+        this->x,
+        this->y,
+        this->z
+    };
+    Vector3D velocity = {
+        this->vx,
+        this->vy,
+        this->vz
+    };
+    Vector3D gravity_force = { 0.0f, -this->weight * GRAVITY*0.1f, 0.0f };
+    
+    float deltaTime = 1.0f / (float)tps;
+    
+    Vector3D total_force = gravity_force;
+    Vector3D acceleration = total_force * (1.0f / this->weight);
+    velocity = (velocity + (acceleration * deltaTime));
+    position = position + velocity * deltaTime;
+    this->vx = velocity.x;
+    this->vy = velocity.y;
+    this->vz = velocity.z;
+    this->x = position.x;
+    this->y = position.y;
+    this->z = position.z;
+    if (this->y < this->mission->area->getY(this->x, this->z)) {
+        this->alive = false;
+    }
+}
+
+void EjectedPilotSimulatedObject::Render() {
+    Vector3D position = { this->x, this->y, this->z };
+    Vector3D orientation = { 0.0f, -1.5f, 0.0f };
+    Renderer.drawModel(this->ejected_pilot_obj, position, orientation);
+}

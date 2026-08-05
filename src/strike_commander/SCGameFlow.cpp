@@ -680,11 +680,18 @@ void SCGameFlow::runFrame(void) {
         this->frequest = nullptr;
     }
     if (this->cutsenes.size() > 0) {
+        if (GameState.player_ejected) {
+            this->cutsenes.pop();
+            GameState.player_ejected = false;
+            this->playConv(LOST_PLAYER_PLANE);
+            return;
+        }
         if (GameState.player_dead) {
             this->cutsenes.pop();
             this->playMidGame(33);
             return;
         }
+        
         SCShot *c = this->cutsenes.front();
         this->cutsenes.pop();
         Game->addActivity(c);

@@ -67,3 +67,23 @@ public:
     void Simulate(int tps);
     void Render();
 };
+
+class EjectionSeatSimulatedObject : public SCSimulatedObject {
+    RSEntity *ejection_seat_obj{nullptr};
+    RSEntity *pilot_obj{nullptr};
+    float ejection_seat_velocity{50.0f};
+public:
+    EjectionSeatSimulatedObject();
+    ~EjectionSeatSimulatedObject();
+    void Simulate(int tps);
+    void Render();
+};
+
+class EjectedPilotSimulatedObject : public SCSimulatedObject {
+    RSEntity *ejected_pilot_obj{nullptr};
+public:
+    EjectedPilotSimulatedObject();
+    ~EjectedPilotSimulatedObject();
+    void Simulate(int tps);
+    void Render();
+};

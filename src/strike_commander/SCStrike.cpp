@@ -968,6 +968,14 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
+        this->current_mission->mission_ended = true;
+        Mixer.stopSound();
+        Mixer.stopSound(5);
+    }
+    if (this->player_plane->crached || this->player_plane->ejected) {
+        return;
+    }
     bool is_rudder_pressed = false;
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_LEFT))) {
         this->player_plane->rudder -= 0.1f;
@@ -1180,6 +1188,7 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::EJECT))) {
         this->cockpit->frame = 0;
         this->camera_mode = View::EJECT_VIEW_P1;
+        this->player_plane->ejected = true;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLARE))) {
         if (this->player_plane->flares > 0) {
@@ -1466,11 +1475,7 @@ void SCStrike::checkKeyboard(void) {
             this->cockpit->is_3d_cockpit = false;
         }
     }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
-        this->current_mission->mission_ended = true;
-        Mixer.stopSound();
-        Mixer.stopSound(5);
-    }
+    
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1))) {
         this->current_mission->gameflow_registers[0] = 1;
         this->current_mission->gameflow_registers[1] = 2;
@@ -1742,6 +1747,16 @@ void SCStrike::setCameraRLR() {
         -tenthOfDegreeToRad(this->player_plane->twist)
     );
 }
+void SCStrike::setCameraRLRUpDown() {
+    camera->SetPosition(&this->new_position);
+    camera->resetRotate();
+    camera->rotate(-this->pilote_lookat.y * ((float)M_PI / 180.0f), this->pilote_lookat.x * ((float)M_PI / 180.0f), 0.0f);
+    camera->rotate(
+        -tenthOfDegreeToRad(this->player_plane->elevationf),
+        -tenthOfDegreeToRad(this->player_plane->azimuthf),
+        -tenthOfDegreeToRad(this->player_plane->twist)
+    );
+}
 void SCStrike::setCameraLookat(Vector3D obj_pos, Vector3D offset) {
     Vector3D pos = {
         this->player_plane->x + offset.x,
@@ -1851,6 +1866,8 @@ void SCStrike::runFrame(void) {
             this->Mixer.playMusic(5);
         } else if (this->player_plane->crached) {
             this->Mixer.playMusic(12);
+        } else if (this->player_plane->ejected) {
+            this->Mixer.playMusic(12);
         } else {
             this->Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
         }
@@ -1873,6 +1890,9 @@ void SCStrike::runFrame(void) {
             GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = GameState.ground_kills;
             if (this->player_plane->crached) {
                 GameState.player_dead = true;
+            }
+            if (this->player_plane->ejected) {
+                GameState.player_ejected = true;
             }
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
@@ -1969,6 +1989,10 @@ void SCStrike::runFrame(void) {
         }
     } break;
     case View::EJECT_VIEW_P1:
+        this->pilote_lookat.y = -45;
+        this->pilote_lookat.x = 0;
+        this->setCameraRLRUpDown();
+    break;
     case View::FRONT: {
         this->setCameraFront();
          // Apply a vertical offset to the projection matrix
@@ -2005,6 +2029,66 @@ void SCStrike::runFrame(void) {
             this->setCameraLookat(this->player_plane->position, {crash_cam_travel, 20, crash_cam_distance});
         }
         
+    break;
+    case View::EJECT_VIEW_P2:
+        {
+            if (this->ejected_object == nullptr) {
+                this->ejected_object = new EjectionSeatSimulatedObject();
+                this->ejected_object->x = this->player_plane->position.x;
+                this->ejected_object->y = this->player_plane->position.y;
+                this->ejected_object->z = this->player_plane->position.z;
+                this->ejected_object->mission = this->current_mission;
+                this->simulated_objects.push_back(this->ejected_object);
+            }
+            Vector3D pos = {
+                this->ejected_object->x,
+                this->ejected_object->y,
+                this->ejected_object->z
+            };
+            if (this->ejected_object->vy < 0.0f) {
+                SCSimulatedObject *pilot = this->ejected_object;
+                this->ejected_object = new EjectedPilotSimulatedObject();
+                this->ejected_object->x = pilot->x;
+                this->ejected_object->y = pilot->y;
+                this->ejected_object->z = pilot->z;
+                this->ejected_object->mission = this->current_mission;
+                this->simulated_objects.push_back(this->ejected_object);
+                this->camera_mode = View::EJECT_VIEW_P3;
+            }
+            Vector3D cam_eject_pos = {
+                this->ejected_object->x,
+                this->ejected_object->y + 15.0f,
+                this->ejected_object->z - 20.0f
+            };
+            this->camera->SetPosition(&cam_eject_pos);
+            this->camera->lookAt(&pos);
+        }
+    break;
+    case EJECT_VIEW_P3:
+        {
+            static float eject_cam_y_offset = 15.0f;
+            static float eject_cam_z_offset = -20.0f;
+            Vector3D pos = {
+                this->ejected_object->x,
+                this->ejected_object->y,
+                this->ejected_object->z
+            };
+            Vector3D cam_eject_pos = {
+                this->ejected_object->x,
+                this->ejected_object->y + eject_cam_y_offset,
+                this->ejected_object->z - eject_cam_z_offset
+            };
+            eject_cam_y_offset -= 0.1f;
+            eject_cam_z_offset -= 0.1f;
+            if (eject_cam_y_offset < -25.0f) {
+                eject_cam_y_offset = -25.0f;
+            }
+            if (eject_cam_z_offset < -160.0f) {
+                eject_cam_z_offset = -160.0f;
+            }
+            this->camera->SetPosition(&cam_eject_pos);
+            this->camera->lookAt(&pos);
+        }
     break;
     case View::TARGET: {
         if (this->target == nullptr) {
@@ -2208,6 +2292,12 @@ void SCStrike::runFrame(void) {
         Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
         Renderer.drawPoint(this->cockpit->targetImpactPointWorld, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
         this->player_plane->RenderSimulatedObject();
+        for (auto objs: this->simulated_objects) {
+            if (objs->alive) {
+                objs->Simulate(this->player_plane->tps);
+                objs->Render();
+            }
+        }
         switch (this->camera_mode) {
         case View::MISSILE_CAM:
         case View::TARGET:
@@ -2262,9 +2352,15 @@ void SCStrike::runFrame(void) {
             }
         case View::EJECT_VIEW_P1:
             if (!forceVirtualCockpit) {
-                this->cockpit->RenderEjectionAnimation();
+                if (this->cockpit->RenderEjectionAnimation()) {
+                    this->camera_mode = View::EJECT_VIEW_P2;
+                }
                 break;
             }
+        case View::EJECT_VIEW_P2:
+        case View::EJECT_VIEW_P3:
+            this->player_plane->Render();
+            break;
         case View::EYE_ON_TARGET:
         case View::REAL:
         case View::CONTROLLER_LOOK:

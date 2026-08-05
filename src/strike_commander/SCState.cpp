@@ -217,4 +217,5 @@ void SCState::Reset() {
     this->proj_cash = 0;
     this->tune_modifier = 1;
     this->player_dead = false;
+    this->player_ejected = false;
 }

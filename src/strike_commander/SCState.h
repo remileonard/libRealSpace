@@ -40,6 +40,7 @@ public:
     int32_t ground_kills{0};
     int32_t air_kills{0};
     bool player_dead{false};
+    bool player_ejected{false};
 
     static SCState& getInstance() {
         if (!SCState::hasInstance()) {

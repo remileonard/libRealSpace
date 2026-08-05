@@ -272,6 +272,7 @@ enum View {
     CRASH_VIEW_P3,
     EJECT_VIEW_P1,
     EJECT_VIEW_P2,
+    EJECT_VIEW_P3
 };
 
 enum CatalogItems {

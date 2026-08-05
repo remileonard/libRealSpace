@@ -275,6 +275,7 @@ public:
     bool takeoff{false};
     bool landed{false};
     bool crached{false};
+    bool ejected{false};
     float pitch{0.0f};
     float roll{0.0f};
     float yaw{0.0f};

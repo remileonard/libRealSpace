@@ -165,6 +165,8 @@ protected:
     void renderVirtualF16Cockpit();
     void renderVirtualF22Cockpit();
     int world_lod{BLOCK_LOD_MAX};
+    std::vector<SCSimulatedObject*> simulated_objects;
+    SCSimulatedObject* ejected_object{nullptr};
 public:
     float verticalOffset{0.45f};
     /**
@@ -187,6 +189,7 @@ public:
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();
+    void setCameraRLRUpDown();
     void setCameraLookat(Vector3D obj_pos);
     void setCameraLookat(Vector3D obj_pos, Vector3D offset);
     /**
