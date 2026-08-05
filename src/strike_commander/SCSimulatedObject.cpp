@@ -477,3 +477,39 @@ void GunSimulatedObject::Render() {
         Renderer.drawModel(this->obj, pos, orient);
     }
 }
+
+void DumbSimulatedObject::Simulate(int tps) {
+    Vector3D gravity_force = { 0.0f, -this->weight * GRAVITY, 0.0f };
+    Vector3D acceleration = gravity_force * (1.0f / this->weight);
+    Vector3D position = {
+        this->x,
+        this->y,
+        this->z
+    };
+    Vector3D velocity= {
+        this->vx,
+        this->vy,
+        this->vz
+    };
+    this->tps = tps;
+    float deltaTime = 1.0f / (float)tps;
+    velocity = (velocity + (acceleration * deltaTime));
+    position = position + velocity;
+    this->distance -= deltaTime;
+    if (this->distance < 0) {
+        this->alive = false;
+    }
+}
+
+void DumbSimulatedObject::Render() {
+    this->fps++;
+    if (this->fps > 12) {
+        this->fps = 0;
+        this->current_frame = (this->current_frame + 1) % this->obj->animations.size();
+    }
+    Renderer.drawBillboard(
+        {this->x, this->y, this->z},
+        this->obj->animations[this->current_frame],
+        1.0f
+    );
+}

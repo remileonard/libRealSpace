@@ -79,7 +79,7 @@ void RSCockpit::parseEJEC(uint8_t* data, size_t size) {
     memcpy(data2, data, size);
     PakArchive* pak = new PakArchive();
     pak->InitFromRAM("EJEC", data2, size);
-    this->EJEC.InitFromSubPakEntry(pak);
+    this->EJEC.InitFromPakArchive(pak);
 }
 void RSCockpit::parseGUNF(uint8_t* data, size_t size) {
     uint8_t* data2 = (uint8_t*) malloc(size);

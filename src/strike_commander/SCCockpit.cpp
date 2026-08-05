@@ -2584,3 +2584,35 @@ bool SCCockpit::RenderOverlayAnimation(RSImageSet *overlay_animation) {
     
     return false;
 }
+
+bool SCCockpit::RenderEjectionAnimation() {
+    static int frame_counter = 0;
+    if (frame_counter == 0) {
+        frame++;
+    }
+    if (frame >= this->eject_animation_frames->GetNumImages()) {
+        return true;
+    }
+    frame_counter = (frame_counter + 1) % 12; // Avancer d'une frame tous les 3 appels
+
+    bool upscale = VGA.upscale;
+    bool wide_screen = VGA.wide_screen;
+    VGA.upscale = false;
+    VGA.wide_screen = false;
+    VGA.activate();
+    VGA.setPalette(&this->palette);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->clear();
+    RLEShape *eject_bg = this->cockpit->EJEC.GetShape(1);
+    RLEShape *anframe = eject_animation_frames->GetShape(frame);
+    Point2D pos = {0,0};
+    anframe->SetPosition(&pos);
+    eject_bg->SetPosition(&pos);
+    fb->drawShape(eject_bg);
+    fb->drawShape(anframe);
+    VGA.vSync();
+    VGA.upscale = upscale;
+    VGA.wide_screen = wide_screen;
+    
+    return false;
+}

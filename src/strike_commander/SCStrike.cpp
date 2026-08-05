@@ -1160,13 +1160,43 @@ void SCStrike::checkKeyboard(void) {
             this->player_plane->chaffs--;
             this->player_plane->chaff_timer = CHAFF_FLARE_TIMEOUT;
         }
-        
-        
+        if (this->player_plane->flares > 0) {
+            this->player_plane->flares--;
+            this->player_plane->flare_timer = CHAFF_FLARE_TIMEOUT;
+            std::string path = "..\\..\\DATA\\OBJECTS\\CHAFF.IFF";
+            TreEntry *smk = Assets.GetEntryByName(path.c_str());
+            RSEntity *flare = new RSEntity();
+            flare->InitFromRAM(smk->data, smk->size, "CHAFF.IFF");
+            DumbSimulatedObject *flare_obj = new DumbSimulatedObject();
+            flare_obj->obj = flare;
+            flare_obj->x = this->player_plane->x;
+            flare_obj->y = this->player_plane->y;
+            flare_obj->z = this->player_plane->z;
+            flare_obj->weight = 0.2f;
+            flare_obj->distance = CHAFF_FLARE_TIMEOUT;
+            this->player_plane->weaps_object.push_back(flare_obj);
+        }
+    }
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::EJECT))) {
+        this->cockpit->frame = 0;
+        this->camera_mode = View::EJECT_VIEW_P1;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLARE))) {
         if (this->player_plane->flares > 0) {
             this->player_plane->flares--;
             this->player_plane->flare_timer = CHAFF_FLARE_TIMEOUT;
+            std::string path = "..\\..\\DATA\\OBJECTS\\FLARE.IFF";
+            TreEntry *smk = Assets.GetEntryByName(path.c_str());
+            RSEntity *flare = new RSEntity();
+            flare->InitFromRAM(smk->data, smk->size, "FLARE.IFF");
+            DumbSimulatedObject *flare_obj = new DumbSimulatedObject();
+            flare_obj->obj = flare;
+            flare_obj->x = this->player_plane->x;
+            flare_obj->y = this->player_plane->y;
+            flare_obj->z = this->player_plane->z;
+            flare_obj->weight = 0.2f;
+            flare_obj->distance = CHAFF_FLARE_TIMEOUT;
+            this->player_plane->weaps_object.push_back(flare_obj);
         }
     }
     
@@ -1938,6 +1968,7 @@ void SCStrike::runFrame(void) {
             }
         }
     } break;
+    case View::EJECT_VIEW_P1:
     case View::FRONT: {
         this->setCameraFront();
          // Apply a vertical offset to the projection matrix
@@ -2227,6 +2258,11 @@ void SCStrike::runFrame(void) {
                 if (this->cockpit->RenderOverlayAnimation(this->cockpit->crashed_animation_frames_p2)) {
                     this->camera_mode = View::CRASH_VIEW_P3;
                 }
+                break;
+            }
+        case View::EJECT_VIEW_P1:
+            if (!forceVirtualCockpit) {
+                this->cockpit->RenderEjectionAnimation();
                 break;
             }
         case View::EYE_ON_TARGET:

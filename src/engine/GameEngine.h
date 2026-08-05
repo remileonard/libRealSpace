@@ -97,6 +97,7 @@ enum SimActionOfst {
     SINGLE_TARGET_MODE = 64,
     RUDDER_LEFT = 65,
     RUDDER_RIGHT = 66,
+    EJECT = 67,
 };
 
 class GameEngine{

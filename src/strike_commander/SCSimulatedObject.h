@@ -59,3 +59,11 @@ public:
     std::tuple<Vector3D, Vector3D> ComputeTrajectory(int tps);
     std::tuple<Vector3D, Vector3D> ComputeTrajectoryUntilGround(int tps);
 };
+
+class DumbSimulatedObject : public SCSimulatedObject {
+    int fps{0};
+    int current_frame{0};
+public:
+    void Simulate(int tps);
+    void Render();
+};

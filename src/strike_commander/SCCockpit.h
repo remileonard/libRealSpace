@@ -145,5 +145,6 @@ public:
     void RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *heading_compas);
     void RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer *fb, SLADD *ladd, RSFont *ft);
     bool RenderOverlayAnimation(RSImageSet *overlay_animation);
+    bool RenderEjectionAnimation();
 };
 #endif

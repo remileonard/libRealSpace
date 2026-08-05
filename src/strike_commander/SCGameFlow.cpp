@@ -13,6 +13,12 @@
 #include <imgui_impl_sdl2.h>
 #include "SCGameFlow.h"
 
+
+#define GAMOVER_NO_INSURANCE 254
+#define GAMEOVER_NO_MONEY 255
+#define LOST_PLAYER_PLANE 252
+#define LOST_WINGMAN_PLANE 253
+
 /**
  * SCGameFlow constructor.
  *

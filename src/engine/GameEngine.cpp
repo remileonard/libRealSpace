@@ -197,6 +197,7 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION), SDL_SCANCODE_ESCAPE);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_LEFT), SDL_SCANCODE_COMMA);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_RIGHT), SDL_SCANCODE_PERIOD);
+    m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::EJECT), SDL_SCANCODE_E);
     m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X), 0, 1.0f);
     m_keyboard->bindMousePositionToAction(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y), 1, 1.0f);
     m_keyboard->bindKeyToAction(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M6),SDL_SCANCODE_6);
