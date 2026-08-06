@@ -267,6 +267,9 @@ void EndMissionScene::runFrame() {
                             base_pos.x + col * mark_w,
                             base_pos.y + row * mark_h 
                         };
+                        if (seq_idx > this->scoringSprites->sequence.size()) {
+                            break; // Séquence invalide, on sort de la boucle
+                        }
                         RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[seq_idx]);
                         shape->SetPosition(&pos);
                         VGA.getFrameBuffer()->drawShape(shape);
