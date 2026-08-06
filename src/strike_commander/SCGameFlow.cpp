@@ -400,6 +400,12 @@ void SCGameFlow::runEffect() {
             this->playMidGame(instruction->value);
             break;
         }
+        case EFECT_OPT_CHECK_BALANCE:
+            if (GameState.cash < 0) {
+                this->playConv(GAMEOVER_NO_MONEY);
+                this->isGameOver = true;
+            }
+            break;
         case EFECT_OPT_VIEW_CATALOG:
             this->viewCatalog();
             break;
@@ -735,13 +741,6 @@ void SCGameFlow::runFrame(void) {
     if (this->currentOptCode > 0 && this->efect != nullptr) {
         this->runEffect();
         return;
-    }
-    if (this->scen != nullptr && this->scen->sceneOpts->infos.ID == 11) {
-        if (GameState.cash < 0) {
-            this->playConv(GAMEOVER_NO_MONEY);
-            this->isGameOver = true;
-            return;
-        }
     }
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - this->fps > 12;
