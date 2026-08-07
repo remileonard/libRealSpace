@@ -142,8 +142,8 @@ void SCState::Save(std::string filename) {
     buffer[0x18E] = ((this->over_head / 1000) >> 8) & 0xFF;
 
     // Kills
-    buffer[0x199] = this->ground_kills;
-    buffer[0x19B] = this->air_kills;
+    buffer[0x19B] = this->ground_kills;
+    buffer[0x199] = this->air_kills;
 
     // Kill board
     for (int i = 0; i < 6; i++) {

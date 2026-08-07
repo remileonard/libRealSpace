@@ -1430,8 +1430,8 @@ void KillBoardScene::Render() {
     std::vector<std::pair<uint8_t, std::unordered_map<uint8_t, int16_t>>> sorted_board(
         GameState.kill_board.begin(), GameState.kill_board.end());
     std::sort(sorted_board.begin(), sorted_board.end(), [](const auto &a, const auto &b) {
-        int scoreA = a.second.at(KillBoardType::AIR_KILL);
-        int scoreB = b.second.at(KillBoardType::AIR_KILL);
+        int scoreA = a.second.at(KillBoardType::AIR_KILL)+a.second.at(KillBoardType::GROUND_KILL);
+        int scoreB = b.second.at(KillBoardType::AIR_KILL)+b.second.at(KillBoardType::GROUND_KILL);
         return scoreA > scoreB;
     });
     
