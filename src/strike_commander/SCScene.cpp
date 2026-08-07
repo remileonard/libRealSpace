@@ -910,17 +910,31 @@ std::string format_number_grouped(int value, int minDigits = 4) {
 void LedgerScene::Render() {
     SCScene::Render();
     FrameBuffer *fb = VGA.getFrameBuffer();
-    std::unordered_map<weapon_ids, std::string> weapon_label = {
+    std::vector<std::pair<weapon_ids, std::string>> weapon_label = {
         {   ID_AIM9J,   "AIM-9J"},
         {   ID_AIM9M,   "AIM-9M"},
         {  ID_AGM65D,  "AGM-65D"},
-        {    ID_LAU3,    "LAU-3"},
+        {ID_DURANDAL, "DURANDAL"},
         {    ID_MK20,    "MK-20"},
         {    ID_MK82,    "MK-82"},
-        {ID_DURANDAL, "DURANDAL"},
+        {    ID_LAU3,    "LAU-3"},
         {   ID_GBU15,   "GBU-15"},
         {  ID_AIM120,  "AIM-120"},
         {    ID_20MM,     "20MM"},
+    };
+    std::vector<int> line_y = {
+        65,
+        70,
+        76,
+        82,
+        87,
+        93,
+        99,
+        105,
+        111,
+        116,
+        121,
+        126,
     };
     int color = 0;
     if (this->turn_page_animation_playing) {
@@ -974,14 +988,28 @@ void LedgerScene::Render() {
 
     } else if (page == 1) {
         int y = 64;
-        for (auto weap : GameState.weapon_inventory) {
+        int i = -1;
+        for (auto weap_label: weapon_label) {
+            if (GameState.weapon_inventory[weap_label.first] > 0) {
+                i++;
+                auto weap = std::make_pair(weap_label.first, GameState.weapon_inventory[weap_label.first]);
+                y = line_y[i];
+                std::string weap_str = std::to_string(weap.second);
+                fb->printText(this->font, {67, y}, weap_label.second, color);
+                fb->printText(this->font, {220-fb->getTextWidth(this->font, weap_str), y}, weap_str, color);
+                
+            }
+        }
+        /*for (auto weap : GameState.weapon_inventory) {
             if (weap.first > 0) {
+                y = line_y[i];
                 std::string weap_str = std::to_string(weap.second);
                 fb->printText(this->font, {67, y}, weapon_label[weapon_ids(weap.first)], color);
                 fb->printText(this->font, {220-fb->getTextWidth(this->font, weap_str), y}, weap_str, color);
-                y += 5 + (y % 2);
+                
+                i++;
             }
-        }
+        }*/
     }
 }
 
