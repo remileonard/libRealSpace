@@ -80,13 +80,13 @@ void SCState::Load(std::string filename) {
     */
     this->wingman = std::string(buffer.begin() + 0x208, buffer.begin() + 0x21B);
     this->wingman.shrink_to_fit();
-    this->ground_kills = buffer[0x199];
-    this->air_kills = buffer[0x19B];
+    this->ground_kills = buffer[0x19B];
+    this->air_kills = buffer[0x199];
     /* 19D - 1C5 killboard */
     for (int i=0; i<6; i++) {
         int alive = buffer[0x19D + i*0x06];
-        int ground_kills = (buffer[0x19D + i*0x06+3] << 8) | buffer[0x19D + i*0x06+2];
-        int air_kills = (buffer[0x19D + i*0x06+5] << 8) | buffer[0x19D + i*0x06+4];
+        int air_kills = (buffer[0x19D + i*0x06+3] << 8) | buffer[0x19D + i*0x06+2];
+        int ground_kills = (buffer[0x19D + i*0x06+5] << 8) | buffer[0x19D + i*0x06+4];
         this->pilot_roaster[i+1] = alive;
         this->kill_board[i+1][KillBoardType::AIR_KILL] = air_kills;
         this->kill_board[i+1][KillBoardType::GROUND_KILL] = ground_kills;
