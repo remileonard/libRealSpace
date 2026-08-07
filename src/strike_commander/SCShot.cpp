@@ -267,7 +267,7 @@ void EndMissionScene::runFrame() {
                             base_pos.x + col * mark_w,
                             base_pos.y + row * mark_h 
                         };
-                        if (seq_idx > this->scoringSprites->sequence.size()) {
+                        if (seq_idx > this->scoringSprites->sequence.size() - 1) {
                             seq_idx = this->scoringSprites->sequence.size() - 1;
                         }
                         RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[seq_idx]);

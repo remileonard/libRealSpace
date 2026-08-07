@@ -1432,7 +1432,7 @@ void KillBoardScene::Render() {
     std::sort(sorted_board.begin(), sorted_board.end(), [](const auto &a, const auto &b) {
         int scoreA = a.second.at(KillBoardType::AIR_KILL);
         int scoreB = b.second.at(KillBoardType::AIR_KILL);
-        return scoreA < scoreB;
+        return scoreA > scoreB;
     });
     
     fb->printText(this->font, {152, 60}, std::string("GROUND"), 0);
@@ -1441,9 +1441,9 @@ void KillBoardScene::Render() {
         position.x = 80;
         fb->printText(this->font, position, pilot_names[pil.first], 0);
         position.x += 130;
-        fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::AIR_KILL]), 0);
-        position.x += 30;
         fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::GROUND_KILL]), 0);
+        position.x += 30;
+        fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::AIR_KILL]), 0);
         position.y += 12;
     }
 }
