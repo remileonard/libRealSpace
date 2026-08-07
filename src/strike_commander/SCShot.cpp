@@ -268,7 +268,7 @@ void EndMissionScene::runFrame() {
                             base_pos.y + row * mark_h 
                         };
                         if (seq_idx > this->scoringSprites->sequence.size()) {
-                            break; // Séquence invalide, on sort de la boucle
+                            seq_idx = this->scoringSprites->sequence.size() - 1;
                         }
                         RLEShape *shape = this->scoringSprites->GetShape(this->scoringSprites->sequence[seq_idx]);
                         shape->SetPosition(&pos);

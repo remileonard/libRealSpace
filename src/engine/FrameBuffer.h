@@ -37,4 +37,5 @@ public:
     void blitLargeBuffer(uint8_t *srcBuffer, int srcWidth, int srcHeight, int srcX, int srcY, int destX, int destY,
                          int width, int height);
     Texel* getTexture(VGAPalette* palette);
+    int32_t getTextWidth(RSFont *font, std::string &text);
 };

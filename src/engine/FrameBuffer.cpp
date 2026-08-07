@@ -207,7 +207,7 @@ void FrameBuffer::printText(RSFont *font, Point2D coo, std::string text, uint8_t
     if (shape == nullptr) {
         shape = font->GetShapeForChar('0');
     }
-    width = shape->GetWidth();
+    width = shape->GetWidth()-2;
     this->printText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width);
 }
 void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize, bool isSmall, bool fixedWidth) {
@@ -403,4 +403,19 @@ Texel *FrameBuffer::getTexture(VGAPalette *palette) {
         texture[i] = entry;
     }
     return texture;    
+}
+
+int32_t FrameBuffer::getTextWidth(RSFont *font, std::string &text) {
+    int32_t spaceWidth = font->GetShapeForChar('A')
+                             ? font->GetShapeForChar('A')->GetWidth()
+                             : font->GetShapeForChar('0')->GetWidth();
+    int w = 0;
+    spaceWidth -= 2;
+    for (char c : text) {
+        if (c == ' ') { w += spaceWidth; continue; }
+        RLEShape *s = font->GetShapeForChar(c);
+        if (s == nullptr) continue;
+        w += s->GetWidth() + 2 - 1;
+    }
+    return w;
 }

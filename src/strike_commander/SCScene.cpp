@@ -2,6 +2,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
 #include "SCScene.h"
 #include "../engine/gametimer.h"
 
@@ -890,9 +891,25 @@ void LedgerScene::CreateZones() {
         }
     }
 }
+std::string format_number_grouped(int value, int minDigits = 4) {
+    bool negative = value < 0;
+    std::string digits = std::to_string(std::abs(value));
+    if ((int)digits.size() < minDigits) {
+        digits = std::string(minDigits - digits.size(), '0') + digits;
+    }
+    std::string result;
+    int n = (int)digits.size();
+    for (int i = 0; i < n; i++) {
+        if (i > 0 && (n - i) % 3 == 0) {
+            result += ' ';
+        }
+        result += digits[i];
+    }
+    return negative ? "-" + result : result;
+}
 void LedgerScene::Render() {
     SCScene::Render();
-    FrameBuffer *fb                                = VGA.getFrameBuffer();
+    FrameBuffer *fb = VGA.getFrameBuffer();
     std::unordered_map<weapon_ids, std::string> weapon_label = {
         {   ID_AIM9J,   "AIM-9J"},
         {   ID_AIM9M,   "AIM-9M"},
@@ -931,31 +948,37 @@ void LedgerScene::Render() {
             return;
         }
     }
+    int right_edge = 244;
     if (page == 0) {
         this->turn_page_animation_frame = 0;
-        fb->printText(this->font, {67, 64}, std::string("PREVIOUS CASH"), color);
-        fb->printText(this->font, {178, 64}, std::to_string(GameState.cash), color);
-
+        fb->printText(this->font, {67, 65}, std::string("PREVIOUS CASH"), color);
         fb->printText(this->font, {67, 70}, std::string("F-16 REPLACEMENT"), color);
-        fb->printText(this->font, {178, 70}, std::to_string(GameState.f16_replacements), color);
-
         fb->printText(this->font, {67, 76}, std::string("WEAPONS"), color);
-        fb->printText(this->font, {178, 76}, std::to_string(GameState.weapons_costs), color);
-
         fb->printText(this->font, {67, 87}, std::string("CURRENT CASH"), color);
-        fb->printText(this->font, {178, 87}, std::to_string(GameState.proj_cash - GameState.weapons_costs), color);
-
         fb->printText(this->font, {67, 99}, std::string("PROJ OVERHEAD"), color);
-        fb->printText(this->font, {178, 99}, std::to_string(GameState.over_head), color);
-
         fb->printText(this->font, {67, 105}, std::string("PROJ CASH"), color);
-        fb->printText(this->font, {178, 105}, std::to_string(GameState.proj_cash - GameState.weapons_costs - GameState.over_head), color);
+        
+        std::string proj_cash_str = format_number_grouped(GameState.proj_cash - GameState.weapons_costs - GameState.over_head);
+        std::string cash_str = format_number_grouped(GameState.cash);
+        std::string f16_replacements_str = format_number_grouped(GameState.f16_replacements);
+        std::string weapons_costs_str = format_number_grouped(GameState.weapons_costs);
+        std::string current_cash_str = format_number_grouped(GameState.proj_cash - GameState.weapons_costs);
+        std::string proj_overhead_str = format_number_grouped(GameState.over_head);
+
+        fb->printText(this->font, {right_edge - fb->getTextWidth(this->font, cash_str), 65}, cash_str, color);
+        fb->printText(this->font, {right_edge - fb->getTextWidth(this->font, f16_replacements_str), 70}, f16_replacements_str, color);
+        fb->printText(this->font, {right_edge - fb->getTextWidth(this->font, weapons_costs_str), 76}, weapons_costs_str, color);
+        fb->printText(this->font, {right_edge - fb->getTextWidth(this->font, current_cash_str), 87}, current_cash_str, color);
+        fb->printText(this->font, {right_edge - fb->getTextWidth(this->font, proj_overhead_str), 99}, proj_overhead_str, color);
+        fb->printText(this->font, {right_edge - fb->getTextWidth(this->font, proj_cash_str), 105}, proj_cash_str, color);
+
     } else if (page == 1) {
         int y = 64;
         for (auto weap : GameState.weapon_inventory) {
             if (weap.first > 0) {
+                std::string weap_str = std::to_string(weap.second);
                 fb->printText(this->font, {67, y}, weapon_label[weapon_ids(weap.first)], color);
-                fb->printText(this->font, {203, y}, std::to_string(weap.second), color);
+                fb->printText(this->font, {220-fb->getTextWidth(this->font, weap_str), y}, weap_str, color);
                 y += 5 + (y % 2);
             }
         }
@@ -1373,14 +1396,26 @@ void KillBoardScene::Render() {
     FrameBuffer *fb = VGA.getFrameBuffer();
     fb->clear();
     fb->drawShape(this->layers[0]->img->shapes[1]);
-    Point2D position = Point2D({80, 60});
-    for (auto pil: GameState.kill_board) {
+    Point2D position = Point2D({80, 72});
+
+    // trier par score total (air + ground) décroissant pour affichage
+    std::vector<std::pair<uint8_t, std::unordered_map<uint8_t, int16_t>>> sorted_board(
+        GameState.kill_board.begin(), GameState.kill_board.end());
+    std::sort(sorted_board.begin(), sorted_board.end(), [](const auto &a, const auto &b) {
+        int scoreA = a.second.at(KillBoardType::AIR_KILL);
+        int scoreB = b.second.at(KillBoardType::AIR_KILL);
+        return scoreA < scoreB;
+    });
+    
+    fb->printText(this->font, {152, 60}, std::string("GROUND"), 0);
+    fb->printText(this->font, {240, 60}, std::string("AIR"), 0);
+    for (auto pil : sorted_board) {
         position.x = 80;
         fb->printText(this->font, position, pilot_names[pil.first], 0);
         position.x += 130;
         fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::AIR_KILL]), 0);
         position.x += 30;
         fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::GROUND_KILL]), 0);
-        position.y += 15;
+        position.y += 12;
     }
 }
