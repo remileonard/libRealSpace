@@ -389,9 +389,6 @@ int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
     if (text->find("$C") != std::string::npos) {
         text->replace(text->find("$C"), 2, GameState.player_callsign);
     }
-    if (text->find("$W") != std::string::npos) {
-        text->replace(text->find("$W"), 2, GameState.wingman);
-    }
     this->text         = (char *)text->c_str();
     return (int) (sound_offset + start_offset + strlen((char *)sentence) + 1);
 }
@@ -667,7 +664,13 @@ void SCConvPlayer::DrawText(void) {
     if (this->current_frame->text == NULL)
         return;
 
+    std::string *text = new std::string(this->current_frame->text);
+    if (text->find("$W") != std::string::npos) {
+        text->replace(text->find("$W"), 2, GameState.wingman);
+    }
+    this->current_frame->text = (char *)text->c_str();
     size_t textSize    = strlen(this->current_frame->text);
+    
     const char *cursor = this->current_frame->text;
     const char *end    = cursor + textSize;
 
