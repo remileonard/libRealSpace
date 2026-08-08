@@ -70,6 +70,20 @@
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "macos_remi_x86",
+            "displayName": "Clang 11.0.0 x86_64-apple-darwin18.7.0",
+            "description": "Utilisation des compilateurs : C = /usr/bin/clang, CXX = /usr/bin/clang++",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_MAKE_PROGRAM": "/usr/bin/make",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
         }
     ],
     "buildPresets": [
