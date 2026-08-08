@@ -11,6 +11,8 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <vector>
+#include <string>
 #include "RSScreen.h"
 class Loader {
 private:

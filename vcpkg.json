@@ -24,6 +24,7 @@
     },
     "sdl2-ttf",
     "nativefiledialog-extended",
+    "boost-filesystem",
     "gtest"
   ]
 }

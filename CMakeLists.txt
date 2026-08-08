@@ -19,7 +19,7 @@ if (APPLE)
 endif()
 set (OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
-
+find_package(Boost COMPONENTS system filesystem REQUIRED)
 add_subdirectory(src/executables/sc)
 add_subdirectory(src/executables/to)
 add_subdirectory(src/executables/debugger)
