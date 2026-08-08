@@ -1438,12 +1438,15 @@ void KillBoardScene::Render() {
     fb->printText(this->font, {152, 60}, std::string("GROUND"), 0);
     fb->printText(this->font, {240, 60}, std::string("AIR"), 0);
     for (auto pil : sorted_board) {
-        position.x = 80;
-        fb->printText(this->font, position, pilot_names[pil.first], 0);
-        position.x += 130;
-        fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::GROUND_KILL]), 0);
-        position.x += 30;
-        fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::AIR_KILL]), 0);
-        position.y += 12;
+        if (GameState.pilot_roaster[pil.first+1] || pil.first == 0) {
+            position.x = 80;
+            fb->printText(this->font, position, pilot_names[pil.first], 0);
+            position.x += 130;
+            fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::GROUND_KILL]), 0);
+            position.x += 30;
+            fb->printText(this->font, position, std::to_string(pil.second[KillBoardType::AIR_KILL]), 0);
+            position.y += 12;
+        }
+        
     }
 }
