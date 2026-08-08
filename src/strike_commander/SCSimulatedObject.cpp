@@ -247,6 +247,10 @@ void SCSimulatedObject::Simulate(int tps) {
     std::tie(position, velocity) = this->ComputeTrajectory(tps);
     if (this->target != nullptr) {
         this->target->weapon_shooted_at_me = this;
+        if (this->target->object->alive == false) {
+            this->target->weapon_shooted_at_me = nullptr;
+            this->target = nullptr;
+        }
     }
     if (this->target != nullptr && this->target->plane != nullptr) {
         RSEntity *weapon_entity = this->obj;
@@ -274,6 +278,14 @@ void SCSimulatedObject::Simulate(int tps) {
             this->alive = false;
             this->target->hasBeenHit(this, this->shooter);
             this->target->weapon_shooted_at_me = nullptr;
+            if (this->target->object->alive == true) {
+                this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
+                if (this->mission->sound.sounds.size() > 0) {
+                    MemSound *sound;
+                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+                    Mixer.playSoundVoc(sound->data, sound->size);
+                }
+            }
             return;
         }
     } else {
@@ -283,6 +295,14 @@ void SCSimulatedObject::Simulate(int tps) {
                 this->alive = false;
                 if (this->target != nullptr) {
                     this->target->weapon_shooted_at_me = nullptr;
+                }
+                if (entity->object->alive == true) {
+                    this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
+                    if (this->mission->sound.sounds.size() > 0) {
+                        MemSound *sound;
+                        sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+                        Mixer.playSoundVoc(sound->data, sound->size);
+                    }
                 }
                 break;
             }
