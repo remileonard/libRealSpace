@@ -1201,7 +1201,7 @@ void DebugAnimationPlayer::editMidGameShot(MIDGAME_SHOT *shot) {
     }
     ImGui::Separator();
     ImGui::Text("Music");
-    static int music_id = shot->music;
+    int music_id = shot->music;
     if (ImGui::InputInt("ID Musique", &music_id)) {
         if (music_id < -1)
             music_id = -1;
