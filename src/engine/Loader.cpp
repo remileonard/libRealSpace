@@ -90,7 +90,7 @@ void Loader::runFrame() {
     glPushMatrix();
     glLoadIdentity();
 
-    TTF_Font* font = TTF_OpenFont("./assets/AcPlus_IBM_VGA_9x16.ttf", 36);
+    TTF_Font* font = TTF_OpenFont("./assets/fonts/AcPlus_IBM_VGA_9x16.ttf", 36);
     if (font) {
         SDL_Color textColor = {255, 255, 255, 255}; // White text
 

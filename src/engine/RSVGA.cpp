@@ -313,10 +313,13 @@ void RSVGA::displayBuffer(uint32_t *buffer, int bufferWidth, int bufferHeight) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glEnable(GL_TEXTURE_2D);
+
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 

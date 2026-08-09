@@ -72,7 +72,7 @@
             }
         },
         {
-            "name": "macos_remi_x86",
+            "name": "macos_x86",
             "displayName": "Clang 11.0.0 x86_64-apple-darwin18.7.0",
             "description": "Utilisation des compilateurs : C = /usr/bin/clang, CXX = /usr/bin/clang++",
             "binaryDir": "${sourceDir}/out/build/${presetName}",

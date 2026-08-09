@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
                     ImGui::SliderInt(_labelPrefix("Max view distance").c_str(), &max_view_distance, 10000, 300000);
                     ImGui::Checkbox(_labelPrefix("Show Texture").c_str(), &show_texture);
                     ImGui::Checkbox(_labelPrefix("Show Fog").c_str(), &show_fog);
+                    ImGui::Checkbox(_labelPrefix("Clouds Enabled").c_str(), &clouds_enabled);
                 }
                 if (ImGui::CollapsingHeader("Video", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::Checkbox(_labelPrefix("CPC Palette").c_str(),   &fx_cpc_palette);
@@ -167,6 +168,7 @@ int main(int argc, char* argv[]) {
                     config.setInt ("Game",   "max_view_distance", max_view_distance);
                     config.setBool("Game",   "show_texture",  show_texture);
                     config.setBool("Game",   "show_fog",      show_fog);
+                    config.setBool("Game",   "clouds_enabled", clouds_enabled);
                     config.setBool("Video",  "fx_cpc_palette", fx_cpc_palette);
                     config.setBool("Video",  "fx_scanlines",   fx_scanlines);
                     config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);

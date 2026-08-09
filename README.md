@@ -105,6 +105,8 @@ To build the project using CMake and Vcpkg, follow these instructions:
      - `windows`: to build for Windows with Visual Studio 17 2022
      - `linux`: to build for Linux with GCC 13.2.0 x86_64-linux-gnu
      - `linux_clang`: to build for Linux with Clang 18.1.3 x86_64-pc-linux-gnu
+     - `macos`: to build for macos arm
+     - `macos_x86`: to build for macos x86
 
 4. Build the project:
    - Run the following command to build the project using CMake (if you have selected the windows profile):
