@@ -711,6 +711,9 @@ void SCGameFlow::runFrame(void) {
         SCAnimationPlayer *c = this->mid_games.front();
         this->mid_games.pop();
         Game->addActivity(c);
+        if (GameState.player_dead) {
+            this->stop();
+        }
         return;
     }
     if (this->convs.size() > 0) {
