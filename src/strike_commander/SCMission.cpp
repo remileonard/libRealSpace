@@ -16,8 +16,12 @@ SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, R
     this->tick_counter = 0;
     this->tps = 0;
     this->loadMission();
+    subscription_id = this->messageBus.subscribeEvent(std::bind(&SCMission::onEvent, this, std::placeholders::_1));
 }
 SCMission::~SCMission() {
+    if (subscription_id != -1) {
+        this->messageBus.unsubscribe(subscription_id);
+    }
     this->cleanup();
 }
 void SCMission::cleanup() {
@@ -54,18 +58,14 @@ RSProf *SCMission::LoadProfile(std::string name) {
     }
     return profile;
 }
-void SCMission::onMissionUpdate(const EventMessage &event) {
+void SCMission::onEvent(const EventMessage &event) {
     auto mission_update_event = dynamic_cast<const MissionUpdateEvent*>(&event);
     if (mission_update_event == nullptr) {
         return; // pas le type qui nous intéresse, on ignore le message
     }
-    printf("Mission Update: %s\n", mission_update_event->message.c_str());
 }
 void SCMission::loadMission() {
-    auto subscription_id = this->messageBus.subscribeEvent(std::bind(&SCMission::onMissionUpdate, this, std::placeholders::_1));
-    auto mission_update = std::make_unique<SCMission::MissionUpdateEvent>();
-    mission_update->message = "Loading mission";
-    this->messageBus.publish(std::move(mission_update));
+    
     std::string miss_file_name = Assets.mission_root_path + this->mission_name; 
     std::transform(miss_file_name.begin(), miss_file_name.end(), miss_file_name.begin(), ::toupper);
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
@@ -91,6 +91,9 @@ void SCMission::loadMission() {
 
     for (auto &area_entity: this->area->objects) {
         area_entity.entity = LoadEntity(area_entity.name);
+    }
+    for (auto scene : this->mission->mission_data.scenes) {
+        this->scenes.push_back(new SCMissionScene(this, scene));
     }
     int cpt_actor=0;
     for (auto part : mission->mission_data.parts) {
@@ -376,9 +379,6 @@ void SCMission::update() {
     if (this->mission_ended) {
         return;
     }
-    auto mission_update = std::make_unique<SCMission::MissionUpdateEvent>();
-    mission_update->message = "Mission Update";
-    this->messageBus.publish(std::move(mission_update));
     this->tick_counter++;
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
     float yawRad = this->player->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
@@ -389,144 +389,20 @@ void SCMission::update() {
     if (area_id != this->current_area_id) {
         this->current_area_id = area_id;
     }
+    SCMission::MissionUpdateEvent mission_update_event;
+    mission_update_event.area_id = area_id;
+    mission_update_event.mission = this;
+    this->messageBus.publish(std::make_unique<SCMission::MissionUpdateEvent>(mission_update_event));
+
     for (auto scene: this->mission->mission_data.scenes) {
         if (scene->area_id == area_id - 1 || scene->area_id == -1) {
-            if (scene->is_active == 0) {
-                if (scene->on_mission_update != -1) {
-                    if (scene->on_mission_update < this->mission->mission_data.prog.size()) {
-                        std::vector<PROG> prog;
-                        for (auto prg: *this->mission->mission_data.prog[scene->on_mission_update]) {
-                            prog.push_back(prg);
-                        }
-                        SCProg *p = new SCProg(this->player, prog, this, scene->on_mission_update);
-                        p->execute();
-                        delete p;
-                        prog.clear();
-                        prog.shrink_to_fit();
-                    }
-                }
-                if (scene->on_leaving != -1) {
-                    if (scene->on_leaving < this->mission->mission_data.prog.size()) {
-                        std::vector<PROG> prog;
-                        for (auto prg: *this->mission->mission_data.prog[scene->on_leaving]) {
-                            prog.push_back(prg);
-                        }
-                        SCProg *p = new SCProg(this->player, prog, this, scene->on_leaving);
-                        p->execute();
-                        delete p;
-                        prog.clear();
-                        prog.shrink_to_fit();
-                    }
-                }
-                continue;
+            if (scene->is_active == 1) {
+                SCMission::MissionEventSceneActivated scene_activated_event;
+                scene_activated_event.scene = scene;
+                scene_activated_event.mission = this;
+                this->messageBus.publish(std::make_unique<SCMission::MissionEventSceneActivated>(scene_activated_event));
             }
-            for (auto cast: scene->cast) {
-                int i=0;
-                for (auto part: this->mission->mission_data.parts) {
-                    if (i == cast) {
-                        for (auto actor: this->actors) {
-                            if (actor->actor_name == "PLAYER") {
-                                continue;
-                            }
-                            if (actor->actor_id == part->id && actor->is_active == false) {
-                                actor->is_active = true;
-                                actor->is_hidden = false;
-                                if (scene->area_id != -1) {
-                                    Vector3D correction;
-                                    if (actor->object->unknown2 == 0) {
-                                        correction = this->mission->mission_data.areas[scene->area_id]->position;
-                                    } else if (actor->object->unknown2 == 1) {
-                                        correction = {
-                                            this->player->plane->x,
-                                            this->player->plane->y,
-                                            this->player->plane->z
-                                        };
-                                    }
-                                    if (actor->object->area_id != 255) {
-                                        actor->object->position += correction;
-                                    }
-                                    float ground_y = this->area->getY(actor->object->position.x, actor->object->position.z);
-                                    
-                                    if (actor->plane != nullptr) {
-                                        actor->plane->on_ground = false;
-                                        actor->plane->x = actor->object->position.x;
-                                        actor->plane->y = actor->object->position.y;
-                                        actor->plane->z = actor->object->position.z;
-                                        if (abs(ground_y - actor->object->position.y) <= 10 ) {
-                                            actor->object->position.y = ground_y;
-                                            actor->plane->on_ground = true;
-                                        } else {
-                                            actor->plane->on_ground = false;
-                                        }
-                                        if (actor->object->position.y < ground_y) {
-                                            actor->plane->position.y += ground_y;
-                                        }
-                                    } else if (actor->object->position.y < ground_y) {
-                                        actor->object->position.y = ground_y;
-                                    }
-                                }
-                                
-                                if (actor->on_is_activated.size() > 0) {
-                                    SCProg *p = new SCProg(actor, actor->on_is_activated, this, actor->object->on_is_activated);
-                                    p->execute();
-                                    delete p;
-                                }
-                                if (actor->object->entity->entity_type == EntityType::rnwy) {
-                                    for (auto runway: this->area->objectOverlay) {
-                                        Vector3D pos = actor->object->position;
-                                        
-                                        // Vérifier si la position de l'objet est à l'intérieur de la piste
-                                        if (pos.x >= runway.lx && pos.x <= runway.hx && 
-                                            pos.z <= -runway.ly && pos.z >= -runway.hy) {
-                                            
-                                            // Calculer les dimensions de la piste
-                                            float width = (float)std::abs(runway.lx - runway.hx); 
-                                            float length = (float)std::abs(runway.ly - runway.hy);
-                                            
-                                            // Calculer l'orientation (angle) de la piste
-                                            float angle = (float)std::atan2(runway.ly - runway.hy, 
-                                                                    runway.lx - runway.hx);
-                                            
-                                            // Recalculer la bounding box
-                                            actor->object->entity->bb.min.x = -width / 2.0f;
-                                            actor->object->entity->bb.max.x = width / 2.0f;
-                                            actor->object->entity->bb.min.y = -5;
-                                            actor->object->entity->bb.max.y = 5;
-                                            actor->object->entity->bb.min.z = -length / 2.0f;
-                                            actor->object->entity->bb.max.z = length / 2.0f;
-                                            
-                                            // Appliquer l'orientation à l'objet
-                                            actor->object->azymuth = angle * 180.0f / M_PI;
-                                            
-                                            break;
-                                        }
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    i++;
-                }
-            }
-            if (scene->on_is_activated != -1) {
-                if (scene->on_is_activated < this->mission->mission_data.prog.size() && scene->has_been_activated == 0) {
-                    std::vector<PROG> prog;
-                    for (auto prg: *this->mission->mission_data.prog[scene->on_is_activated]) {
-                        prog.push_back(prg);
-                    }
-                    SCProg *p = new SCProg(this->player, prog, this, scene->on_is_activated);
-                    p->execute();
-                    scene->has_been_activated = 1;
-                    delete p;
-                    prog.clear();
-                    prog.shrink_to_fit();
-                }
-            }
-            scene->is_active = 0;
-        }
-        
+        }        
     }
     this->in_combat = false;
     for (auto ai_actor : this->actors) {
@@ -588,14 +464,15 @@ void SCMission::update() {
                 weapon->Simulate(tps);
             }
         }
-        for (auto weapon: ai_actor->weapons_shooted) {
+
+        for (auto it = ai_actor->weapons_shooted.begin(); it != ai_actor->weapons_shooted.end(); ) {
+            auto weapon = *it;
             if (weapon->alive == false) {
-                ai_actor->weapons_shooted.erase(
-                    std::remove(ai_actor->weapons_shooted.begin(), ai_actor->weapons_shooted.end(), weapon),
-                    ai_actor->weapons_shooted.end()
-                );
+                it = ai_actor->weapons_shooted.erase(it);
                 delete weapon;
                 weapon = nullptr;
+            } else {
+                ++it;
             }
         }
         

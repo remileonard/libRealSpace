@@ -37,7 +37,10 @@
 #include "SCSimplePlane.h"
 #include "SCVectorPlane.h"
 #include "SCPilot.h"
+
+#include "SCMissionScene.h"
 #include "SCMissionActors.h"
+
 #include "SCMission.h"
 #include "SCProg.h"
 

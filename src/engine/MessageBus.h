@@ -12,7 +12,7 @@
 
 class MessageBus {
 public:
-    using SubscriptionId = std::uint64_t;
+    using SubscriptionId = std::int64_t;
     using InputCallback = std::function<void(const InputMessage&)>;
     using EventCallback = std::function<void(const EventMessage&)>;
 

@@ -40,6 +40,13 @@ public:
         SCSimulatedObject *weapon{nullptr};
         SCMission *mission{nullptr};
     };
+    class MissionEventSceneActivated: public EventMessage {
+    public:
+        MISN_SCEN *scene{nullptr};
+        SCMission *mission{nullptr};
+    };
+private:
+    MessageBus::SubscriptionId subscription_id{-1};
 protected:
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
@@ -54,8 +61,9 @@ protected:
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
     MessageBus &messageBus = MessageBus::getInstance();
-    void onMissionUpdate(const EventMessage &event);
-public:    
+    void onEvent(const EventMessage &event);
+public:
+    std::vector<SCMissionScene *> scenes;
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;
     std::vector<SCMissionActors *> friendlies;
