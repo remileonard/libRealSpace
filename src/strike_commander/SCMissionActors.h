@@ -67,13 +67,15 @@ public:
     virtual int getDistanceToSpot(uint8_t arg);
     virtual void shootWeapon(SCMissionActors *target);
     virtual void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker);
-    
+    SCMissionActors();
 private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};
     int target_position_update{0};
     int current_weapon_index{-1};
     
     AssetManager &Assets = AssetManager::getInstance();
+    MessageBus &messageBus = MessageBus::getInstance();
+    void onGettingHit(const EventMessage &event);
 };
 
 class SCMissionActorsPlayer : public SCMissionActors {

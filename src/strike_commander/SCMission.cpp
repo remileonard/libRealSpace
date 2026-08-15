@@ -55,8 +55,11 @@ RSProf *SCMission::LoadProfile(std::string name) {
     return profile;
 }
 void SCMission::onMissionUpdate(const EventMessage &event) {
-    auto mission_update_event = dynamic_cast<const MissionUpdateEvent&>(event);
-    printf("Mission Update: %s\n", mission_update_event.message.c_str());
+    auto mission_update_event = dynamic_cast<const MissionUpdateEvent*>(&event);
+    if (mission_update_event == nullptr) {
+        return; // pas le type qui nous intéresse, on ignore le message
+    }
+    printf("Mission Update: %s\n", mission_update_event->message.c_str());
 }
 void SCMission::loadMission() {
     auto subscription_id = this->messageBus.subscribeEvent(std::bind(&SCMission::onMissionUpdate, this, std::placeholders::_1));

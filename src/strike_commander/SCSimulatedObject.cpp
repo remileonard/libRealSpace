@@ -275,17 +275,12 @@ void SCSimulatedObject::Simulate(int tps) {
     }
     if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
-            this->alive = false;
-            this->target->hasBeenHit(this, this->shooter);
-            this->target->weapon_shooted_at_me = nullptr;
-            if (this->target->object->alive == true) {
-                this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-                if (this->mission->sound.sounds.size() > 0) {
-                    MemSound *sound;
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            auto hit_event = std::make_unique<SCMission::MissionEventActorHit>();
+            hit_event->attacker = this->shooter;
+            hit_event->target = this->target;
+            hit_event->weapon = this;
+            hit_event->mission = this->mission;
+            MessageBus::getInstance().publish(std::move(hit_event));
             return;
         }
     } else {

@@ -24,6 +24,7 @@ struct RadioMessages {
 class SCProg;
 
 class SCMission {
+public:
     class MissionUpdateEvent: public EventMessage {
     public:
         std::string message;
@@ -31,7 +32,14 @@ class SCMission {
         uint8_t area_id{0};
         uint8_t mission_update_id{0};
         SCMission *mission{nullptr};
-    };  
+    };
+    class MissionEventActorHit: public EventMessage {
+    public:
+        SCMissionActors *attacker{nullptr};
+        SCMissionActors *target{nullptr};
+        SCSimulatedObject *weapon{nullptr};
+        SCMission *mission{nullptr};
+    };
 protected:
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};

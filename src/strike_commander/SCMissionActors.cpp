@@ -1073,6 +1073,30 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
     }
     
 }
+SCMissionActors::SCMissionActors() {
+    auto id = MessageBus::getInstance().subscribeEvent(std::bind(&SCMissionActors::onGettingHit, this, std::placeholders::_1));
+}
+void SCMissionActors::onGettingHit(const EventMessage &event)
+{
+    auto eventData = dynamic_cast<const SCMission::MissionEventActorHit*>(&event);
+    if (eventData == nullptr) {
+        return; // pas le type qui nous intéresse, on ignore le message
+    }
+    if (eventData->attacker != nullptr && eventData->target != nullptr && eventData->target == this) {
+        eventData->weapon->alive = false;
+        this->hasBeenHit(eventData->weapon, eventData->attacker);
+        this->target->weapon_shooted_at_me = nullptr;
+        if (this->target->object->alive == true) {
+            this->mission->explosions.push_back(new SCExplosion(eventData->weapon->obj->explos->objct, eventData->weapon->obj->position));
+            if (this->mission->sound.sounds.size() > 0) {
+                RSMixer &Mixer = RSMixer::getInstance();
+                MemSound *sound;
+                sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+                Mixer.playSoundVoc(sound->data, sound->size);
+            }
+        }
+    }
+}
 /**
  * SCMissionActorsPlayer::takeOff
  *
