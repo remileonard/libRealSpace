@@ -389,18 +389,18 @@ void SCMission::update() {
     if (area_id != this->current_area_id) {
         this->current_area_id = area_id;
     }
-    SCMission::MissionUpdateEvent mission_update_event;
+    MissionUpdateEvent mission_update_event;
     mission_update_event.area_id = area_id;
     mission_update_event.mission = this;
-    this->messageBus.publish(std::make_unique<SCMission::MissionUpdateEvent>(mission_update_event));
+    this->messageBus.publish(std::make_unique<MissionUpdateEvent>(mission_update_event));
 
     for (auto scene: this->mission->mission_data.scenes) {
         if (scene->area_id == area_id - 1 || scene->area_id == -1) {
             if (scene->is_active == 1) {
-                SCMission::MissionEventSceneActivated scene_activated_event;
+                MissionEventSceneActivated scene_activated_event;
                 scene_activated_event.scene = scene;
                 scene_activated_event.mission = this;
-                this->messageBus.publish(std::make_unique<SCMission::MissionEventSceneActivated>(scene_activated_event));
+                this->messageBus.publish(std::make_unique<MissionEventSceneActivated>(scene_activated_event));
             }
         }        
     }

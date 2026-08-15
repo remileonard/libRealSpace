@@ -38,8 +38,10 @@
 #include "SCVectorPlane.h"
 #include "SCPilot.h"
 
+#include "SCMissionEvent.h"
 #include "SCMissionScene.h"
 #include "SCMissionActors.h"
+
 
 #include "SCMission.h"
 #include "SCProg.h"

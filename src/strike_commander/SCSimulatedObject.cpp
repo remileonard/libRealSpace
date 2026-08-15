@@ -275,7 +275,7 @@ void SCSimulatedObject::Simulate(int tps) {
     }
     if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
-            auto hit_event = std::make_unique<SCMission::MissionEventActorHit>();
+            auto hit_event = std::make_unique<MissionEventActorHit>();
             hit_event->attacker = this->shooter;
             hit_event->target = this->target;
             hit_event->weapon = this;

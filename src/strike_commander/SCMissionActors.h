@@ -77,7 +77,7 @@ private:
     AssetManager &Assets = AssetManager::getInstance();
     MessageBus &messageBus = MessageBus::getInstance();
     void onEvent(const EventMessage &event);
-    void onGettingHit(const SCMission::MissionEventActorHit &event);
+    void onGettingHit(const MissionEventActorHit &event);
     MessageBus::SubscriptionId subscription_id{-1};
 };
 

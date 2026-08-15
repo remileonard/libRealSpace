@@ -2,17 +2,17 @@
 #include "SCMissionScene.h"
 
 void SCMissionScene::onEvent(const EventMessage &event) {
-    if (const SCMission::MissionUpdateEvent *mission_update_event = dynamic_cast<const SCMission::MissionUpdateEvent*>(&event)) {
+    if (const MissionUpdateEvent *mission_update_event = dynamic_cast<const MissionUpdateEvent*>(&event)) {
         this->onMissionUpdate(*mission_update_event);
         return;
     }
-    if (const SCMission::MissionEventSceneActivated *scene_activated_event = dynamic_cast<const SCMission::MissionEventSceneActivated*>(&event)) {
+    if (const MissionEventSceneActivated *scene_activated_event = dynamic_cast<const MissionEventSceneActivated*>(&event)) {
         this->onSceneActivated(*scene_activated_event);
         return;
     }
 }
 
-void SCMissionScene::onMissionUpdate(const SCMission::MissionUpdateEvent &event) {
+void SCMissionScene::onMissionUpdate(const MissionUpdateEvent &event) {
     if (event.area_id == scene->area_id + 1 || scene->area_id == -1) {
         if (scene->is_active == 0) {
             if (scene->on_mission_update != -1) {
@@ -45,14 +45,14 @@ void SCMissionScene::onMissionUpdate(const SCMission::MissionUpdateEvent &event)
     }
 }
 
-void SCMissionScene::onSceneActivated(const SCMission::MissionEventSceneActivated &event) {
-    MISN_SCEN *scene = event.scene->scene;
+void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
+    MISN_SCEN *scene = event.scene;
     if (scene != this->scene) {
         return;
     }
-    uint8_t area_id = event.scene->mission->current_area_id;
-    RSMission *mission = event.scene->mission->mission;
-    SCMission *sc_mission = event.scene->mission;
+    uint8_t area_id = event.mission->current_area_id;
+    RSMission *mission = event.mission->mission;
+    SCMission *sc_mission = event.mission;
     for (auto cast: scene->cast) {
         int i=0;
         for (auto part: mission->mission_data.parts) {

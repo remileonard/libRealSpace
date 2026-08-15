@@ -1082,12 +1082,12 @@ SCMissionActors::~SCMissionActors() {
     }
 }
 void SCMissionActors::onEvent(const EventMessage &event) {
-    if (auto eventData = dynamic_cast<const SCMission::MissionEventActorHit*>(&event)) {
+    if (auto eventData = dynamic_cast<const MissionEventActorHit*>(&event)) {
         this->onGettingHit(*eventData);
         return;
     }
 }
-void SCMissionActors::onGettingHit(const SCMission::MissionEventActorHit &event) {
+void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     if (event.attacker != nullptr && event.target != nullptr && event.target == this) {
         event.weapon->alive = false;
         this->hasBeenHit(event.weapon, event.attacker);

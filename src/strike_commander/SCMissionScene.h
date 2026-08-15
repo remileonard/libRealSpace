@@ -8,8 +8,8 @@ class SCMissionScene {
 private:
     MessageBus::SubscriptionId subscription_id;
     void onEvent(const EventMessage &event);
-    void onMissionUpdate(const SCMission::MissionUpdateEvent &event);
-    void onSceneActivated(const SCMission::MissionEventSceneActivated &event);
+    void onMissionUpdate(const MissionUpdateEvent &event);
+    void onSceneActivated(const MissionEventSceneActivated &event);
 public:
     SCMissionScene(SCMission *mission, MISN_SCEN *scene);
     ~SCMissionScene();
