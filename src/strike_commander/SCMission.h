@@ -1,5 +1,6 @@
 #pragma once
 #include "precomp.h"
+
 struct SCAiPlane {
     SCPlane *plane{nullptr};
     SCPilot *pilot{nullptr};
@@ -18,9 +19,19 @@ struct RadioMessages {
     std::string message;
     MemSound *sound{nullptr};
 };
+
+
 class SCProg;
 
 class SCMission {
+    class MissionUpdateEvent: public EventMessage {
+    public:
+        std::string message;
+        std::string objective;
+        uint8_t area_id{0};
+        uint8_t mission_update_id{0};
+        SCMission *mission{nullptr};
+    };  
 protected:
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
@@ -34,6 +45,8 @@ protected:
     AssetManager &Assets = AssetManager::getInstance();
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
+    MessageBus &messageBus = MessageBus::getInstance();
+    void onMissionUpdate(const EventMessage &event);
 public:    
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;
@@ -64,3 +77,5 @@ public:
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
 };
+
+

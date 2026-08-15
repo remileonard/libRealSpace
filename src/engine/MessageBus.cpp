@@ -1,7 +1,7 @@
 #include "MessageBus.h"
 
 
-MessageBus::SubscriptionId MessageBus::subscribe(InputCallback callback) {
+MessageBus::SubscriptionId MessageBus::subscribeInput(InputCallback callback) {
     if (!callback) {
         throw std::invalid_argument("Input callback cannot be empty");
     }
@@ -11,7 +11,7 @@ MessageBus::SubscriptionId MessageBus::subscribe(InputCallback callback) {
     return id;
 }
 
-MessageBus::SubscriptionId MessageBus::subscribe(EventCallback callback) {
+MessageBus::SubscriptionId MessageBus::subscribeEvent(EventCallback callback) {
     if (!callback) {
         throw std::invalid_argument("Event callback cannot be empty");
     }
@@ -103,7 +103,7 @@ void MessageBus::processInput() {
         messages.pop();
     }
 }
-MessageBus& MessageBus::instance() {
+MessageBus& MessageBus::getInstance() {
     static MessageBus bus;
     return bus;
 }

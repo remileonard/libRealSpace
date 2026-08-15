@@ -1,5 +1,6 @@
 #include "precomp.h"
 #include <limits>
+#include "SCMission.h"
 
 SCMission::SCMission() {
     this->last_time = SDL_GetTicks();
@@ -39,7 +40,7 @@ void SCMission::cleanup() {
     }
     this->waypoints.clear();
     this->waypoints.shrink_to_fit();
-    
+    this->messageBus.reset();
 }
 RSProf *SCMission::LoadProfile(std::string name) {
     RSProf *profile = new RSProf();
@@ -53,7 +54,15 @@ RSProf *SCMission::LoadProfile(std::string name) {
     }
     return profile;
 }
+void SCMission::onMissionUpdate(const EventMessage &event) {
+    auto mission_update_event = dynamic_cast<const MissionUpdateEvent&>(event);
+    printf("Mission Update: %s\n", mission_update_event.message.c_str());
+}
 void SCMission::loadMission() {
+    auto subscription_id = this->messageBus.subscribeEvent(std::bind(&SCMission::onMissionUpdate, this, std::placeholders::_1));
+    auto mission_update = std::make_unique<SCMission::MissionUpdateEvent>();
+    mission_update->message = "Loading mission";
+    this->messageBus.publish(std::move(mission_update));
     std::string miss_file_name = Assets.mission_root_path + this->mission_name; 
     std::transform(miss_file_name.begin(), miss_file_name.end(), miss_file_name.begin(), ::toupper);
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
@@ -351,6 +360,7 @@ void SCMission::update() {
     uint32_t current_time = SDL_GetTicks();
     uint32_t elapsed_time = (current_time - this->last_time) / 1000;
     uint32_t newtps = 0;
+    this->messageBus.processEvents();
     if (elapsed_time > 1) {
         uint32_t ticks = this->tick_counter - this->last_tick;
         newtps = ticks / elapsed_time;
@@ -363,6 +373,9 @@ void SCMission::update() {
     if (this->mission_ended) {
         return;
     }
+    auto mission_update = std::make_unique<SCMission::MissionUpdateEvent>();
+    mission_update->message = "Mission Update";
+    this->messageBus.publish(std::move(mission_update));
     this->tick_counter++;
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
     float yawRad = this->player->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians

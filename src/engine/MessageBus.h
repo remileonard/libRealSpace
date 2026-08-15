@@ -40,8 +40,8 @@ private:
 
 public:
 
-    SubscriptionId subscribe(InputCallback callback);
-    SubscriptionId subscribe(EventCallback callback);
+    SubscriptionId subscribeInput(InputCallback callback);
+    SubscriptionId subscribeEvent(EventCallback callback);
     void unsubscribe(SubscriptionId id);
 
     void publish(std::unique_ptr<InputMessage> message);
@@ -49,8 +49,18 @@ public:
 
     void processInput();
     void processEvents();
-
-    static MessageBus& instance();
+    void reset() {
+        std::lock_guard<std::mutex> lock(messages_mutex);
+        while (!input_messages.empty()) {
+            input_messages.pop();
+        }
+        while (!event_messages.empty()) {
+            event_messages.pop();
+        }
+        input_callbacks.clear();
+        event_callbacks.clear();
+    }
+    static MessageBus& getInstance();
 
     MessageBus(const MessageBus&) = delete;
     MessageBus& operator=(const MessageBus&) = delete;

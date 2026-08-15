@@ -11,7 +11,7 @@
 //libspace include
 #include "../engine/precomp.h"
 #include "../realspace/precomp.h"
-
+#include "../engine/MessageBus.h"
 
 
 #include "../realspace/AssetManager.h"
