@@ -68,6 +68,7 @@ public:
     virtual void shootWeapon(SCMissionActors *target);
     virtual void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker);
     SCMissionActors();
+    ~SCMissionActors();
 private:
     Vector3D target_position{0.0f, 0.0f, 0.0f};
     int target_position_update{0};
@@ -75,7 +76,9 @@ private:
     
     AssetManager &Assets = AssetManager::getInstance();
     MessageBus &messageBus = MessageBus::getInstance();
-    void onGettingHit(const EventMessage &event);
+    void onEvent(const EventMessage &event);
+    void onGettingHit(const SCMission::MissionEventActorHit &event);
+    MessageBus::SubscriptionId subscription_id{-1};
 };
 
 class SCMissionActorsPlayer : public SCMissionActors {

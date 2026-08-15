@@ -1074,20 +1074,26 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
     
 }
 SCMissionActors::SCMissionActors() {
-    auto id = MessageBus::getInstance().subscribeEvent(std::bind(&SCMissionActors::onGettingHit, this, std::placeholders::_1));
+    subscription_id = MessageBus::getInstance().subscribeEvent(std::bind(&SCMissionActors::onEvent, this, std::placeholders::_1));
 }
-void SCMissionActors::onGettingHit(const EventMessage &event)
-{
-    auto eventData = dynamic_cast<const SCMission::MissionEventActorHit*>(&event);
-    if (eventData == nullptr) {
-        return; // pas le type qui nous intéresse, on ignore le message
+SCMissionActors::~SCMissionActors() {
+    if (subscription_id != -1) {
+        MessageBus::getInstance().unsubscribe(subscription_id);
     }
-    if (eventData->attacker != nullptr && eventData->target != nullptr && eventData->target == this) {
-        eventData->weapon->alive = false;
-        this->hasBeenHit(eventData->weapon, eventData->attacker);
+}
+void SCMissionActors::onEvent(const EventMessage &event) {
+    if (auto eventData = dynamic_cast<const SCMission::MissionEventActorHit*>(&event)) {
+        this->onGettingHit(*eventData);
+        return;
+    }
+}
+void SCMissionActors::onGettingHit(const SCMission::MissionEventActorHit &event) {
+    if (event.attacker != nullptr && event.target != nullptr && event.target == this) {
+        event.weapon->alive = false;
+        this->hasBeenHit(event.weapon, event.attacker);
         this->target->weapon_shooted_at_me = nullptr;
         if (this->target->object->alive == true) {
-            this->mission->explosions.push_back(new SCExplosion(eventData->weapon->obj->explos->objct, eventData->weapon->obj->position));
+            this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
             if (this->mission->sound.sounds.size() > 0) {
                 RSMixer &Mixer = RSMixer::getInstance();
                 MemSound *sound;
