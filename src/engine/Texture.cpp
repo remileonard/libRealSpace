@@ -81,6 +81,9 @@ void VGAPalette::CopyFromOtherPalette(VGAPalette* other, bool filter){
             if (c.r == 255 && c.g == 0 && c.b == 143) {
                 continue;
             }
+            if (c.r == 0 && c.g == 191 && c.b == 0) {
+                continue;
+            }
         }
         colors[i] = c;
     }

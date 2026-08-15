@@ -65,7 +65,9 @@ void RSPalette::parsePAL_CMAP(uint8_t *data, size_t size){
     ByteStream stream(data, size);
     
     Texel texel;
-    
+    if (size == 772) {
+        this->colorFlag = stream.ReadUInt32LE();
+    }
     for(int i = 0 ; i < 256 ; i++){
         texel.r = stream.ReadByte();
         texel.g = stream.ReadByte();
@@ -99,8 +101,10 @@ void RSPalette::parsePALT_TABL(uint8_t *data, size_t size){
 void RSPalette::parsePALT_PALT(uint8_t *data, size_t size){
     ByteStream stream(data, size);
     
-    this->colorFlag = stream.ReadUInt32LE();
-
+    //this->colorFlag = stream.ReadUInt32LE();
+    if (size == 772) {
+        this->colorFlag = stream.ReadUInt32LE();
+    }
     Texel texel;
     
     
@@ -134,7 +138,7 @@ void RSPalette::parsePALT_PALT(uint8_t *data, size_t size){
 void RSPalette::parsePALT_BLWH(uint8_t *data, size_t size){
     ByteStream stream(data, size);
     
-    this->bwFlag = stream.ReadUInt32LE();
+    //this->bwFlag = stream.ReadUInt32LE();
 
     
     Texel texel;
