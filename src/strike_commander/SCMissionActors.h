@@ -78,6 +78,7 @@ private:
     MessageBus &messageBus = MessageBus::getInstance();
     void onEvent(const EventMessage &event);
     void onGettingHit(const MissionEventActorHit &event);
+    void onMissionUpdate(const MissionUpdateEvent &event);
     MessageBus::SubscriptionId subscription_id{-1};
 };
 

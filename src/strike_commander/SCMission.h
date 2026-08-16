@@ -30,12 +30,12 @@ private:
 protected:
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
-    RSEntity * LoadEntity(std::string name);
+    
     RSProf * LoadProfile(std::string name);
     uint32_t last_time{0};
     uint32_t last_tick{0};
     uint32_t tick_counter{0};
-    uint32_t tps{0};
+    
     SCState &GameState = SCState::getInstance();
     AssetManager &Assets = AssetManager::getInstance();
     SCRenderer &Renderer = SCRenderer::getInstance();
@@ -72,6 +72,8 @@ public:
     virtual void update();
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
+    RSEntity * LoadEntity(std::string name);
+    uint32_t tps{0};
 };
 
 

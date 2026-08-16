@@ -1086,6 +1086,10 @@ void SCMissionActors::onEvent(const EventMessage &event) {
         this->onGettingHit(*eventData);
         return;
     }
+    if (auto eventData = dynamic_cast<const MissionUpdateEvent*>(&event)) {
+        this->onMissionUpdate(*eventData);
+        return;
+    }
 }
 void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     if (event.attacker != nullptr && event.target != nullptr && event.target == this) {
@@ -1100,6 +1104,193 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
                 sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
+        }
+    }
+}
+void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
+    if (this->is_active == false) {
+        return;
+    }
+    if (this->is_destroyed == true) {
+        return;
+    }
+    SCMissionActors *ai_actor = this;
+    SCMission *mission = event.mission;
+
+    if (ai_actor->object->alive == false && ai_actor->is_destroyed == false) {
+        ai_actor->is_destroyed = true;
+        if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane == nullptr) {
+            ai_actor->is_active = false;
+            SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, mission, ai_actor->object->on_is_destroyed);
+            p->execute();
+            delete p;
+        }
+        if (ai_actor->object->member_name_destroyed != "") {
+            RSEntity *entity = mission->LoadEntity(ai_actor->object->member_name_destroyed);
+            if (entity != nullptr && ai_actor->object->entity->jdyn == nullptr) {
+                ai_actor->object->entity = entity;
+            }
+        }
+        if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
+            if (ai_actor->object->entity->jdyn == nullptr) {
+                ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
+            }
+        }
+        if (ai_actor->target != nullptr) {
+            if (ai_actor->target->attacker == ai_actor) {
+                ai_actor->target->attacker = nullptr;
+            }
+        }
+    }
+    if (ai_actor->object->entity != nullptr && ai_actor->object->entity->entity_type == EntityType::swpn && !ai_actor->is_destroyed && ai_actor->is_active) {
+        
+        if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == false) {
+            if (ai_actor->retarget_cooldown > 0) {
+                ai_actor->shootWeapon(ai_actor->target);
+                ai_actor->retarget_cooldown--;
+            } else {
+                ai_actor->target = nullptr;
+            }
+        } else if (ai_actor->target != nullptr && ai_actor->target->is_destroyed == true) {
+            ai_actor->target = nullptr;
+        } else if (ai_actor->target == nullptr) {
+            for (auto targets: mission->actors) {
+                if (targets->plane == nullptr) {
+                    continue;
+                }
+                if (targets->team_id == ai_actor->team_id) {
+                    continue;
+                }
+                if ((targets->is_active && targets->is_destroyed == false && targets->object->alive) || (targets->actor_name == "PLAYER")) {
+                    ai_actor->shootWeapon(targets);
+                    ai_actor->target = targets;
+                    ai_actor->retarget_cooldown = 100 + (rand() % 200);
+                    break;
+                }
+            }   
+        }
+    }
+    for (auto weapon: ai_actor->weapons_shooted) {
+        if (weapon) {
+            weapon->Simulate(mission->tps);
+        }
+    }
+
+    for (auto it = ai_actor->weapons_shooted.begin(); it != ai_actor->weapons_shooted.end(); ) {
+        auto weapon = *it;
+        if (weapon->alive == false) {
+            it = ai_actor->weapons_shooted.erase(it);
+            delete weapon;
+            weapon = nullptr;
+        } else {
+            ++it;
+        }
+    }
+    
+    if (ai_actor->profile == nullptr) {
+        return;
+    }
+    if (ai_actor->profile->radi.info.callsign == "Strike Base") {
+        SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
+        p->execute();
+        delete p;
+        return;
+    }
+    if (ai_actor->is_active == false) {
+        return;
+    }
+    
+    if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
+        mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
+        SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
+        p->execute();
+        delete p;
+    } else if (ai_actor->override_progs.size() > 0 && ai_actor->is_destroyed == false) {
+        SCProg *p = new SCProg(ai_actor, ai_actor->override_progs, mission, 255);
+        p->execute();
+        delete p;
+        if (ai_actor->current_command_executed) {
+            ai_actor->override_progs.clear();
+            ai_actor->override_progs.shrink_to_fit();
+        }
+    }
+    
+    ai_actor->protectSelf();
+    switch (ai_actor->current_command) {
+        case OP_SET_WAIT_FOR_SECONDS:
+            ai_actor->current_command_executed = ai_actor->wait(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_TAKE_OFF:
+            ai_actor->current_command_executed = ai_actor->takeOff(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_LAND:
+            ai_actor->current_command_executed = ai_actor->land(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_WP:
+            ai_actor->current_command_executed = ai_actor->flyToWaypoint(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_AREA:
+            ai_actor->current_command_executed = ai_actor->flyToArea(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_DESTROY_TARGET:
+            ai_actor->current_command_executed = ai_actor->destroyTarget(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_DEFEND_TARGET:
+            ai_actor->current_command_executed = ai_actor->defendTarget(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_DEFEND_AREA:
+            ai_actor->current_command_executed = ai_actor->defendArea(ai_actor->current_command_arg);
+        break;
+        case OP_SET_OBJ_FOLLOW_ALLY:
+            ai_actor->current_command_executed = ai_actor->followAlly(ai_actor->current_command_arg);
+        break;
+        default:
+        break;
+    }
+    
+    if (ai_actor->pilot == nullptr) {
+        return;
+    }
+    if (ai_actor->plane == nullptr) {
+        return;
+    }
+    
+    ai_actor->plane->Simulate();
+    // Update attack position offset based on plane's yaw to keep it behind the plane
+    
+    float yawRad = ai_actor->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
+    // Position the offset behind the aircraft based on current yaw
+    ai_actor->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
+    ai_actor->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
+    ai_actor->attack_pos_offset.y = 0.0f; // Same altitude
+
+    ai_actor->pilot->FlyTo();
+    
+    Vector3D npos;
+    ai_actor->plane->getPosition(&npos);
+    
+    ai_actor->object->position.x = npos.x;
+    ai_actor->object->position.z = npos.z;
+    ai_actor->object->position.y = npos.y;
+    ai_actor->object->azymuth = 360 - (uint16_t)(ai_actor->plane->azimuthf / 10.0f);
+    ai_actor->object->roll = (uint16_t)(ai_actor->plane->twist / 10.0f);
+    ai_actor->object->pitch = (uint16_t)(ai_actor->plane->elevationf / 10.0f);
+    if (ai_actor->is_destroyed == true && ai_actor->object->position.y < mission->area->getY(ai_actor->object->position.x, ai_actor->object->position.z)) {
+        ai_actor->object->alive = false;
+        ai_actor->is_active = false;
+        if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane != nullptr) {
+            SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, mission, ai_actor->object->on_is_destroyed);
+            p->execute();
+            delete p;
+        }
+        mission->explosions.push_back(new SCExplosion(ai_actor->object->entity->explos->objct, ai_actor->object->position));
+        if (mission->sound.sounds.size() > 0) {
+            RSMixer &Mixer = RSMixer::getInstance();
+            MemSound *sound = mission->sound.sounds[SoundEffectIds::EXPLOSION_4];
+            Mixer.playSoundVoc(sound->data, sound->size, 4, 0);
+        }
+        if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
+            ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
         }
     }
 }
