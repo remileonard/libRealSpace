@@ -710,38 +710,38 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size) {
     
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size) {
-    if (size < 50)
+    if (size < 73)
         return;
     ByteStream bs(data, size);
-    bs.ReadByte();
     JDYN *dyn = new JDYN();
-    
-    dyn->FUEL = bs.ReadInt24LEByte3();
-    dyn->U1 = bs.ReadInt24LE();
-    dyn->C1 = bs.ReadInt24LE();
-    dyn->C2 = bs.ReadInt24LE();
-    dyn->U2 = bs.ReadInt24LE();
-    dyn->U3 = bs.ReadInt24LE();
-    bs.ReadByte();
-    dyn->ROLL_RATE = bs.ReadInt24LEByte3();
-    dyn->ROLL_RATE_MAX = bs.ReadInt24LEByte3();
-    dyn->CS3_qqch_lift = bs.ReadUShort();
-    dyn->CS4 = bs.ReadUShort();
-    dyn->U5 = bs.ReadInt24LE();
-    dyn->U6 = bs.ReadInt24LEByte3();
-    dyn->U7 = bs.ReadUShort();
-    dyn->U8 = bs.ReadUShort();
-    dyn->LIFT_SPD = bs.ReadInt24LE();
-    dyn->DRAG = bs.ReadInt24LE();
-    dyn->LIFT = bs.ReadInt24LE();
+    dyn->FUEL = (int)bs.ReadFixedFloatLE();
+    dyn->field_new_02 = bs.ReadFixedFloatLE();
+    dyn->boost_modifier_a = bs.ReadFixedFloatLE();
+    dyn->boost_modifier_b = bs.ReadFixedFloatLE();
+    dyn->drag_modifier_a = bs.ReadFixedFloatLE();
+    dyn->drag_modifier_b = bs.ReadFixedFloatLE();
+    dyn->inertia_like = bs.ReadFixedFloatLE();
+    dyn->pitch_rate_gain = bs.ReadFixedFloatLE();
+    dyn->rate_threshold = bs.ReadByte();
+    dyn->ctrl_modifier_a = bs.ReadByte();
+    dyn->ctrl_modifier_b = bs.ReadByte();
+    dyn->envelope_vs_limit = bs.ReadFixedFloatLE();
+    dyn->envelope_speed_limit = bs.ReadFixedFloatLE();
+    dyn->envelope_bank_limit = bs.ReadByte();
+    dyn->envelope_pitch_limit = bs.ReadByte();
+    dyn->envelope_pitch_margin = bs.ReadByte();
+    dyn->min_airspeed = bs.ReadFixedFloatLE();
+    dyn->drag_coefficient = bs.ReadFixedFloatLE();
+    dyn->airframe_response_scale = bs.ReadFixedFloatLE();
     dyn->aileron = bs.ReadByte();
     dyn->gouverne = bs.ReadByte();
     dyn->MAX_G = bs.ReadByte();
-    dyn->U13 = bs.ReadUShort();
-    dyn->TWIST_RATE = bs.ReadUShort();
-    dyn->TWIST_RATE_MAX = bs.ReadUShort();
-    dyn->U16 = bs.ReadInt24LE();
-    dyn->U17 = bs.ReadInt24LE();
+    dyn->field_22 = bs.ReadUShort();
+    dyn->field_23 = bs.ReadUShort();
+    dyn->field_24 = bs.ReadUShort();
+    dyn->field_25 = bs.ReadFixedFloatLE();
+    dyn->field_26 = bs.ReadByte();
+    dyn->field_27 = bs.ReadByte();
     this->jdyn = dyn;
 }
 void RSEntity::parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size) {

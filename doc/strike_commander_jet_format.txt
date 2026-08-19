@@ -5,7 +5,7 @@ By Fabien Sanglard
 January 21st, 2014
 Updated by remi leonard
 August 4th, 2025
-
+August 19, 2026
 
 Jets are self-contained in IFF files: Everything is there:
 
@@ -25,10 +25,13 @@ REAL
 │   ├── INFO        - Basic object information
 │   ├── JETP        - Jet-specific properties
 │   │   ├── DYNM    - Dynamics container
-│   │   │   ├── JDYN - Flight dynamics data
+│   │   │   ├── DYNM - 4-byte sub-chunk
+│   │   │   ├── ORDY - Empty chunk (0 bytes)
+│   │   │   ├── STBL - 4-byte sub-chunk
+│   │   │   ├── ATMO - 4-byte sub-chunk
+│   │   │   ├── GRAV - Empty chunk (0 bytes), gravity enabled flag
 │   │   │   ├── THRS - Thrust characteristics
-│   │   │   ├── GRAV - Gravity flag
-│   │   │   └── ATMO - Atmospheric data
+│   │   │   └── JDYN - Flight dynamics data
 │   │   ├── WEAP    - Weapons systems
 │   │   ├── DAMG    - Damage model
 │   │   └── ...     - Other jet properties
@@ -42,100 +45,94 @@ REAL
 
 ## JDYN Chunk - Flight Dynamics Data
 
-The JDYN (Jet Dynamics) chunk contains the core aerodynamic and flight characteristics of the aircraft. This data is used by the flight simulation system to calculate realistic aircraft behavior.
+The JDYN (Jet Dynamics) chunk contains the core aerodynamic and flight
+characteristics of the aircraft. This data is used by the flight
+simulation system to calculate aircraft behavior each tick.
 
-### JDYN Structure (67 bytes total)
+All multi-byte integers are little-endian. Most 32-bit fields are
+24.8 fixed-point (divide by 256 to get the real value); this is noted
+per field below.
 
-| Offset | Size | Type    | Field Name      | Description |
-|--------|------|---------|-----------------|-------------|
-| 0      | 1    | uint8   | unknown         | Always 0x00? |
-| 1      | 3    | int24   | FUEL            | Maximum fuel capacity |
-| 4      | 2    | uint16  | U1              | Unknown parameter 1 |
-| 6      | 2    | uint16  | C1              | Common parameter 1 |
-| 8      | 2    | uint16  | C2              | Common parameter 2 |
-| 10     | 3    | uint24  | U2              | Unknown parameter 2 |
-| 13     | 3    | uint24  | U3              | Unknown parameter 3 |
-| 16     | 1    | uint8   | separator       | Always 0x00? |
-| 17     | 3    | int24   | ROLL_RATE       | Roll response rate |
-| 20     | 3    | int24   | ROLL_RATE_MAX   | Maximum roll rate |
-| 23     | 2    | uint16  | CS3_qqch_lift   | Lift-related parameter |
-| 25     | 2    | uint16  | CS4             | Control surface parameter |
-| 27     | 3    | uint24  | U5              | Unknown parameter 5 |
-| 30     | 3    | uint24  | U6              | Unknown parameter 6 |
-| 33     | 2    | uint16  | U7              | Unknown parameter 7 |
-| 35     | 2    | uint16  | U8              | Unknown parameter 8 |
-| 37     | 3    | uint24  | LIFT_SPD        | Lift speed parameter |
-| 40     | 3    | uint24  | DRAG            | Drag coefficient data |
-| 43     | 3    | uint24  | LIFT            | Lift coefficient data |
-| 46     | 1    | uint8   | aileron         | Aileron effectiveness |
-| 47     | 1    | uint8   | gouverne        | Elevator effectiveness |
-| 48     | 1    | uint8   | MAX_G           | Maximum G-force rating |
-| 49     | 2    | uint16  | U13             | Unknown parameter 13 |
-| 51     | 2    | uint16  | TWIST_RATE      | Yaw response rate |
-| 53     | 2    | uint16  | TWIST_RATE_MAX  | Maximum yaw rate |
-| 55     | 3    | uint24  | U16             | Unknown parameter 16 |
-| 58     | 2    | uint16  | U17             | Unknown parameter 17 |
+### JDYN Structure (73 bytes total)
 
-### Usage in Flight Simulation
+| Offset | Size | Type       | Field Name              | Description |
+|--------|------|------------|--------------------------|-------------|
+| 0      | 4    | fixed24.8  | FUEL                     | Fuel consumption target |
+| 4      | 4    | fixed24.8  | field_new_02             | |
+| 8      | 4    | fixed24.8  | boost_modifier_a         | Afterburner stage-1 multiplier, added to a base of 1.0 |
+| 12     | 4    | fixed24.8  | boost_modifier_b         | Afterburner stage-2 multiplier, added on top of stage 1 |
+| 16     | 4    | fixed24.8  | drag_modifier_a          | Conditional drag correction |
+| 20     | 4    | fixed24.8  | drag_modifier_b          | Conditional drag correction |
+| 24     | 4    | fixed24.8  | inertia_like             | Per-tick clamp on pitch rate change |
+| 28     | 4    | fixed24.8  | pitch_rate_gain          | Pitch gain, also used as a lift gain |
+| 32     | 1    | uint8      | rate_threshold           | Threshold, used as (value - 5) |
+| 33     | 1    | uint8      | ctrl_modifier_a          | Additive term in roll and in the AoA/sideslip force |
+| 34     | 1    | uint8      | ctrl_modifier_b          | Additive term in roll and in the AoA/sideslip force |
+| 35     | 4    | fixed24.8  | envelope_vs_limit        | Vertical speed threshold for the flight-envelope gate |
+| 39     | 4    | fixed24.8  | envelope_speed_limit     | Horizontal speed threshold for the flight-envelope gate |
+| 43     | 1    | uint8      | envelope_bank_limit      | Bank angle threshold (degrees) for the flight-envelope gate |
+| 44     | 1    | uint8      | envelope_pitch_limit     | Pitch angle threshold (degrees) for the flight-envelope gate |
+| 45     | 1    | uint8      | envelope_pitch_margin    | Lower margin on the pitch angle threshold (degrees) |
+| 46     | 4    | fixed24.8  | min_airspeed             | Stall speed threshold |
+| 50     | 4    | fixed24.8  | drag_coefficient         | Drag coefficient (Cd*AoA^2 + (Cd/8)*sideslip^2) |
+| 54     | 4    | fixed24.8  | airframe_response_scale  | Roll responsiveness scale; also used as the AoA/sideslip force gain |
+| 58     | 1    | int8       | aileron                  | Roll rate clamp |
+| 59     | 1    | uint8      | gouverne                 | Yaw gain |
+| 60     | 1    | int8       | MAX_G                    | Load factor limit |
+| 61     | 2    | int16      | field_22                 | |
+| 63     | 2    | int16      | field_23                 | |
+| 65     | 2    | int16      | field_24                 | |
+| 67     | 4    | int32      | field_25                 | |
+| 71     | 1    | int8       | field_26                 | |
+| 72     | 1    | int8       | field_27                 | |
 
-The JDYN data is used by the `SCJdynPlane` class to provide realistic flight dynamics:
+Roll, pitch and yaw rates are not stored in JDYN — they are computed
+every tick from the fields above, combined with stick/rudder input
+and current flight state.
 
-- **FUEL**: Maximum fuel capacity affects aircraft weight and performance
-- **ROLL_RATE/ROLL_RATE_MAX**: Control roll response and maximum roll speed
-- **TWIST_RATE/TWIST_RATE_MAX**: Control yaw response and maximum yaw speed  
-- **MAX_G**: Limits the maximum G-forces the aircraft can sustain
-- **aileron/gouverne**: Control surface effectiveness multipliers
-- **LIFT_SPD/DRAG/LIFT**: Aerodynamic coefficients for flight calculations
+### Example values
+
+| Field | 747 | F-16 | F-22 | Learjet |
+|---|---:|---:|---:|---:|
+| ctrl_modifier_a | 3 | 3 | 3 | 3 |
+| ctrl_modifier_b | 5 | 5 | 5 | 5 |
+| envelope_pitch_margin | 5 | 5 | 5 | 5 |
+| min_airspeed | 180.0 | 170.0 | 200.0 | 140.0 |
+| drag_coefficient | 10.0 | 20.0 | 10.0 | 10.0 |
+| airframe_response_scale | 70.0 | 4.6 | 7.0 | 5.0 |
+| aileron | 20 | 30 | 40 | 25 |
+| gouverne | 10 | 10 | 10 | 10 |
+| MAX_G | 5 | 9 | 9 | 8 |
+| envelope_vs_limit | 10.0 | 20.0 | 10.0 | 10.0 |
+| envelope_speed_limit | 180.0 | 170.0 | 200.0 | 140.0 |
+| envelope_bank_limit | 60 | 20 | 60 | 60 |
+| envelope_pitch_limit | 20 | 40 | 25 | 30 |
 
 ## THRS Chunk - Thrust Characteristics
 
-The THRS (Thrust) chunk defines the engine thrust characteristics of the aircraft.
+### THRS Structure (7 bytes)
 
-### THRS Structure (Variable Size)
+| Offset | Size | Type      | Field Name         | Description |
+|--------|------|-----------|---------------------|-------------|
+| 0      | 4    | fixed24.8 | thrust_base          | Base engine thrust |
+| 4      | 1    | int8      | afterburner_flag     | -1 when the aircraft has no afterburner |
+| 5      | 1    | int8      | engine_param_1       | |
+| 6      | 1    | int8      | engine_param_2       | |
 
-The THRS chunk comes in two main variants:
+### Example values
 
-#### Short Format (6-8 bytes):
-| Offset | Size | Type    | Field Name        | Description |
-|--------|------|---------|-------------------|-------------|
-| 0      | 1    | uint8   | unknown           | Always 0x00? |
-| 1      | 3    | int24   | thrust_in_newton  | Engine thrust in Newtons |
-| 4      | 2-3  | uint8[] | unknown_data      | Additional parameters |
-
-#### Long Format (19-20 bytes):  
-| Offset | Size | Type    | Field Name        | Description |
-|--------|------|---------|-------------------|-------------|
-| 0      | 5    | uint8[] | unknown_header    | Header data |
-| 5      | 3    | int24   | thrust_raw        | Raw thrust value |
-| 8      | 11-12| uint8[] | unknown_data      | Additional parameters |
-
-**Note**: In the long format, the thrust value is multiplied by 15 to get the final thrust in Newtons.
-
-### Usage in Flight Simulation
-
-The thrust data from THRS is used by:
-- `SCJdynPlane::computeThrust()` - Calculates engine thrust force
-- `SCJdynPlane::Simulate()` - Applies thrust to aircraft dynamics
-- Engine power calculations and fuel consumption modeling
-
-## Data Analysis
-
-Example JDYN data for F-15 Eagle:
-- FUEL: 6,103 (fuel units)
-- ROLL_RATE: 400 (roll response)
-- MAX_G: 9 (maximum G-force rating)
-- TWIST_RATE: 70 (yaw response)
-
-Example THRS data for F-15 Eagle:
-- thrust_in_newton: 222,000 N
-
-This data provides realistic flight characteristics matching the real F-15's performance envelope.
+| Field | 747 | F-16 | F-22 | Learjet |
+|---|---:|---:|---:|---:|
+| thrust_base | 825560.0 | 150000.0 | 222000.0 | 50000.0 |
+| afterburner_flag | -1 | -103 | -76 | -1 |
+| engine_param_1 | 122 | -76 | -56 | -91 |
+| engine_param_2 | 120 | -94 | -46 | -92 |
 
 ## File Format Notes
 
 - All multi-byte integers are stored in little-endian format
+- Most 32-bit numeric values in the JDYN chunk are 24.8 fixed-point
 - The IFF chunk structure allows for extensibility
-- Some fields remain unknown and may control advanced flight characteristics
 - The format supports both military jets and civilian aircraft (C-130, 747, Learjet)
 
 ## Related Files

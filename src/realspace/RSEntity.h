@@ -125,30 +125,33 @@ struct HPTS {
 
 typedef struct JDYN {
     uint32_t FUEL;
-    uint16_t U1;
-    uint16_t C1;
-    uint16_t C2;
-    uint32_t U2;
-    uint32_t U3;
-    uint16_t ROLL_RATE;
-    uint16_t ROLL_RATE_MAX;
-    uint16_t CS3_qqch_lift;
-    uint16_t CS4;
-    uint32_t U5;
-    uint32_t U6;
-    uint16_t U7;
-    uint16_t U8;
-    uint32_t LIFT_SPD;
-    uint32_t DRAG;
-    uint32_t LIFT;
+    float field_new_02;
+    float boost_modifier_a;
+    float boost_modifier_b;
+    float drag_modifier_a;
+    float drag_modifier_b;
+    float inertia_like;
+    float pitch_rate_gain;
+    uint8_t rate_threshold;
+    uint8_t ctrl_modifier_a;
+    uint8_t ctrl_modifier_b;
+    float envelope_vs_limit;
+    float envelope_speed_limit;
+    uint8_t envelope_bank_limit;
+    uint8_t envelope_pitch_limit;
+    uint8_t envelope_pitch_margin;
+    float min_airspeed;
+    float drag_coefficient;
+    float airframe_response_scale;
     uint8_t aileron;
     uint8_t gouverne;
     uint8_t MAX_G;
-    uint16_t U13;
-    uint16_t TWIST_RATE;
-    uint16_t TWIST_RATE_MAX;
-    uint32_t U16;
-    uint16_t U17;
+    uint16_t field_22;
+    uint16_t field_23;
+    uint16_t field_24;
+    uint32_t field_25;
+    uint8_t field_26;
+    uint8_t field_27;
 } JDYN;
 
 class RSEntity {

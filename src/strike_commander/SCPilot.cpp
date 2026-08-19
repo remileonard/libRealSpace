@@ -138,7 +138,7 @@ void SCPilot::AutoPilot() {
     float yaw_difference = this->plane->yaw - target_yaw;
     float delta_time = 1.0f / this->plane->tps;
 
-    float roll_rate = (this->plane->object->entity->jdyn->ROLL_RATE / 60.0f) *10.0f * delta_time;
+    float roll_rate = (this->plane->object->entity->jdyn->inertia_like / 60.0f) *10.0f * delta_time;
     
     // Normaliser la différence entre -1800 et 1800 (entre -180° et 180°)
     while (yaw_difference > 1800.0f) yaw_difference -= 3600.0f;

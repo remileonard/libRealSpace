@@ -147,7 +147,7 @@ void SCVectorPlane::computeLift() {
     this->ae = acosf(dot_product);
     
     // Coefficient de portance basé sur l'angle d'attaque
-    this->Cl = this->object->entity->jdyn->LIFT / 65535.0f + 0.1f * this->ae; // Modèle simplifié
+    this->Cl = this->object->entity->jdyn->envelope_vs_limit + 0.1f * this->ae; // Modèle simplifié
     if (this->ae > 0.5f) {  // ~30 degrés
         this->Cl *= (1.0f - (this->ae - 0.5f) * 2.0f); // Décrochage progressif
     }

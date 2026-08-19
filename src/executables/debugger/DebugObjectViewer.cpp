@@ -414,16 +414,9 @@ void DebugObjectViewer::renderUI() {
             if (entity->jdyn != nullptr) {
                 if (ImGui::TreeNode("Jet Dynamics")) {
                     ImGui::Text("Fuel: %d", entity->jdyn->FUEL);
-                    ImGui::Text("Roll Rate: %d", entity->jdyn->ROLL_RATE);
-                    ImGui::Text("Max Roll Rate: %d", entity->jdyn->ROLL_RATE_MAX);
-                    ImGui::Text("Lift Speed: %d", entity->jdyn->LIFT_SPD);
-                    ImGui::Text("Drag: %d", entity->jdyn->DRAG);
-                    ImGui::Text("Lift: %d", entity->jdyn->LIFT);
                     ImGui::Text("Aileron: %d", entity->jdyn->aileron);
                     ImGui::Text("Gouverne: %d", entity->jdyn->gouverne);
                     ImGui::Text("Max G: %d", entity->jdyn->MAX_G);
-                    ImGui::Text("Twist Rate: %d", entity->jdyn->TWIST_RATE);
-                    ImGui::Text("Max Twist Rate: %d", entity->jdyn->TWIST_RATE_MAX);
                     ImGui::Text("Wing Area: %.2f", entity->wing_area);
                     ImGui::Text("Gravity: %s", entity->gravity ? "Enabled" : "Disabled");
                     ImGui::Text("Weight in kg: %d", entity->weight_in_kg);

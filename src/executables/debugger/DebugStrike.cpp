@@ -145,14 +145,14 @@ void DebugStrike::loadPlane() {
         fuel = plane_to_load->jdyn->FUEL * 2.208588957f;
 
         ie_pi_AR = 4000.0f / plane_to_load->drag;
-        roll_rate_max = plane_to_load->jdyn->ROLL_RATE;
-        pitch_rate_max = plane_to_load->jdyn->TWIST_RATE;
+        roll_rate_max = plane_to_load->jdyn->inertia_like;
+        pitch_rate_max = plane_to_load->jdyn->pitch_rate_gain;
         SCPlane *new_plane = nullptr;
         surface = surface * 10.7639f;
         envergure = envergure * 3.28084f;
         wing_aspec_ratio = (envergure * envergure) / surface;
-        float twist_rate = plane_to_load->jdyn->TWIST_RATE;
-        float roll_rate = plane_to_load->jdyn->ROLL_RATE;
+        float twist_rate = plane_to_load->jdyn->pitch_rate_gain;
+        float roll_rate = plane_to_load->jdyn->inertia_like;
         switch (sim_type) {
         case 0:
             thrust = (float) plane_to_load->thrust_in_newton;
@@ -240,7 +240,6 @@ void DebugStrike::loadPlane() {
     ImGui::Text("Roll rate max: %.2f", roll_rate_max);
     ImGui::Text("Pitch rate max: %.2f", pitch_rate_max);
     ImGui::Text("G-Load: Max %.2f, Min %.2f", this->player_plane->Lmax, this->player_plane->Lmin);
-    ImGui::Text("JDYN LIFT: %.3f", this->player_plane->object->entity->jdyn->LIFT / 65536.0f);
 }
 void DebugStrike::simConfig() {
     static bool azymuth_control = false;
@@ -738,13 +737,9 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
             }
             if (entity->jdyn != nullptr) {
                 if (ImGui::TreeNode("JDYN")) {
-                    ImGui::Text("LIFT: %.3f", entity->jdyn->LIFT / 65536.0f);
-                    ImGui::Text("DRAG: %.3f", entity->jdyn->DRAG / 65536.0f);
                     ImGui::Text("WEIGHT: %d", entity->weight_in_kg);
                     ImGui::Text("THRUST: %d", entity->thrust_in_newton);
                     ImGui::Text("MAX G-LOAD: %d", entity->jdyn->MAX_G);
-                    ImGui::Text("ROLL: %d", entity->jdyn->ROLL_RATE);
-                    ImGui::Text("PITCH: %d", entity->jdyn->TWIST_RATE);
                     ImGui::Text("WING AREA: %.3f", entity->wing_area);
                     ImGui::TreePop();
                 }
