@@ -2007,27 +2007,60 @@ void SCRenderer::renderBBox(Vector3D position, Point3D min, Point3D max) {
 }
 void SCRenderer::renderMapOverlay(RSArea *area) {
 
-    glDepthMask(GL_FALSE);           // ne pas écrire dans le depth buffer
-    glDepthFunc(GL_LEQUAL);          // accepter l'égalité de profondeur
+    glDepthMask(GL_FALSE);            // ne pas écrire dans le depth buffer
+    glDepthFunc(GL_LEQUAL);           // accepter l'égalité de profondeur
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(-1.0f, -1.0f);
 
+    // UV du .TRI : entiers, plage 0..125 (255 = pas de texture). 128 = carreau plein.
+    const float TRI_UV_SCALE = 128.0f;
+
     for (int i = 0; i < area->objectOverlay.size(); i++) {
-        AoVPoints *v = area->objectOverlay[i].vertices;
-        for (int j = 0; j < area->objectOverlay[i].nbTriangles; j++) {
-            AoVPoints v1, v2, v3;
-            v1 = area->objectOverlay[i].vertices[area->objectOverlay[i].trianles[j].verticesIdx[0]];
-            v2 = area->objectOverlay[i].vertices[area->objectOverlay[i].trianles[j].verticesIdx[1]];
-            v3 = area->objectOverlay[i].vertices[area->objectOverlay[i].trianles[j].verticesIdx[2]];
-            glBegin(GL_TRIANGLES);
-            const Texel *texel = palette.GetRGBColor(area->objectOverlay[i].trianles[j].color);
-            glColor4f(texel->r / 255.0f, texel->g / 255.0f, texel->b / 255.0f, 1);
-            glVertex3f((GLfloat)v1.x, (GLfloat)v1.y, (GLfloat)-v1.z);
-            glVertex3f((GLfloat)v2.x, (GLfloat)v2.y, (GLfloat)-v2.z);
-            glVertex3f((GLfloat)v3.x, (GLfloat)v3.y, (GLfloat)-v3.z);
-            glEnd();
+        AreaOverlay &ov = area->objectOverlay[i];
+
+        // drawList = ordre de dessin résolu depuis la grille param3
+        // (ParseTriFile garantit un repli = 0..nbTriangles-1 si la grille est triviale)
+        for (size_t k = 0; k < ov.drawList.size(); k++) {
+            int j = ov.drawList[k];
+            const AreaOverlayTriangles &tri = ov.trianles[j];
+
+            AoVPoints v1 = ov.vertices[tri.verticesIdx[0]];
+            AoVPoints v2 = ov.vertices[tri.verticesIdx[1]];
+            AoVPoints v3 = ov.vertices[tri.verticesIdx[2]];
+
+            // hypothèse : type == 6 => face texturée, color == index de texture.
+            // color == 255 (<=> uv 255) reste une face à-plat même si type == 6 (région 0).
+            bool textured = (tri.type == 6) && (tri.color != 255);
+
+            if (textured) {
+                RSImage *tex = area->GetImageByID(tri.color+255);
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(GL_TEXTURE_2D, tex->GetTexture()->id);
+                glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+                glBegin(GL_TRIANGLES);
+                glTexCoord2f(tri.uv[0].u / TRI_UV_SCALE, tri.uv[0].v / TRI_UV_SCALE);
+                glVertex3f((GLfloat)v1.x, (GLfloat)v1.y, (GLfloat)-v1.z);
+                glTexCoord2f(tri.uv[1].u / TRI_UV_SCALE, tri.uv[1].v / TRI_UV_SCALE);
+                glVertex3f((GLfloat)v2.x, (GLfloat)v2.y, (GLfloat)-v2.z);
+                glTexCoord2f(tri.uv[2].u / TRI_UV_SCALE, tri.uv[2].v / TRI_UV_SCALE);
+                glVertex3f((GLfloat)v3.x, (GLfloat)v3.y, (GLfloat)-v3.z);
+                glEnd();
+            } else {
+                glDisable(GL_TEXTURE_2D);
+                const Texel *texel = palette.GetRGBColor(tri.color);
+                glColor4f(texel->r / 255.0f, texel->g / 255.0f, texel->b / 255.0f, 1.0f);
+
+                glBegin(GL_TRIANGLES);
+                glVertex3f((GLfloat)v1.x, (GLfloat)v1.y, (GLfloat)-v1.z);
+                glVertex3f((GLfloat)v2.x, (GLfloat)v2.y, (GLfloat)-v2.z);
+                glVertex3f((GLfloat)v3.x, (GLfloat)v3.y, (GLfloat)-v3.z);
+                glEnd();
+            }
         }
     }
+
+    glDisable(GL_TEXTURE_2D);
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);

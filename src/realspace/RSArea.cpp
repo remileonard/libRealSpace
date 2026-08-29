@@ -106,108 +106,109 @@ void RSArea::ParseObjects() {
 }
 
 void RSArea::ParseTriFile(PakEntry *entry) {
-    if (entry->size > 0) {
-        PakArchive triFiles;
+    if (entry->size <= 0)
+        return;
 
-        AreaOverlay overTheMapIsTheRunway;
-        size_t read = 0;
-        ByteStream stream(entry->data, entry->size);
-        int numvertice = stream.ReadShort();
-        read += 2;
-        int nbpoly = stream.ReadShort();
-        read += 2;
-        int nbquads = stream.ReadShort();
-        if (nbquads != 1) {
-            stream.MoveForward(2);
-            read += 2;
+    AreaOverlay overTheMapIsTheRunway;
+    size_t      read = 0;
+    ByteStream  stream(entry->data, entry->size);
+
+    // --- en-tête : 4 × u16 LE ---
+    int numvertice = stream.ReadUShort(); read += 2;
+    int nbpoly     = stream.ReadUShort(); read += 2;
+    int param2     = stream.ReadUShort(); read += 2;
+    int param3     = stream.ReadUShort(); read += 2;
+    overTheMapIsTheRunway.param2 = (uint16_t)param2;
+    overTheMapIsTheRunway.param3 = (uint16_t)param3;
+
+    // --- 1. sommets : numvertice × 13 octets (i32 X, i32 Z, i32 Y, u8 pad) ---
+    AoVPoints *vertices = new AoVPoints[numvertice];
+    overTheMapIsTheRunway.lx = overTheMapIsTheRunway.ly = 0;
+    overTheMapIsTheRunway.hx = overTheMapIsTheRunway.hy = 0;
+
+    for (int i = 0; i < numvertice; i++) {
+        AoVPoints *v = &vertices[i];
+        v->x   = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE; read += 4;
+        v->z   = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE; read += 4;
+        v->y   = stream.ReadFixedFloatLE() * HEIGH_MAP_SCALE;   read += 4;
+        v->pad = stream.ReadByte();                             read += 1;
+
+        if (i == 0) {
+            overTheMapIsTheRunway.lx = overTheMapIsTheRunway.hx = v->x;
+            overTheMapIsTheRunway.ly = overTheMapIsTheRunway.hy = v->z;
         }
-        read += 4;
-        AoVPoints* vertices = new AoVPoints[numvertice];
-        overTheMapIsTheRunway.lx = 0;
-        overTheMapIsTheRunway.ly = 0;
-        overTheMapIsTheRunway.hx = 0;
-        overTheMapIsTheRunway.hy = 0;
-
-        for (int i = 0; i < numvertice; i++) {
-            AoVPoints *v = &vertices[i];
-            int32_t coo;
-            v->u0 = stream.ReadByte();
-            v->u1 = stream.ReadByte();
-            v->u2 = stream.ReadByte();
-            read += 3;
-            coo = stream.ReadInt24LE();
-            read += 4;
-            v->x = coo * (int)(BLOCK_COORD_SCALE);
-            coo = stream.ReadInt24LE();
-            read += 4;
-            v->z = coo * (int)(BLOCK_COORD_SCALE);
-            coo = stream.ReadShort();
-            read += 2;
-            v->y = coo * (int) HEIGH_MAP_SCALE;
-            overTheMapIsTheRunway.lx = ((overTheMapIsTheRunway.lx == 0) && (i == 0)) ? v->x : overTheMapIsTheRunway.lx;
-            overTheMapIsTheRunway.hx = ((overTheMapIsTheRunway.hx == 0) && (i == 0)) ? v->x : overTheMapIsTheRunway.hx;
-            overTheMapIsTheRunway.ly = ((overTheMapIsTheRunway.ly == 0) && (i == 0)) ? v->z : overTheMapIsTheRunway.ly;
-            overTheMapIsTheRunway.hy = ((overTheMapIsTheRunway.hy == 0) && (i == 0)) ? v->z : overTheMapIsTheRunway.hy;
-
-            overTheMapIsTheRunway.lx = v->x < overTheMapIsTheRunway.lx ? v->x : overTheMapIsTheRunway.lx;
-            overTheMapIsTheRunway.ly = v->z < overTheMapIsTheRunway.ly ? v->z : overTheMapIsTheRunway.ly;
-            overTheMapIsTheRunway.hx = v->x > overTheMapIsTheRunway.hx ? v->x : overTheMapIsTheRunway.hx;
-            overTheMapIsTheRunway.hy = v->z > overTheMapIsTheRunway.hy ? v->z : overTheMapIsTheRunway.hy;
-            overTheMapIsTheRunway.verticesVec.push_back(*v);
-        }
-        overTheMapIsTheRunway.vertices = vertices;
-
-        short cpt = 0;
-        overTheMapIsTheRunway.nbTriangles = 0;
-        for (int i = 0; i < nbpoly; i++) {
-
-            AreaOverlayTriangles aot;
-
-            aot.u0 = stream.ReadByte();
-            aot.u1 = stream.ReadByte();
-            read += 2;
-
-            aot.u7 = stream.ReadByte();
-            aot.verticesIdx[0] = stream.ReadByte();
-            if (aot.verticesIdx[0] >= numvertice) {
-                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
-                aot.verticesIdx[0] = 0;
-            }
-            read += 2;
-            aot.u8 = stream.ReadByte();
-            aot.verticesIdx[1] = stream.ReadByte();
-            if (aot.verticesIdx[1] >= numvertice) {
-                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
-                aot.verticesIdx[1] = 0;
-            }
-            read += 2;
-            aot.u9 = stream.ReadByte();
-            aot.verticesIdx[2] = stream.ReadByte();
-            if (aot.verticesIdx[2] >= numvertice) {
-                printf("Warning: TRI file vertex index out of bounds: %d >= %d\n", aot.verticesIdx[0], numvertice);
-                aot.verticesIdx[2] = 0;
-            }
-            read += 2;
-
-            aot.u2 = stream.ReadByte();
-            aot.u3 = stream.ReadByte();
-            aot.color = stream.ReadByte();
-            aot.u4 = stream.ReadByte();
-            aot.u5 = stream.ReadByte();
-            aot.u6 = stream.ReadByte();
-            aot.u10 = stream.ReadByte();
-            aot.u11 = stream.ReadByte();
-            read += 8;
-
-            overTheMapIsTheRunway.trianles[overTheMapIsTheRunway.nbTriangles++] = aot;
-        }
-        // TODO figure out what is the remaining data is used for.
-        //stream.MoveForward(entry->size - read);
-        if (read != entry->size) {
-            printf("Warning: TRI file read mismatch: %zu != %zu\n", read, entry->size);
-        }
-        objectOverlay.push_back(overTheMapIsTheRunway);
+        overTheMapIsTheRunway.lx = v->x < overTheMapIsTheRunway.lx ? v->x : overTheMapIsTheRunway.lx;
+        overTheMapIsTheRunway.ly = v->z < overTheMapIsTheRunway.ly ? v->z : overTheMapIsTheRunway.ly;
+        overTheMapIsTheRunway.hx = v->x > overTheMapIsTheRunway.hx ? v->x : overTheMapIsTheRunway.hx;
+        overTheMapIsTheRunway.hy = v->z > overTheMapIsTheRunway.hy ? v->z : overTheMapIsTheRunway.hy;
+        overTheMapIsTheRunway.verticesVec.push_back(*v);
     }
+    overTheMapIsTheRunway.vertices = vertices;
+
+    // --- 2. polygones : nbpoly × 16 octets ---
+    overTheMapIsTheRunway.nbTriangles = 0;
+    for (int i = 0; i < nbpoly; i++) {
+        AreaOverlayTriangles aot;
+        aot.flag0          = stream.ReadByte();   read += 1;
+        aot.verticesIdx[0] = stream.ReadUShort(); read += 2;
+        aot.verticesIdx[1] = stream.ReadUShort(); read += 2;
+        aot.verticesIdx[2] = stream.ReadUShort(); read += 2;
+        aot.type           = stream.ReadByte();   read += 1;
+        aot.color          = stream.ReadUShort(); read += 2;
+        for (int k = 0; k < 3; k++) {
+            aot.uv[k].u = stream.ReadByte();
+            aot.uv[k].v = stream.ReadByte();
+        }
+        read += 6;
+
+        for (int k = 0; k < 3; k++) {
+            if (aot.verticesIdx[k] >= numvertice) {
+                printf("Warning: TRI vertex index out of bounds: %u >= %d\n",
+                       aot.verticesIdx[k], numvertice);
+                aot.verticesIdx[k] = 0;
+            }
+        }
+        overTheMapIsTheRunway.trianles[overTheMapIsTheRunway.nbTriangles++] = aot;
+    }
+
+    // --- 3. table param3 : param3 × u16 (runs [count, polyIdx...], 0xFFFF = liste vide) ---
+    overTheMapIsTheRunway.param3Table.reserve(param3);
+    for (int i = 0; i < param3; i++) {
+        overTheMapIsTheRunway.param3Table.push_back(stream.ReadUShort());
+        read += 2;
+    }
+
+    // --- 4. grille : param2*param2 × u16 (chaque case = index dans param3Table) ---
+    int ncell = param2 * param2;
+    overTheMapIsTheRunway.grid.reserve(ncell);
+    for (int i = 0; i < ncell; i++) {
+        overTheMapIsTheRunway.grid.push_back(stream.ReadUShort());
+        read += 2;
+    }
+
+    // --- drawList : union ordonnée des polygones référencés ; repli sur 0..nbpoly-1 ---
+    std::vector<char> seen(nbpoly, 0);
+    for (int c = 0; c < ncell; c++) {
+        uint16_t g = overTheMapIsTheRunway.grid[c];
+        if (g >= overTheMapIsTheRunway.param3Table.size())          continue;
+        if (overTheMapIsTheRunway.param3Table[g] == 0xFFFF)         continue;   // case vide
+        uint16_t count = overTheMapIsTheRunway.param3Table[g];
+        for (uint16_t k = 0; k < count && (g + 1 + k) < overTheMapIsTheRunway.param3Table.size(); k++) {
+            uint16_t idx = overTheMapIsTheRunway.param3Table[g + 1 + k];
+            if (idx < nbpoly && !seen[idx]) {
+                seen[idx] = 1;
+                overTheMapIsTheRunway.drawList.push_back(idx);
+            }
+        }
+    }
+    if (overTheMapIsTheRunway.drawList.empty())
+        for (int i = 0; i < nbpoly; i++)
+            overTheMapIsTheRunway.drawList.push_back((uint16_t)i);
+
+    if (read != entry->size)
+        printf("Warning: TRI file read mismatch: %zu != %zu\n", read, entry->size);
+
+    objectOverlay.push_back(overTheMapIsTheRunway);
 }
 
 void RSArea::ParseTrigo() {
@@ -372,7 +373,11 @@ void RSArea::ParseHeightMap(void) {
     
 }
 
-RSImage *RSArea::GetImageByID(size_t ID) { return textures[0]->GetImageById(ID); }
+RSImage *RSArea::GetImageByID(size_t ID) {
+    if (ID >= textures[0]->GetNumImages())
+        return textures[1]->GetImageById(ID-textures[0]->GetNumImages());
+    return textures[0]->GetImageById(ID); 
+}
 
 void RSArea::InitFromPAKFileName(const char *pakFilename) {
 

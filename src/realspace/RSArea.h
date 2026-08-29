@@ -51,20 +51,17 @@ typedef struct AreaBlock{
     }
     
 } AreaBlock;
-struct AreaOverlayTriangles {
-    int verticesIdx[3];
-    uint8_t color;
-    uint8_t u0, u1, u2, u3, u4;
-    uint8_t u5, u6, u7, u8, u9;
-    uint8_t u10,u11;
-};
 struct AoVPoints {
-    int x;
-    int y;
-    int z;
-    int u0;
-    int u1;
-    int u2;
+    int32_t x, z, y;      // i32 LE chacun  (es:[si], es:[si+4], es:[si+8])
+    uint8_t pad;          // +0x0C, non lu par le jeu
+};
+
+struct AreaOverlayTriangles {
+    uint8_t  flag0;            // +0x00  (toujours 0 dans les données SC)
+    uint16_t verticesIdx[3];   // +0x01 / +0x03 / +0x05
+    uint8_t  type;             // +0x07  (hypothèse : 6 = texturé)
+    uint16_t color;            // +0x08  (index couleur / texture)
+    UV       uv[3];            // +0x0A  (3 × {u8 u; u8 v;})
 };
 struct AreaOverlay {
     AoVPoints* vertices;
@@ -72,6 +69,10 @@ struct AreaOverlay {
     AreaOverlayTriangles trianles[400];
     int lx, ly, hx, hy;
     int nbTriangles;
+    uint16_t              param2 = 0, param3 = 0;
+    std::vector<uint16_t> param3Table;   // section 3, brute
+    std::vector<uint16_t> grid;          // section 4, brute
+    std::vector<uint16_t> drawList;      // polygones à dessiner (résolu depuis la grille)
 };
 #define BLOCK_LOD_MAX 0
 #define BLOCK_LOD_MED 1
@@ -142,6 +143,7 @@ private:
     void ParseElevations(void);
     
     std::vector<RSMapTextureSet*> textures;
+    RSMapTextureSet overlay_textures;
     PakArchive* archive;
     
     // An area is made of 18*18 (324) blocks each block has 3 levels of details
