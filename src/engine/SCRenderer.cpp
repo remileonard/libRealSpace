@@ -2036,7 +2036,8 @@ void SCRenderer::renderMapOverlay(RSArea *area) {
                 RSImage *tex = area->GetImageByID(tri.color+255);
                 glEnable(GL_TEXTURE_2D);
                 glBindTexture(GL_TEXTURE_2D, tex->GetTexture()->id);
-                glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+                const Texel *texel = palette.GetRGBColor(tri.color);
+                glColor4f(texel->r / 255.0f, texel->g / 255.0f, texel->b / 255.0f, 1.0f);
 
                 glBegin(GL_TRIANGLES);
                 glTexCoord2f(tri.uv[0].u / TRI_UV_SCALE, tri.uv[0].v / TRI_UV_SCALE);
