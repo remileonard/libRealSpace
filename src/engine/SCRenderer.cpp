@@ -2030,8 +2030,7 @@ void SCRenderer::renderMapOverlay(RSArea *area) {
 
             // hypothèse : type == 6 => face texturée, color == index de texture.
             // color == 255 (<=> uv 255) reste une face à-plat même si type == 6 (région 0).
-            bool textured = (tri.type == 6) && (tri.color != 255);
-
+            bool textured = this->show_textured && (tri.color != 255);
             if (textured) {
                 RSImage *tex = area->GetImageByID(tri.color+255);
                 glEnable(GL_TEXTURE_2D);

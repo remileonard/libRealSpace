@@ -8,7 +8,7 @@
 // Style identique à weapon_names.
 //
 static const std::unordered_map<std::string, View> comp_handoff_views = {
-    {"COCKPIT", View::REAL},
+    {"COCKPIT", View::FRONT},
     {"CHASE",   View::FOLLOW},
     {"TARGET",  View::TARGET},
 };

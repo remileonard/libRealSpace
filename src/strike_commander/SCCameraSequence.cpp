@@ -67,9 +67,22 @@ void SCCameraSequence::start(const RSCameraSequence *sequence, SCPlane *target) 
                this->seq->name.c_str(), this->seq->program.size(), this->seq->handoffView.c_str());
         for (size_t k = 0; k < this->seq->program.size(); k++) {
             const COMPInstr &pi = this->seq->program[k];
-            printf("    %2zu: %-26s argc=%d  [%.3f, %.3f, %.3f, %.3f]  name='%s'\n",
+            printf("    %2zu: %-26s argc=%d  fichier[%.3f, %.3f, %.3f, %.3f]  name='%s'\n",
                    k, compOpName(pi.op).c_str(), pi.argc,
                    pi.args[0], pi.args[1], pi.args[2], pi.args[3], pi.name.c_str());
+            // Rappel de la résolution repère : opérandes fichier -> RealSpace
+            // (x, y=altitude, z). Les 3 derniers opérandes portent le vecteur ;
+            // avec argc==4 le premier est un compteur/scalaire.
+            if (pi.argc == 3) {
+                Vector3D rv = this->compToVec3(pi.args[0], pi.args[1], pi.args[2]);
+                Vector3D av = this->compAngles(pi.args[0], pi.args[1], pi.args[2]);
+                printf("        -> realspace vec (x=%.1f, y_alt=%.1f, z=%.1f)   ou angles (pitch=%.1f, yaw=%.1f, roll=%.1f)\n",
+                       rv.x, rv.y, rv.z, av.x, av.y, av.z);
+            } else if (pi.argc == 4) {
+                Vector3D rv = this->compToVec3(pi.args[1], pi.args[2], pi.args[3]);
+                printf("        -> scalaire=%.1f  realspace vec (x=%.1f, y_alt=%.1f, z=%.1f)\n",
+                       pi.args[0], rv.x, rv.y, rv.z);
+            }
         }
     }
     this->runOpcodesUntilArmed();
