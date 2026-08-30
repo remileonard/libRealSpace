@@ -8,6 +8,21 @@
 #pragma once
 
 #include "../commons/IFFSaxLexer.h"
+#include "RSCameraCOMP.h"
+
+struct RSCameraDef {
+    std::string          name;         // nom interne : "CHASECAM"/"COCKPIT"/"VICTIM"/"AUTOTRAC"/"WEAPON"/"ROTATCAM"
+    uint8_t              typeCode = 0x14; // CHAS=3 CKPT=4 VICT=7 ROTA=8 TARG=9 WEAP=0x0B
+    std::string          subject;      // entité porteuse, ex. "PLAYER"
+    std::string          cockpitArt;   // CKPT seul, ex. "F16-CKPT"
+    uint32_t             farClip  = 0; // 50000
+    uint16_t             fov      = 0; // 40 (CKPT lit 35 ici — pas sûrement un FOV)
+    uint16_t             nearClip = 0; // 10
+    uint16_t             viewW = 0, viewH = 0;  // 319, 199
+    std::vector<int32_t> params;       // table i32 de fin (VICT/WEAP) : offsets 24.8 (÷256 = pieds) + petits int
+};
+
+
 
 class RSWorld {
 private:
@@ -33,6 +48,9 @@ private:
 
 public:
     std::string tera;
+    std::string cameraSetName;
+    std::vector<RSCameraDef> cameras;
+    std::vector<RSCameraSequence> cameraSequences;
     RSWorld();
     ~RSWorld();
     void InitFromRAM(uint8_t *data, size_t size);

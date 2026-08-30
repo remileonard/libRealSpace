@@ -55,20 +55,80 @@ void RSWorld::parseWRLD_SMOK(uint8_t *data, size_t size) {}
 
 void RSWorld::parseWRLD_LGHT(uint8_t *data, size_t size) {}
 
-void RSWorld::parseWRLD_CAMR(uint8_t *data, size_t size) {}
+static void readSimpleCamera(ByteStream &s, size_t size, bool lookAtGap,
+                             uint8_t typeCode, std::vector<RSCameraDef> &out) {
+    RSCameraDef c;
+    c.typeCode = typeCode;
+    c.name     = s.ReadStringNoSize(8);
+    s.MoveForward(lookAtGap ? 14 : 2);
+    c.subject  = s.ReadStringNoSize(8);
+    c.farClip  = s.ReadUInt32LE();
+    c.fov      = s.ReadUShort();
+    s.ReadByte();                                      // pad
+    c.nearClip = s.ReadByte();
+    s.MoveForward(6);
+    c.viewW    = s.ReadUShort();
+    c.viewH    = s.ReadUShort();
+    while ((size_t)s.GetCurrentPosition() + 4 <= size)
+        c.params.push_back(s.ReadInt32LE());
+    out.push_back(c);
+}
 
-void RSWorld::parseWRLD_CAMR_STRT(uint8_t *data, size_t size) {}
+void RSWorld::parseWRLD_CAMR(uint8_t *data, size_t size) {
+    IFFSaxLexer lexer;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    handlers["STRT"] = std::bind(&RSWorld::parseWRLD_CAMR_STRT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CHAS"] = std::bind(&RSWorld::parseWRLD_CAMR_CHAS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CKPT"] = std::bind(&RSWorld::parseWRLD_CAMR_CKPT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["VICT"] = std::bind(&RSWorld::parseWRLD_CAMR_VICT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TARG"] = std::bind(&RSWorld::parseWRLD_CAMR_TARG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["WEAP"] = std::bind(&RSWorld::parseWRLD_CAMR_WEAP, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["ROTA"] = std::bind(&RSWorld::parseWRLD_CAMR_ROTA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["COMP"] = std::bind(&RSWorld::parseWRLD_CAMR_COMP, this, std::placeholders::_1, std::placeholders::_2);
+    lexer.InitFromRAM(data, size, handlers);
+}
 
-void RSWorld::parseWRLD_CAMR_CHAS(uint8_t *data, size_t size) {}
+void RSWorld::parseWRLD_CAMR_STRT(uint8_t *data, size_t size) {
+    ByteStream s(data, size);
+    this->cameraSetName = s.ReadStringNoSize((int)size);
+}
 
-void RSWorld::parseWRLD_CAMR_CKPT(uint8_t *data, size_t size) {}
+void RSWorld::parseWRLD_CAMR_CHAS(uint8_t *data, size_t size) { 
+    ByteStream s(data, size);
+    readSimpleCamera(s, size, true,  3, this->cameras);
+}
+void RSWorld::parseWRLD_CAMR_VICT(uint8_t *data, size_t size) {
+    ByteStream s(data, size);
+    readSimpleCamera(s, size, false, 7, this->cameras);
+}
+void RSWorld::parseWRLD_CAMR_TARG(uint8_t *data, size_t size) {
+    ByteStream s(data, size);
+    readSimpleCamera(s, size, false, 9, this->cameras);
+}
+void RSWorld::parseWRLD_CAMR_WEAP(uint8_t *data, size_t size) {
+    ByteStream s(data, size);
+    readSimpleCamera(s, size, false, 0x0B, this->cameras);
+}
+void RSWorld::parseWRLD_CAMR_ROTA(uint8_t *data, size_t size) {
+    ByteStream s(data, size);
+    readSimpleCamera(s, size, false, 8, this->cameras);
+}
 
-void RSWorld::parseWRLD_CAMR_VICT(uint8_t *data, size_t size) {}
+void RSWorld::parseWRLD_CAMR_CKPT(uint8_t *data, size_t size) {
+    ByteStream s(data, size);
+    RSCameraDef c;
+    c.typeCode   = 4;
+    c.name       = s.ReadString(8);                     // "COCKPIT"
+    s.ReadUShort();                                    // +0x08
+    c.subject    = s.ReadString(8);                     // "PLAYER"
+    c.cockpitArt = s.ReadString(8);                     // "F16-CKPT"
+    c.farClip    = s.ReadUInt32LE();                   // 50000
+    c.fov        = s.ReadUShort();                     // 35 (0x23)
+    while ((size_t)s.GetCurrentPosition() + 4 <= size)
+        c.params.push_back(s.ReadInt32LE());           // 1024
+    this->cameras.push_back(c);
+}
 
-void RSWorld::parseWRLD_CAMR_TARG(uint8_t *data, size_t size) {}
-
-void RSWorld::parseWRLD_CAMR_WEAP(uint8_t *data, size_t size) {}
-
-void RSWorld::parseWRLD_CAMR_ROTA(uint8_t *data, size_t size) {}
-
-void RSWorld::parseWRLD_CAMR_COMP(uint8_t *data, size_t size) {}
+void RSWorld::parseWRLD_CAMR_COMP(uint8_t *data, size_t size) {
+    this->cameraSequences.push_back(decodeCOMPSequence(data, size));
+}
