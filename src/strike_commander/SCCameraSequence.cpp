@@ -2,22 +2,13 @@
 #include "SCCameraSequence.h"
 
 //
-// Vitesse de simulation, indépendante du framerate. L'original avançait d'un tick
-// fixe : dword_70458 = 65536 / dword_70454 (défaut 65536 / 6400 = 10.24) par tick,
-// à ~30 ticks/s. On exprime le tout en "unités de compteur par seconde réelle" :
-// 10.24 * 30 ~= 307. Calibrable via setCounterSpeed().
+// Modèle de temps. L'original avance par tick de dword_70458/256 s (~25 fps) :
+// champ += taux * dword_70458 / 256 par tick. Ramené "par seconde" (× nombre de
+// ticks/s = 256/dword_70458), le facteur se simplifie à 1. Donc ici, une maj par
+// frame : champ += taux * dt. Idem pour les compteurs (elapsed, a0) : ils sont
+// exprimés en secondes (opérandes divisés par 256 au chargement), donc a0 -= dt,
+// elapsed += dt. Aucun facteur 24.8 au runtime.
 //
-float SCCameraSequence::counter_speed = (65536.0f / 6400.0f) * 30.0f;
-
-float SCCameraSequence::counterSpeed() {
-    return counter_speed;
-}
-
-void SCCameraSequence::setCounterSpeed(float units_per_second) {
-    if (units_per_second > 0.0f) {
-        counter_speed = units_per_second;
-    }
-}
 
 SCCameraSequence::SCCameraSequence() {
     this->view_reset();
@@ -51,6 +42,7 @@ void SCCameraSequence::view_reset() {
     this->flag_startcam = false;
     this->aiming = false;
     this->handoff_view.clear();
+    this->step_scale = 0.0f;
 }
 
 void SCCameraSequence::start(const RSCameraSequence *sequence, SCPlane *target) {
@@ -172,22 +164,23 @@ void SCCameraSequence::applyInstruction(const COMPInstr &instr) {
         break;
     }
     case OP_IA_DIV_SETUP: {
+        // loc_78D3C. Opérandes déjà en réel (÷256 au chargement) : div_a4 = budget
+        // de rapprochement (u), a0 = durée (s), div_a8 = valeur initiale. La forme
+        // 24.8 de l'ASM se simplifie exactement en réel (tous les 256 s'annulent) :
+        //   flag 0  : div_a8 = div_a4 / a0                       ; div_ac = 0
+        //   flag !=0 : div_ac = 2*(div_a4 - div_a8*a0) / a0^2
         this->div_a4 = instr.args[0];
         this->a0 = instr.args[1];
         this->div_a8 = instr.args[2];
-        // loc_78DE8 (flag != 0) : courbe de décélération. Formule littérale de l'ASM
-        // (les /256 et *256 sont la comptabilité 24.8 interne de ce calcul précis).
         if (instr.divFlag != 0) {
-            float dvq = this->div_a8 * this->a0 / 256.0f;
-            this->div_ac = 2.0f * (this->div_a4 - dvq);
-            float aa = this->a0 * this->a0 / 256.0f;
+            this->div_ac = 2.0f * (this->div_a4 - this->div_a8 * this->a0);
+            float aa = this->a0 * this->a0;
             if (aa != 0.0f) {
-                this->div_ac = this->div_ac * 256.0f / aa;
+                this->div_ac = this->div_ac / aa;
             }
         } else {
-            // loc_78D91 (flag == 0)
             if (this->a0 != 0.0f) {
-                this->div_a8 = this->div_a4 * 256.0f / this->a0;
+                this->div_a8 = this->div_a4 / this->a0;
             }
             this->div_ac = 0.0f;
         }
@@ -313,13 +306,13 @@ void SCCameraSequence::dump(const char *tag) const {
     }
     Vector3D off = this->position - plane;
     Vector3D copy = off;
-    printf("[COMP %-10s] mode=%02X elapsed=%.1f a0=%.1f dist=%.1f\n"
-           "    plane  = (%.1f, %.1f, %.1f)\n"
-           "    angles = (%.2f, %.2f, %.2f)   (pitch,yaw,roll deg)\n"
-           "    rel    = (%.1f, %.1f, %.1f)\n"
-           "    campos = (%.1f, %.1f, %.1f)\n"
-           "    aim    = (%.1f, %.1f, %.1f)\n"
-           "    offset = (%.1f, %.1f, %.1f)   |offset|=%.1f\n",
+    printf("[COMP %-10s] mode=%02X elapsed=%.2f a0=%.2f dist=%.2f\n"
+           "    plane  = (%.3f, %.3f, %.3f)\n"
+           "    angles = (%.3f, %.3f, %.3f)   (pitch,yaw,roll deg)\n"
+           "    rel    = (%.3f, %.3f, %.3f)\n"
+           "    campos = (%.3f, %.3f, %.3f)\n"
+           "    aim    = (%.3f, %.3f, %.3f)\n"
+           "    offset = (%.2f, %.2f, %.2f)   |offset|=%.2f\n",
            tag, this->mode, this->elapsed, this->a0, this->dist,
            plane.x, plane.y, plane.z,
            this->angles.x, this->angles.y, this->angles.z,
@@ -333,8 +326,9 @@ SCCameraSequence::Status SCCameraSequence::tick(float dt) {
     if (this->status != Running) {
         return this->status;
     }
-    this->step_decr = counter_speed * dt;
-    this->step_scale = this->step_decr / 256.0f;
+    // Une maj par frame. step_scale = dt : facteur commun aux taux (deg/s, u/s) et
+    // aux compteurs (déjà en secondes).
+    this->step_scale = dt;
     uint8_t mode_before = this->mode;
 
     if (this->mode == 0xFF) {
@@ -354,7 +348,7 @@ SCCameraSequence::Status SCCameraSequence::tick(float dt) {
     }
 
     if (this->mode == 0xFF) {
-        // le mode vient de se terminer : on reprend le flux d'opcodes ce tick
+        // le mode vient de se terminer : on reprend le flux d'opcodes cette frame
         this->runOpcodesUntilArmed();
         this->refreshOutputs();
         return this->status;
@@ -363,16 +357,22 @@ SCCameraSequence::Status SCCameraSequence::tick(float dt) {
     this->tickGenericIntegrator();
 
     if (this->a0 > 0.0f && this->mode != 1) {
-        this->a0 -= this->step_decr;
+        this->a0 = this->a0 - this->step_scale;
     }
-    this->elapsed += this->step_decr;
+    this->elapsed = this->elapsed + this->step_scale;
 
     this->refreshOutputs();
 
-    static int dbg_ctr = 0;
-    dbg_ctr++;
-    if (this->mode != mode_before || (dbg_ctr % 20) == 0) {
-        this->dump(this->mode != mode_before ? "mode-change" : "tick");
+    if (s_debug) {
+        static long f = 0;
+        f = f + 1;
+        printf("[COMP] f=%ld dt=%.5f elapsed=%.4f yaw=%.4f dist=%.3f campos=(%.3f, %.3f, %.3f) aim=(%.3f, %.3f, %.3f)\n",
+               f, dt, this->elapsed, this->angles.y, this->dist,
+               this->position.x, this->position.y, this->position.z,
+               this->out_aim.x, this->out_aim.y, this->out_aim.z);
+        if (this->mode != mode_before) {
+            printf("[COMP]   ^ mode %02X -> %02X\n", mode_before, this->mode);
+        }
     }
     return this->status;
 }
@@ -395,7 +395,7 @@ void SCCameraSequence::tickModeTurn() {
         this->mode = 0xFF;
         return;
     }
-    float t = this->step_decr / this->a0;
+    float t = this->step_scale / this->a0;
     this->angles = this->angles + diff * t;
 }
 
@@ -417,7 +417,7 @@ void SCCameraSequence::tickModeMoveSegment() {
     }
     Vector3D target_world = this->rotateByEntity(this->target_vec);
     Vector3D delta = target_world - this->rel_position;
-    Vector3D step = delta * (this->step_decr / this->a0);
+    Vector3D step = delta * (this->step_scale / this->a0);
     this->rel_position = this->rel_position + step;
     this->position = this->entityPos() + this->rel_position;
 }
@@ -490,7 +490,12 @@ void SCCameraSequence::refreshOutputs() {
         this->out_aim = this->aim_point;
         this->out_up = Vector3D(0.0f, 1.0f, 0.0f);
     } else {
-        this->out_aim = this->position + this->forwardFromAngles();
+        // Point de visée projeté loin devant : Camera::lookAt reconstruit la
+        // direction par (position - out_aim). Aux coordonnées monde (~1e5), l'ULP
+        // float32 vaut ~0.015 ; avec un point de visée à 1 unité la soustraction
+        // perd ~2 % de précision -> la direction tremble d'une frame à l'autre.
+        // À 10000 unités l'erreur relative retombe à ~1e-6.
+        this->out_aim = this->position + this->forwardFromAngles() * 10000.0f;
         this->out_up = this->upFromAngles();
     }
 }

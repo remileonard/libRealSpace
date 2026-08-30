@@ -19,9 +19,11 @@ class SCPlane;
 // Correspondance repère : opérande fichier (a0,a1,a2) -> Vector3D{ a0, a2, -a1 }
 // (règle RSMission : comp0->x, comp2->y altitude, comp1->z négation).
 //
-// Pas de temps : indépendant du framerate. `counterSpeed` = unités de compteur
-// écoulées par seconde réelle (calibrable) ; le facteur des intégrateurs est
-// counterSpeed/256 (rapport 24.8 hérité de l'original).
+// Pas de temps : une mise à jour par frame, pilotée par dt réel (indépendant du
+// framerate). Les valeurs du fichier sont calibrées pour le tick d'origine
+// (dword_70458/256 s, ~25 fps) ; converties en "par seconde" par règle de 3, le
+// facteur se simplifie à 1 -> par frame : champ += taux * dt. Les compteurs et
+// distances (24.8) sont divisés par 256 au chargement (COMP_SHAPE.fix).
 //
 class SCCameraSequence {
 public:
@@ -48,12 +50,7 @@ public:
     const Vector3D    &getUp() const;
     const std::string &getHandoffView() const;
 
-    // Unités de compteur écoulées par seconde réelle (calibrable). Absorbe la base
-    // d'images de l'original (dword_70454) et son taux de tick.
     static bool s_debug;   // mettre à true pour tracer STARTCAM au stdout
-
-    static float counterSpeed();
-    static void  setCounterSpeed(float units_per_second);
 
 private:
     void view_reset();
@@ -116,8 +113,5 @@ private:
     Vector3D    out_up;
     std::string handoff_view;
 
-    float step_decr{0.0f};   // décrément des compteurs pour le tick courant
-    float step_scale{0.0f};  // facteur des intégrateurs pour le tick courant
-
-    static float counter_speed;
+    float step_scale{0.0f};  // = dt de la frame : multiplicateur des taux ET des compteurs
 };
