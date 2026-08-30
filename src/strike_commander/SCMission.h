@@ -22,6 +22,7 @@ struct RadioMessages {
 
 
 class SCProg;
+class SCCameraDirector;
 
 class SCMission {
     
@@ -59,6 +60,7 @@ public:
     RSArea *area{nullptr};
     RSMission *mission{nullptr};
     RSWorld *world{nullptr};
+    SCCameraDirector *camera_director{nullptr};
     RSSound &sound = RSSound::getInstance();
     bool in_combat{false};
     std::vector<RadioMessages*> radio_messages;

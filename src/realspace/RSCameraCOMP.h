@@ -46,11 +46,14 @@ enum COMPOp : uint8_t {
 
 // Forme binaire d'un opcode. Ordre des opérandes : nI32 i32, puis nI16 i16.
 struct COMPShape {
-    uint8_t size;     // taille totale de l'instruction (opcode inclus) ; 0 = opcode non défini
-    uint8_t nI32;     // nombre d'opérandes i32   (a, b, c, d dans l'ordre)
-    uint8_t nI16;     // nombre d'opérandes i16   (sign-étendues, à la suite des i32)
-    bool    hasName;  // char[8] juste après l'opcode  (BIND_ENTITY / END)
-    bool    hasFlag;  // octet de sélection de formule à la fin  (DIV_SETUP)
+    uint8_t size;      // taille totale de l'instruction (opcode inclus) ; 0 = opcode non défini
+    uint8_t nI32;      // nombre d'opérandes i32   (a, b, c, d dans l'ordre)
+    uint8_t nI16;      // nombre d'opérandes i16   (sign-étendues, à la suite des i32)
+    bool    hasName;   // char[8] juste après l'opcode  (BIND_ENTITY / END)
+    bool    hasFlag;   // octet de sélection de formule à la fin  (DIV_SETUP)
+    bool    fix[4];    // par slot d'opérande : true => valeur 24.8 -> /256 au décodage
+                       //   (les opérandes que l'ASM décale <<8 = déjà en unités : false ;
+                       //    les compteurs = false ; les 24.8 bruts = true)
 };
 
 // Indexé par la valeur de l'octet d'opcode ; défini dans le .cpp.
@@ -65,7 +68,7 @@ struct COMPInstr {
     COMPOp      op   = OP_IA_END;
     uint8_t     size = 0;                 // taille dans le fichier (re-dump / debug)
     uint8_t     argc = 0;                 // nombre d'opérandes numériques
-    int32_t     args[4] = { 0, 0, 0, 0 }; // i32 puis i16 (sign-étendues), sens selon op
+    float       args[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; // opérandes converties en float dès le décodage
     std::string name;                     // OP_IA_BIND_ENTITY / OP_IA_END
     uint8_t     divFlag = 0;              // OP_IA_DIV_SETUP
 };

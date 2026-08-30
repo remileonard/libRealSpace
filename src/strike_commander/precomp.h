@@ -42,9 +42,11 @@
 #include "SCMissionScene.h"
 #include "SCMissionActors.h"
 
-
 #include "SCMission.h"
 #include "SCProg.h"
+#include "SCCameraEvent.h"
+#include "SCCameraSequence.h"
+#include "SCCameraDirector.h"
 
 #include "SCFileRequester.h"
 

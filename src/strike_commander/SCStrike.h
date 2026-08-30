@@ -150,6 +150,10 @@ protected:
     void registerSimulatorInputs();
     Keyboard *m_keyboard{nullptr};
 
+    // Dernière vue vue chez le directeur de caméra : quand elle change (début /
+    // fin de séquence scriptée), on recopie dans camera_mode.
+    View last_director_view{View::FRONT};
+
 
     void autopilotCompute();
     void findTarget();

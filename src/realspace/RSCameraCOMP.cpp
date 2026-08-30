@@ -5,37 +5,38 @@
 // ---- table des formes, indexée par l'octet d'opcode -------------------------
 // (designated array initializers : C, et extension GCC/Clang en C++ — comme le
 //  reste de libRealSpace. Les entrées non listées valent {0,0,0,false,false}.)
+// { size, nI32, nI16, hasName, hasFlag, {fix par slot} }
 const COMPShape COMP_SHAPE[256] = {
-    [OP_IA_ARM_HOLD]             = {  5, 1, 0, false, false },
-    [OP_IA_SET_POS_ABS]          = { 13, 3, 0, false, false },
-    [OP_IA_REBUILD_MATRIX]       = {  1, 0, 0, false, false },
-    [OP_IA_ARM_TURN]             = { 11, 1, 3, false, false },
-    [OP_IA_SET_ROT_RATE]         = {  7, 0, 3, false, false },
-    [OP_IA_SET_VELOCITY]         = { 13, 3, 0, false, false },
-    [OP_IA_BIND_ENTITY]          = {  9, 0, 0, true,  false },
-    [OP_IA_SET_A0_MODE8]         = {  5, 1, 0, false, false },
-    [OP_IA_SET_DIST]             = {  5, 1, 0, false, false },
-    [OP_IA_SET_REL_POS]          = { 13, 3, 0, false, false },
-    [OP_IA_SET_A0_MODE_B]        = {  5, 1, 0, false, false },
-    [OP_IA_SET_DIST_C]           = {  5, 1, 0, false, false },
-    [OP_IA_DIV_SETUP]            = { 14, 3, 0, false, true  },
-    [OP_IA_SET_POS_REL_ENTITY]   = { 13, 3, 0, false, false },
-    [OP_IA_ARM_APPROACH_ANGLE]   = {  5, 0, 2, false, false },
-    [OP_IA_COMPUTE_GEOM]         = {  1, 0, 0, false, false },
-    [OP_IA_SET_ORIENT_AXES]      = {  7, 0, 3, false, false },
-    [OP_IA_SET_ANCHOR_OFS]       = { 13, 3, 0, false, false },
-    [OP_IA_FLAG_FF]              = {  1, 0, 0, false, false },
-    [OP_IA_VEL_FROM_ORIENT_ROW]  = {  5, 1, 0, false, false },
-    [OP_IA_SET_VEC_CC]           = { 13, 3, 0, false, false },
-    [OP_IA_ACCEL_FROM_ORIENT_ROW]= {  5, 1, 0, false, false },
-    [OP_IA_VEL_DIV]              = {  5, 1, 0, false, false },
-    [OP_IA_VEL_FROM_ENTITY]      = {  1, 0, 0, false, false },
-    [OP_IA_ROT_VEL_BY_ENTITY]    = {  1, 0, 0, false, false },
-    [OP_IA_ROT_VEC_CC_BY_ENTITY] = {  1, 0, 0, false, false },
-    [OP_IA_START_FLAG]           = {  1, 0, 0, false, false },
-    [OP_IA_DIST_TO_ENTITY]       = {  1, 0, 0, false, false },
-    [OP_IA_ARM_MOVE_SEGMENT]     = { 17, 4, 0, false, false },
-    [OP_IA_END]                  = {  9, 0, 0, true,  false },
+    [OP_IA_ARM_HOLD]             = {  5, 1, 0, false, false, {false, false, false, false} },
+    [OP_IA_SET_POS_ABS]          = { 13, 3, 0, false, false, {false, false, false, false} }, // <<8
+    [OP_IA_REBUILD_MATRIX]       = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_ARM_TURN]             = { 11, 1, 3, false, false, {false, false, false, false} }, // arg0 compteur, arg1-3 deg
+    [OP_IA_SET_ROT_RATE]         = {  7, 0, 3, false, false, {false, false, false, false} }, // deg
+    [OP_IA_SET_VELOCITY]         = { 13, 3, 0, false, false, {true,  true,  true,  false} }, // 24.8
+    [OP_IA_BIND_ENTITY]          = {  9, 0, 0, true,  false, {false, false, false, false} },
+    [OP_IA_SET_A0_MODE8]         = {  5, 1, 0, false, false, {false, false, false, false} }, // compteur
+    [OP_IA_SET_DIST]             = {  5, 1, 0, false, false, {true,  false, false, false} }, // 24.8
+    [OP_IA_SET_REL_POS]          = { 13, 3, 0, false, false, {false, false, false, false} }, // <<8
+    [OP_IA_SET_A0_MODE_B]        = {  5, 1, 0, false, false, {false, false, false, false} }, // compteur
+    [OP_IA_SET_DIST_C]           = {  5, 1, 0, false, false, {true,  false, false, false} }, // 24.8
+    [OP_IA_DIV_SETUP]            = { 14, 3, 0, false, true,  {true,  false, true,  false} }, // arg1 compteur
+    [OP_IA_SET_POS_REL_ENTITY]   = { 13, 3, 0, false, false, {false, false, false, false} }, // <<8
+    [OP_IA_ARM_APPROACH_ANGLE]   = {  5, 0, 2, false, false, {false, false, false, false} }, // brut + deg
+    [OP_IA_COMPUTE_GEOM]         = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_SET_ORIENT_AXES]      = {  7, 0, 3, false, false, {false, false, false, false} }, // deg
+    [OP_IA_SET_ANCHOR_OFS]       = { 13, 3, 0, false, false, {true,  true,  true,  false} }, // 24.8
+    [OP_IA_FLAG_FF]              = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_VEL_FROM_ORIENT_ROW]  = {  5, 1, 0, false, false, {true,  false, false, false} }, // 24.8
+    [OP_IA_SET_VEC_CC]           = { 13, 3, 0, false, false, {true,  true,  true,  false} }, // 24.8
+    [OP_IA_ACCEL_FROM_ORIENT_ROW]= {  5, 1, 0, false, false, {true,  false, false, false} }, // 24.8
+    [OP_IA_VEL_DIV]              = {  5, 1, 0, false, false, {false, false, false, false} }, // diviseur brut
+    [OP_IA_VEL_FROM_ENTITY]      = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_ROT_VEL_BY_ENTITY]    = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_ROT_VEC_CC_BY_ENTITY] = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_START_FLAG]           = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_DIST_TO_ENTITY]       = {  1, 0, 0, false, false, {false, false, false, false} },
+    [OP_IA_ARM_MOVE_SEGMENT]     = { 17, 4, 0, false, false, {false, true,  true,  true } }, // arg0 compteur
+    [OP_IA_END]                  = {  9, 0, 0, true,  false, {false, false, false, false} },
 };
 const std::unordered_map<COMPOp, std::string> comp_op_names = {
     {OP_IA_ARM_HOLD,             "OP_IA_ARM_HOLD"},
@@ -71,6 +72,14 @@ const std::unordered_map<COMPOp, std::string> comp_op_names = {
 };
 
 
+std::string compOpName(COMPOp op) {
+    std::unordered_map<COMPOp, std::string>::const_iterator it = comp_op_names.find(op);
+    if (it != comp_op_names.end()) {
+        return it->second;
+    }
+    return "OP_IA_UNKNOWN";
+}
+
 COMPInstr decodeCOMPInstr(ByteStream &s) {
     COMPInstr in;
     in.op = (COMPOp)s.ReadByte();
@@ -78,10 +87,14 @@ COMPInstr decodeCOMPInstr(ByteStream &s) {
     in.size = sh.size ? sh.size : 1;      // opcode inconnu -> 1 octet consommé (comme le moteur)
 
     for (int i = 0; i < sh.nI32; i++) {
-        in.args[in.argc++] = s.ReadInt32LE();
+        float v = (float)s.ReadInt32LE();
+        in.args[in.argc] = sh.fix[in.argc] ? v / 256.0f : v;
+        in.argc++;
     }
     for (int i = 0; i < sh.nI16; i++) {
-        in.args[in.argc++] = s.ReadShort();   // signé -> sign-étendu
+        float v = (float)s.ReadShort();   // signé
+        in.args[in.argc] = sh.fix[in.argc] ? v / 256.0f : v;
+        in.argc++;
     }
     if (sh.hasName) {
         in.name    = s.ReadString(8);

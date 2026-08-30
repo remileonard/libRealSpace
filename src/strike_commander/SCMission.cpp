@@ -3,12 +3,14 @@
 #include "SCMission.h"
 
 SCMission::SCMission() {
+    this->camera_director = new SCCameraDirector();
     this->last_time = SDL_GetTicks();
     this->last_tick = 0;
     this->tick_counter = 0;
     this->tps = 0;
 }
 SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
+    this->camera_director = new SCCameraDirector();
     this->mission_name = mission_name;
     this->obj_cache = objCache;
     this->last_time = SDL_GetTicks();
@@ -25,6 +27,10 @@ SCMission::~SCMission() {
     this->cleanup();
 }
 void SCMission::cleanup() {
+    if (this->camera_director != nullptr) {
+        delete this->camera_director;
+        this->camera_director = nullptr;
+    }
     if (this->mission != nullptr) {
         delete this->mission;
         this->mission = nullptr;
@@ -350,7 +356,10 @@ void SCMission::loadMission() {
             spot->position += ar->position;
         }
     }
-    
+
+    if (this->player != nullptr && this->player->plane != nullptr) {
+        this->camera_director->init(this->world, this->player->plane);
+    }
 }
 RSEntity * SCMission::LoadEntity(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";

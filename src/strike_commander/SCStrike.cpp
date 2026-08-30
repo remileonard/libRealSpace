@@ -14,6 +14,7 @@
 #include <cmath>
 #include "SCStrike.h"
 #include "../realspace/block_def.h"
+#include "../engine/gametimer.h"
 #define SC_WORLD 1100
 #define RENDER_DISTANCE 40000.0f
 #define AUTOPILOTE_TIMEOUT 1000
@@ -1699,6 +1700,17 @@ void SCStrike::setMission(char const *missionName) {
     Mixer.stopMusic();
     Mixer.switchBank(2);
     Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
+
+    // Déclencheur : plan d'ouverture STARTCAM. camera_mode suit le directeur : on
+    // le pose direct sur CAM_DIRECTOR et on synchronise last_director_view.
+    SCCameraSequence::s_debug = true;   // trace stdout pour le debug caméra
+    this->camera_mode = View::CAM_DIRECTOR;
+    this->last_director_view = View::CAM_DIRECTOR;
+    CameraViewRequest startcam;
+    startcam.view = View::CAM_DIRECTOR;
+    startcam.sequence_name = "STARTCAM";
+    startcam.subject = this->player_plane;
+    MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(startcam));
 }
 void SCStrike::setCameraFront() {
     Vector3D pos = {this->new_position.x, this->new_position.y, this->new_position.z};
@@ -1854,6 +1866,16 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
 void SCStrike::runFrame(void) {
     Mixer.setVolume(5,5);
     this->checkKeyboard();
+    // Le directeur de caméra tourne inconditionnellement (indépendant de la garde
+    // pause / AUTO_PILOT ci-dessous), dt réel.
+    this->current_mission->camera_director->tick(GameTimer::getInstance().getDeltaTime());
+    // Le directeur fait autorité sur la vue : on recopie dans camera_mode quand
+    // elle change (début séquence -> CAM_DIRECTOR, fin -> vue de reprise).
+    View director_view = this->current_mission->camera_director->currentView();
+    if (director_view != this->last_director_view) {
+        this->camera_mode = director_view;
+        this->last_director_view = director_view;
+    }
     Renderer.setLight(&this->light);
     if (!this->pause_simu && this->camera_mode!=View::AUTO_PILOT) {
         this->mfd_timeout--;
@@ -1970,6 +1992,13 @@ void SCStrike::runFrame(void) {
         this->cockpit->frame = 0;
     }
     switch (this->camera_mode) {
+    case View::CAM_DIRECTOR: {
+        Vector3D scripted_pos = this->current_mission->camera_director->position();
+        Vector3D scripted_aim = this->current_mission->camera_director->aimPoint();
+        Vector3D scripted_up = this->current_mission->camera_director->up();
+        this->camera->SetPosition(&scripted_pos);
+        this->camera->lookAt(&scripted_aim, &scripted_up);
+    } break;
     case View::AUTO_PILOT: {
         if (this->autopilot_timeout > -AUTOPILOTE_TIMEOUT) {
             this->autopilot_timeout -= AUTOPILOTE_SPEED;
@@ -2304,6 +2333,7 @@ void SCStrike::runFrame(void) {
             }
         }
         switch (this->camera_mode) {
+        case View::CAM_DIRECTOR:
         case View::MISSILE_CAM:
         case View::TARGET:
         case View::OBJECT:
