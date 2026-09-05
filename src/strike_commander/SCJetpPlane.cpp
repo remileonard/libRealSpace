@@ -19,7 +19,15 @@
 namespace {
 constexpr float G_SI = 9.797f;          // strike.asm:144603, dword_6FFD7 = -2508 (24.8) = -9.797 m/s^2
 constexpr float RAD2DEG_57_29 = 57.29578f; // dword_707B2 = 0x394B = 180/pi ; angles d'ecoulement en degres
-constexpr float HREF_M = 11000.0f;      // altitude de reference du lapse de poussee (0x2AF800 en 24.8)
+constexpr float HREF_M = 11000.0f;      // altitude de reference du lapse de poussee
+
+// Zone morte du servo d'attitude : l'ASM compare l'erreur (en 24.8) contre 56 brut,
+// soit 56/256 = 0.21875 degre. Valeur physique reelle en degres.
+constexpr float ATTITUDE_DEAD_ZONE_DEG = 0.21875f;
+
+// Coefficient du servo Aero_ComputeForcesMain (dword_70454, defaut seg112, = 1/dt_asm a 25 Hz).
+// Sert de gain proportionnel fixe qui borne la loi racine pres de zero (target <= K*|err|).
+constexpr float SERVO_K = 25.0f;
 }
 
 SCJetpPlane::SCJetpPlane() {
@@ -103,6 +111,15 @@ void SCJetpPlane::loadFromEntity() {
     this->inverse_mass = (this->mass_kg > 0.0f) ? (1.0f / this->mass_kg) : 0.0f;
     this->entity_loaded = true;
 
+    // Table de densite de l'air : AssetManager fournit le tableau d'octets, RSAirdens le parse.
+    if (!this->airdens.isLoaded()) {
+        TreEntry *airdensEntry = AssetManager::getInstance().GetEntryByName("..\\..\\DATA\\AIRDENS.TBL");
+        if (airdensEntry != nullptr)
+            this->airdens.initFromRam(airdensEntry->data, airdensEntry->size);
+        printf("  airdens: %s (%zu bandes de 256 m)\n", this->airdens.isLoaded() ? "chargee" : "ABSENTE -> repli exp",
+               (airdensEntry != nullptr) ? (size_t)(airdensEntry->size / 4) : (size_t)0);
+    }
+
     // Log unique au chargement : verifie que les chunks DYNM/THRS/STBL/JDYN se sont bien charges
     // (sinon tous les gains ci-dessous restent a leurs valeurs par defaut du .h, souvent 0.0 - ce
     // qui effondre silencieusement l'autorite de tangage/portance a zero).
@@ -120,11 +137,9 @@ void SCJetpPlane::loadFromEntity() {
 }
 
 float SCJetpPlane::airDensity(float altitude_m) const {
-    // AIRDENS.TBL (121 entrees, pas de 256 m, 0..30702 m) colle a cette exponentielle
-    // a moins de 1% pres. Cf. DATA_MODEL.md §6.2 "Bloc « q »".
-    if (altitude_m < 0.0f)
-        altitude_m = 0.0f;
-    return 1.225f * expf(-altitude_m / 8000.0f);
+    // Table DATA\AIRDENS.TBL (une bande par 256 m). RSAirdens fait le repli exponentiel
+    // si le fichier n'a pas ete trouve. Cf. PHYSICS.md §6.
+    return this->airdens.densityAt(altitude_m);
 }
 
 float SCJetpPlane::throttleNotchToThrustFraction(float notch) const {
@@ -489,27 +504,27 @@ void SCJetpPlane::processInput() {
     // clamp final +/- pitch_stick_gain (jdyn[0x65])
     pitchCommandDeg = std::clamp(pitchCommandDeg, -this->pitch_stick_gain, this->pitch_stick_gain);
 
-    // --- Servo Aero_ComputeForcesMain (seg102) ---
-    // Forme ASM : target = +/-2*sqrt(q'*|err|), MAIS rate-limitee a +/-(|err| * dword_70454) - un
-    // COEFFICIENT D'AMORTISSEMENT (~3-4), pas 1/dt. C'est ce clamp lineaire qui domine pres de zero
-    // et empeche le servo de s'emballer sur le bruit d'alpha (bug "looping tout seul" : mon ancien
-    // clamp +/-|err|/dt = +/-30*err laissait target~20 deg/s pour err=0.6deg).
-    // q' (=q*STBL/100) est plafonne : l'efficacite des gouvernes SATURE a grande vitesse, elle
-    // n'explose pas (a Mach 1.7 mon q brut donnait q'=157 -> gain delirant).
-    constexpr float kDamp = 3.5f;        // dword_70454 (coeff amorti critique, calibrable)
-    constexpr float kServoTau = 0.12f;   // constante de temps du glissement du taux (s)
-    constexpr float kQServoMax = 12.0f;  // plafond de q' pour la loi de gouverne
-    float qCtrl = std::min(qServo, kQServoMax);
+    // --- Servo Aero_ComputeForcesMain (seg102) + Physics_IntegrateSecondaryPosition ---
+    // Relu octet-pres (seg102 L2440-2652, seg112 L999-1045) :
+    //   target = +/- min( 2*sqrt(q'*|err|) , K*|err| )         K = dword_70454
+    //   accel  = clamp( (target - rate) * K , +/- 3*q' )       [deg/s^2]
+    //   rate  += accel * dt                                    dt = dword_70458
+    // dword_70458 = (0x100<<8)/dword_70454 = 1.0 / dword_70454  ->  K = 1/dt_asm.
+    //   Defaut dword_70454 = 0x1900 = 25.0 -> dt_asm = 1/25 s ; clampe [2.0, 25.0].
+    // Comme K = 1/dt_asm, le terme (target-rate)*K*dt est "deadbeat" : sans le clamp la cible
+    // serait atteinte en 1 tick. Le seul vrai limiteur est accel <= +/- 3*q'. Net et
+    // framerate-independant :  rate += clamp( target - rate , +/- 3*q'*dt ).
+    // Le K=25 reste dans le clamp de `target` (gain proportionnel fixe qui borne la loi sqrt
+    // pres de zero) ; il est calibre pour le tick ASM 25 Hz, on le garde fixe (pas 1/dt_port).
 
     float errPitch = pitchCommandDeg - this->alpha_deg;
     float targetPitchRate = 0.0f;
-    if (ctrlLive && fabsf(errPitch) >= 56.0f / 256.0f) {   // zone morte 0.21875 deg
-        float sqrtLaw = 2.0f * sqrtf(qCtrl * fabsf(errPitch));
-        targetPitchRate = copysignf(std::min(sqrtLaw, kDamp * fabsf(errPitch)), errPitch);
+    if (ctrlLive && fabsf(errPitch) >= ATTITUDE_DEAD_ZONE_DEG) {
+        float sqrtLaw = 2.0f * sqrtf(qServo * fabsf(errPitch));
+        targetPitchRate = copysignf(std::min(sqrtLaw, SERVO_K * fabsf(errPitch)), errPitch);
     }
-    // glissement du taux vers la cible (1er ordre, tau court) puis clamp structurel
-    float slewP = std::clamp(dt / kServoTau, 0.0f, 1.0f);
-    this->pitch_speed += (targetPitchRate - this->pitch_speed) * slewP;
+    float maxPitchAccel = 3.0f * qServo * dt;   // 3*q' [deg/s^2] integre sur dt
+    this->pitch_speed += std::clamp(targetPitchRate - this->pitch_speed, -maxPitchAccel, maxPitchAccel);
     this->pitch_speed = std::clamp(this->pitch_speed, -this->max_turn_rate_dps, this->max_turn_rate_dps);
 
     {
@@ -534,15 +549,16 @@ void SCJetpPlane::processInput() {
     // de lacet est inverse. On NEGATE la sortie du servo pour retablir la chiralite (sinon
     // beta<0 -> nez tourne du mauvais cote -> derapage amplifie -> vrille divergente).
     // ===================================================================================
-    float yawCommandDeg = -this->rudder * this->yaw_authority;
+    float yawCommandDeg = this->rudder * this->yaw_authority;
     float errYaw = yawCommandDeg - this->beta_deg;
     float targetYawRate = 0.0f;
-    if (ctrlLive && fabsf(errYaw) >= 56.0f / 256.0f) {
-        float sqrtLaw = 2.0f * sqrtf(qCtrl * fabsf(errYaw));
-        targetYawRate = copysignf(std::min(sqrtLaw, kDamp * fabsf(errYaw)), errYaw);
+    if (ctrlLive && fabsf(errYaw) >= ATTITUDE_DEAD_ZONE_DEG) {
+        float sqrtLaw = 2.0f * sqrtf(qServo * fabsf(errYaw));
+        targetYawRate = copysignf(std::min(sqrtLaw, SERVO_K * fabsf(errYaw)), errYaw);
     }
     targetYawRate = -targetYawRate;   // chiralite Z-up (ASM) -> Y-up (port)
-    this->yaw_speed += (targetYawRate - this->yaw_speed) * slewP;
+    float maxYawAccel = 3.0f * qServo * dt;
+    this->yaw_speed += std::clamp(targetYawRate - this->yaw_speed, -maxYawAccel, maxYawAccel);
     this->yaw_speed = std::clamp(this->yaw_speed, -this->max_turn_rate_dps, this->max_turn_rate_dps);
     if (this->on_ground)
         this->yaw_speed = 0.0f;

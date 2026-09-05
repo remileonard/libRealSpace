@@ -16,6 +16,8 @@
 //
 #pragma once
 
+#include "../realspace/RSAirdens.h"
+
 class SCJetpPlane : public SCPlane {
 
 protected:
@@ -28,6 +30,8 @@ protected:
 
     // --- Coefficients par avion, charges une fois depuis object->entity ---
     bool entity_loaded{false};
+
+    RSAirdens airdens;   // table DATA\AIRDENS.TBL, chargee dans loadFromEntity()
 
     float mass_kg{0.0f};                 // chunk DYNM
     float thrust_max_n{0.0f};            // chunk THRS (poussee pleine post-combustion)
