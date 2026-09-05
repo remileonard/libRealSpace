@@ -681,7 +681,12 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM(uint8_t *data, size_t size) {
     }
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_ORDY(uint8_t *data, size_t size) {}
-void RSEntity::parseREAL_OBJT_JETP_DYNM_STBL(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_DYNM_STBL(uint8_t *data, size_t size) {
+    if (size < 4)
+        return;
+    ByteStream bs(data, size);
+    this->stability_gain = bs.ReadFixedFloatLE();
+}
 void RSEntity::parseREAL_OBJT_JETP_DYNM_ATMO(uint8_t *data, size_t size) {
     if (size < 2)
         return;
@@ -698,7 +703,15 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size) {
     if (size == 6 || size == 7 || size == 8) {
         bs.ReadByte();
         this->thrust_in_newton = bs.ReadInt24LEByte3();
-        /* il reste 2 ou 3 octets (en fonction de la taille du chunk 6 ou 7) en suite dont je ne sais rien*/
+        /* octets restants (decodes cette session, cf. DATA_MODEL.md §6.2 "Poussee") :
+           fraction MIL, fraction a l'altitude de reference, echelle de l'altitude de coupure */
+        size_t remaining = size - 4;
+        if (remaining >= 1)
+            this->thrust_mil_fraction = bs.ReadByte() / 256.0f;
+        if (remaining >= 2)
+            this->thrust_ref_alt_fraction = bs.ReadByte() / 256.0f;
+        if (remaining >= 3)
+            this->thrust_cutoff_alt_raw = bs.ReadByte();
     } else if (size == 19 || size == 20) {
         bs.ReadByte();
         bs.ReadByte();

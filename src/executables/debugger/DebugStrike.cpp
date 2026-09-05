@@ -120,7 +120,7 @@ void DebugStrike::loadPlane() {
 
     // ImGui::SameLine();
     static int sim_type = 0;
-    const char *sim_types[] = {"simple sim", "jdyn sim", "sgi sim", "vector sim"};
+    const char *sim_types[] = {"simple sim", "jdyn sim", "sgi sim", "Jetp sim"};
     for (int i = 0; i < IM_ARRAYSIZE(sim_types); ++i) {
         ImGui::RadioButton(sim_types[i], &sim_type, i);
         if (i < IM_ARRAYSIZE(sim_types) - 1)
@@ -210,7 +210,7 @@ void DebugStrike::loadPlane() {
             fuel = (float) plane_to_load->jdyn->FUEL;
             twist_rate = 30.0f;
             roll_rate = 100.0f;
-            new_plane = new SCVectorPlane(10.0f, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
+            new_plane = new SCJetpPlane(10.0f, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
                                           thrust, envergure, 0.83f, 120, this->current_mission->area, player_plane->x,
                                           player_plane->y, player_plane->z);
             new_plane->yaw = player_plane->azimuthf;

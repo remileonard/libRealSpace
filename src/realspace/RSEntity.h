@@ -233,6 +233,14 @@ public:
     int32_t thrust_in_newton{0};
     int32_t weight_in_kg{0};
     int32_t drag{0};
+    // Chunk THRS, octets restants apres la poussee (non lus jusqu'ici) : voir
+    // strike_commander_re/analysis/DATA_MODEL.md §6.2 "Poussee - courbe manette".
+    float thrust_mil_fraction{0.0f};      // part de la poussee PC max delivree en MIL (cran 5/10)
+    float thrust_ref_alt_fraction{1.0f};  // part de poussee restante a l'altitude de reference (11000 m)
+    uint8_t thrust_cutoff_alt_raw{0};     // altitude de coupure = valeur * 100 m
+    // Chunk STBL (jamais lu jusqu'ici) : coefficient d'autorite de tangage/lacet
+    // utilise par l'asservissement d'attitude (q' = q * stability_gain / 100).
+    float stability_gain{0.0f};
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
     uint8_t health{0};

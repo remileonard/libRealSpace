@@ -36,6 +36,7 @@
 #include "SCJdynPlane.h"
 #include "SCSimplePlane.h"
 #include "SCVectorPlane.h"
+#include "SCJetpPlane.h"
 #include "SCPilot.h"
 
 #include "SCMissionEvent.h"
