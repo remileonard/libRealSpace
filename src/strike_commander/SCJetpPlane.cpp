@@ -332,6 +332,15 @@ void SCJetpPlane::updatePosition() {
     this->last_py = this->y;
     this->last_pz = this->z;
 
+    // --- Re-seed de la position si x/y/z ont ete ecrits de l'exterieur (autopilote, teleport,
+    //     "set altitude", spawn...) ou au 1er tic. `position` (Vector3D) est l'etat maitre de
+    //     l'integration ; on la resynchronise depuis x/y/z quand ils divergent. ---
+    if (!this->position_seeded || this->x != this->m_seed_x || this->y != this->m_seed_y ||
+        this->z != this->m_seed_z) {
+        this->position = Vector3D(this->x, this->y, this->z);
+        this->position_seeded = true;
+    }
+
     // --- Integration lineaire (Physics_IntegratePosition) ---
     this->position += this->velocity * dt;
 
@@ -390,6 +399,9 @@ void SCJetpPlane::updatePosition() {
     this->x = this->position.x;
     this->y = this->position.y;
     this->z = this->position.z;
+    this->m_seed_x = this->x;   // memorise pour detecter une ecriture externe au prochain tic
+    this->m_seed_y = this->y;
+    this->m_seed_z = this->z;
     this->groundlevel = this->area->getY(this->x, this->z);
 
     this->ptw.SetTranslation(this->x, this->y, this->z);

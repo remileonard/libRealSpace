@@ -80,6 +80,14 @@ protected:
     float m_seed_yaw{0.0f};
     float m_seed_roll{0.0f};
 
+    // Idem cote position : `position` (Vector3D) est l'etat maitre de l'integration, mais du code
+    // externe (autopilote, teleport, "set altitude") ecrit x/y/z directement. On resynchronise
+    // `position` depuis x/y/z quand ils divergent de la derniere valeur ecrite par updatePosition().
+    bool position_seeded{false};
+    float m_seed_x{0.0f};
+    float m_seed_y{0.0f};
+    float m_seed_z{0.0f};
+
     void loadFromEntity();
     float airDensity(float altitude_m) const;
     float throttleNotchToThrustFraction(float notch) const;
