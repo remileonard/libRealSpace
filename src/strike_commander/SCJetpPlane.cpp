@@ -340,13 +340,15 @@ void SCJetpPlane::updatePosition() {
     float dPitch = degreeToRad(this->pitch_speed * dt);
     float dYaw = degreeToRad(this->yaw_speed * dt);
     float dRoll = degreeToRad(this->roll_speed * dt);
-    // Seuil anti-bruit de Matrix_BuildAxis*_56EC3 : 0.21875 deg = 0.003816 rad.
-    constexpr float kAngleEps = 0.003816f;
-    if (fabsf(dPitch) >= kAngleEps)
+    // NB : le seuil "0x38" (0.21875 deg) de Matrix_BuildAxis*_56EC3 est une micro-optim ASM
+    // "skip si negligeable", calibree pour le tick DOS a taux fixe (~15-30 Hz). A framerate
+    // variable/eleve, l'increment par tic passe sous ce seuil et l'avion ne tournerait jamais :
+    // on ne le reproduit PAS ici.
+    if (dPitch != 0.0f)
         this->ptw.rotateM(dPitch, 1, 0, 0);
-    if (fabsf(dYaw) >= kAngleEps)
+    if (dYaw != 0.0f)
         this->ptw.rotateM(dYaw, 0, 1, 0);
-    if (fabsf(dRoll) >= kAngleEps)
+    if (dRoll != 0.0f)
         this->ptw.rotateM(dRoll, 0, 0, 1);
 
     // --- Re-derivation des angles d'Euler depuis la matrice, pour le reste du moteur ---
@@ -412,12 +414,19 @@ void SCJetpPlane::processInput() {
     this->rollers = std::clamp(-(this->control_stick_x / refX), -1.0f, 1.0f);
 
     float V = sqrtf(this->vx * this->vx + this->vy * this->vy + this->vz * this->vz);
-    bool aero = (!this->on_ground && V > 40.0f);   // ASM : V <= 0x2800/256 = 40 -> pas d'autorite
 
     // q = pression dynamique (Aero_DynamicPressure). q' = q * stability_gain / 100 (servo).
     float q = this->dynamic_pressure;
     float qServo = q * this->stability_gain / 100.0f;
     if (qServo < 0.0f) qServo = 0.0f;
+
+    // TANGAGE et LACET : l'ASM (Aero_ComputeControlFlags75Bit5B) ne gate PAS sur on_ground -
+    // seulement sur flags_75.bit5 ou q trop faible (pas d'air). Il FAUT l'autorite de tangage au
+    // sol pour cabrer au decollage. Le seul gate est "assez de pression dynamique".
+    bool ctrlLive = (q > 1.0f);
+    // ROULIS : Aero_ComputeControlFlags75Bit5C gate sur vitesse (V <= 0x2800/256 = 40 -> roulis nul)
+    // ET pas d'autorite au sol.
+    bool rollLive = (!this->on_ground && V > 40.0f);
 
     // ===================================================================================
     // TANGAGE : Aero_ComputeControlFlags75Bit5B (consigne d'alpha) + Aero_ComputeForcesMain (servo)
@@ -457,34 +466,59 @@ void SCJetpPlane::processInput() {
     boundA += baseline;                       // ASM loc_48B36 : var_2C += var_22 ; var_28 += var_22
     boundB += baseline;
 
-    // ASM loc_48B42 relu octet-pres : var_1A part de 0 et vaut :
-    //   0        si 0 est ENTRE boundA et boundB (bornes de signe oppose = zone de trim)
-    //   boundA   sinon (les deux bornes du meme cote -> on prend la borne "avec demande de charge")
-    // (PAS un clamp(0, min, max) : hors zone de trim c'est boundA specifiquement, pas la borne
-    //  la plus proche.)
-    float pitchCommandDeg;
-    if (std::min(boundA, boundB) <= 0.0f && 0.0f <= std::max(boundA, boundB))
-        pitchCommandDeg = 0.0f;
-    else
-        pitchCommandDeg = boundA;
+    // ASM loc_48967..loc_48B42 (seg103 L1284-1518), retrace ligne par ligne.
+    // var_1A NE part PAS de 0 : quand flags_75.bit4 est pose (defaut de A5620 = bit4|bit7) et
+    // que l'avion est en vol, var_1A = alpha courant (scale par un terme geometrique
+    // AI_ComputeGeometrySolution_57C67 si alpha<0 - non decode, approxime a 1 ici). C'est ca qui
+    // rend le manche neutre STABLE : boundA==boundB en neutre -> le clamp laisse var_1A = alpha
+    // -> err = alpha - alpha = 0 -> aucune action. (Avec var_1A=0 comme avant, err = -alpha ->
+    // le servo poussait alpha vers 0 -> alpha_eff = calage_aile -> ~2.2G sans manche.)
+    float pitchCommandDeg = this->alpha_deg;
+    // Clamp loc_48B42 : ramene var_1A vers boundA SAUF si var_1A est deja dans l'intervalle
+    // [0..boundB] (borne = boundA sinon boundB selon les tests jle/jg/jge exacts).
+    {
+        float v = pitchCommandDeg;
+        bool keep;
+        if (v <= boundB)
+            keep = (boundA >= v) && (boundA <= boundB);
+        else
+            keep = (boundA <= v) && (boundA >= boundB);
+        if (!keep)
+            pitchCommandDeg = boundA;
+    }
     // clamp final +/- pitch_stick_gain (jdyn[0x65])
     pitchCommandDeg = std::clamp(pitchCommandDeg, -this->pitch_stick_gain, this->pitch_stick_gain);
 
-    // --- Servo Aero_ComputeForcesMain : err = consigne - alpha ; taux = +/-2*sqrt(q'*|err|) ---
+    // --- Servo Aero_ComputeForcesMain (seg102) ---
+    // Forme ASM : target = +/-2*sqrt(q'*|err|), MAIS rate-limitee a +/-(|err| * dword_70454) - un
+    // COEFFICIENT D'AMORTISSEMENT (~3-4), pas 1/dt. C'est ce clamp lineaire qui domine pres de zero
+    // et empeche le servo de s'emballer sur le bruit d'alpha (bug "looping tout seul" : mon ancien
+    // clamp +/-|err|/dt = +/-30*err laissait target~20 deg/s pour err=0.6deg).
+    // q' (=q*STBL/100) est plafonne : l'efficacite des gouvernes SATURE a grande vitesse, elle
+    // n'explose pas (a Mach 1.7 mon q brut donnait q'=157 -> gain delirant).
+    constexpr float kDamp = 3.5f;        // dword_70454 (coeff amorti critique, calibrable)
+    constexpr float kServoTau = 0.12f;   // constante de temps du glissement du taux (s)
+    constexpr float kQServoMax = 12.0f;  // plafond de q' pour la loi de gouverne
+    float qCtrl = std::min(qServo, kQServoMax);
+
     float errPitch = pitchCommandDeg - this->alpha_deg;
     float targetPitchRate = 0.0f;
-    if (aero && fabsf(errPitch) >= 56.0f / 256.0f) {   // zone morte 0.21875 deg
-        targetPitchRate = copysignf(2.0f * sqrtf(qServo * fabsf(errPitch)), errPitch);
-        float critical = fabsf(errPitch) / dt;          // rate-limit amorti critique
-        targetPitchRate = std::clamp(targetPitchRate, -critical, critical);
+    if (ctrlLive && fabsf(errPitch) >= 56.0f / 256.0f) {   // zone morte 0.21875 deg
+        float sqrtLaw = 2.0f * sqrtf(qCtrl * fabsf(errPitch));
+        targetPitchRate = copysignf(std::min(sqrtLaw, kDamp * fabsf(errPitch)), errPitch);
     }
-    // increment = clamp((target - rate)*dt, +/- 3*q')
-    this->pitch_speed += std::clamp((targetPitchRate - this->pitch_speed) * dt, -3.0f * qServo, 3.0f * qServo);
+    // glissement du taux vers la cible (1er ordre, tau court) puis clamp structurel
+    float slewP = std::clamp(dt / kServoTau, 0.0f, 1.0f);
+    this->pitch_speed += (targetPitchRate - this->pitch_speed) * slewP;
     this->pitch_speed = std::clamp(this->pitch_speed, -this->max_turn_rate_dps, this->max_turn_rate_dps);
 
     {
         float horizontalSpeed = sqrtf(this->velocity.x * this->velocity.x + this->velocity.z * this->velocity.z);
         float gammaDeg = RAD2DEG_57_29 * atan2f(this->velocity.y, horizontalSpeed);
+        printf("[pitch2] og=%d aero=%d V=%.1f gl=%.2f y=%.2f x=%.1f z=%.1f status=%u mrate=%.2f target=%.3f "
+               "boundA=%.2f boundB=%.2f\n",
+               (int)this->on_ground, (int)ctrlLive, V, this->groundlevel, this->y, this->x, this->z, this->status,
+               this->max_turn_rate_dps, targetPitchRate, boundA, boundB);
         printf("[pitch] elev=%.2f loadDem=%.2f iPG=%.3f var38=%.2f cmd=%.3f alpha=%.3f err=%.3f "
                "q=%.1f qS=%.3f rate=%.3f | pDeg=%.2f gDeg=%.2f alt=%.0f\n",
                this->elevator, loadDemand, incidencePerG, var38, pitchCommandDeg, this->alpha_deg, errPitch,
@@ -492,25 +526,32 @@ void SCJetpPlane::processInput() {
     }
 
     // ===================================================================================
-    // LACET : loi directe palonnier (Aero_ResetAccumulatorFlags75Bit5 : palonnier + coeff avion,
-    // NI derapage NI incidence). Meme forme de servo que le tangage (q'-borne).
+    // LACET : servo fidele Aero_ComputeForcesMain, err = consigne_palonnier - beta.
+    //   - consigne (Aero_ResetAccumulatorFlags75Bit5) = palonnier + coeff avion, PAS de beta.
+    //   - beta (Aero_FlowAngle_Sideslip_46AB5) = -Ca * v_corps.c0 / |v| = -Ca * vx / V. C'EST
+    //     dans l'ASM : c'est la stabilite de girouette (ramene le derapage vers 0).
+    // Signe : le monde ASM est Z-up, le port Y-up avec c1/c2 echanges -> le sens de la rotation
+    // de lacet est inverse. On NEGATE la sortie du servo pour retablir la chiralite (sinon
+    // beta<0 -> nez tourne du mauvais cote -> derapage amplifie -> vrille divergente).
     // ===================================================================================
     float yawCommandDeg = -this->rudder * this->yaw_authority;
     float errYaw = yawCommandDeg - this->beta_deg;
     float targetYawRate = 0.0f;
-    if (aero && fabsf(errYaw) >= 56.0f / 256.0f) {
-        targetYawRate = copysignf(2.0f * sqrtf(qServo * fabsf(errYaw)), errYaw);
-        float critical = fabsf(errYaw) / dt;
-        targetYawRate = std::clamp(targetYawRate, -critical, critical);
+    if (ctrlLive && fabsf(errYaw) >= 56.0f / 256.0f) {
+        float sqrtLaw = 2.0f * sqrtf(qCtrl * fabsf(errYaw));
+        targetYawRate = copysignf(std::min(sqrtLaw, kDamp * fabsf(errYaw)), errYaw);
     }
-    this->yaw_speed += std::clamp((targetYawRate - this->yaw_speed) * dt, -3.0f * qServo, 3.0f * qServo);
+    targetYawRate = -targetYawRate;   // chiralite Z-up (ASM) -> Y-up (port)
+    this->yaw_speed += (targetYawRate - this->yaw_speed) * slewP;
     this->yaw_speed = std::clamp(this->yaw_speed, -this->max_turn_rate_dps, this->max_turn_rate_dps);
+    if (this->on_ground)
+        this->yaw_speed = 0.0f;
 
     // ===================================================================================
     // ROULIS : Aero_ComputeControlFlags75Bit5C - loi directe manche, pas de couplage.
     // ===================================================================================
     float rollRateTarget = 0.0f;
-    if (aero)
+    if (rollLive)
         rollRateTarget = this->rollers * this->max_turn_rate_dps;
     rollRateTarget = std::clamp(rollRateTarget, -this->max_turn_rate_dps, this->max_turn_rate_dps);
 
