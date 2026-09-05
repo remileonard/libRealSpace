@@ -138,7 +138,7 @@ void SCPilot::AutoPilot() {
     float yaw_difference = this->plane->yaw - target_yaw;
     float delta_time = 1.0f / this->plane->tps;
 
-    float roll_rate = (this->plane->object->entity->jdyn->inertia_like / 60.0f) *10.0f * delta_time;
+    float roll_rate = (this->plane->object->entity->jdyn->rate_limit_dps / 60.0f) *10.0f * delta_time;
     
     // Normaliser la différence entre -1800 et 1800 (entre -180° et 180°)
     while (yaw_difference > 1800.0f) yaw_difference -= 3600.0f;
@@ -166,10 +166,10 @@ void SCPilot::AutoPilot() {
     // Taux de virage basé sur l'écart (plus rapide pour grand angle)
     // 450.0f = 45°
     float based_turn_rate = 450.0f;
-    float minTurnRate = 1.0f + (this->plane->object->entity->jdyn->MAX_G / 10.0f);
+    float minTurnRate = 1.0f + (this->plane->object->entity->jdyn->max_g / 10.0f);
     if (this->actor->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET) {
-        based_turn_rate = 450.0f - 100.0f * this->plane->object->entity->jdyn->MAX_G / 10.0f - 150.0f * (this->actor->profile->ai.atrb.AA / 16.0f);
-        minTurnRate = 1.0f + (this->plane->object->entity->jdyn->MAX_G / 10.0f) + (this->actor->profile->ai.atrb.AA / 16.0f) * 1.0f;
+        based_turn_rate = 450.0f - 100.0f * this->plane->object->entity->jdyn->max_g / 10.0f - 150.0f * (this->actor->profile->ai.atrb.AA / 16.0f);
+        minTurnRate = 1.0f + (this->plane->object->entity->jdyn->max_g / 10.0f) + (this->actor->profile->ai.atrb.AA / 16.0f) * 1.0f;
     }
     turnRate = fabs(yaw_difference) / based_turn_rate;
     
@@ -355,7 +355,7 @@ void SCPilot::FlyTo() {
     float target_yaw  = norm3600(3600.0f - this->target_azimut);
     float heading_err = signed1800(target_yaw - this->plane->yaw);
 
-    float bank_limit = this->maxBankForG(this->plane->object->entity->jdyn->MAX_G);
+    float bank_limit = this->maxBankForG(this->plane->object->entity->jdyn->max_g);
     bank_limit = std::clamp(bank_limit, 250.0f, 600.0f);
     if (this->actor != nullptr &&
         this->actor->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET) {
@@ -367,7 +367,7 @@ void SCPilot::FlyTo() {
 
     // --- Serrage du virage : par le ROULIS (le tangage ne sert qu'a l'altitude) ---
     float turn_demand = std::clamp((fabsf(heading_err) - HEADING_DEADZONE) / 250.0f, 0.0f, 1.0f);
-    float g_scale = this->plane->object->entity->jdyn->MAX_G / 10.0f;
+    float g_scale = this->plane->object->entity->jdyn->max_g / 10.0f;
     float skill   = (this->actor && this->actor->profile) ? (this->actor->profile->ai.atrb.AA / 16.0f) : 0.5f;
 
     // On incline davantage pour tourner plus fort (la portance sup. part a l'horizontale).

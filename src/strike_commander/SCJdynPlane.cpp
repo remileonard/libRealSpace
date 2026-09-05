@@ -70,7 +70,7 @@ SCJdynPlane::SCJdynPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, f
     this->z = z;
     this->Cdp = .015f;
     this->ro2 = 0.5f * (AIR_DENSITY - 0.000112f * this->y / 1000.0f); // Approximation atmosphère standard;
-    this->ipi_AR = 1.0f / ((float)M_PI * this->b * this->b / this->s);
+    this->ipi_AR = ie_pi_AR;
     this->ie_pi_AR = 0.83f * this->ipi_AR;
     this->wheels = 1;
     this->on_ground = 1;
@@ -620,8 +620,8 @@ void SCJdynPlane::computeLift() {
         return;
     }
     int itemp {0};
-    this->Lmax = this->object->entity->jdyn->MAX_G * this->gravity;
-    this->Lmin = -0.5f * this->object->entity->jdyn->MAX_G * this->gravity;
+    this->Lmax = this->object->entity->jdyn->max_g * this->gravity;
+    this->Lmin = -0.5f * this->object->entity->jdyn->max_g * this->gravity;
 
     this->max_cl = 1.5f + this->flaps / 62.5f;
     this->min_cl = this->flaps / 62.5f - 1.5f;

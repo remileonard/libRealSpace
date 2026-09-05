@@ -1776,7 +1776,7 @@ void SCCockpit::Update() {
     oss << std::setw(2) << std::fixed << std::setprecision(1) << this->g_load;
     this->hud_text_tags["GFRC"]= oss.str()+"G";
     oss.str("");
-    oss << std::setw(2) << std::fixed << std::setprecision(1) << (float)this->player_plane->object->entity->jdyn->MAX_G;
+    oss << std::setw(2) << std::fixed << std::setprecision(1) << (float)this->player_plane->object->entity->jdyn->max_g;
     this->hud_text_tags["MAXG"]= oss.str()+"G";
     oss.str("");
     oss << std::setw(3) << std::fixed << std::setprecision(2) << this->mach;

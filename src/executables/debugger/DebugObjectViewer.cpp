@@ -413,10 +413,10 @@ void DebugObjectViewer::renderUI() {
             }
             if (entity->jdyn != nullptr) {
                 if (ImGui::TreeNode("Jet Dynamics")) {
-                    ImGui::Text("Fuel: %d", entity->jdyn->FUEL);
-                    ImGui::Text("Aileron: %d", entity->jdyn->aileron);
-                    ImGui::Text("Gouverne: %d", entity->jdyn->gouverne);
-                    ImGui::Text("Max G: %d", entity->jdyn->MAX_G);
+                    ImGui::Text("Fuel: %d", entity->jdyn->fuel_capacity);
+                    ImGui::Text("Aileron: %d", entity->jdyn->pitch_stick_gain);
+                    ImGui::Text("Gouverne: %d", entity->jdyn->yaw_authority);
+                    ImGui::Text("Max G: %d", entity->jdyn->max_g);
                     ImGui::Text("Wing Area: %.2f", entity->wing_area);
                     ImGui::Text("Gravity: %s", entity->gravity ? "Enabled" : "Disabled");
                     ImGui::Text("Weight in kg: %d", entity->weight_in_kg);

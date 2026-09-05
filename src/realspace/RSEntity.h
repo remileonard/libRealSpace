@@ -123,35 +123,39 @@ struct HPTS {
     int32_t z;
 };
 
+// Chunk JDYN (FORM DYNM d'un JETP) : 28 champs sequentiels, 73 octets disque, encodage
+// 24.8 pour les u32 (ReadFixedFloatLE -> valeur SI) et brut pour les u8. Noms decodes par
+// retro-ingenierie (strike_commander_re/analysis/PHYSICS.md §1.1, DATA_MODEL.md §6.2).
+// L'offset indique est la position dans la struct 0xC5 cote jeu original.
 typedef struct JDYN {
-    uint32_t FUEL;
-    float field_new_02;
-    float boost_modifier_a;
-    float boost_modifier_b;
-    float drag_modifier_a;
-    float drag_modifier_b;
-    float inertia_like;
-    float pitch_rate_gain;
-    uint8_t rate_threshold;
-    uint8_t ctrl_modifier_a;
-    uint8_t ctrl_modifier_b;
-    float envelope_vs_limit;
-    float envelope_speed_limit;
-    uint8_t envelope_bank_limit;
-    uint8_t envelope_pitch_limit;
-    uint8_t envelope_pitch_margin;
-    float min_airspeed;
-    float drag_coefficient;
-    float airframe_response_scale;
-    uint8_t aileron;
-    uint8_t gouverne;
-    uint8_t MAX_G;
-    uint16_t field_22;
-    uint16_t field_23;
-    uint16_t field_24;
-    uint32_t field_25;
-    uint8_t field_26;
-    uint8_t field_27;
+    uint32_t fuel_capacity;         // #1  [+0x69]  capacite carburant (kg)
+    float sfc;                      // #2  [+0x33]  consommation specifique
+    float drag_airbrake;            // #3  [+0x37]  increment de trainee aerofrein
+    float drag_gear;               // #4  [+0x3B]  increment de trainee train
+    float ground_moment_1;          // #5  [+0x3F]  deceleration de roulage sol
+    float ground_moment_2;          // #6  [+0x43]  deceleration de roulage sol (+ aerofrein)
+    float rate_limit_dps;           // #7  [+0x47]  limite de variation du taux de controle (deg/s)
+    float max_turn_rate_dps;        // #8  [+0x71]  taux de rotation max (deg/s)
+    uint8_t stall_alpha_deg;        // #9  [+0x4B]  incidence de decrochage (deg)
+    uint8_t wing_incidence_deg;     // #10 [+0x4C]  calage d'aile (deg)
+    uint8_t flap_lift_increment_deg;// #11 [+0x4D]  increment d'incidence volets (deg)
+    float stall_speed_ms;           // #12 [+0x4E]  vitesse de decrochage (m/s) -- a confirmer
+    float max_speed_ms;             // #13 [+0x52]  vitesse max (m/s) -- a confirmer
+    uint8_t max_bank_deg;           // #14 [+0x56]  inclinaison max (deg) -- a confirmer
+    uint8_t pitch_rate_limit_dps;   // #15 [+0x57]  limite du taux de tangage (deg/s)
+    uint8_t pitch_margin_deg;       // #16 [+0x58]  marge de tangage (deg) -- a confirmer
+    float ground_effect_ceiling_m;  // #17 [+0x59]  plafond d'effet de sol (m)
+    float induced_drag_k;           // #18 [+0x5D]  1/(pi*e*AR)
+    float lift_gain;                // #19 [+0x61]  gain de portance (~ Cl_alpha * S)
+    uint8_t pitch_stick_gain;       // #20 [+0x65]  borne finale de la consigne de tangage
+    uint8_t yaw_authority;          // #21 [+0x66]  gain palonnier -> consigne de lacet
+    uint8_t max_g;                  // #22 [+0x67]  facteur de charge max (G)
+    uint16_t unknown_80;            // #23 [+0x80]  non trace (defaut 500)
+    uint16_t unknown_82;            // #24 [+0x82]  non trace (defaut 100)
+    uint16_t unknown_84;            // #25 [+0x84]  non trace (defaut 231)
+    uint32_t unknown_86;            // #26 [+0x86]  non trace (defaut 11005)
+    uint8_t unknown_8a;             // #27 [+0x8A]  non trace (defaut 3)
+    uint8_t unknown_8b;             // #28 [+0x8B]  non trace (defaut 2)
 } JDYN;
 
 class RSEntity {

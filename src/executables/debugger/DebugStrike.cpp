@@ -142,24 +142,24 @@ void DebugStrike::loadPlane() {
 
         thrust = plane_to_load->thrust_in_newton / 4.448f;
         weight = plane_to_load->weight_in_kg * 2.208588957f;
-        fuel = plane_to_load->jdyn->FUEL * 2.208588957f;
+        fuel = plane_to_load->jdyn->fuel_capacity * 2.208588957f;
 
         ie_pi_AR = 4000.0f / plane_to_load->drag;
-        roll_rate_max = plane_to_load->jdyn->inertia_like;
-        pitch_rate_max = plane_to_load->jdyn->pitch_rate_gain;
+        roll_rate_max = plane_to_load->jdyn->rate_limit_dps;
+        pitch_rate_max = plane_to_load->jdyn->max_turn_rate_dps;
         SCPlane *new_plane = nullptr;
         surface = surface * 10.7639f;
         envergure = envergure * 3.28084f;
         wing_aspec_ratio = (envergure * envergure) / surface;
-        float twist_rate = plane_to_load->jdyn->pitch_rate_gain;
-        float roll_rate = plane_to_load->jdyn->inertia_like;
+        float twist_rate = plane_to_load->jdyn->max_turn_rate_dps;
+        float roll_rate = plane_to_load->jdyn->rate_limit_dps;
         switch (sim_type) {
         case 0:
             thrust = (float) plane_to_load->thrust_in_newton;
             envergure = (bb->max.z - bb->min.z) / 2.0f;
             surface = plane_to_load->wing_area;
             weight =(float)  plane_to_load->weight_in_kg;
-            fuel = (float) plane_to_load->jdyn->FUEL;
+            fuel = (float) plane_to_load->jdyn->fuel_capacity;
             new_plane = new SCSimplePlane(10.0f, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
                                           thrust, envergure, 0.83f, 120, this->current_mission->area, player_plane->x,
                                           player_plane->y, player_plane->z);
@@ -170,10 +170,10 @@ void DebugStrike::loadPlane() {
             envergure = (bb->max.z - bb->min.z) / 2.0f;
             surface = plane_to_load->wing_area;
             weight = (float) plane_to_load->weight_in_kg;
-            fuel = (float) plane_to_load->jdyn->FUEL;
+            fuel = (float) plane_to_load->jdyn->fuel_capacity;
             twist_rate = 30.0f;
             roll_rate = 100.0f;
-            new_plane = new SCJdynPlane(plane_to_load->jdyn->MAX_G, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
+            new_plane = new SCJdynPlane(plane_to_load->jdyn->max_g, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
                                         thrust, envergure, 0.83f, 120, this->current_mission->area, player_plane->x,
                                         player_plane->y, player_plane->z);
             new_plane->yaw = player_plane->azimuthf;
@@ -207,7 +207,7 @@ void DebugStrike::loadPlane() {
             envergure = (bb->max.z - bb->min.z) / 2.0f;
             surface = plane_to_load->wing_area;
             weight =(float)  plane_to_load->weight_in_kg;
-            fuel = (float) plane_to_load->jdyn->FUEL;
+            fuel = (float) plane_to_load->jdyn->fuel_capacity;
             twist_rate = 30.0f;
             roll_rate = 100.0f;
             new_plane = new SCJetpPlane(10.0f, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
@@ -739,7 +739,7 @@ void DebugStrike::showActorDetails(SCMissionActors *actor) {
                 if (ImGui::TreeNode("JDYN")) {
                     ImGui::Text("WEIGHT: %d", entity->weight_in_kg);
                     ImGui::Text("THRUST: %d", entity->thrust_in_newton);
-                    ImGui::Text("MAX G-LOAD: %d", entity->jdyn->MAX_G);
+                    ImGui::Text("MAX G-LOAD: %d", entity->jdyn->max_g);
                     ImGui::Text("WING AREA: %.3f", entity->wing_area);
                     ImGui::TreePop();
                 }

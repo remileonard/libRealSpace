@@ -159,7 +159,7 @@ void SCMission::loadMission() {
                         BoudingBox *bb = actor->object->entity->GetBoudingBpx();
                         
                         actor->plane = new SCJdynPlane(
-                            actor->object->entity->jdyn->MAX_G,
+                            actor->object->entity->jdyn->max_g,
                             -7.0f,
                             40.0f,
                             40.0f,
@@ -167,7 +167,7 @@ void SCMission::loadMission() {
                             100.0f,
                             actor->object->entity->wing_area,
                             (float) actor->object->entity->weight_in_kg,
-                            (float) actor->object->entity->jdyn->FUEL,
+                            (float) actor->object->entity->jdyn->fuel_capacity,
                             (float) actor->object->entity->thrust_in_newton,
                             (bb->max.z - bb->min.z) / 2.0f,
                             .93f,
@@ -226,7 +226,7 @@ void SCMission::loadMission() {
                                                 part->position.y, part->position.z);*/
                     BoudingBox *bb = actor->object->entity->GetBoudingBpx();
                     actor->plane = new SCJdynPlane(
-                        actor->object->entity->jdyn->MAX_G,
+                        actor->object->entity->jdyn->max_g,
                         -7.0f,
                         40.0f,
                         40.0f,
@@ -234,7 +234,7 @@ void SCMission::loadMission() {
                         100.0f,
                         actor->object->entity->wing_area,
                         (float) actor->object->entity->weight_in_kg,
-                        (float) actor->object->entity->jdyn->FUEL,
+                        (float) actor->object->entity->jdyn->fuel_capacity,
                         (float) actor->object->entity->thrust_in_newton,
                         (bb->max.z - bb->min.z) / 2.0f,
                         .93f,

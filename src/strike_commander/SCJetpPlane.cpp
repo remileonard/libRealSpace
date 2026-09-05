@@ -82,25 +82,25 @@ void SCJetpPlane::loadFromEntity() {
     if (jdyn != nullptr) {
         // Correspondance champ-a-champ verifiee cette session (28 champs, meme ordre disque) :
         // cf. DATA_MODEL.md §6.2 "Layout du chunk JDYN".
-        this->fuel_capacity_kg = (float)jdyn->FUEL;
-        this->sfc = jdyn->field_new_02;
-        this->drag_airbrake = jdyn->boost_modifier_a;
-        this->drag_gear = jdyn->boost_modifier_b;
-        this->ground_moment_1 = jdyn->drag_modifier_a;
-        this->ground_moment_2 = jdyn->drag_modifier_b;
-        this->rate_limit_dps = jdyn->inertia_like;
-        this->max_turn_rate_dps = jdyn->pitch_rate_gain;
-        this->stall_alpha_deg = (float)jdyn->rate_threshold;        // PAS jdyn->MAX_G (role different, cf. PHYSICS.md)
-        this->wing_incidence_deg = (float)jdyn->ctrl_modifier_a;
-        this->flap_lift_increment_deg = (float)jdyn->ctrl_modifier_b;
-        this->pitch_rate_limit_dps = (float)jdyn->envelope_pitch_limit; // champ 15, jamais charge avant
-        this->ground_effect_ceiling_m = jdyn->min_airspeed;
-        this->induced_drag_k = jdyn->drag_coefficient;
-        this->lift_gain = jdyn->airframe_response_scale;
-        this->yaw_authority = (float)jdyn->gouverne; // "gouverne" (champ 21) = gain palonnier->consigne lacet,
+        this->fuel_capacity_kg = (float)jdyn->fuel_capacity;
+        this->sfc = jdyn->sfc;
+        this->drag_airbrake = jdyn->drag_airbrake;
+        this->drag_gear = jdyn->drag_gear;
+        this->ground_moment_1 = jdyn->ground_moment_1;
+        this->ground_moment_2 = jdyn->ground_moment_2;
+        this->rate_limit_dps = jdyn->rate_limit_dps;
+        this->max_turn_rate_dps = jdyn->max_turn_rate_dps;
+        this->stall_alpha_deg = (float)jdyn->stall_alpha_deg;        // PAS jdyn->max_g (role different, cf. PHYSICS.md)
+        this->wing_incidence_deg = (float)jdyn->wing_incidence_deg;
+        this->flap_lift_increment_deg = (float)jdyn->flap_lift_increment_deg;
+        this->pitch_rate_limit_dps = (float)jdyn->pitch_rate_limit_dps; // champ 15, jamais charge avant
+        this->ground_effect_ceiling_m = jdyn->ground_effect_ceiling_m;
+        this->induced_drag_k = jdyn->induced_drag_k;
+        this->lift_gain = jdyn->lift_gain;
+        this->yaw_authority = (float)jdyn->yaw_authority; // "gouverne" (champ 21) = gain palonnier->consigne lacet,
                                                       // cf. Aero_ResetAccumulatorFlags75Bit5, decode cette session
-        this->pitch_stick_gain = (float)jdyn->aileron;   // champ 20 (jdyn[0x65]) = borne finale consigne tangage
-        this->pitch_load_gain = (float)jdyn->MAX_G;      // champ 22 (jdyn[0x67]) = gain manche -> demande de charge
+        this->pitch_stick_gain = (float)jdyn->pitch_stick_gain;   // champ 20 (jdyn[0x65]) = borne finale consigne tangage
+        this->pitch_load_gain = (float)jdyn->max_g;      // champ 22 (jdyn[0x67]) = gain manche -> demande de charge
                                                           // cf. Aero_ComputeControlFlags75Bit5B, decode cette session
     }
 
