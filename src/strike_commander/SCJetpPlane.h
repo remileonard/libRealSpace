@@ -31,6 +31,12 @@ protected:
     // --- Coefficients par avion, charges une fois depuis object->entity ---
     bool entity_loaded{false};
 
+    // Depart en decrochage franc (portance forcee a zero) -- Aero_ComputeLiftAndSideForce loc_481CF.
+    // Dans l'ASM il faut EN PLUS difficulte word_70466 > 10 ET option byte_72354 ; ce booleen
+    // regroupe ces deux entrees d'etat de jeu (a cabler). La saturation d'incidence + la coupure
+    // de force laterale (PHYSICS.md §5.2 cas A) restent actives independamment de ce flag.
+    bool realistic_stall{true};
+
     RSAirdens airdens;   // table DATA\AIRDENS.TBL, chargee dans loadFromEntity()
 
     float mass_kg{0.0f};                 // chunk DYNM

@@ -196,32 +196,35 @@ void SCJetpPlane::computeLift() {
     this->beta_deg = -RAD2DEG_57_29 * (this->vx / V);
 
     // Incidence effective : calage d'aile toujours ajoute, volets si sortis (Aero_ComputeAoAWithTrim).
-    this->alpha_eff_deg = this->alpha_deg + this->wing_incidence_deg;
+    float ae_raw = this->alpha_deg + this->wing_incidence_deg;
     if (this->flaps > 0)
-        this->alpha_eff_deg += this->flap_lift_increment_deg;
+        ae_raw += this->flap_lift_increment_deg;
 
-    if (this->alpha_eff_deg > this->stall_alpha_deg) {
-        this->alpha_eff_deg = this->stall_alpha_deg;
-        this->wing_stall = 1;
-    } else if (this->alpha_eff_deg < -this->stall_alpha_deg) {
-        this->alpha_eff_deg = -this->stall_alpha_deg;
-        this->wing_stall = 1;
-    } else {
-        this->wing_stall = 0;
-    }
+    // Decrochage -- Aero_ComputeLiftAndSideForce (DATA_MODEL.md §6.2, PHYSICS.md §5.2).
+    // (A) SATURATION, toujours active : alpha_eff borne symetriquement AVANT le calcul de portance.
+    //     Au-dela du seuil la portance PLAFONNE (pas de courbe post-decrochage).
+    this->alpha_eff_deg = std::clamp(ae_raw, -this->stall_alpha_deg, this->stall_alpha_deg);
+    //     La force laterale est coupee net si le derapage depasse le meme seuil (loc_482E7).
+    bool side_stall = fabsf(this->beta_deg) > this->stall_alpha_deg;
+    // (B) DEPART FRANC : portance forcee a zero (loc_481CF). Avion du joueur uniquement, sous option
+    //     de realisme (regroupe word_70466 > 10 ET byte_72354 de l'ASM, cf. realistic_stall).
+    bool hard_stall = fabsf(ae_raw) > this->stall_alpha_deg && this->realistic_stall &&
+                      this->pilot != nullptr && this->pilot->actor_name == "PLAYER";
+
+    this->wing_stall = hard_stall ? 1 : 0; // proxy de flags_75.bit6 (alerte) : seulement le depart franc
     this->ae = this->alpha_eff_deg;
 
     this->dynamic_pressure = 0.5f * this->airDensity(this->y) * V * V;
 
     // Portance + force laterale : Aero_ComputeLiftAndSideForce (DATA_MODEL.md §6.2).
     float k_lift = this->lift_gain * this->dynamic_pressure;
-    this->lift_force = k_lift * this->alpha_eff_deg;
+    this->lift_force = hard_stall ? 0.0f : k_lift * this->alpha_eff_deg;
     Vector3D dirLift(0.0f, -this->vz, this->vy); // perpendiculaire a la vitesse, plan vertical corps
     dirLift.Normalize();
     this->lift_vector = dirLift * this->lift_force;
 
     float k_side = 0.25f * this->lift_gain * this->dynamic_pressure;
-    float sideForce = k_side * this->beta_deg;
+    float sideForce = side_stall ? 0.0f : k_side * this->beta_deg;
     Vector3D dirSide(-this->vz, 0.0f, this->vx); // perpendiculaire a la vitesse, plan horizontal corps
     dirSide.Normalize();
     this->side_vector = dirSide * sideForce;
