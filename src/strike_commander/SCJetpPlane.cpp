@@ -600,14 +600,16 @@ void SCJetpPlane::processInput() {
 
     // ===================================================================================
     // LACET : servo fidele Aero_ComputeForcesMain, err = consigne_palonnier - beta.
-    //   - consigne (Aero_ResetAccumulatorFlags75Bit5) = palonnier + coeff avion, PAS de beta.
+    //   - consigne (Aero_ResetAccumulatorFlags75Bit5) = (yaw_authority) * (palonnier/16), PAS de beta.
+    //     L'ASM normalise le palonnier a +/-1 (var_4/16, pleine butee 24.8 = +/-16). Ici this->rudder
+    //     est en plage +/-10 (clavier, SCStrike.cpp:992) -> on divise par la meme pleine butee.
     //   - beta (Aero_FlowAngle_Sideslip_46AB5) = -Ca * v_corps.c0 / |v| = -Ca * vx / V. C'EST
     //     dans l'ASM : c'est la stabilite de girouette (ramene le derapage vers 0).
     // Signe : le monde ASM est Z-up, le port Y-up avec c1/c2 echanges -> le sens de la rotation
     // de lacet est inverse. On NEGATE la sortie du servo pour retablir la chiralite (sinon
     // beta<0 -> nez tourne du mauvais cote -> derapage amplifie -> vrille divergente).
     // ===================================================================================
-    float yawCommandDeg = this->rudder * this->yaw_authority;
+    float yawCommandDeg = (this->rudder / 10.0f) * this->yaw_authority;
     float errYaw = yawCommandDeg - this->beta_deg;
     float targetYawRate = 0.0f;
     if (ctrlLive && fabsf(errYaw) >= ATTITUDE_DEAD_ZONE_DEG) {
