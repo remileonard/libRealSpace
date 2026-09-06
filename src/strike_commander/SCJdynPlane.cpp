@@ -68,10 +68,10 @@ SCJdynPlane::SCJdynPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, f
     this->x = x;
     this->y = y;
     this->z = z;
-    this->Cdp = .015f;
     this->ro2 = 0.5f * (AIR_DENSITY - 0.000112f * this->y / 1000.0f); // Approximation atmosphère standard;
-    this->ipi_AR = ie_pi_AR;
-    this->ie_pi_AR = 0.83f * this->ipi_AR;
+    this->ie_pi_AR = ie_pi_AR;
+    this->ipi_AR = 0.83f * ie_pi_AR;
+    this->Cdp = .015f;
     this->wheels = 1;
     this->on_ground = 1;
     this->status = 580000;

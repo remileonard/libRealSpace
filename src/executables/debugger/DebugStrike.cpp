@@ -167,14 +167,16 @@ void DebugStrike::loadPlane() {
             break;
         case 1:
             thrust = (float) plane_to_load->thrust_in_newton;
-            envergure = (bb->max.z - bb->min.z) / 2.0f;
             surface = plane_to_load->wing_area;
+            envergure = sqrtf(surface / ((float)M_PI * 0.83f * plane_to_load->jdyn->induced_drag_k));
             weight = (float) plane_to_load->weight_in_kg;
             fuel = (float) plane_to_load->jdyn->fuel_capacity;
-            twist_rate = 30.0f;
-            roll_rate = 100.0f;
-            new_plane = new SCJdynPlane(plane_to_load->jdyn->max_g, -7.0f, 40.0f, 40.0f, twist_rate, roll_rate, surface, weight, fuel,
-                                        thrust, envergure, 0.83f, 120, this->current_mission->area, player_plane->x,
+            twist_rate = (float) plane_to_load->jdyn->pitch_rate_limit_dps/3.0f;
+            roll_rate = (float) plane_to_load->jdyn->rate_limit_dps/3.0f;
+            new_plane = new SCJdynPlane(plane_to_load->jdyn->max_g, -(float) plane_to_load->jdyn->max_g/2.0f, 40.0f, 60.0f, twist_rate, roll_rate, surface, weight, fuel,
+                                        thrust, envergure, plane_to_load->jdyn->induced_drag_k,
+                                        (int) plane_to_load->jdyn->stall_speed_ms,
+                                        this->current_mission->area, player_plane->x,
                                         player_plane->y, player_plane->z);
             new_plane->yaw = player_plane->azimuthf;
             break;
