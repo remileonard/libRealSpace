@@ -749,10 +749,10 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size) {
     dyn->pitch_stick_gain = bs.ReadByte();
     dyn->yaw_authority = bs.ReadByte();
     dyn->max_g = bs.ReadByte();
-    dyn->ai_speed_max = bs.ReadUShort();
-    dyn->ai_speed_min = bs.ReadUShort();
-    dyn->ai_speed_cruise = (int16_t)bs.ReadUShort();
-    dyn->ai_engage_range = bs.ReadUInt32LE(); // entier brut (comparé <<8 dans l'ASM), pas du 24.8
+    dyn->ai_speed_max = bs.ReadShort();
+    dyn->ai_speed_min = bs.ReadShort();
+    dyn->ai_speed_cruise = bs.ReadShort();
+    dyn->ai_engage_range = bs.ReadFixedFloatLE();
     dyn->ai_unknown_8a = bs.ReadByte();
     dyn->ai_decision_weight = bs.ReadByte();
     this->jdyn = dyn;

@@ -24,43 +24,46 @@ from tkinter import ttk, filedialog, messagebox
 # type is one of: "fixed24.8", "u8", "i8", "u16", "i16", "u32", "i32"
 # ---------------------------------------------------------------------
 
+# Noms alignes sur src/realspace/RSEntity.h (struct JDYN) — decodage RE :
+# strike_commander_re/analysis/PHYSICS.md §1.1, DATA_MODEL.md §6.2.
 JDYN_FIELDS = [
-    (0,  4, "fixed24.8", "FUEL"),
-    (4,  4, "fixed24.8", "field_new_02"),
-    (8,  4, "fixed24.8", "boost_modifier_a"),
-    (12, 4, "fixed24.8", "boost_modifier_b"),
-    (16, 4, "fixed24.8", "drag_modifier_a"),
-    (20, 4, "fixed24.8", "drag_modifier_b"),
-    (24, 4, "fixed24.8", "inertia_like"),
-    (28, 4, "fixed24.8", "pitch_rate_gain"),
-    (32, 1, "u8",        "rate_threshold"),
-    (33, 1, "u8",        "ctrl_modifier_a"),
-    (34, 1, "u8",        "ctrl_modifier_b"),
-    (35, 4, "fixed24.8", "envelope_vs_limit"),
-    (39, 4, "fixed24.8", "envelope_speed_limit"),
-    (43, 1, "u8",        "envelope_bank_limit"),
-    (44, 1, "u8",        "envelope_pitch_limit"),
-    (45, 1, "u8",        "envelope_pitch_margin"),
-    (46, 4, "fixed24.8", "min_airspeed"),
-    (50, 4, "fixed24.8", "drag_coefficient"),
-    (54, 4, "fixed24.8", "airframe_response_scale"),
-    (58, 1, "i8",        "aileron"),
-    (59, 1, "u8",        "gouverne"),
-    (60, 1, "i8",        "MAX_G"),
-    (61, 2, "i16",       "field_22"),
-    (63, 2, "i16",       "field_23"),
-    (65, 2, "i16",       "field_24"),
-    (67, 4, "i32",       "field_25"),
-    (71, 1, "i8",        "field_26"),
-    (72, 1, "i8",        "field_27"),
+    (0,  4, "fixed24.8", "fuel_capacity"),          # #1  capacite carburant (kg)
+    (4,  4, "fixed24.8", "sfc"),                     # #2  consommation specifique
+    (8,  4, "fixed24.8", "drag_airbrake"),           # #3  increment de trainee aerofrein
+    (12, 4, "fixed24.8", "drag_gear"),               # #4  increment de trainee train
+    (16, 4, "fixed24.8", "ground_moment_1"),         # #5  deceleration de roulage sol
+    (20, 4, "fixed24.8", "ground_moment_2"),         # #6  deceleration de roulage sol (+ aerofrein)
+    (24, 4, "fixed24.8", "rate_limit_dps"),          # #7  limite de variation du taux de controle (deg/s)
+    (28, 4, "fixed24.8", "max_turn_rate_dps"),       # #8  taux de rotation max (deg/s)
+    (32, 1, "u8",        "stall_alpha_deg"),         # #9  incidence de decrochage (deg)
+    (33, 1, "u8",        "wing_incidence_deg"),      # #10 calage d'aile (deg)
+    (34, 1, "u8",        "flap_lift_increment_deg"), # #11 increment d'incidence volets (deg)
+    (35, 4, "fixed24.8", "stall_speed_ms"),          # #12 vitesse de decrochage (m/s)
+    (39, 4, "fixed24.8", "max_speed_ms"),            # #13 vitesse max (m/s)
+    (43, 1, "u8",        "max_bank_deg"),            # #14 inclinaison max (deg)
+    (44, 1, "u8",        "pitch_rate_limit_dps"),    # #15 limite du taux de tangage (deg/s)
+    (45, 1, "u8",        "pitch_margin_deg"),        # #16 marge de tangage (deg)
+    (46, 4, "fixed24.8", "ground_effect_ceiling_m"), # #17 plafond d'effet de sol (m)
+    (50, 4, "fixed24.8", "induced_drag_k"),          # #18 1/(pi*e*AR)
+    (54, 4, "fixed24.8", "lift_gain"),               # #19 gain de portance (~ Cl_alpha * S)
+    (58, 1, "u8",        "pitch_stick_gain"),        # #20 borne finale de la consigne de tangage
+    (59, 1, "u8",        "yaw_authority"),           # #21 gain palonnier -> consigne de lacet
+    (60, 1, "u8",        "max_g"),                   # #22 facteur de charge max (G)
+    (61, 2, "i16",       "ai_speed_max"),            # #23 IA : vitesse de poursuite max (defaut 500)
+    (63, 2, "i16",       "ai_speed_min"),            # #24 IA : vitesse de poursuite min (defaut 100)
+    (65, 2, "i16",       "ai_speed_cruise"),         # #25 IA : vitesse de croisiere/manoeuvre (defaut 231)
+    (67, 4, "u32",       "ai_engage_range"),         # #26 IA : seuil de portee d'engagement (defaut 11005)
+    (71, 1, "u8",        "ai_unknown_8a"),           # #27 IA : parametre de decision, non localise (defaut 3)
+    (72, 1, "u8",        "ai_decision_weight"),      # #28 IA : poids d'un score de decision (defaut 2)
 ]
 JDYN_SIZE = 73
 
+# Chemin THRS 7-8 octets : octet 0 ignore, octets 1-3 = poussee (24 bits), puis 3 u8.
 THRS_FIELDS = [
-    (0, 4, "fixed24.8", "thrust_base"),
-    (4, 1, "i8",        "afterburner_flag"),
-    (5, 1, "i8",        "engine_param_1"),
-    (6, 1, "i8",        "engine_param_2"),
+    (0, 4, "fixed24.8", "thrust_in_newton"),        # octets 1-3 (poussee AF max, N) ; octet 0 = padding nul
+    (4, 1, "u8",        "thrust_mil_fraction"),     # /256 -> fraction poussee MIL
+    (5, 1, "u8",        "thrust_ref_alt_fraction"), # /256 -> fraction a l'altitude de reference
+    (6, 1, "u8",        "thrust_cutoff_alt_raw"),   # x100 -> altitude de coupure (m)
 ]
 THRS_SIZE = 7
 

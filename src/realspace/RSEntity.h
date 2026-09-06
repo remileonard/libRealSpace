@@ -150,10 +150,10 @@ typedef struct JDYN {
     uint8_t pitch_stick_gain;       // #20 [+0x65]  borne finale de la consigne de tangage
     uint8_t yaw_authority;          // #21 [+0x66]  gain palonnier -> consigne de lacet
     uint8_t max_g;                  // #22 [+0x67]  facteur de charge max (G)
-    uint16_t ai_speed_max;         // #23 [+0x80]  IA : vitesse de poursuite max (defaut 500) -- AI_InterceptSpeedControlLaw
-    uint16_t ai_speed_min;         // #24 [+0x82]  IA : vitesse de poursuite min / plancher de consigne (defaut 100)
-    int16_t  ai_speed_cruise;      // #25 [+0x84]  IA : vitesse de croisiere/manoeuvre + seuil de distance (defaut 231)
-    uint32_t ai_engage_range;      // #26 [+0x86]  IA : seuil de portee/distance d'engagement (defaut 11005)
+    int16_t  ai_speed_max;         // #23 [+0x80]  IA : vitesse de poursuite max (defaut 500) -- AI_InterceptSpeedControlLaw (movsx)
+    int16_t  ai_speed_min;         // #24 [+0x82]  IA : vitesse de poursuite min / plancher de consigne (defaut 100, movsx)
+    int16_t  ai_speed_cruise;      // #25 [+0x84]  IA : vitesse de croisiere/manoeuvre + seuil de distance (defaut 231, movsx)
+    float ai_engage_range;      // #26 [+0x86]  IA : seuil de portee/distance d'engagement (defaut 11005)
     uint8_t  ai_unknown_8a;        // #27 [+0x8A]  IA : parametre de decision, consommateur non localise (defaut 3)
     uint8_t  ai_decision_weight;   // #28 [+0x8B]  IA : poids d'un score de decision = ((v-2)*3)/2+3 (defaut 2)
 } JDYN;
