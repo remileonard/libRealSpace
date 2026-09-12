@@ -5,6 +5,8 @@ class SCMission;
 
 class MissionUpdateEvent: public EventMessage {
 public:
+    int32_t tick{0};
+    float delta_time{0.0f};
     std::string message;
     std::string objective;
     uint8_t area_id{0};

@@ -59,16 +59,17 @@ static void readSimpleCamera(ByteStream &s, size_t size, bool lookAtGap,
                              uint8_t typeCode, std::vector<RSCameraDef> &out) {
     RSCameraDef c;
     c.typeCode = typeCode;
-    c.name     = s.ReadStringNoSize(8);
-    s.MoveForward(lookAtGap ? 14 : 2);
+    c.name     = s.ReadStringNoSize(8);                // +0x00
+    s.MoveForward(lookAtGap ? 14 : 2);                 // slot look-at (CHAS = 14, autres = 2)
     c.subject  = s.ReadStringNoSize(8);
-    c.farClip  = s.ReadUInt32LE();
-    c.fov      = s.ReadUShort();
-    s.ReadByte();                                      // pad
-    c.nearClip = s.ReadByte();
-    s.MoveForward(6);
+    c.farClip  = s.ReadUInt32LE();                     // <<8 côté moteur
+    c.fov      = s.ReadUShort();                       // <<8 côté moteur
+    c.nearClip = s.ReadUInt32LE();                     // l'ASM lit UN dword ici
+    c.viewX    = s.ReadUShort();                       // rect viewport : x, y, w, h
+    c.viewY    = s.ReadUShort();
     c.viewW    = s.ReadUShort();
     c.viewH    = s.ReadUShort();
+    // CHAS/TARG/ROTA s'arrêtent ici (payload 0x30). VICT/WEAP ont une queue.
     while ((size_t)s.GetCurrentPosition() + 4 <= size)
         c.params.push_back(s.ReadInt32LE());
     out.push_back(c);
@@ -115,17 +116,21 @@ void RSWorld::parseWRLD_CAMR_ROTA(uint8_t *data, size_t size) {
 }
 
 void RSWorld::parseWRLD_CAMR_CKPT(uint8_t *data, size_t size) {
+    // sub_859C7 -> sub_85ACB. Payload 0x24 : nom + gap 2 + sujet + art cockpit +
+    // farClip + fov + un dword. Pas de rect viewport (vue première personne).
     ByteStream s(data, size);
     RSCameraDef c;
     c.typeCode   = 4;
     c.name       = s.ReadString(8);                     // "COCKPIT"
-    s.ReadUShort();                                    // +0x08
+    s.MoveForward(2);
     c.subject    = s.ReadString(8);                     // "PLAYER"
     c.cockpitArt = s.ReadString(8);                     // "F16-CKPT"
-    c.farClip    = s.ReadUInt32LE();                   // 50000
-    c.fov        = s.ReadUShort();                     // 35 (0x23)
+    c.farClip    = s.ReadUInt32LE();
+    c.fov        = s.ReadUShort();
+    if ((size_t)s.GetCurrentPosition() + 4 <= size)
+        c.nearClip = s.ReadUInt32LE();
     while ((size_t)s.GetCurrentPosition() + 4 <= size)
-        c.params.push_back(s.ReadInt32LE());           // 1024
+        c.params.push_back(s.ReadInt32LE());
     this->cameras.push_back(c);
 }
 

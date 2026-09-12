@@ -117,7 +117,7 @@ void RSProf::parsePROF__AI_MVRS(uint8_t *data, size_t size) {
     stream.Set(data, size);
 
     while (stream.GetPosition() < data + size) {
-        this->ai.mvrs.push_back(AI_STATE{stream.ReadByte(), stream.ReadByte()});
+        this->ai.mvrs.push_back(AI_STATE{stream.ReadByte(), (int8_t)stream.ReadByte()});
     }
 }
 void RSProf::parsePROF__AI_GOAL(uint8_t *data, size_t size) {
@@ -136,15 +136,15 @@ void RSProf::parsePROF__AI_ATRB(uint8_t *data, size_t size) {
         return;
     }
     if (size == 1) {
-        this->ai.atrb.TH = 0;
-        this->ai.atrb.CN = 0;
-        this->ai.atrb.VB = 0;
-        this->ai.atrb.LY = 0;
-        this->ai.atrb.FL = 0;
-        this->ai.atrb.AG = 0;
-        this->ai.atrb.AA = 0;
-        this->ai.atrb.SM = 0;
-        this->ai.atrb.AR = 0;
+        this->ai.atrb.TH = 8;
+        this->ai.atrb.CN = 8;
+        this->ai.atrb.VB = 8;
+        this->ai.atrb.LY = 8;
+        this->ai.atrb.FL = 10;
+        this->ai.atrb.AG = 10;
+        this->ai.atrb.AA = 10;
+        this->ai.atrb.SM = 8;
+        this->ai.atrb.AR = 8;
         return;
     }
     stream.Set(data, size);

@@ -1,6 +1,7 @@
 #include "precomp.h"
 #include <limits>
 #include "SCMission.h"
+#include "../engine/gametimer.h"
 
 SCMission::SCMission() {
     this->camera_director = new SCCameraDirector();
@@ -372,19 +373,9 @@ RSEntity * SCMission::LoadEntity(std::string name) {
     return nullptr;
 }
 void SCMission::update() {
-    uint32_t current_time = SDL_GetTicks();
-    uint32_t elapsed_time = (current_time - this->last_time) / 1000;
-    uint32_t newtps = 0;
+    
     this->messageBus.processEvents();
-    if (elapsed_time > 1) {
-        uint32_t ticks = this->tick_counter - this->last_tick;
-        newtps = ticks / elapsed_time;
-        this->last_time = current_time;
-        this->last_tick = this->tick_counter;
-        if (newtps > this->tps / 2) {    
-            this->tps = newtps;
-        }
-    }
+    this->tps = 1.0f/GameTimer::getInstance().getDeltaTime();
     if (this->mission_ended) {
         return;
     }
@@ -399,6 +390,8 @@ void SCMission::update() {
         this->current_area_id = area_id;
     }
     MissionUpdateEvent mission_update_event;
+    mission_update_event.delta_time = GameTimer::getInstance().getDeltaTime();
+    mission_update_event.tick = this->tick_counter;
     mission_update_event.area_id = area_id;
     mission_update_event.mission = this;
     this->messageBus.publish(std::make_unique<MissionUpdateEvent>(mission_update_event));

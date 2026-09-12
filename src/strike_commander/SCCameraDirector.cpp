@@ -31,6 +31,13 @@ SCCameraDirector::~SCCameraDirector() {
 void SCCameraDirector::init(RSWorld *w, SCPlane *player) {
     this->world = w;
     this->player_entity = player;
+
+    if (SCCameraSequence::s_debug && this->world != nullptr) {
+        printf("[COMP] %zu sequences COMP dans le monde :\n", this->world->cameraSequences.size());
+        for (size_t i = 0; i < this->world->cameraSequences.size(); i++) {
+            SCCameraSequence::dumpProgram(this->world->cameraSequences[i]);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -39,10 +46,15 @@ void SCCameraDirector::init(RSWorld *w, SCPlane *player) {
 
 void SCCameraDirector::onEvent(const EventMessage &event) {
     const CameraViewRequest *request = dynamic_cast<const CameraViewRequest *>(&event);
-    if (request == nullptr) {
+    if (auto eventData = dynamic_cast<const CameraViewRequest*>(&event)) {
+        this->onViewRequest(*eventData);
         return;
     }
-    this->onViewRequest(*request);
+    if (auto eventData = dynamic_cast<const MissionUpdateEvent*>(&event)) {
+        this->tick(eventData->delta_time);
+        return;
+    }
+    
 }
 
 void SCCameraDirector::onViewRequest(const CameraViewRequest &request) {

@@ -1866,11 +1866,6 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
 void SCStrike::runFrame(void) {
     Mixer.setVolume(5,5);
     this->checkKeyboard();
-    // Le directeur de caméra tourne inconditionnellement (indépendant de la garde
-    // pause / AUTO_PILOT ci-dessous), dt réel.
-    this->current_mission->camera_director->tick(GameTimer::getInstance().getDeltaTime());
-    // Le directeur fait autorité sur la vue : on recopie dans camera_mode quand
-    // elle change (début séquence -> CAM_DIRECTOR, fin -> vue de reprise).
     View director_view = this->current_mission->camera_director->currentView();
     if (director_view != this->last_director_view) {
         this->camera_mode = director_view;
