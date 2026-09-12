@@ -48,9 +48,8 @@ static float ro[75] = {
 
 class SCMissionActors;
 class SCMission;
-// Ajoutez ces déclarations dans SCPlane.h
 class SCWeaponPredictor;
-
+class PlaneControlEvent;
 
 struct SCWeaponLoadoutHardPoint {
     RSEntity *objct;
@@ -160,6 +159,11 @@ protected:
     // Trajectoire actuellement affichée
     bool is_showing_trajectory{false};
     int trajectory_display_counter{0};
+
+    MessageBus &messageBus = MessageBus::getInstance();
+    void onEvent(const EventMessage &event);
+    void onPlaneControl(const PlaneControlEvent &event);
+    MessageBus::SubscriptionId subscription_id{-1};
 public:
     std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>> system_health;
     short alive;
