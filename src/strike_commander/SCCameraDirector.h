@@ -28,25 +28,24 @@ struct CameraViewDesc {
 // SCCameraDirector
 // ----------------
 // Possède la caméra logique du jeu. Miroir du registre de caméras 0x59CD de
-// l'assembleur : reçoit des demandes de vue nommées (CameraViewRequest), exécute
-// la séquence COMP active une frame à la fois, et publie CameraViewChanged à la
-// fin d'une séquence (vue de reprise).
+// l'assembleur : reçoit des demandes de vue nommées (CameraViewRequest) et
+// délègue tout le calcul à une SCProceduralCamera — cf. SCProceduralCamera.h.
+// Une instance par entrée RÉELLEMENT PRÉSENTE dans le monde chargé, créée
+// dans init() : une par RSCameraDef (CHASE/TARGET/ROTA/...) via
+// createProceduralCamera(), une par RSCameraSequence (COMP) via
+// SCSequenceCamera — jamais construite en dur, toujours pilotée par les
+// données du fichier WRLD. active_camera pointe toujours vers l'une d'elles
+// (jamais nullptr — une caméra "vide" par défaut) : tick() ne fait plus
+// qu'un seul appel polymorphe, fermé pour toujours, quelle que soit la
+// caméra ajoutée.
 //
 // Possédé par SCMission (durée de vie = celle de la mission). Tické via
 // MissionUpdateEvent (delta_time réel) — donc suspendu en pause / AUTO_PILOT,
-// comme le reste de la simulation. Gère deux familles de vues :
-//   - séquences scriptées COMP (STARTCAM...)         -> this->sequence
-//   - vues procédurales du registre CAMR (CHASE...)  -> procedural_cameras
-// Une caméra procédurale = une SCProceduralCamera (cf. SCProceduralCamera.h),
-// une par RSCameraType, enregistrée une fois dans le constructeur. Ajouter
-// une caméra (TARGET, ROTA...) = écrire une sous-classe + l'enregistrer ;
-// tick() et activateProceduralCamera() ci-dessous ne changent plus jamais.
+// comme le reste de la simulation.
 //
-// Dans les deux cas la vue active est publiée comme View::CAM_DIRECTOR ;
-// SCStrike compare currentView() à la frame précédente et bascule
-// camera_mode tout seul (aucune modif requise côté SCStrike).
-//
-// SCStrike : si isRunningSequence() ou vue procédurale active ->
+// La vue active (COMP ou procédurale) est toujours publiée comme
+// View::CAM_DIRECTOR ; SCStrike compare currentView() à la frame précédente
+// et bascule camera_mode tout seul (aucune modif requise côté SCStrike) :
 // camera->SetPosition(&director.position()) ; camera->lookAt(&director.aimPoint(),
 // &director.up()) ; puis compose le rendu d'après director.viewDesc().
 //
@@ -57,59 +56,56 @@ public:
 
     void init(RSWorld *world, SCPlane *player_entity);
 
-    // Appelé par onEvent() sur chaque MissionUpdateEvent (dt réel) ; ne fait
-    // rien si aucune vue COMP/procédurale n'est active.
+    // Appelé par onEvent() sur chaque MissionUpdateEvent (dt réel) ; simple
+    // délégation polymorphe à la caméra active (jamais nullptr).
     void tick(float dt);
 
-    // Valides quand isRunningSequence() ou qu'une vue procédurale (CHASE...)
-    // est active — currentView() vaut alors View::CAM_DIRECTOR : appliquer via
+    // Valides quand currentView() == View::CAM_DIRECTOR : appliquer via
     // camera->SetPosition(&pos) ; camera->lookAt(&aim, &up).
     const Vector3D       &position() const;
     const Vector3D       &aimPoint() const;
     const Vector3D       &up() const;
 
+    // FOV vertical (degrés) de la caméra active, tel que lu dans le fichier
+    // (RSCameraDef::fov) — SCStrike l'applique à Renderer.camera.fovy quand
+    // currentView() == View::CAM_DIRECTOR, à la place de son toggle
+    // zoom_cockpit habituel (qui reste la source pour les vues non
+    // scriptées, sans backing fichier).
+    float fov() const;
+
+    static bool s_debug;   // true = trace chaque appel à fov() au stdout
+
     const CameraViewDesc &viewDesc() const;
     View                  currentView() const;
-    bool                  isRunningSequence() const;
 
 private:
     void onEvent(const EventMessage &event);
-    // Aiguilleur : une CameraViewRequest -> soit une séquence COMP nommée,
-    // soit une entrée du registre CAMR (world->cameras, cherchée par
-    // typeCode — miroir de Kneeboard_SelectByStateCode), soit une vue brute
-    // sans backing fichier (FRONT/LEFT/RIGHT/REAR...).
+    // Aiguilleur : une CameraViewRequest -> retrouve la SCProceduralCamera
+    // correspondante (par nom pour une séquence COMP, par typeCode pour une
+    // entrée CAMR — miroir de Kneeboard_SelectByID / SelectByStateCode),
+    // sinon une vue brute sans backing fichier (FRONT/LEFT/RIGHT/REAR...).
+    // Ajouter une caméra ne fait jamais grossir cette fonction : la
+    // résolution reste par nom/type, générique.
     void onViewRequest(const CameraViewRequest &request);
 
-    // Retrouve l'entrée CAMR d'un type donné (RSCameraType) dans le monde
-    // chargé. nullptr si ce type n'existe pas dans la mission (comme le jeu
-    // d'origine : Kneeboard_RenderByCode ne trouve rien -> pas de bascule).
-    const RSCameraDef *findCameraDef(RSCameraType type_code) const;
+    // Fabrique la SCProceduralCamera correspondant à def->typeCode (une par
+    // RSCameraDef du monde, cf. init()). nullptr si le type n'est pas
+    // (encore) câblé côté C++ (CKPT/VICT/WEAP/CONT) — l'entrée du fichier
+    // est alors ignorée plutôt que de planter.
+    SCProceduralCamera *createProceduralCamera(const RSCameraDef *def) const;
 
-    // Retrouve la SCProceduralCamera enregistrée pour ce type, nullptr si
-    // aucune (type reconnu par le fichier mais pas encore câblé ici).
-    SCProceduralCamera *findProceduralCamera(RSCameraType type_code) const;
+    SCProceduralCamera *findCameraByType(RSCameraType type_code) const;
+    SCProceduralCamera *findCameraByName(const std::string &name) const;
 
-    // Coupe la caméra procédurale active (active_procedural = nullptr) avant
-    // d'activer une vue simple ou une séquence COMP.
-    void deactivateProceduralViews();
-
+    // Bascule sur `cam` (jamais nullptr) : activate() seulement si on
+    // change réellement de caméra, publie le changement de vue.
+    void activateCamera(SCProceduralCamera *cam, SCPlane *subject);
     void activateSimpleView(View view);
-    void activateSequence(const CameraViewRequest &request);
-    void tickSequence(float dt);
 
-    // Dispatch une entrée CAMR trouvée par findCameraDef() vers la
-    // SCProceduralCamera de son typeCode ; resolveEntity(entry.subject)
-    // donne le sujet (au lieu d'un "PLAYER" en dur). Type reconnu par le
-    // fichier mais pas encore câblé -> repli sur activateSimpleView(request.view).
-    void activateProceduralCamera(const RSCameraDef &entry, const CameraViewRequest &request);
-
-    // Retrouve une RSCameraSequence par nom dans le monde.
-    const RSCameraSequence *findSequence(const std::string &name) const;
     // Résout une entité par nom ASCII ("PLAYER" ...) pour OP_IA_BIND_ENTITY /
     // RSCameraDef::subject.
     SCPlane *resolveEntity(const std::string &name) const;
 
-    void setView(View view, const std::string &reason);
     void publishViewChanged(View view, const std::string &reason);
 
     long long subscription_id{-1};   // MessageBus::SubscriptionId
@@ -119,14 +115,16 @@ private:
 
     View            current_view{View::FRONT};
     CameraViewDesc  view_desc;
-    SCCameraSequence sequence;
     Vector3D        out_pos;
     Vector3D        out_aim;
     Vector3D        out_up;
 
-    // Une instance par RSCameraType procédural câblé, possédée par le
-    // directeur (détruites dans ~SCCameraDirector). active_procedural
-    // pointe vers l'une d'elles (ou nullptr si COMP/vue simple active).
+    // Une instance par entrée de registre réellement chargée depuis le
+    // monde (une par RSCameraDef, une par RSCameraSequence — cf. init()),
+    // possédée par le directeur (détruites dans ~SCCameraDirector).
+    // active_camera pointe vers l'une d'elles, ou vers null_camera (vue
+    // simple / aucune vue procédurale) — jamais nullptr.
     std::vector<SCProceduralCamera *> procedural_cameras;
-    SCProceduralCamera               *active_procedural{nullptr};
+    SCProceduralCamera                *null_camera{nullptr};
+    SCProceduralCamera                *active_camera{nullptr};
 };

@@ -3,10 +3,6 @@
 
 bool SCChaseCamera::s_debug = true;
 
-RSCameraType SCChaseCamera::typeCode() const {
-    return RSCAM_CHAS;
-}
-
 const char *SCChaseCamera::debugLabel() const {
     return "[CHASE]";
 }

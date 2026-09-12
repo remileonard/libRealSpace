@@ -3,10 +3,6 @@
 
 bool SCTargetCamera::s_debug = true;
 
-RSCameraType SCTargetCamera::typeCode() const {
-    return RSCAM_TARG;
-}
-
 const char *SCTargetCamera::debugLabel() const {
     return "[TARGET]";
 }

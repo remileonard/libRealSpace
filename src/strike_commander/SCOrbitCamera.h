@@ -1,5 +1,6 @@
 #pragma once
 #include "SCProceduralCamera.h"
+#include "../realspace/RSWorld.h"   // RSCameraDef
 
 //
 // Base commune aux caméras orbitales du registre CAMR — CHASE, TARGET, et
@@ -12,12 +13,24 @@
 //   - CHASE / TARGET : identité (pas de rotation joueur)
 //   - ROTA           : tournée par les entrées joueur (souris/joystick),
 //                       cf. SCRotaCamera — pas encore câblé.
-// Les sous-classes n'ont donc à fournir que typeCode() + les deux hooks de
-// debug ; ROTA en plus surcharge tick() pour tourner `orbit` avant d'appeler
-// la version de base.
+//
+// Une instance par RSCameraDef réellement présent dans le monde chargé
+// (cf. SCCameraDirector::init()) : `def` porte le nom, le typeCode, le
+// sujet déclaré, le fov, les plans de clip et le rect de viewport TELS QUE
+// LUS DU FICHIER — ce n'est plus le directeur qui va piocher un champ à la
+// fois, l'objet caméra EST sa définition fichier. typeCode()/name() sont
+// dérivés de `def`, pas dupliqués en dur par sous-classe.
 //
 class SCOrbitCamera : public SCProceduralCamera {
 public:
+    explicit SCOrbitCamera(const RSCameraDef *def);
+
+    RSCameraType              typeCode() const override;
+    const std::string        &name() const override;         // def->name ("CHASECAM"/"ROTATCAM"/"AUTOTRAC")
+    const std::string        &subjectName() const override;  // def->subject — résolu par le directeur
+    float                     fov() const override;           // def->fov (degrés) — utilisable tel quel
+    const RSCameraDef        &definition() const;             // accès complet (fov, clips, viewport, params...)
+
     void activate(SCPlane *subject) override;
     void tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3D &out_up) override;
 
@@ -27,6 +40,8 @@ protected:
     // pour pouvoir les activer/désactiver indépendamment.
     virtual const char *debugLabel() const = 0;
     virtual bool debugEnabled() const = 0;
+
+    const RSCameraDef *def;   // dans world->cameras ; durée de vie = le monde
 
     SCPlane  *subject{nullptr};
     Matrix    orbit;                       // identité par défaut ; ROTA la tourne

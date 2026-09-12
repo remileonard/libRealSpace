@@ -1,30 +1,54 @@
 #pragma once
+#include <string>
 #include "../realspace/RSWorld.h"   // RSCameraType
 
 class SCPlane;
 
 //
-// Interface d'une caméra procédurale du registre CAMR (CHASE, bientôt
-// TARGET, ROTA...). Miroir du slot de vtable ASM qui calcule la position et
-// l'orientation par frame pour un type de caméra donné — cf.
-// CAMERA_SYSTEM.md §3.3/§4bis (chaque type d'entrée CAMR a sa propre
-// vtable/son propre calcul dans le jeu d'origine).
+// Interface d'une caméra du registre — CHASE/TARGET/ROTA (CAMR) aussi bien
+// que les séquences scriptées COMP (STARTCAM/TAKEOFF/...). Miroir du
+// registre ASM 0x59CD : chaque entrée y a un code de type (recherche façon
+// Kneeboard_SelectByStateCode) ET un nom/ID (recherche façon
+// Kneeboard_SelectByID/FindByID) — cf. CAMERA_SYSTEM.md §2.6/§3.3/§4bis.
 //
-// Une instance par type, enregistrée une fois dans
-// SCCameraDirector::procedural_cameras. Ajouter une caméra = écrire une
-// nouvelle sous-classe + l'enregistrer ; SCCameraDirector::tick() et
-// activateProceduralCamera() ne changent plus jamais.
+// Une instance par entrée de registre RÉELLEMENT PRÉSENTE dans le monde
+// chargé — cf. SCCameraDirector::init(), qui construit une caméra par
+// RSCameraDef (CHASE/TARGET/ROTA) et par RSCameraSequence (COMP). Un type
+// qui n'existe pas dans le fichier de la mission n'a simplement pas
+// d'instance : findCameraByType()/findCameraByName() ne le trouveront pas,
+// exactement comme Kneeboard_RenderByCode dans le jeu d'origine.
+// SCCameraDirector::tick() ne fait plus que déléguer à la caméra active :
+// ajouter une caméra n'y touche plus jamais.
 //
 class SCProceduralCamera {
 public:
     virtual ~SCProceduralCamera() {}
 
-    // RSCameraType géré par cette instance (RSCAM_CHAS, RSCAM_TARG...).
+    // RSCameraType géré par cette instance (RSCAM_CHAS, RSCAM_TARG,
+    // RSCAM_COMP pour toute séquence scriptée...).
     virtual RSCameraType typeCode() const = 0;
 
+    // Nom/ID dans le registre (ex. "STARTCAM"/"TAKEOFF" pour une séquence
+    // COMP, "CHASECAM"/"ROTATCAM"/"AUTOTRAC" pour une entrée CAMR — tel que
+    // déclaré dans le fichier). Défaut : chaîne vide.
+    virtual const std::string &name() const;
+
+    // Nom de l'entité sujet TEL QUE DÉCLARÉ DANS LE FICHIER
+    // (RSCameraDef::subject, ex. "PLAYER") — utilisé par le directeur comme
+    // repli quand la CameraViewRequest ne fournit pas explicitement de
+    // sujet. Défaut : chaîne vide (séquences COMP : le sujet vient du
+    // script/de la requête, pas d'un champ de définition).
+    virtual const std::string &subjectName() const;
+
+    // FOV vertical en degrés TEL QUE DÉCLARÉ DANS LE FICHIER
+    // (RSCameraDef::fov, ex. 40 pour CHASECAM) — le champ est utilisable
+    // directement, sans transformation (contrairement à viewX/Y/W/H : voir
+    // le commentaire de RSCameraDef). Défaut : 45.0f (valeur non-zoom déjà
+    // utilisée par SCStrike pour les vues sans backing fichier).
+    virtual float fov() const;
+
     // Appelé UNE SEULE FOIS, au moment où l'on bascule SUR cette caméra
-    // depuis une autre vue (pas à chaque frame) : pose l'état initial
-    // (position de départ, distance, sujet suivi...).
+    // depuis une autre (pas à chaque frame) : pose l'état initial.
     virtual void activate(SCPlane *subject) = 0;
 
     // Appelé à chaque frame tant que cette caméra est active ; écrit la

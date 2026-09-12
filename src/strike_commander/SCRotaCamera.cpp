@@ -3,10 +3,6 @@
 
 bool SCRotaCamera::s_debug = true;
 
-RSCameraType SCRotaCamera::typeCode() const {
-    return RSCAM_ROTA;
-}
-
 void SCRotaCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3D &out_up) {
     // TODO(entrée joueur) : tourner `this->orbit` selon la souris/joystick
     // (Matrix_BuildAxisZ/X sur dx/dy, bornées par les limites d'angle du

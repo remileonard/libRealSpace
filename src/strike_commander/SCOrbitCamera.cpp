@@ -10,7 +10,13 @@
 // dans les chunks CAMR CHAS/ROTA/TARG (confirmé sur les dumps
 // data/ALASKA.WRLD.CAMR.{CHAS,ROTA,TARG}.DAT, slot look-at à zéro) ni dans
 // REAL/OBJT/INFO (confirmé vide par Rémi) — c'est une géométrie calculée
-// depuis le modèle, d'où boundingSize() ci-dessous.
+// depuis le modèle, d'où boundingSize() ci-dessous. fov/farClip/nearClip/
+// viewport SONT en revanche des données fichier réelles : def porte le
+// RSCameraDef complet (cf. definition()) — à consommer côté rendu via le
+// même chemin de mise à l'échelle résolution-indépendant que
+// Renderer::bindCameraProjectionAndViewViewport (SCStrike.cpp), PAS en
+// mappant viewX/Y/W/H (relatifs à la résolution d'origine 320x200)
+// directement sur des pixels d'écran.
 
 static float boundingSize(RSEntity *entity) {
     if (entity == nullptr) {
@@ -43,12 +49,36 @@ static RSEntity *planeEntity(SCPlane *subject) {
     return subject->object->entity;
 }
 
+SCOrbitCamera::SCOrbitCamera(const RSCameraDef *def) : def(def) {
+}
+
+RSCameraType SCOrbitCamera::typeCode() const {
+    return this->def->typeCode;
+}
+
+const std::string &SCOrbitCamera::name() const {
+    return this->def->name;
+}
+
+const std::string &SCOrbitCamera::subjectName() const {
+    return this->def->subject;
+}
+
+float SCOrbitCamera::fov() const {
+    return this->def->fov;
+}
+
+const RSCameraDef &SCOrbitCamera::definition() const {
+    return *this->def;
+}
+
 void SCOrbitCamera::activate(SCPlane *subject) {
     this->subject = subject;
     this->orbit.Identity();
     if (subject == nullptr) {
         if (this->debugEnabled()) {
-            printf("%s activate subject=NULL -> subject reste NULL, rien d'autre initialisé\n", this->debugLabel());
+            printf("%s activate name='%s' subject=NULL -> subject reste NULL, rien d'autre initialisé\n",
+                   this->debugLabel(), this->def->name.c_str());
         }
         return;
     }
@@ -60,8 +90,10 @@ void SCOrbitCamera::activate(SCPlane *subject) {
     // démarre déjà sur la position idéale, le lissage ne joue qu'ensuite.
     this->cam_pos = subjectPos - axis * this->dist;
     if (this->debugEnabled()) {
-        printf("%s activate subject=%p entity=%p size=%.3f dist=%.3f subjPos=(%.3f,%.3f,%.3f) axis=(%.3f,%.3f,%.3f) camPos0=(%.3f,%.3f,%.3f)\n",
-               this->debugLabel(), (void *)subject, (void *)planeEntity(subject), size, this->dist,
+        printf("%s activate name='%s' fov=%.3f view=(%u,%u,%u,%u) subject=%p entity=%p size=%.3f dist=%.3f subjPos=(%.3f,%.3f,%.3f) axis=(%.3f,%.3f,%.3f) camPos0=(%.3f,%.3f,%.3f)\n",
+               this->debugLabel(), this->def->name.c_str(), this->def->fov,
+               this->def->viewX, this->def->viewY, this->def->viewW, this->def->viewH,
+               (void *)subject, (void *)planeEntity(subject), size, this->dist,
                subjectPos.x, subjectPos.y, subjectPos.z,
                axis.x, axis.y, axis.z,
                this->cam_pos.x, this->cam_pos.y, this->cam_pos.z);

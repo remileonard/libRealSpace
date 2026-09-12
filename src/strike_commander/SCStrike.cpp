@@ -1937,7 +1937,12 @@ void SCStrike::runFrame(void) {
             return;
         }
     }
-    if (this->zoom_cockpit) {
+    if (this->camera_mode == View::CAM_DIRECTOR) {
+        // Vue pilotée par le directeur de caméra (CHASE/TARGET/ROTA/COMP) :
+        // le FOV vient du fichier (RSCameraDef::fov), pas du zoom cockpit.
+        Renderer.camera.fovy = this->current_mission->camera_director->fov();
+        Renderer.camera.update();
+    } else if (this->zoom_cockpit) {
         Renderer.camera.fovy = 30.0f;
         Renderer.camera.update();
     } else {

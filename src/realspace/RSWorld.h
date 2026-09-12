@@ -35,6 +35,7 @@ enum RSCameraType : uint8_t {
     RSCAM_ROTA    = 8,     // orbitale (recul + orbite pilotable par le joueur)
     RSCAM_TARG    = 9,     // cible verrouillée
     RSCAM_WEAP    = 0x0B,
+    RSCAM_COMP    = 0x13,  // séquence scriptée (STARTCAM/TAKEOFF/LANDING/AUTOPILT...) ; plusieurs entrées possibles, distinguées par nom
     RSCAM_UNKNOWN = 0x14,  // tag non reconnu par Cinematic_LoadCameraDef (ASM) ; défaut de RSCameraDef::typeCode
 };
 
@@ -43,9 +44,9 @@ struct RSCameraDef {
     RSCameraType         typeCode = RSCAM_UNKNOWN;
     std::string          subject;      // entité porteuse, ex. "PLAYER"
     std::string          cockpitArt;   // CKPT seul, ex. "F16-CKPT"
-    uint32_t             farClip  = 0; // 50000
-    uint16_t             fov      = 0; // 40
-    uint32_t             nearClip = 0; // dword ; contient ~10
+    float_t              farClip  = 0; // 50000
+    float                fov      = 0; // 40.0 (converti 8.8 -> degrés au décodage, cf. ByteStream::ReadFixedFloat16LE)
+    float                nearClip = 0; // dword ; contient ~10
     uint16_t             viewX = 0;
     uint16_t             viewY = 0;
     uint16_t             viewW = 0;
