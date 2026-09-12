@@ -17,6 +17,19 @@
 // Renderer::bindCameraProjectionAndViewViewport (SCStrike.cpp), PAS en
 // mappant viewX/Y/W/H (relatifs à la résolution d'origine 320x200)
 // directement sur des pixels d'écran.
+//
+// Le sujet est n'importe quel SCMissionActors (avion, bateau, bâtiment —
+// une cible verrouillée F7 peut être n'importe quel RSEntity, pas
+// seulement un SCPlane). Position/forward/bounding-box sont résolus
+// génériquement depuis l'acteur ci-dessous : `object` (MISN_PART*, position
+// + azymuth/pitch/roll + entity) existe pour TOUT acteur, `plane` seulement
+// pour un avion — quand il est présent on l'utilise (position/forward déjà
+// intégrés par la physique, plus précis), sinon on retombe sur `object`.
+//
+// Cette classe ne connaît QUE le sujet (recul basé sur sa taille, lookAt sur
+// lui-même) : aimPosition()/backwardAxis() sont les deux points d'extension
+// pour une caméra qui vise/recule différemment (cf. SCTargetCamera) — pas de
+// branche `if` ici, la classe de base reste fermée.
 
 static float boundingSize(RSEntity *entity) {
     if (entity == nullptr) {
@@ -32,21 +45,42 @@ static float boundingSize(RSEntity *entity) {
     return sqrt(sizeX * sizeX + sizeY * sizeY + sizeZ * sizeZ);
 }
 
-static float clampf(float value, float minValue, float maxValue) {
-    if (value < minValue) {
-        return minValue;
-    }
-    if (value > maxValue) {
-        return maxValue;
-    }
-    return value;
-}
-
-static RSEntity *planeEntity(SCPlane *subject) {
-    if (subject == nullptr || subject->object == nullptr) {
+RSEntity *SCOrbitCamera::actorEntity(SCMissionActors *actor) {
+    if (actor == nullptr || actor->object == nullptr) {
         return nullptr;
     }
-    return subject->object->entity;
+    return actor->object->entity;
+}
+
+Vector3D SCOrbitCamera::actorPosition(SCMissionActors *actor) {
+    if (actor->plane != nullptr) {
+        return Vector3D(actor->plane->x, actor->plane->y, actor->plane->z);
+    }
+    if (actor->object != nullptr) {
+        return actor->object->position;
+    }
+    return Vector3D(0.0f, 0.0f, 0.0f);
+}
+
+// Vecteur avant générique : `plane->forward` (intégré par la physique)
+// quand l'acteur est un avion, sinon reconstruit depuis l'orientation
+// placée du MISN_PART (azymuth/pitch/roll, en degrés), avec la même
+// convention d'axes que SCCameraSequence::buildOrientation/forwardFromAngles
+// (angles fichier : yaw puis pitch puis roll, base (0,0,-1)).
+Vector3D SCOrbitCamera::actorForward(SCMissionActors *actor) {
+    if (actor->plane != nullptr) {
+        return actor->plane->forward;
+    }
+    if (actor->object == nullptr) {
+        return Vector3D(0.0f, 0.0f, -1.0f);
+    }
+    Matrix orientation;
+    orientation.Identity();
+    orientation.rotateM(degreeToRad((float)actor->object->azymuth), 0.0f, 1.0f, 0.0f);
+    orientation.rotateM(degreeToRad((float)actor->object->pitch), 1.0f, 0.0f, 0.0f);
+    orientation.rotateM(degreeToRad((float)actor->object->roll), 0.0f, 0.0f, 1.0f);
+    Vector3D base(0.0f, 0.0f, -1.0f);
+    return base.transformPoint(orientation);
 }
 
 SCOrbitCamera::SCOrbitCamera(const RSCameraDef *def) : def(def) {
@@ -72,7 +106,17 @@ const RSCameraDef &SCOrbitCamera::definition() const {
     return *this->def;
 }
 
-void SCOrbitCamera::activate(SCPlane *subject) {
+Vector3D SCOrbitCamera::aimPosition(const Vector3D &subjectPos) const {
+    return subjectPos;
+}
+
+Vector3D SCOrbitCamera::backwardAxis(const Vector3D &subjectPos) const {
+    (void)subjectPos;
+    return SCOrbitCamera::actorForward(this->subject).transformPoint(this->orbit);
+}
+
+void SCOrbitCamera::activate(SCMissionActors *subject, SCMissionActors *target) {
+    (void)target;   // ignoré par la classe de base — cf. commentaire de tête de fichier
     this->subject = subject;
     this->orbit.Identity();
     if (subject == nullptr) {
@@ -82,10 +126,10 @@ void SCOrbitCamera::activate(SCPlane *subject) {
         }
         return;
     }
-    float size = boundingSize(planeEntity(subject));
+    float size = boundingSize(SCOrbitCamera::actorEntity(subject));
     this->dist = size * 2.0f;
-    Vector3D subjectPos(subject->x, subject->y, subject->z);
-    Vector3D axis = subject->forward.transformPoint(this->orbit);
+    Vector3D subjectPos = SCOrbitCamera::actorPosition(subject);
+    Vector3D axis = this->backwardAxis(subjectPos);
     // Pas de recul initial "à vide" (pas de swoop-in à l'activation) : on
     // démarre déjà sur la position idéale, le lissage ne joue qu'ensuite.
     this->cam_pos = subjectPos - axis * this->dist;
@@ -93,7 +137,7 @@ void SCOrbitCamera::activate(SCPlane *subject) {
         printf("%s activate name='%s' fov=%.3f view=(%u,%u,%u,%u) subject=%p entity=%p size=%.3f dist=%.3f subjPos=(%.3f,%.3f,%.3f) axis=(%.3f,%.3f,%.3f) camPos0=(%.3f,%.3f,%.3f)\n",
                this->debugLabel(), this->def->name.c_str(), this->def->fov,
                this->def->viewX, this->def->viewY, this->def->viewW, this->def->viewH,
-               (void *)subject, (void *)planeEntity(subject), size, this->dist,
+               (void *)subject, (void *)SCOrbitCamera::actorEntity(subject), size, this->dist,
                subjectPos.x, subjectPos.y, subjectPos.z,
                axis.x, axis.y, axis.z,
                this->cam_pos.x, this->cam_pos.y, this->cam_pos.z);
@@ -107,29 +151,30 @@ void SCOrbitCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3
         }
         return;
     }
-    Vector3D subjectPos(this->subject->x, this->subject->y, this->subject->z);
+    Vector3D subjectPos = SCOrbitCamera::actorPosition(this->subject);
 
-    float size    = boundingSize(planeEntity(this->subject));
+    float size    = boundingSize(SCOrbitCamera::actorEntity(this->subject));
     float distMin = size * 1.0f;
     float distMax = size * 4.0f;
     if (this->dist <= 0.0f) {
         this->dist = size * 2.0f;
     }
-    this->dist = clampf(this->dist, distMin, distMax);
+    this->dist = std::clamp(this->dist, distMin, distMax);
 
     // `orbit` = identité pour CHASE/TARGET ; tournée par ROTA avant l'appel
     // à cette méthode (cf. SCRotaCamera::tick).
-    Vector3D axis   = this->subject->forward.transformPoint(this->orbit);
-    Vector3D target = subjectPos - axis * this->dist;
+    Vector3D axis       = this->backwardAxis(subjectPos);
+    Vector3D desiredPos = subjectPos - axis * this->dist;
 
     // Lissage ASM : pos += (cible - pos) / 4 PAR FRAME. Mis à l'échelle du dt
     // réel (référence 25 fps, cf. CAMERA_SYSTEM.md §6.3) pour rester correct
     // à tout framerate plutôt que de dépendre du taux de MissionUpdateEvent.
-    float alpha = clampf((dt * 25.0f) / 4.0f, 0.0f, 1.0f);
+    float alpha = std::clamp((dt * 25.0f) / 4.0f, 0.0f, 1.0f);
     Vector3D camPosBefore = this->cam_pos;
-    this->cam_pos = this->cam_pos + (target - this->cam_pos) * alpha;
+    this->cam_pos = this->cam_pos + (desiredPos - this->cam_pos) * alpha;
 
-    Vector3D lookDir = subjectPos - this->cam_pos;
+    Vector3D aimPos = this->aimPosition(subjectPos);
+    Vector3D lookDir = aimPos - this->cam_pos;
     if (lookDir.Length() < 0.001f) {
         lookDir = axis * -1.0f;
     }
@@ -144,14 +189,15 @@ void SCOrbitCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3
     if (this->debugEnabled()) {
         static long frame = 0;
         frame = frame + 1;
-        printf("%s f=%ld dt=%.5f alpha=%.5f subjPos=(%.3f,%.3f,%.3f) axis=(%.3f,%.3f,%.3f) dist=%.3f target=(%.3f,%.3f,%.3f) camPos %.3f,%.3f,%.3f -> %.3f,%.3f,%.3f out_aim=(%.3f,%.3f,%.3f)\n",
+        printf("%s f=%ld dt=%.5f alpha=%.5f subjPos=(%.3f,%.3f,%.3f) axis=(%.3f,%.3f,%.3f) dist=%.3f desiredPos=(%.3f,%.3f,%.3f) camPos %.3f,%.3f,%.3f -> %.3f,%.3f,%.3f aimPos=(%.3f,%.3f,%.3f) out_aim=(%.3f,%.3f,%.3f)\n",
                this->debugLabel(), frame, dt, alpha,
                subjectPos.x, subjectPos.y, subjectPos.z,
                axis.x, axis.y, axis.z,
                this->dist,
-               target.x, target.y, target.z,
+               desiredPos.x, desiredPos.y, desiredPos.z,
                camPosBefore.x, camPosBefore.y, camPosBefore.z,
                this->cam_pos.x, this->cam_pos.y, this->cam_pos.z,
+               aimPos.x, aimPos.y, aimPos.z,
                out_aim.x, out_aim.y, out_aim.z);
     }
 }

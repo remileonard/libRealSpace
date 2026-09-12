@@ -69,9 +69,17 @@ static void readSimpleCamera(ByteStream &s, size_t size, bool lookAtGap,
     c.viewY    = s.ReadUShort();
     c.viewW    = s.ReadUShort();
     c.viewH    = s.ReadUShort();
-    // CHAS/TARG/ROTA s'arrêtent ici (payload 0x30). VICT/WEAP ont une queue.
+    // CHAS/TARG/ROTA s'arrêtent ici (payload 0x30). VICT/WEAP ont une queue
+    // d'offsets 24.8 (CAMERA_SYSTEM.md §2.4) mêlée à de petits params bruts
+    // (angle/marqueur) : un octet bas non nul signale un param brut, pas
+    // du 24.8 — converti ici, au décodage, jamais au runtime.
     while ((size_t)s.GetCurrentPosition() + 4 <= size) {
-        c.params.push_back(s.ReadInt32LE());
+        int32_t raw = s.ReadInt32LE();
+        if ((raw & 0xFF) != 0) {
+            c.params.push_back((float)raw);
+        } else {
+            c.params.push_back((float)raw / 256.0f);
+        }
     }
     out.push_back(c);
 }

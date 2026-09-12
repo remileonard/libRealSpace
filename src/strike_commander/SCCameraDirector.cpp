@@ -17,7 +17,7 @@
 class SCNullCamera : public SCProceduralCamera {
 public:
     RSCameraType typeCode() const override { return RSCAM_NONE; }
-    void activate(SCPlane *) override {}
+    void activate(SCMissionActors *, SCMissionActors *) override {}
     void tick(float, Vector3D &, Vector3D &, Vector3D &) override {}
 };
 
@@ -52,7 +52,7 @@ SCCameraDirector::~SCCameraDirector() {
     this->null_camera = nullptr;
 }
 
-void SCCameraDirector::init(RSWorld *w, SCPlane *player) {
+void SCCameraDirector::init(RSWorld *w, SCMissionActors *player) {
     this->world = w;
     this->player_entity = player;
 
@@ -123,11 +123,11 @@ void SCCameraDirector::onViewRequest(const CameraViewRequest &request) {
         if (cam == nullptr) {
             return;
         }
-        SCPlane *subject = request.subject;
+        SCMissionActors *subject = request.subject;
         if (subject == nullptr) {
             subject = this->resolveEntity("PLAYER");
         }
-        this->activateCamera(cam, subject);
+        this->activateCamera(cam, subject, request.target);
         return;
     }
 
@@ -139,11 +139,11 @@ void SCCameraDirector::onViewRequest(const CameraViewRequest &request) {
     if (request.camera_type != RSCAM_NONE) {
         SCProceduralCamera *cam = this->findCameraByType(request.camera_type);
         if (cam != nullptr) {
-            SCPlane *subject = request.subject;
+            SCMissionActors *subject = request.subject;
             if (subject == nullptr) {
                 subject = this->resolveEntity(cam->subjectName());
             }
-            this->activateCamera(cam, subject);
+            this->activateCamera(cam, subject, request.target);
             return;
         }
     }
@@ -169,14 +169,28 @@ SCProceduralCamera *SCCameraDirector::findCameraByName(const std::string &name) 
     return nullptr;
 }
 
-void SCCameraDirector::activateCamera(SCProceduralCamera *cam, SCPlane *subject) {
-    // activate() seulement à la transition VERS cette caméra (pas à chaque
-    // appui répété sur la même touche) : sinon on perdrait le lissage en
-    // repartant de zéro à chaque frame où la même vue est redemandée.
-    if (this->active_camera != cam) {
-        cam->activate(subject);
+void SCCameraDirector::activateCamera(SCProceduralCamera *cam, SCMissionActors *subject, SCMissionActors *target) {
+    // activate() à la transition VERS cette caméra (pas à chaque appui
+    // répété sur la même touche, sinon on perdrait le lissage en repartant
+    // de zéro à chaque frame où la même vue est redemandée) — MAIS AUSSI
+    // quand le sujet ou la cible changent alors que la caméra reste la
+    // même instance (TARGET : une seule SCProceduralCamera pour tout le
+    // typeCode ; reverrouiller une autre cible, ou inverser subject/target
+    // d'un appui F7 à l'autre, doit réinitialiser cam_pos/dist, pas être
+    // ignoré parce que c'est "la même caméra").
+    if (this->active_camera != cam || subject != this->active_subject || target != this->active_target) {
+        if (SCCameraDirector::s_debug) {
+            printf("[DIRECTOR] activateCamera typeCode=%d name='%s' subject %p -> %p target %p -> %p (camChanged=%d subjectChanged=%d targetChanged=%d)\n",
+                   (int)cam->typeCode(), cam->name().c_str(),
+                   (void *)this->active_subject, (void *)subject,
+                   (void *)this->active_target, (void *)target,
+                   this->active_camera != cam, subject != this->active_subject, target != this->active_target);
+        }
+        cam->activate(subject, target);
     }
     this->active_camera = cam;
+    this->active_subject = subject;
+    this->active_target = target;
 
     this->view_desc = CameraViewDesc();
     this->view_desc.view = View::CAM_DIRECTOR;
@@ -213,7 +227,7 @@ void SCCameraDirector::tick(float dt) {
 //  Résolution
 // ---------------------------------------------------------------------------
 
-SCPlane *SCCameraDirector::resolveEntity(const std::string &name) const {
+SCMissionActors *SCCameraDirector::resolveEntity(const std::string &name) const {
     if (name == "PLAYER") {
         return this->player_entity;
     }
@@ -264,4 +278,12 @@ const CameraViewDesc &SCCameraDirector::viewDesc() const {
 
 View SCCameraDirector::currentView() const {
     return this->current_view;
+}
+
+RSCameraType SCCameraDirector::activeCameraType() const {
+    return this->active_camera->typeCode();
+}
+
+SCMissionActors *SCCameraDirector::activeSubject() const {
+    return this->active_subject;
 }

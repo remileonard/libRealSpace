@@ -1212,7 +1212,24 @@ void SCStrike::checkKeyboard(void) {
     
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
-        this->camera_mode = View::TARGET;
+        //this->camera_mode = View::TARGET;
+        CameraViewRequest target_req;
+        this->camera_mode = View::CAM_DIRECTOR;
+        target_req.camera_type = RSCameraType::RSCAM_TARG;
+
+        SCMissionActors *player = this->current_mission->player;
+        SCMissionActors *enemy  = player->target;
+        bool already_on_target = this->current_mission->camera_director->activeCameraType() == RSCameraType::RSCAM_TARG;
+        bool player_is_subject = this->current_mission->camera_director->activeSubject() == player;
+
+        if (already_on_target && player_is_subject) {
+            target_req.subject = enemy;
+            target_req.target  = player;
+        } else {
+            target_req.subject = player;
+            target_req.target  = enemy;
+        }
+        MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(target_req));
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND))) {
         /*if (this->camera_mode != View::FOLLOW) {
@@ -1225,7 +1242,7 @@ void SCStrike::checkKeyboard(void) {
         CameraViewRequest chase;
         this->camera_mode = View::CAM_DIRECTOR;
         chase.camera_type = RSCameraType::RSCAM_CHAS;   // = 3, défini dans RSWorld.h
-        chase.subject = this->player_plane;
+        chase.subject = this->current_mission->player;
         MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(chase));
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
@@ -1714,7 +1731,7 @@ void SCStrike::setMission(char const *missionName) {
     CameraViewRequest startcam;
     startcam.view = View::CAM_DIRECTOR;
     startcam.sequence_name = "STARTCAM";
-    startcam.subject = this->player_plane;
+    startcam.subject = this->current_mission->player;
     MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(startcam));
 }
 void SCStrike::setCameraFront() {

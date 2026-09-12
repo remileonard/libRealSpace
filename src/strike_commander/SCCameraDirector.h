@@ -8,7 +8,7 @@
 #include "SCProceduralCamera.h"
 
 class RSWorld;
-class SCPlane;
+class SCMissionActors;
 class SCMission;
 
 //
@@ -54,7 +54,7 @@ public:
     SCCameraDirector();
     ~SCCameraDirector();
 
-    void init(RSWorld *world, SCPlane *player_entity);
+    void init(RSWorld *world, SCMissionActors *player_entity);
 
     // Appelé par onEvent() sur chaque MissionUpdateEvent (dt réel) ; simple
     // délégation polymorphe à la caméra active (jamais nullptr).
@@ -78,6 +78,13 @@ public:
     const CameraViewDesc &viewDesc() const;
     View                  currentView() const;
 
+    // Type et sujet de la caméra active — permet à l'appelant (ex. SCStrike,
+    // pour inverser subject/target d'un appui F7 à l'autre) de connaître
+    // l'état courant sans dupliquer un flag séparé qui pourrait se
+    // désynchroniser : le directeur reste la seule source de vérité.
+    RSCameraType     activeCameraType() const;
+    SCMissionActors *activeSubject() const;
+
 private:
     void onEvent(const EventMessage &event);
     // Aiguilleur : une CameraViewRequest -> retrouve la SCProceduralCamera
@@ -99,19 +106,19 @@ private:
 
     // Bascule sur `cam` (jamais nullptr) : activate() seulement si on
     // change réellement de caméra, publie le changement de vue.
-    void activateCamera(SCProceduralCamera *cam, SCPlane *subject);
+    void activateCamera(SCProceduralCamera *cam, SCMissionActors *subject, SCMissionActors *target);
     void activateSimpleView(View view);
 
     // Résout une entité par nom ASCII ("PLAYER" ...) pour OP_IA_BIND_ENTITY /
     // RSCameraDef::subject.
-    SCPlane *resolveEntity(const std::string &name) const;
+    SCMissionActors *resolveEntity(const std::string &name) const;
 
     void publishViewChanged(View view, const std::string &reason);
 
     long long subscription_id{-1};   // MessageBus::SubscriptionId
 
     RSWorld  *world{nullptr};
-    SCPlane *player_entity{nullptr};
+    SCMissionActors *player_entity{nullptr};
 
     View            current_view{View::FRONT};
     CameraViewDesc  view_desc;
@@ -127,4 +134,12 @@ private:
     std::vector<SCProceduralCamera *> procedural_cameras;
     SCProceduralCamera                *null_camera{nullptr};
     SCProceduralCamera                *active_camera{nullptr};
+
+    // Sujet/cible passés au dernier activate() réel — permet à
+    // activateCamera() de détecter un changement à caméra inchangée (ex.
+    // TARGET : une seule instance, verrouiller une autre cible ou inverser
+    // subject/target doit réinitialiser la caméra, pas être ignoré parce
+    // que c'est "la même caméra").
+    SCMissionActors *active_subject{nullptr};
+    SCMissionActors *active_target{nullptr};
 };

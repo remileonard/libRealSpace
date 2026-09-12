@@ -23,8 +23,13 @@ const std::string &SCSequenceCamera::name() const {
     return this->def->name;
 }
 
-void SCSequenceCamera::activate(SCPlane *subject) {
-    this->sequence.start(this->def, subject);
+void SCSequenceCamera::activate(SCMissionActors *subject, SCMissionActors *target) {
+    // Les séquences COMP (STARTCAM/TAKEOFF/LANDING/AUTOPILT) sont toujours
+    // liées à l'avion du joueur (OP_IA_BIND_ENTITY) : SCCameraSequence
+    // reste en SCPlane*, pas de généralisation nécessaire ici. `target` ne
+    // concerne pas les séquences scriptées (ignoré).
+    (void)target;
+    this->sequence.start(this->def, subject != nullptr ? subject->plane : nullptr);
 }
 
 void SCSequenceCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3D &out_up) {

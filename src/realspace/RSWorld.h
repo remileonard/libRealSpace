@@ -51,7 +51,14 @@ struct RSCameraDef {
     uint16_t             viewY = 0;
     uint16_t             viewW = 0;
     uint16_t             viewH = 0;  // rect de rendu (0, 0, 319, 199)
-    std::vector<int32_t> params;       // VICT/WEAP : payload étendue (offsets 24.8 relatifs au sujet)
+    // VICT/WEAP : queue étendue après l'en-tête commun (CAMERA_SYSTEM.md
+    // §2.4). Chaque i32 brut est soit un offset 24.8 relatif au sujet
+    // (converti /256 au décodage), soit un petit param séparé (angle /
+    // marqueur, repéré par un octet bas non nul dans le fichier — PAS du
+    // 24.8, gardé tel quel). Les deux cas sont résolus ici, au décodage
+    // (cf. readSimpleCamera dans RSWorld.cpp) : `params` ne contient plus
+    // que des valeurs directement utilisables, jamais de brut 24.8.
+    std::vector<float>   params;
 };
 
 

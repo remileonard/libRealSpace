@@ -21,7 +21,7 @@ public:
 
     RSCameraType       typeCode() const override;
     const std::string &name() const override;
-    void                activate(SCPlane *subject) override;
+    void                activate(SCMissionActors *subject, SCMissionActors *target) override;
     void                tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3D &out_up) override;
 
 private:

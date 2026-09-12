@@ -2,7 +2,7 @@
 #include <string>
 #include "../realspace/RSWorld.h"   // RSCameraType
 
-class SCPlane;
+class SCMissionActors;
 
 //
 // Interface d'une caméra du registre — CHASE/TARGET/ROTA (CAMR) aussi bien
@@ -48,8 +48,14 @@ public:
     virtual float fov() const;
 
     // Appelé UNE SEULE FOIS, au moment où l'on bascule SUR cette caméra
-    // depuis une autre (pas à chaque frame) : pose l'état initial.
-    virtual void activate(SCPlane *subject) = 0;
+    // depuis une autre (pas à chaque frame) : pose l'état initial. `subject`
+    // est n'importe quel acteur de mission (avion, bateau, bâtiment) — pas
+    // forcément un SCPlane, une cible verrouillée peut être n'importe quel
+    // RSEntity. `target` est optionnel : nullptr pour les caméras qui n'en
+    // ont pas besoin (CHASE/ROTA/COMP) ; utilisé par TARGET comme point de
+    // visée, distinct du sujet autour duquel la caméra se positionne — voir
+    // CameraViewRequest.
+    virtual void activate(SCMissionActors *subject, SCMissionActors *target) = 0;
 
     // Appelé à chaque frame tant que cette caméra est active ; écrit la
     // pose caméra dans les sorties du directeur.

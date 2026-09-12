@@ -359,7 +359,7 @@ void SCMission::loadMission() {
     }
 
     if (this->player != nullptr && this->player->plane != nullptr) {
-        this->camera_director->init(this->world, this->player->plane);
+        this->camera_director->init(this->world, this->player);
     }
 }
 RSEntity * SCMission::LoadEntity(std::string name) {
