@@ -2,6 +2,7 @@
 #include <string>
 #include "SCenums.h"
 #include "../engine/EventMessage.h"
+#include "../realspace/RSWorld.h"   // RSCameraType
 
 class SCPlane;
 
@@ -10,14 +11,24 @@ class SCPlane;
 // vue), autopilote, VM de script mission, détection décollage/atterrissage.
 // Consommé par SCCameraDirector.
 //
-// `sequence_name` est renseigné pour les vues scriptées COMP
-// ("STARTCAM" / "TAKEOFF" / "LANDING" / "AUTOPILT") ; sinon vide.
+// Trois façons mutuellement exclusives de désigner la vue, dans l'ordre où
+// SCCameraDirector::onViewRequest() les regarde :
+//   1. `sequence_name` : séquence scriptée COMP, par nom de fichier
+//      ("STARTCAM" / "TAKEOFF" / "LANDING" / "AUTOPILT").
+//   2. `camera_type`   : entrée du registre CAMR (RSWorld::cameras), par
+//      RSCameraType (RSCAM_CHAS, RSCAM_TARG...) — c'est le code que le
+//      fichier de mission porte réellement, pas une traduction depuis `view`.
+//   3. sinon `view` sert tel quel (FRONT/LEFT/RIGHT/REAR...) : vue sans
+//      backing fichier, le placement reste à la charge de SCStrike.
+// `view` seul reste le vocabulaire de SCStrike (camera_mode, rendu) — ce
+// n'est jamais lui qui pilote la résolution interne du directeur.
 //
 class CameraViewRequest : public EventMessage {
 public:
-    View        view{View::FRONT};
-    std::string sequence_name;
-    SCPlane    *subject{nullptr};
+    View         view{View::FRONT};
+    std::string  sequence_name;
+    RSCameraType camera_type{RSCameraType::RSCAM_NONE};
+    SCPlane     *subject{nullptr};
 };
 
 //

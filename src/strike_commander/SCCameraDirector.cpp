@@ -1,5 +1,8 @@
 #include "precomp.h"
 #include "SCCameraDirector.h"
+#include "SCChaseCamera.h"
+#include "SCTargetCamera.h"
+#include "SCRotaCamera.h"
 #include "../realspace/RSWorld.h"
 #include <functional>
 
@@ -17,6 +20,15 @@ SCCameraDirector::SCCameraDirector() {
     this->out_pos = Vector3D(0.0f, 0.0f, 0.0f);
     this->out_aim = Vector3D(0.0f, 0.0f, -1.0f);
     this->out_up = Vector3D(0.0f, 1.0f, 0.0f);
+
+    // Une SCProceduralCamera par RSCameraType câblé. Pour ajouter une
+    // nouvelle caméra : écrire la sous-classe puis une ligne ici — rien
+    // d'autre dans ce fichier ne change (cf. commentaire de classe dans
+    // SCCameraDirector.h).
+    this->procedural_cameras.push_back(new SCChaseCamera());
+    this->procedural_cameras.push_back(new SCTargetCamera());
+    this->procedural_cameras.push_back(new SCRotaCamera());
+
     this->subscription_id =
         MessageBus::getInstance().subscribeEvent(std::bind(&SCCameraDirector::onEvent, this, std::placeholders::_1));
 }
@@ -26,6 +38,10 @@ SCCameraDirector::~SCCameraDirector() {
         MessageBus::getInstance().unsubscribe(this->subscription_id);
         this->subscription_id = -1;
     }
+    for (size_t i = 0; i < this->procedural_cameras.size(); i++) {
+        delete this->procedural_cameras[i];
+    }
+    this->procedural_cameras.clear();
 }
 
 void SCCameraDirector::init(RSWorld *w, SCPlane *player) {
@@ -45,7 +61,6 @@ void SCCameraDirector::init(RSWorld *w, SCPlane *player) {
 // ---------------------------------------------------------------------------
 
 void SCCameraDirector::onEvent(const EventMessage &event) {
-    const CameraViewRequest *request = dynamic_cast<const CameraViewRequest *>(&event);
     if (auto eventData = dynamic_cast<const CameraViewRequest*>(&event)) {
         this->onViewRequest(*eventData);
         return;
@@ -54,28 +69,115 @@ void SCCameraDirector::onEvent(const EventMessage &event) {
         this->tick(eventData->delta_time);
         return;
     }
-    
 }
 
 void SCCameraDirector::onViewRequest(const CameraViewRequest &request) {
-    this->current_view = request.view;
-
-    if (request.sequence_name.empty()) {
-        // Vue non scriptée : on coupe toute séquence en cours ; le placement
-        // reste à la charge de SCStrike.
-        if (this->sequence.getStatus() == SCCameraSequence::Running) {
-            this->sequence.start(nullptr, nullptr);
-        }
-        this->view_desc = CameraViewDesc();
-        this->view_desc.view = request.view;
-        this->view_desc.scripted = false;
+    if (!request.sequence_name.empty()) {
+        this->activateSequence(request);
         return;
     }
+
+    // Miroir de Kneeboard_SelectByStateCode : request.camera_type est le
+    // code de type tel que porté par le fichier (RSCameraType) — pas une
+    // traduction depuis `view`. C'est à l'émetteur de la requête (touche F2,
+    // VM de script...) de le renseigner.
+    if (request.camera_type != RSCAM_NONE) {
+        const RSCameraDef *entry = this->findCameraDef(request.camera_type);
+        if (entry != nullptr) {
+            this->activateProceduralCamera(*entry, request);
+            return;
+        }
+    }
+
+    this->deactivateProceduralViews();
+    this->activateSimpleView(request.view);
+}
+
+const RSCameraDef *SCCameraDirector::findCameraDef(RSCameraType type_code) const {
+    if (this->world == nullptr) {
+        return nullptr;
+    }
+    for (size_t i = 0; i < this->world->cameras.size(); i++) {
+        if (this->world->cameras[i].typeCode == type_code) {
+            return &this->world->cameras[i];
+        }
+    }
+    return nullptr;
+}
+
+SCProceduralCamera *SCCameraDirector::findProceduralCamera(RSCameraType type_code) const {
+    for (size_t i = 0; i < this->procedural_cameras.size(); i++) {
+        if (this->procedural_cameras[i]->typeCode() == type_code) {
+            return this->procedural_cameras[i];
+        }
+    }
+    return nullptr;
+}
+
+void SCCameraDirector::deactivateProceduralViews() {
+    this->active_procedural = nullptr;
+}
+
+void SCCameraDirector::activateProceduralCamera(const RSCameraDef &entry, const CameraViewRequest &request) {
+    SCProceduralCamera *cam = this->findProceduralCamera(entry.typeCode);
+    if (cam == nullptr) {
+        // Type reconnu dans le fichier (ROTA/TARG/VICT/WEAP/CONT/CKPT) mais
+        // pas encore câblé côté directeur : pas de caméra procédurale pour
+        // l'instant, on retombe sur la vue brute demandée.
+        this->deactivateProceduralViews();
+        this->activateSimpleView(request.view);
+        return;
+    }
+
+    SCPlane *subject = request.subject;
+    if (subject == nullptr) {
+        subject = this->resolveEntity(entry.subject);
+    }
+
+    // activate() ne s'appelle qu'à la transition VERS cette caméra (pas à
+    // chaque appui répété sur la même touche) : sinon on perdrait le lissage
+    // en repartant de zéro. Rester sur une caméra déjà active ne réinitialise
+    // rien, comme resetChase() avant l'extraction.
+    if (this->active_procedural != cam) {
+        cam->activate(subject);
+    }
+    this->active_procedural = cam;
+
+    if (this->sequence.getStatus() == SCCameraSequence::Running) {
+        this->sequence.start(nullptr, nullptr);
+    }
+
+    this->view_desc = CameraViewDesc();
+    this->view_desc.view = View::CAM_DIRECTOR;
+    this->view_desc.scripted = false;
+    this->view_desc.first_person = false;
+    this->view_desc.renders_cockpit = false;
+
+    this->current_view = View::CAM_DIRECTOR;
+    this->publishViewChanged(View::CAM_DIRECTOR, "procedural-start");
+}
+
+void SCCameraDirector::activateSimpleView(View view) {
+    // Vue non scriptée (ni procédurale ni COMP) : on coupe toute séquence en
+    // cours ; le placement reste à la charge de SCStrike.
+    this->current_view = view;
+    if (this->sequence.getStatus() == SCCameraSequence::Running) {
+        this->sequence.start(nullptr, nullptr);
+    }
+    this->view_desc = CameraViewDesc();
+    this->view_desc.view = view;
+    this->view_desc.scripted = false;
+}
+
+void SCCameraDirector::activateSequence(const CameraViewRequest &request) {
+    this->current_view = request.view;
 
     const RSCameraSequence *seq = this->findSequence(request.sequence_name);
     if (seq == nullptr) {
         return;
     }
+
+    this->deactivateProceduralViews();
 
     SCPlane *target = request.subject;
     if (target == nullptr) {
@@ -103,6 +205,17 @@ void SCCameraDirector::onViewRequest(const CameraViewRequest &request) {
 // ---------------------------------------------------------------------------
 
 void SCCameraDirector::tick(float dt) {
+    // Point de dispatch unique, fermé : ajouter une caméra procédurale ne
+    // touche jamais cette fonction (elle s'enregistre dans le constructeur,
+    // cf. procedural_cameras).
+    if (this->active_procedural != nullptr) {
+        this->active_procedural->tick(dt, this->out_pos, this->out_aim, this->out_up);
+        return;
+    }
+    this->tickSequence(dt);
+}
+
+void SCCameraDirector::tickSequence(float dt) {
     if (this->sequence.getStatus() != SCCameraSequence::Running) {
         return;
     }

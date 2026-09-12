@@ -1215,13 +1215,18 @@ void SCStrike::checkKeyboard(void) {
         this->camera_mode = View::TARGET;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND))) {
-        if (this->camera_mode != View::FOLLOW) {
+        /*if (this->camera_mode != View::FOLLOW) {
             this->follow_dynamic = false;
         }
         if (this->camera_mode == View::FOLLOW) {
             this->follow_dynamic = !this->follow_dynamic;
         }
-        this->camera_mode = View::FOLLOW;
+        this->camera_mode = View::FOLLOW;*/
+        CameraViewRequest chase;
+        this->camera_mode = View::CAM_DIRECTOR;
+        chase.camera_type = RSCameraType::RSCAM_CHAS;   // = 3, défini dans RSWorld.h
+        chase.subject = this->player_plane;
+        MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(chase));
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
         this->mouse_control = false;

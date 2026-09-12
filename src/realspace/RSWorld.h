@@ -22,9 +22,25 @@
 //   +..   (VICT/WEAP seulement) payload étendue -> params
 // Aucune coordonnée d'offset : la position de la caméra externe est calculée
 // côté moteur (sous-composant de corps rigide attaché à l'avion).
+//
+// Codes de type reconnus par Cinematic_LoadCameraDef (ASM) — RSCameraDef::typeCode
+// ET CameraViewRequest::camera_type (même vocabulaire, du fichier jusqu'à la
+// requête d'activation : pas de traduction intermédiaire, cf. SCCameraDirector).
+enum RSCameraType : uint8_t {
+    RSCAM_NONE    = 0,     // CameraViewRequest : aucune caméra CAMR demandée
+    RSCAM_CHAS    = 3,     // chase / poursuite
+    RSCAM_CKPT    = 4,     // cockpit
+    RSCAM_CONT    = 6,
+    RSCAM_VICT    = 7,     // victime (avion touché)
+    RSCAM_ROTA    = 8,     // orbitale (recul + orbite pilotable par le joueur)
+    RSCAM_TARG    = 9,     // cible verrouillée
+    RSCAM_WEAP    = 0x0B,
+    RSCAM_UNKNOWN = 0x14,  // tag non reconnu par Cinematic_LoadCameraDef (ASM) ; défaut de RSCameraDef::typeCode
+};
+
 struct RSCameraDef {
-    std::string          name;         // "CHASECAM"/"COCKPIT"/"VICTIM"/"AUTOTRAC"/"WEAPON"/"ROTATCAM"
-    uint8_t              typeCode = 0x14; // CHAS=3 CKPT=4 CONT=6 VICT=7 ROTA=8 TARG=9 WEAP=0x0B
+    std::string          name;                    // "CHASECAM"/"COCKPIT"/"VICTIM"/"AUTOTRAC"/"WEAPON"/"ROTATCAM"
+    RSCameraType         typeCode = RSCAM_UNKNOWN;
     std::string          subject;      // entité porteuse, ex. "PLAYER"
     std::string          cockpitArt;   // CKPT seul, ex. "F16-CKPT"
     uint32_t             farClip  = 0; // 50000

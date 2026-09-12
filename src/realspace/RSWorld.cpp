@@ -56,7 +56,7 @@ void RSWorld::parseWRLD_SMOK(uint8_t *data, size_t size) {}
 void RSWorld::parseWRLD_LGHT(uint8_t *data, size_t size) {}
 
 static void readSimpleCamera(ByteStream &s, size_t size, bool lookAtGap,
-                             uint8_t typeCode, std::vector<RSCameraDef> &out) {
+                             RSCameraType typeCode, std::vector<RSCameraDef> &out) {
     RSCameraDef c;
     c.typeCode = typeCode;
     c.name     = s.ReadStringNoSize(8);                // +0x00
@@ -94,25 +94,25 @@ void RSWorld::parseWRLD_CAMR_STRT(uint8_t *data, size_t size) {
     this->cameraSetName = s.ReadStringNoSize((int)size);
 }
 
-void RSWorld::parseWRLD_CAMR_CHAS(uint8_t *data, size_t size) { 
+void RSWorld::parseWRLD_CAMR_CHAS(uint8_t *data, size_t size) {
     ByteStream s(data, size);
-    readSimpleCamera(s, size, true,  3, this->cameras);
+    readSimpleCamera(s, size, true,  RSCAM_CHAS, this->cameras);
 }
 void RSWorld::parseWRLD_CAMR_VICT(uint8_t *data, size_t size) {
     ByteStream s(data, size);
-    readSimpleCamera(s, size, false, 7, this->cameras);
+    readSimpleCamera(s, size, false, RSCAM_VICT, this->cameras);
 }
 void RSWorld::parseWRLD_CAMR_TARG(uint8_t *data, size_t size) {
     ByteStream s(data, size);
-    readSimpleCamera(s, size, false, 9, this->cameras);
+    readSimpleCamera(s, size, false, RSCAM_TARG, this->cameras);
 }
 void RSWorld::parseWRLD_CAMR_WEAP(uint8_t *data, size_t size) {
     ByteStream s(data, size);
-    readSimpleCamera(s, size, false, 0x0B, this->cameras);
+    readSimpleCamera(s, size, false, RSCAM_WEAP, this->cameras);
 }
 void RSWorld::parseWRLD_CAMR_ROTA(uint8_t *data, size_t size) {
     ByteStream s(data, size);
-    readSimpleCamera(s, size, false, 8, this->cameras);
+    readSimpleCamera(s, size, false, RSCAM_ROTA, this->cameras);
 }
 
 void RSWorld::parseWRLD_CAMR_CKPT(uint8_t *data, size_t size) {
@@ -120,7 +120,7 @@ void RSWorld::parseWRLD_CAMR_CKPT(uint8_t *data, size_t size) {
     // farClip + fov + un dword. Pas de rect viewport (vue première personne).
     ByteStream s(data, size);
     RSCameraDef c;
-    c.typeCode   = 4;
+    c.typeCode   = RSCAM_CKPT;
     c.name       = s.ReadString(8);                     // "COCKPIT"
     s.MoveForward(2);
     c.subject    = s.ReadString(8);                     // "PLAYER"
