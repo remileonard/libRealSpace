@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "precomp.h"
 #include "../engine/gametimer.h"
+#include "SCMissionEvent.h"
 
 SCPilot::SCPilot() {
     target_speed = 0;
@@ -74,168 +75,7 @@ float SCPilot::calculateMaxTurnRate(float airspeed, float maxG) {
 }
 
 
-void SCPilot::AutoPilot() {
-    PIDController altitudeController(1.0f, 0.1f, 0.05f); // Adjust these values as needed
-    PIDController azimuthController(1.0f, 0.1f, 0.05f); // Adjust these values as needed
 
-    if (!this->alive) {
-        return;
-    }
-    if (!this->plane->on_ground && this->plane->GetWheel()) {
-        this->plane->SetWheel();
-    }
-    if (!this->plane->object->alive) {
-        this->plane->Mthrust = 0;
-        this->plane->s = 0.001f;
-        this->plane->b = 0.001f;
-        this->target_speed = 0;
-        this->target_climb = 0;
-        this->target_azimut = 0;
-        this->plane->SetSpoilers();
-        this->plane->vz /= 1.5f;
-        this->plane->vy *=1.05f;
-        this->plane->SetThrottle(0);
-        this->alive = false;
-    }
-    if (this->plane == nullptr) {
-        return;
-    }
-    if (this->plane->on_ground && this->target_climb == 0) {
-        this->plane->SetThrottle(0);
-        return;
-    }
-    if (this->plane->vz > this->target_speed) {
-        this->plane->SetThrottle(100);
-    } else {
-        this->plane->SetThrottle(this->plane->GetThrottle() - 10);
-    }
-
-
-    float horizontal_distance = 1000.0f;
-    float vertical_distance = this->target_climb - this->plane->y;
-    float target_elevation = radToDegree(atan2(vertical_distance, horizontal_distance))*10.0f;
-    
-    
-    float dt = 0.1f; // Time step, adjust as needed
-    float control_signal = altitudeController.update(target_elevation, dt);
-    
-    if (this->plane->pitch > target_elevation) {
-        if (std::abs(target_elevation) > 1.0f) {
-            this->plane->pitch -= 1.0f;
-        } else {
-            this->plane->pitch = target_elevation;
-        } 
-    } else if (this->plane->pitch < target_elevation) {
-        if (std::abs(target_elevation) > 1.0f) {
-            this->plane->pitch += 1.0f;
-        } else {
-            this->plane->pitch = target_elevation;
-        }
-    }
-
-    
-    float target_yaw = (float)(3600.0f - this->target_azimut);
-    float yaw_difference = this->plane->yaw - target_yaw;
-    float delta_time = 1.0f / this->plane->tps;
-
-    float roll_rate = (this->plane->object->entity->jdyn->rate_limit_dps / 60.0f) *10.0f * delta_time;
-    
-    // Normaliser la différence entre -1800 et 1800 (entre -180° et 180°)
-    while (yaw_difference > 1800.0f) yaw_difference -= 3600.0f;
-    while (yaw_difference < -1800.0f) yaw_difference += 3600.0f;
-        
-    // Déterminer la direction du virage
-    if (yaw_difference > 10.0f) {
-        turnState = TURN_LEFT;
-        turning = true;
-    } else if (yaw_difference < -10.0f) {
-        turnState = TURN_RIGHT;
-        turning = true;
-    } else {
-        turnState = TURN_NONE;
-        
-        // On est presque aligné, on fait un ajustement final précis
-        if (std::abs(yaw_difference) <= 1.0f) {
-            this->plane->yaw = target_yaw;
-            turning = false;
-        } else {
-            this->plane->yaw += (yaw_difference > 0) ? -1.0f : 1.0f;
-        }
-    }
-
-    // Taux de virage basé sur l'écart (plus rapide pour grand angle)
-    // 450.0f = 45°
-    float based_turn_rate = 450.0f;
-    float minTurnRate = 1.0f + (this->plane->object->entity->jdyn->max_g / 10.0f);
-    if (this->actor->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET) {
-        based_turn_rate = 450.0f - 100.0f * this->plane->object->entity->jdyn->max_g / 10.0f - 150.0f * (this->actor->profile->ai.atrb.AA / 16.0f);
-        minTurnRate = 1.0f + (this->plane->object->entity->jdyn->max_g / 10.0f) + (this->actor->profile->ai.atrb.AA / 16.0f) * 1.0f;
-    }
-    turnRate = fabs(yaw_difference) / based_turn_rate;
-    
-    if (turnRate < minTurnRate) {
-        turnRate = minTurnRate;
-    }
-    targetRoll = 0.0f;
-    if (turnState == TURN_LEFT) {
-        // Pour les virages à gauche, incliner vers 2700 (aile gauche vers le bas)
-        targetRoll = 2700.0f-(900.0f-(900.0f/turnRate)); 
-    } else if (turnState == TURN_RIGHT) {
-        // Pour les virages à droite, incliner vers 900 (aile droite vers le bas)
-        targetRoll = 900.0f-(900.0f-(900.0f/turnRate));
-    }
-    // Gérer l'inclinaison et le virage
-    switch (turnState) {
-        case TURN_LEFT:
-            // Incliner progressivement à gauche vers la valeur targetRoll
-            if (this->plane->roll < targetRoll && this->plane->roll > 899.0f) {
-                this->plane->roll += (std::min)(roll_rate, targetRoll - this->plane->roll);
-            } else if (this->plane->roll <= 899.0f) {
-                this->plane->roll = 3600.0f - roll_rate;
-            } else if (this->plane->roll > targetRoll) {
-                this->plane->roll -= roll_rate;
-            }
-                
-            // Une fois suffisamment incliné, effectuer le virage
-            // Utiliser targetRoll au lieu de 2700.0f
-            if (std::abs(this->plane->roll - targetRoll) < 200.0f) {
-                this->plane->yaw -= turnRate;
-            }
-            break;
-                
-        case TURN_RIGHT:
-            // Incliner progressivement à droite vers la valeur targetRoll
-            if (this->plane->roll > targetRoll && this->plane->roll < 2700.0f) {
-                this->plane->roll -= (std::min)(roll_rate, this->plane->roll - targetRoll);
-            } else if (this->plane->roll >= 2700.0f) {
-                this->plane->roll = (float) ((int) (this->plane->roll + roll_rate) % 3600);
-            } else if (this->plane->roll < targetRoll) {
-                this->plane->roll += roll_rate;
-            }
-                
-            // Une fois suffisamment incliné, effectuer le virage
-            // Utiliser targetRoll au lieu de 900.0f
-            if (std::abs(this->plane->roll - targetRoll) < 200.0f) {
-                this->plane->yaw += turnRate;
-            }
-            break;
-                
-        case TURN_NONE:
-            // Redresser l'avion quand on ne tourne pas (vers 0 ou 3600)
-            if (this->plane->roll > roll_rate && this->plane->roll < 1800.0f) {
-                this->plane->roll -= roll_rate;
-            } else if (this->plane->roll > 1800.0f && this->plane->roll < 3600.0f - roll_rate) {
-                this->plane->roll += roll_rate;
-                if (this->plane->roll >= 3600.0f) {
-                    this->plane->roll = 0.0f;
-                }
-            } else {
-                this->plane->roll = 0.0f;
-                turning = false;
-            }
-            break;
-    }    
-}
 /**
  * Retourne le delta time courant du moteur, avec une valeur de repli
  * cohérente avec la simulation si le timer n'est pas disponible.
@@ -271,13 +111,12 @@ float SCPilot::maxBankForG(float maxG) {
  */
 void SCPilot::controlThrottle() {
     if (this->plane->vz > this->target_speed) {
-        this->plane->SetThrottle(100);
+        this->throttle = 100;
     } else {
-        int throttle = this->plane->GetThrottle() - 10;
-        if (throttle < 0) {
-            throttle = 0;
+        this->throttle = this->plane->GetThrottle() - 10;
+        if (this->throttle < 0) {
+            this->throttle = 0;
         }
-        this->plane->SetThrottle(throttle);
     }
 }
 
@@ -314,17 +153,17 @@ void SCPilot::FlyTo() {
         this->plane->vz /= 1.5f;
         this->plane->vy *= 1.05f;
         this->plane->SetThrottle(0);
-        this->plane->control_stick_x = 0;
-        this->plane->control_stick_y = 0;
+        this->control_stick_x = 0;
+        this->control_stick_y = 0;
         this->alive = false;
         return;
     }
 
     if (!this->plane->on_ground && this->plane->GetWheel()) {
-        this->plane->SetWheel();
+        this->gear = 0;
     }
     if (this->plane->on_ground && this->target_climb == 0) {
-        this->plane->SetThrottle(0);
+        this->throttle = 0;
         return;
     }
 
@@ -336,11 +175,11 @@ void SCPilot::FlyTo() {
     // ============ PROTECTION ANTI-STALL (priorite absolue) ============
     if (this->plane->wing_stall > 0 && !this->plane->on_ground) {
         this->plane->SetThrottle(100);
-        this->plane->control_stick_y = 80; // pousser pour reprendre de la vitesse
+        this->control_stick_y = 80; // pousser pour reprendre de la vitesse
         // Remettre les ailes a plat (roll_signed -> 0).
         // control_stick_x > 0 fait DIMINUER roll_signed ; amortissement de meme signe que roll_speed.
         float recover_stick = 0.50f * roll_signed + 1.0f * this->plane->roll_speed;
-        this->plane->control_stick_x = std::clamp((int)recover_stick, -160, 160);
+        this->control_stick_x = std::clamp((int)recover_stick, -160, 160);
         return;
     }
 
@@ -390,7 +229,7 @@ void SCPilot::FlyTo() {
     // s'oppose a la rotation (roll_speed < 0 en roulant a droite => freine).
     float bank_err  = bank_cmd - roll_signed;
     float roll_stick = -0.50f * bank_err + 1.0f * this->plane->roll_speed;
-    this->plane->control_stick_x = std::clamp((int)roll_stick, -160, 160);
+    this->control_stick_x = std::clamp((int)roll_stick, -160, 160);
 
     // ============ VERTICAL: altitude -> vario -> assiette -> manche (inchange) ============
     const float pitch_stick_sign = 1.0f;
@@ -414,5 +253,16 @@ void SCPilot::FlyTo() {
     float desired_pitch_speed = 0.6f * pitch_err - 2.00f * this->plane->pitch_speed;
 
     float pitch_stick = pitch_stick_sign * desired_pitch_speed * 3.0f;
-    this->plane->control_stick_y = std::clamp((int)pitch_stick, -160, 160);
+    this->control_stick_y = std::clamp((int)pitch_stick, -160, 160);
+
+
+    PlaneControlEvent planeControlEvent;
+    planeControlEvent.plane = this->plane;
+    planeControlEvent.control_stick_x = this->control_stick_x;
+    planeControlEvent.control_stick_y = this->control_stick_y;
+    planeControlEvent.throttle = this->throttle;
+    planeControlEvent.flaps = this->flap;
+    planeControlEvent.spoilers = this->spoilers;
+    planeControlEvent.wheel = this->gear;
+    MessageBus::getInstance().publish(std::make_unique<PlaneControlEvent>(planeControlEvent));
 }

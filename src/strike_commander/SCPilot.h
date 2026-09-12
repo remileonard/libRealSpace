@@ -69,6 +69,12 @@ private:
     float maxBankForG(float maxG);
     void controlThrottle();
 
+    float control_stick_x{0.0f};
+    float control_stick_y{0.0f};
+    float throttle{0.0f};
+    int flap{0};
+    int gear{1};
+    int spoilers{0};
 public:
     Vector3D target_waypoint{0.0f, 0.0f, 0.0f};
     bool turning{false};
@@ -84,7 +90,5 @@ public:
     SCPilot();
     ~SCPilot();
     void SetTargetWaypoint(Vector3D waypoint);
-    void DirectAutoPilot();
-    void AutoPilot();
     void FlyTo();
 };

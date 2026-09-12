@@ -5,6 +5,8 @@ class SCMission;
 
 class MissionUpdateEvent: public EventMessage {
 public:
+    int32_t tick{0};
+    float delta_time{0.0f};
     std::string message;
     std::string objective;
     uint8_t area_id{0};
@@ -22,4 +24,15 @@ class MissionEventSceneActivated: public EventMessage {
 public:
     MISN_SCEN *scene{nullptr};
     SCMission *mission{nullptr};
+};
+class PlaneControlEvent: public EventMessage {
+public:
+    SCPlane *plane{nullptr};
+    float throttle{0.0f};
+    float control_stick_x{0.0f};
+    float control_stick_y{0.0f};
+    float rudder{0.0f};
+    int flaps{0};
+    int spoilers{0};
+    int wheel{0};
 };

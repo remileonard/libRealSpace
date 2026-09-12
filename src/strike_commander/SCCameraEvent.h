@@ -2,22 +2,46 @@
 #include <string>
 #include "SCenums.h"
 #include "../engine/EventMessage.h"
+#include "../realspace/RSWorld.h"   // RSCameraType
 
-class SCPlane;
+class SCMissionActors;
 
 //
 // Demande d'activation d'une vue caméra. Publié par : couche input (touches de
 // vue), autopilote, VM de script mission, détection décollage/atterrissage.
 // Consommé par SCCameraDirector.
 //
-// `sequence_name` est renseigné pour les vues scriptées COMP
-// ("STARTCAM" / "TAKEOFF" / "LANDING" / "AUTOPILT") ; sinon vide.
+// Trois façons mutuellement exclusives de désigner la vue, dans l'ordre où
+// SCCameraDirector::onViewRequest() les regarde :
+//   1. `sequence_name` : séquence scriptée COMP, par nom de fichier
+//      ("STARTCAM" / "TAKEOFF" / "LANDING" / "AUTOPILT").
+//   2. `camera_type`   : entrée du registre CAMR (RSWorld::cameras), par
+//      RSCameraType (RSCAM_CHAS, RSCAM_TARG...) — c'est le code que le
+//      fichier de mission porte réellement, pas une traduction depuis `view`.
+//   3. sinon `view` sert tel quel (FRONT/LEFT/RIGHT/REAR...) : vue sans
+//      backing fichier, le placement reste à la charge de SCStrike.
+// `view` seul reste le vocabulaire de SCStrike (camera_mode, rendu) — ce
+// n'est jamais lui qui pilote la résolution interne du directeur.
 //
 class CameraViewRequest : public EventMessage {
 public:
-    View        view{View::FRONT};
-    std::string sequence_name;
-    SCPlane    *subject{nullptr};
+    View         view{View::FRONT};
+    std::string  sequence_name;
+    RSCameraType camera_type{RSCameraType::RSCAM_NONE};
+    // N'importe quel acteur de mission (avion, bateau, bâtiment) — pas
+    // seulement un SCPlane : une cible verrouillée (F7) peut être n'importe
+    // quel RSEntity. Voir SCOrbitCamera pour la résolution position/forward/
+    // bounding box générique.
+    //
+    // `subject` = l'acteur autour duquel la caméra se positionne (recul basé
+    // sur sa taille, comme CHASE). `target` = l'acteur visé (lookAt), utilisé
+    // seulement par les caméras qui en ont besoin (TARGET) ; ignoré sinon
+    // (reste nullptr). Explicitement séparés de SCMissionActors::target (le
+    // verrou de tir propre à un acteur) pour permettre l'inversion
+    // position/visée d'un appui à l'autre sans dépendre de qui verrouille
+    // qui.
+    SCMissionActors *subject{nullptr};
+    SCMissionActors *target{nullptr};
 };
 
 //

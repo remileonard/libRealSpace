@@ -1212,16 +1212,38 @@ void SCStrike::checkKeyboard(void) {
     
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
-        this->camera_mode = View::TARGET;
+        //this->camera_mode = View::TARGET;
+        CameraViewRequest target_req;
+        this->camera_mode = View::CAM_DIRECTOR;
+        target_req.camera_type = RSCameraType::RSCAM_TARG;
+
+        SCMissionActors *player = this->current_mission->player;
+        SCMissionActors *enemy  = player->target;
+        bool already_on_target = this->current_mission->camera_director->activeCameraType() == RSCameraType::RSCAM_TARG;
+        bool player_is_subject = this->current_mission->camera_director->activeSubject() == player;
+
+        if (already_on_target && player_is_subject) {
+            target_req.subject = enemy;
+            target_req.target  = player;
+        } else {
+            target_req.subject = player;
+            target_req.target  = enemy;
+        }
+        MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(target_req));
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND))) {
-        if (this->camera_mode != View::FOLLOW) {
+        /*if (this->camera_mode != View::FOLLOW) {
             this->follow_dynamic = false;
         }
         if (this->camera_mode == View::FOLLOW) {
             this->follow_dynamic = !this->follow_dynamic;
         }
-        this->camera_mode = View::FOLLOW;
+        this->camera_mode = View::FOLLOW;*/
+        CameraViewRequest chase;
+        this->camera_mode = View::CAM_DIRECTOR;
+        chase.camera_type = RSCameraType::RSCAM_CHAS;   // = 3, défini dans RSWorld.h
+        chase.subject = this->current_mission->player;
+        MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(chase));
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
         this->mouse_control = false;
@@ -1709,7 +1731,7 @@ void SCStrike::setMission(char const *missionName) {
     CameraViewRequest startcam;
     startcam.view = View::CAM_DIRECTOR;
     startcam.sequence_name = "STARTCAM";
-    startcam.subject = this->player_plane;
+    startcam.subject = this->current_mission->player;
     MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(startcam));
 }
 void SCStrike::setCameraFront() {
@@ -1866,11 +1888,6 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
 void SCStrike::runFrame(void) {
     Mixer.setVolume(5,5);
     this->checkKeyboard();
-    // Le directeur de caméra tourne inconditionnellement (indépendant de la garde
-    // pause / AUTO_PILOT ci-dessous), dt réel.
-    this->current_mission->camera_director->tick(GameTimer::getInstance().getDeltaTime());
-    // Le directeur fait autorité sur la vue : on recopie dans camera_mode quand
-    // elle change (début séquence -> CAM_DIRECTOR, fin -> vue de reprise).
     View director_view = this->current_mission->camera_director->currentView();
     if (director_view != this->last_director_view) {
         this->camera_mode = director_view;
@@ -1937,7 +1954,12 @@ void SCStrike::runFrame(void) {
             return;
         }
     }
-    if (this->zoom_cockpit) {
+    if (this->camera_mode == View::CAM_DIRECTOR) {
+        // Vue pilotée par le directeur de caméra (CHASE/TARGET/ROTA/COMP) :
+        // le FOV vient du fichier (RSCameraDef::fov), pas du zoom cockpit.
+        Renderer.camera.fovy = this->current_mission->camera_director->fov();
+        Renderer.camera.update();
+    } else if (this->zoom_cockpit) {
         Renderer.camera.fovy = 30.0f;
         Renderer.camera.update();
     } else {

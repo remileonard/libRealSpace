@@ -8,6 +8,7 @@
 #include "precomp.h"
 #include "SCWeaponPredictor.h"
 #include <map>
+#include "SCPlane.h"
 void cartesianToPolar(Vector3D v, float *phi, float *theta);
 // Définition des constantes physiques
 const float GRAVITY = 9.81f; // m/s^2
@@ -321,6 +322,7 @@ SCPlane::SCPlane() {
     this->rudder = 0.0f;
     this->elevator = 0.0f;
     this->object = nullptr;
+    this->subscription_id = MessageBus::getInstance().subscribeEvent(std::bind(&SCPlane::onEvent, this, std::placeholders::_1));
 }
 /**
  * Constructor for SCPlane.
@@ -389,7 +391,9 @@ SCPlane::SCPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELE
     this->y = y;
     this->z = z;
     this->ro2 = .5f * ro[0];
+    this->subscription_id = MessageBus::getInstance().subscribeEvent(std::bind(&SCPlane::onEvent, this, std::placeholders::_1));
     init();
+    
 }
 SCPlane::~SCPlane() {
     for (auto smoke: this->smoke_set->textures) {
@@ -1271,6 +1275,24 @@ Vector3D SCPlane::applyGunSpread(Vector3D velocity, float spreadDeg) {
     deviated_dir.Normalize();
 
     return deviated_dir * speed;
+}
+void SCPlane::onEvent(const EventMessage &event) {
+    if (auto eventData = dynamic_cast<const PlaneControlEvent*>(&event)) {
+        this->onPlaneControl(*eventData);
+        return;
+    }
+}
+void SCPlane::onPlaneControl(const PlaneControlEvent &event) {
+    if (event.plane != this) {
+        return;
+    }
+    this->SetThrottle(static_cast<int>(event.throttle));
+    this->control_stick_x = event.control_stick_x;
+    this->control_stick_y = event.control_stick_y;
+    this->rudder = event.rudder;
+    this->flaps = event.flaps;
+    this->spoilers = event.spoilers;
+    this->wheels = event.wheel;
 }
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     SCWeaponLoadoutHardPoint *weap_loadout{nullptr};

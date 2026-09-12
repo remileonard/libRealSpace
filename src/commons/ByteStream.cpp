@@ -219,6 +219,11 @@ float ByteStream::ReadFixedFloatBE(void) {
 	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x000000FF) / 255.0f;
 	return float_value;
 }
+float ByteStream::ReadFixedFloat16LE(void) {
+	uint16_t integer_value = this->ReadUShort();
+	float float_value = (integer_value >> 8) + static_cast<float>(integer_value & 0x00FF) / 255.0f;
+	return float_value;
+}
 int32_t ByteStream::ReadInt24LE(void) {
 	int32_t i = 0;
 	uint8_t buffer[4];

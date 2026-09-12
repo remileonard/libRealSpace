@@ -35,7 +35,7 @@ struct AI_ATTR {
 };
 struct AI_STATE {
     uint8_t node_id;
-    uint8_t value;
+    int8_t value;
 };
 struct AI {
     std::vector <AI_STATE> mvrs;

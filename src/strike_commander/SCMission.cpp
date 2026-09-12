@@ -1,6 +1,7 @@
 #include "precomp.h"
 #include <limits>
 #include "SCMission.h"
+#include "../engine/gametimer.h"
 
 SCMission::SCMission() {
     this->camera_director = new SCCameraDirector();
@@ -163,8 +164,8 @@ void SCMission::loadMission() {
                             -(float) actor->object->entity->jdyn->max_g/2.0f,
                             40.0f,
                             60.0f,
-                            (float) actor->object->entity->jdyn->pitch_rate_limit_dps/3.0f,
-                            (float) actor->object->entity->jdyn->rate_limit_dps/3.0f,
+                            (float) actor->object->entity->jdyn->pitch_rate_limit_dps/2.0f,
+                            (float) actor->object->entity->jdyn->rate_limit_dps/2.0f,
                             actor->object->entity->wing_area,
                             (float) actor->object->entity->weight_in_kg,
                             (float) actor->object->entity->jdyn->fuel_capacity,
@@ -230,8 +231,8 @@ void SCMission::loadMission() {
                         -actor->object->entity->jdyn->max_g/2.0f,
                         40.0f,
                         60.0f,
-                        (float) actor->object->entity->jdyn->pitch_rate_limit_dps/3.0f,
-                        (float) actor->object->entity->jdyn->rate_limit_dps/3.0f,
+                        (float) actor->object->entity->jdyn->pitch_rate_limit_dps/2.0f,
+                        (float) actor->object->entity->jdyn->rate_limit_dps/2.0f,
                         actor->object->entity->wing_area,
                         (float) actor->object->entity->weight_in_kg,
                         (float) actor->object->entity->jdyn->fuel_capacity,
@@ -358,7 +359,7 @@ void SCMission::loadMission() {
     }
 
     if (this->player != nullptr && this->player->plane != nullptr) {
-        this->camera_director->init(this->world, this->player->plane);
+        this->camera_director->init(this->world, this->player);
     }
 }
 RSEntity * SCMission::LoadEntity(std::string name) {
@@ -372,19 +373,9 @@ RSEntity * SCMission::LoadEntity(std::string name) {
     return nullptr;
 }
 void SCMission::update() {
-    uint32_t current_time = SDL_GetTicks();
-    uint32_t elapsed_time = (current_time - this->last_time) / 1000;
-    uint32_t newtps = 0;
+    
     this->messageBus.processEvents();
-    if (elapsed_time > 1) {
-        uint32_t ticks = this->tick_counter - this->last_tick;
-        newtps = ticks / elapsed_time;
-        this->last_time = current_time;
-        this->last_tick = this->tick_counter;
-        if (newtps > this->tps / 2) {    
-            this->tps = newtps;
-        }
-    }
+    this->tps = 1.0f/GameTimer::getInstance().getDeltaTime();
     if (this->mission_ended) {
         return;
     }
@@ -399,6 +390,8 @@ void SCMission::update() {
         this->current_area_id = area_id;
     }
     MissionUpdateEvent mission_update_event;
+    mission_update_event.delta_time = GameTimer::getInstance().getDeltaTime();
+    mission_update_event.tick = this->tick_counter;
     mission_update_event.area_id = area_id;
     mission_update_event.mission = this;
     this->messageBus.publish(std::make_unique<MissionUpdateEvent>(mission_update_event));

@@ -52,6 +52,9 @@ public:
 
     static bool s_debug;   // mettre à true pour tracer STARTCAM au stdout
 
+    // Affiche le programme décodé d'une séquence (inventaire au chargement).
+    static void dumpProgram(const RSCameraSequence &seq);
+
 private:
     void view_reset();
     void applyInstruction(const COMPInstr &instr);

@@ -828,6 +828,12 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             float ground_y = this->mission->area->getY(actor->object->position.x, actor->object->position.z);
             if (actor->object->position.y < ground_y) {
                 actor->object->position.y = ground_y;
+            } else {
+                if (actor->plane != nullptr) {
+                    actor->pilot->target_climb = (int) (actor->object->position.y);
+                    actor->pilot->target_speed = -20;
+                    actor->plane->vz = -20;
+                }
             }
             if (actor->plane != nullptr) {
                 if (actor->object->position.y <= ground_y) {
