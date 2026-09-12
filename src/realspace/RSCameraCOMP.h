@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include "../commons/ByteStream.h"
 // ============================================================================
 //  Script COMP  (chunk FORM CAMR / WRLD)  —  bytecode exécuté par le solveur de
@@ -57,7 +58,7 @@ struct COMPShape {
 };
 
 // Indexé par la valeur de l'octet d'opcode ; défini dans le .cpp.
-extern const COMPShape COMP_SHAPE[256];
+extern const std::map<COMPOp, COMPShape> COMP_SHAPE;
 
 
 // Noms lisibles des opcodes (logs / désassembleur).

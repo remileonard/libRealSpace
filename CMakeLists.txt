@@ -125,6 +125,9 @@ if(WIN32)
             "${VCPKG_BIN_DIR}/opnmidi.dll"
             "${VCPKG_BIN_DIR}/nfd.dll"
             "${VCPKG_BIN_DIR}/openxr_loader.dll"
+            "${VCPKG_BIN_DIR}/boost_atomic-vc144-mt-x64-1_85.dll"
+            "${VCPKG_BIN_DIR}/boost_filesystem-vc144-mt-x64-1_85.dll"
+            "${VCPKG_BIN_DIR}/boost_system-vc144-mt-x64-1_85.dll"
         )
         
         message(STATUS "VCPKG DLLs: ${VCPKG_DLLS}")
