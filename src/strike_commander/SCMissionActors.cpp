@@ -901,6 +901,24 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
     }
     return false;
 }
+/**
+ * SCMissionActors::setObjective
+ *
+ * Pose l'objectif courant sans l'executer — voir la note dans
+ * SCMissionActors.h. Ne reinitialise current_command_executed que lors
+ * d'une vraie transition (commande ou argument different de l'actuel) :
+ * le script PROG repasse par cet appel a chaque frame tant que l'objectif
+ * reste le meme, et ne doit donc pas ecraser le resultat calcule par le
+ * dernier passage du GOAL loop (sinon OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS
+ * ne verrait jamais l'objectif comme termine).
+ */
+void SCMissionActors::setObjective(prog_op command, uint8_t arg) {
+    if (this->current_command != command || this->current_command_arg != arg) {
+        this->current_command_executed = false;
+    }
+    this->current_command = command;
+    this->current_command_arg = arg;
+}
 
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
     Vector3D position;
@@ -1122,10 +1140,13 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     }
 }
 void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
-    if (this->is_active == false) {
+    /*if (this->is_active == false) {
+        return;
+    }*/
+    if (this->is_destroyed == true) {
         return;
     }
-    if (this->is_destroyed == true) {
+    if (this->object == nullptr) {
         return;
     }
     SCMissionActors *ai_actor = this;
@@ -1602,6 +1623,52 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
             attacker->ground_down += 1;
         }
     }
+}
+/**
+ * SCMissionActorsPlayer::setObjective
+ *
+ * Le script de mission du joueur est une liste continue d'objectifs
+ * executee UNE SEULE FOIS au chargement de la mission (script
+ * d'initialisation) — pas un etat re-evalue en continu comme pour l'IA
+ * (GOAL/AIRefresh, cf. SCMissionActors::executeGoalAction). Chaque objectif
+ * doit donc etre execute immediatement ici, au moment ou il est pose, pour
+ * creer le SCMissionWaypoint correspondant (takeOff/land/flyToWaypoint/...
+ * sont surcharges cote joueur pour ca, pas pour piloter).
+ */
+void SCMissionActorsPlayer::setObjective(prog_op command, uint8_t arg) {
+    switch (command) {
+        case OP_SET_WAIT_FOR_SECONDS:
+            this->current_command_executed = this->wait(arg);
+        break;
+        case OP_SET_OBJ_TAKE_OFF:
+            this->current_command_executed = this->takeOff(arg);
+        break;
+        case OP_SET_OBJ_LAND:
+            this->current_command_executed = this->land(arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_WP:
+            this->current_command_executed = this->flyToWaypoint(arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_AREA:
+            this->current_command_executed = this->flyToArea(arg);
+        break;
+        case OP_SET_OBJ_DESTROY_TARGET:
+            this->current_command_executed = this->destroyTarget(arg);
+        break;
+        case OP_SET_OBJ_DEFEND_TARGET:
+            this->current_command_executed = this->defendTarget(arg);
+        break;
+        case OP_SET_OBJ_DEFEND_AREA:
+            this->current_command_executed = this->defendArea(arg);
+        break;
+        case OP_SET_OBJ_FOLLOW_ALLY:
+            this->current_command_executed = this->followAlly(arg);
+        break;
+        default:
+        break;
+    }
+    this->current_command = command;
+    this->current_command_arg = arg;
 }
 
 bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {

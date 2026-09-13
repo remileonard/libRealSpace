@@ -63,6 +63,20 @@ public:
     virtual bool ifTargetInSameArea(uint8_t arg);
     virtual bool respondToRadioMessage(int message_id, SCMission *mission, SCMissionActors *sender=nullptr);
     virtual bool activateTarget(uint8_t arg);
+    // Pose l'objectif courant (current_command/current_command_arg) sans
+    // l'executer : le script PROG (SCProg) appelle uniquement ceci, c'est
+    // executeGoalAction() qui execute reellement la commande persistee, a
+    // la cadence GOAL/AIRefresh. Ne remet current_command_executed a false
+    // que lors d'une VRAIE transition (commande ou argument different) —
+    // sinon, comme le script repasse par cet appel a chaque frame tant que
+    // l'objectif est en cours, on ecraserait en permanence le resultat
+    // calcule par le dernier passage du GOAL loop.
+    // Virtuel : le script de mission du joueur (SCMissionActorsPlayer) est
+    // une liste continue d'objectifs executee UNE SEULE FOIS au chargement
+    // (script d'initialisation, pas un etat re-evalue en continu comme pour
+    // l'IA) — sa surcharge execute donc directement la commande ici, au
+    // moment ou elle est posee.
+    virtual void setObjective(prog_op command, uint8_t arg);
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);
     virtual void shootWeapon(SCMissionActors *target);
@@ -95,7 +109,7 @@ private:
 
 class SCMissionActorsPlayer : public SCMissionActors {
 public:
-    bool takeOff(uint8_t arg) override; 
+    bool takeOff(uint8_t arg) override;
     bool land(uint8_t arg) override;
     bool flyToWaypoint(uint8_t arg) override;
     bool flyToArea(uint8_t arg) override;
@@ -103,6 +117,7 @@ public:
     bool defendTarget(uint8_t arg) override;
     bool setMessage(uint8_t arg) override;
     void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) override;
+    void setObjective(prog_op command, uint8_t arg) override;
 };
 
 class SCMissionActorsStrikeBase : public SCMissionActors {

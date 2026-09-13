@@ -131,7 +131,6 @@ void SCProg::execute() {
                     if (!this->actor->current_command_executed) {
                         jump_to = prog.arg;
                         exec = false;
-                        this->actor->current_command = prog_op::OP_NOOP;
                     }
                 break;
                 case OP_IF_TARGET_IN_AREA:
@@ -163,53 +162,35 @@ void SCProg::execute() {
                     }
                 break;
                 case OP_SET_WAIT_FOR_SECONDS:
-                    this->actor->current_command_executed = this->actor->wait(prog.arg);
-                    this->actor->current_command = OP_SET_WAIT_FOR_SECONDS;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_WAIT_FOR_SECONDS, prog.arg);
                 break;
                 case OP_SET_OBJ_TAKE_OFF:
-                    this->actor->current_command_executed = this->actor->takeOff(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_TAKE_OFF;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_TAKE_OFF, prog.arg);
                 break;
                 case OP_SET_OBJ_LAND:
-                    this->actor->current_command_executed = this->actor->land(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_LAND;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_LAND, prog.arg);
                 break;
                 case OP_SET_OBJ_FLY_TO_WP:
-                    this->actor->current_command_executed = this->actor->flyToWaypoint(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_FLY_TO_WP;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_FLY_TO_WP, prog.arg);
                 break;
                 case OP_SET_OBJ_FLY_TO_AREA:
-                    this->actor->current_command_executed = this->actor->flyToArea(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_FLY_TO_AREA;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_FLY_TO_AREA, prog.arg);
                 break;
                 case OP_SET_OBJ_DESTROY_TARGET:
-                    this->actor->current_command_executed = this->actor->destroyTarget(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_DESTROY_TARGET;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, prog.arg);
                 break;
                 case OP_SET_OBJ_DEFEND_TARGET:
                     this->actor->current_target = 0;
-                    this->actor->current_command_executed = this->actor->defendTarget(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_DEFEND_TARGET;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, prog.arg);
                 break;
                 case OP_SET_OBJ_DEFEND_AREA:
-                    this->actor->current_command_executed = this->actor->defendArea(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_DEFEND_AREA;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_DEFEND_AREA, prog.arg);
                 break;
                 case OP_SET_MESSAGE:
                     this->actor->setMessage(prog.arg);
                 break;
                 case OP_SET_OBJ_FOLLOW_ALLY:
-                    this->actor->current_command_executed = this->actor->followAlly(prog.arg);
-                    this->actor->current_command = OP_SET_OBJ_FOLLOW_ALLY;
-                    this->actor->current_command_arg = prog.arg;
+                    this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, prog.arg);
                 break;
                 case OP_DEACTIVATE_OBJ:
                     this->actor->deactivate(prog.arg);
