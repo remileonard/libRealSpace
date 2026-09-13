@@ -86,6 +86,9 @@ bool SCMissionActors::flyToWaypoint(uint8_t arg) {
     this->current_objective = OP_SET_OBJ_FLY_TO_WP;
     if (arg < this->mission->mission->mission_data.spots.size()) {
         SPOT *wp = this->mission->mission->mission_data.spots[arg];
+        if (wp->position.y < this->plane->y) {
+            wp->position.y = this->plane->y;
+        }
         if (this->pilot != nullptr) {
             this->pilot->SetTargetWaypoint(wp->position);
             this->pilot->target_speed = -10;
