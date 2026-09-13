@@ -540,6 +540,7 @@ void DebugStrike::radar() {
             if (ImGui::IsMouseHoveringRect(top_left, bottom_right)) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     this->target = actor;
+                    this->current_mission->player->target = actor;
                     this->debug_entity_mode = DebugEntityMode::Actor;
                 }
                 ImGui::OpenPopup("Actor Details");
