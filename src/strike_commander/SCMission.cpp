@@ -396,6 +396,19 @@ void SCMission::update() {
     mission_update_event.mission = this;
     this->messageBus.publish(std::make_unique<MissionUpdateEvent>(mission_update_event));
 
+    // Cadence IA fixe (~25 fps d'origine) : eviter un rattrapage explosif
+    // apres un hoquet en plafonnant l'accumulateur avant de vider le retard.
+    this->ai_refresh_accumulator += mission_update_event.delta_time;
+    if (this->ai_refresh_accumulator > 1.0f) {
+        this->ai_refresh_accumulator = 1.0f;
+    }
+    while (this->ai_refresh_accumulator >= AI_REFRESH_INTERVAL) {
+        this->ai_refresh_accumulator -= AI_REFRESH_INTERVAL;
+        AIRefreshEvent ai_refresh_event;
+        ai_refresh_event.mission = this;
+        this->messageBus.publish(std::make_unique<AIRefreshEvent>(ai_refresh_event));
+    }
+
     for (auto scene: this->mission->mission_data.scenes) {
         if (scene->area_id == area_id - 1 || scene->area_id == -1) {
             if (scene->is_active == 1) {

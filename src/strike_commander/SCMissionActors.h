@@ -79,6 +79,17 @@ private:
     void onEvent(const EventMessage &event);
     void onGettingHit(const MissionEventActorHit &event);
     void onMissionUpdate(const MissionUpdateEvent &event);
+    // Point d'entree de la decision IA (AI_TopLevelThink), a la cadence fixe
+    // ~25fps d'AIRefreshEvent — voir analysis/AI_SYSTEM.md §4 et
+    // AI_IMPLEMENTATION_GUIDE.md §2. Ne concerne que les acteurs porteurs
+    // d'un profil GOAL (ai.isAI && !ai.goal.empty()). L'execution du script
+    // PROG (on_update/override_progs) reste dans onMissionUpdate, a chaque
+    // frame, pour tous les acteurs : elle POSE current_command, elle ne
+    // l'execute pas — c'est le role d'executeGoalAction() ci-dessous.
+    void onAIRefresh(const AIRefreshEvent &event);
+    bool runGoalSelectors();
+    bool executeGoalAction();
+    bool tryWanderRandom();
     MessageBus::SubscriptionId subscription_id{-1};
 };
 

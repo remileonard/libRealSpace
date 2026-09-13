@@ -36,6 +36,12 @@ protected:
     uint32_t last_time{0};
     uint32_t last_tick{0};
     uint32_t tick_counter{0};
+    // Cadence de decision IA d'origine (~25 fps, cf. analysis/AI_SYSTEM.md
+    // §6) : AIRefreshEvent est publie a ce rythme fixe plutot qu'a chaque
+    // frame reelle du port, pour ne pas rendre l'IA statistiquement plus
+    // forte/reactive sur un framerate superieur a l'origine.
+    float ai_refresh_accumulator{0.0f};
+    static constexpr float AI_REFRESH_INTERVAL = 1.0f / 25.0f;
     
     SCState &GameState = SCState::getInstance();
     AssetManager &Assets = AssetManager::getInstance();

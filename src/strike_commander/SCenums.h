@@ -214,6 +214,18 @@ static std::unordered_map<prog_op, std::string> prog_op_names = {
     {OP_SELECT_FLAG_208, "OP_SELECT_FLAG_208"}
 };
 
+// Valeurs du chunk PROF/_AI_/GOAL (RSProf::ai.goal). Espace de valeurs
+// distinct de prog_op malgre le chevauchement numerique (GOAL=2 n'est pas
+// OP_EXEC_SUB_PROG) : chaque octet selectionne un des 4 gestionnaires de
+// AI_TopLevelThink, cf. analysis/AI_SYSTEM.md §4 et AI_IMPLEMENTATION_GUIDE.md §2.3.
+enum GoalSelector : uint8_t {
+    GOAL_EMPTY = 1,
+    GOAL_EXECUTE_ACTION = 2,          // Goal_ExecuteAction : machine a etats du script PROG (current_command)
+    GOAL_WANDER_RANDOM = 3,           // Goal_WanderRandom : patrouille/vagabondage
+    GOAL_BEHAVIOR_STATE_MACHINE = 4,  // AI_BehaviorStateMachine : tournoi MVRS
+    GOAL_ACTIVE_WINGMAN = 5,          // Goal_ActiveWingmanEngagement : escorte active du joueur
+};
+
 enum KillBoardType {
     AIR_KILL = 0,
     GROUND_KILL = 1

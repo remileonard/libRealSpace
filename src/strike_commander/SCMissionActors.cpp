@@ -1099,13 +1099,18 @@ void SCMissionActors::onEvent(const EventMessage &event) {
         this->onMissionUpdate(*eventData);
         return;
     }
+    if (auto eventData = dynamic_cast<const AIRefreshEvent*>(&event)) {
+        this->onAIRefresh(*eventData);
+        return;
+    }
 }
 void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     if (event.attacker != nullptr && event.target != nullptr && event.target == this) {
         event.weapon->alive = false;
         this->hasBeenHit(event.weapon, event.attacker);
-        this->target->weapon_shooted_at_me = nullptr;
-        if (this->target->object->alive == true) {
+        
+        event.target->weapon_shooted_at_me = nullptr;
+        if (event.target->object->alive == true) {
             this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
             if (this->mission->sound.sounds.size() > 0) {
                 RSMixer &Mixer = RSMixer::getInstance();
@@ -1208,7 +1213,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     if (ai_actor->is_active == false) {
         return;
     }
-    
+
     if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
         mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
         SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
@@ -1223,40 +1228,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
             ai_actor->override_progs.shrink_to_fit();
         }
     }
-    
-    ai_actor->protectSelf();
-    switch (ai_actor->current_command) {
-        case OP_SET_WAIT_FOR_SECONDS:
-            ai_actor->current_command_executed = ai_actor->wait(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_TAKE_OFF:
-            ai_actor->current_command_executed = ai_actor->takeOff(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_LAND:
-            ai_actor->current_command_executed = ai_actor->land(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_FLY_TO_WP:
-            ai_actor->current_command_executed = ai_actor->flyToWaypoint(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_FLY_TO_AREA:
-            ai_actor->current_command_executed = ai_actor->flyToArea(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_DESTROY_TARGET:
-            ai_actor->current_command_executed = ai_actor->destroyTarget(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_DEFEND_TARGET:
-            ai_actor->current_command_executed = ai_actor->defendTarget(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_DEFEND_AREA:
-            ai_actor->current_command_executed = ai_actor->defendArea(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_FOLLOW_ALLY:
-            ai_actor->current_command_executed = ai_actor->followAlly(ai_actor->current_command_arg);
-        break;
-        default:
-        break;
-    }
-    
+
     if (ai_actor->pilot == nullptr) {
         return;
     }
@@ -1302,6 +1274,157 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
             ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
         }
     }
+}
+/**
+ * SCMissionActors::executeGoalAction
+ *
+ * Implementation du selecteur GOAL_EXECUTE_ACTION (Goal_ExecuteAction,
+ * cf. analysis/AI_SYSTEM.md §4.3) : retraduit l'etat persistant
+ * current_command (pose par le script PROG dans onMissionUpdate, ou par un
+ * ordre radio via override_progs) en appel de la methode de comportement
+ * correspondante. Le script ne fait que POSER current_command ; c'est ici,
+ * uniquement, qu'il est EXECUTE — voir onAIRefresh()/runGoalSelectors().
+ * Extrait tel quel de l'ancien onMissionUpdate, seule sa cadence d'appel
+ * change (25Hz via AIRefreshEvent au lieu de chaque frame).
+ *
+ * @return true si un objectif etait actif et a ete execute ce tick (le
+ * selecteur "prend la main" — cf. Goal_ExecuteAction, AI_SYSTEM.md §4.3),
+ * false si current_command est vide (OP_NOOP) : chaque selecteur GOAL est
+ * autonome et gere son propre etat, donc runGoalSelectors() doit continuer
+ * vers le selecteur suivant du fichier dans ce cas (sinon un acteur sans
+ * commande active ne ferait jamais rien d'autre).
+ */
+bool SCMissionActors::executeGoalAction() {
+    this->protectSelf();
+    switch (this->current_command) {
+        case OP_SET_WAIT_FOR_SECONDS:
+            this->current_command_executed = this->wait(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_TAKE_OFF:
+            this->current_command_executed = this->takeOff(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_LAND:
+            this->current_command_executed = this->land(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_WP:
+            this->current_command_executed = this->flyToWaypoint(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_AREA:
+            this->current_command_executed = this->flyToArea(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_DESTROY_TARGET:
+            this->current_command_executed = this->destroyTarget(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_DEFEND_TARGET:
+            this->current_command_executed = this->defendTarget(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_DEFEND_AREA:
+            this->current_command_executed = this->defendArea(this->current_command_arg);
+        break;
+        case OP_SET_OBJ_FOLLOW_ALLY:
+            this->current_command_executed = this->followAlly(this->current_command_arg);
+        break;
+        default:
+            return false;
+    }
+    return true;
+}
+/**
+ * SCMissionActors::tryWanderRandom
+ *
+ * Implementation du selecteur GOAL_WANDER_RANDOM (Goal_WanderRandom,
+ * cf. analysis/AI_SYSTEM.md §4, analysis/AI_TACTICAL_GLOSSARY.md §2) :
+ * fait naviguer l'acteur vers un SPOT de la mission tire au hasard.
+ * Autonome comme tout selecteur GOAL — verifie lui-meme si l'objectif
+ * courant est atteint (via le booleen de retour de flyToWaypoint) avant
+ * d'en tirer un nouveau, sans dependre du sort de GOAL_EXECUTE_ACTION.
+ *
+ * @return true si le selecteur a pris la main ce tick, false s'il ne
+ * s'applique pas (une cible est deja engagee).
+ */
+bool SCMissionActors::tryWanderRandom() {
+    if (this->current_target != 0) {
+        return false;
+    }
+    size_t spot_count = this->mission->mission->mission_data.spots.size();
+    if (spot_count == 0) {
+        return false;
+    }
+    this->current_command = prog_op::OP_SET_OBJ_FLY_TO_WP;
+    bool arrived = this->flyToWaypoint(this->current_command_arg);
+    if (arrived) {
+        this->current_command_arg = (uint8_t)(std::rand() % spot_count);
+    }
+    this->current_command_executed = arrived;
+    return true;
+}
+/**
+ * SCMissionActors::onAIRefresh
+ *
+ * Point d'entree de la decision IA (equivalent AIEntity_MasterTick /
+ * AI_TopLevelThink, cf. analysis/AI_SYSTEM.md §4/§6), declenche par
+ * SCMission a cadence fixe ~25fps (AIRefreshEvent) plutot qu'a chaque
+ * frame reelle du port. Ne s'applique qu'aux acteurs actifs porteurs d'un
+ * profil GOAL complet (plane + pilot deja assignes, cf. SCMission.cpp).
+ */
+void SCMissionActors::onAIRefresh(const AIRefreshEvent &event) {
+    if (!this->is_active || this->is_destroyed) {
+        return;
+    }
+    if (this->profile == nullptr || !this->profile->ai.isAI) {
+        return;
+    }
+    if (this->profile->ai.goal.empty()) {
+        return;
+    }
+    if (this->plane == nullptr || this->pilot == nullptr) {
+        return;
+    }
+    this->runGoalSelectors();
+}
+/**
+ * SCMissionActors::runGoalSelectors
+ *
+ * Parcourt profile->ai.goal dans l'ordre du fichier et s'arrete au premier
+ * selecteur qui "prend la main" ce tick (cf. AI_TopLevelThink,
+ * analysis/AI_SYSTEM.md §4.2). Chaque selecteur est autonome : il gere son
+ * propre etat et signale lui-meme s'il a agi ou non ce tick, ce qui permet
+ * de passer au suivant du fichier quand il n'a rien a faire (ex. GOAL_EXECUTE_ACTION
+ * sans commande active laisse la main a GOAL_WANDER_RANDOM s'il suit dans
+ * le fichier). Sélecteurs cables : 2 (GOAL_EXECUTE_ACTION, executeGoalAction)
+ * et 3 (GOAL_WANDER_RANDOM, tryWanderRandom). 4/5 restent des points
+ * d'extension explicites pour les prochaines sessions (tournoi MVRS,
+ * escorte active — voir analysis/AI_IMPLEMENTATION_GUIDE.md §2.6/§3) et ne
+ * "prennent" jamais la main pour l'instant.
+ *
+ * @return true si un selecteur a agi ce tick, false sinon.
+ */
+bool SCMissionActors::runGoalSelectors() {
+    for (uint8_t rawSelector : this->profile->ai.goal) {
+        switch ((GoalSelector) rawSelector) {
+            case GOAL_EMPTY:
+                continue;
+            case GOAL_EXECUTE_ACTION:
+                if (this->executeGoalAction()) {
+                    return true;
+                }
+                continue;
+            case GOAL_WANDER_RANDOM:
+                if (this->tryWanderRandom()) {
+                    return true;
+                }
+                continue;
+            case GOAL_BEHAVIOR_STATE_MACHINE:
+                // TODO tournoi MVRS — AI_IMPLEMENTATION_GUIDE.md §3
+                continue;
+            case GOAL_ACTIVE_WINGMAN:
+                // TODO tryActiveWingman() — AI_IMPLEMENTATION_GUIDE.md §2.6
+                continue;
+            default:
+                continue;
+        }
+    }
+    return false;
 }
 /**
  * SCMissionActorsPlayer::takeOff

@@ -13,6 +13,14 @@ public:
     uint8_t mission_update_id{0};
     SCMission *mission{nullptr};
 };
+// Publie par SCMission a une cadence fixe (~25 Hz, la cadence de decision
+// d'origine, cf. analysis/AI_SYSTEM.md §6) plutot qu'a chaque frame reelle.
+// Chaque SCMissionActors qui possede un profil GOAL declenche sur reception
+// sa propre boucle GOAL locale (voir SCMissionActors::onAIRefresh).
+class AIRefreshEvent: public EventMessage {
+public:
+    SCMission *mission{nullptr};
+};
 class MissionEventActorHit: public EventMessage {
 public:
     SCMissionActors *attacker{nullptr};
