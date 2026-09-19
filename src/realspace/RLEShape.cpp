@@ -7,7 +7,7 @@
 //
 
 #include "RLEShape.h"
-
+#include <algorithm>
 RLEShape::RLEShape() : colorOffset(0) {
     position.x = 0;
     position.y = 0;

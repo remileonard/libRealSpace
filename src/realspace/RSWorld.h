@@ -44,7 +44,7 @@ struct RSCameraDef {
     RSCameraType         typeCode = RSCAM_UNKNOWN;
     std::string          subject;      // entité porteuse, ex. "PLAYER"
     std::string          cockpitArt;   // CKPT seul, ex. "F16-CKPT"
-    float_t              farClip  = 0; // 50000
+    float              farClip  = 0; // 50000
     float                fov      = 0; // 40.0 (converti 8.8 -> degrés au décodage, cf. ByteStream::ReadFixedFloat16LE)
     float                nearClip = 0; // dword ; contient ~10
     uint16_t             viewX = 0;

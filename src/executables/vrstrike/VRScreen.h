@@ -24,18 +24,31 @@ extern "C" {
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_opengl_glext.h>
+
+#if defined(__linux__)
+#include <X11/Xlib.h>
+#include <GL/glx.h>
+#endif
+
 #include <vector>
 
 #include "../../commons/Matrix.h"
-
-// OpenXR: types Win32 + OpenGL
-#if defined(_WIN32)
-#ifndef XR_USE_PLATFORM_WIN32
-#define XR_USE_PLATFORM_WIN32
-#endif
 #ifndef XR_USE_GRAPHICS_API_OPENGL
 #define XR_USE_GRAPHICS_API_OPENGL
 #endif
+
+#if defined(_WIN32)
+
+#ifndef XR_USE_PLATFORM_WIN32
+#define XR_USE_PLATFORM_WIN32
+#endif
+
+#elif defined(__linux__)
+
+#ifndef XR_USE_PLATFORM_XLIB
+#define XR_USE_PLATFORM_XLIB
+#endif
+
 #endif
 
 #include <openxr/openxr.h>

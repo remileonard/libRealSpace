@@ -22,6 +22,7 @@ extern "C" {
 #include <Windows.h>
 #endif
 #ifndef __APPLE__
+    #define GL_GLEXT_PROTOTYPES
     #include <GL/gl.h>
 #else
     #define GL_SILENCE_DEPRECATION
