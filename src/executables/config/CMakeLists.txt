@@ -18,9 +18,7 @@ target_include_directories(config PUBLIC ${SC_INCLUDES})
 target_include_directories(config PUBLIC ${SDL2_INCLUDE_DIRS})
 target_include_directories(config PUBLIC ${OPENGL_INCLUDE_DIR})
 target_include_directories(config PUBLIC ${OPENGL_INCLUDE_DIR})
-target_link_libraries(config PRIVATE
-    "$<LINK_GROUP:RESCAN,engine,realspace,commons,strike_commander,pacific_strike>"
-)
+target_link_libraries(config PRIVATE  engine realspace commons strike_commander)
 target_link_libraries(config PUBLIC ${SDL2_LIBRARIES})
 target_link_libraries(config PRIVATE imgui::imgui )
 target_link_libraries(config PRIVATE nfd::nfd)
