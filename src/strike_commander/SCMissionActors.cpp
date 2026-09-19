@@ -1143,7 +1143,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     /*if (this->is_active == false) {
         return;
     }*/
-    if (this->is_destroyed == true) {
+    if (this->is_destroyed == true && this->is_active == false) {
         return;
     }
     if (this->object == nullptr) {
