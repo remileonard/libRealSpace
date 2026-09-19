@@ -97,13 +97,17 @@ private:
     // ~25fps d'AIRefreshEvent — voir analysis/AI_SYSTEM.md §4 et
     // AI_IMPLEMENTATION_GUIDE.md §2. Ne concerne que les acteurs porteurs
     // d'un profil GOAL (ai.isAI && !ai.goal.empty()). L'execution du script
-    // PROG (on_update/override_progs) reste dans onMissionUpdate, a chaque
-    // frame, pour tous les acteurs : elle POSE current_command, elle ne
-    // l'execute pas — c'est le role d'executeGoalAction() ci-dessous.
+    // de mission (on_update) reste dans onMissionUpdate, a chaque frame,
+    // pour tous les acteurs : elle POSE current_command, elle ne l'execute
+    // pas — c'est le role d'executeGoalAction() ci-dessous. override_progs
+    // (les ordres radio acceptes, expression du selecteur GOAL_ACTIVE_WINGMAN)
+    // est en revanche traite ici, via tryActiveWingman() — uniquement pour
+    // les acteurs qui ont 5 dans leur GOAL.
     void onAIRefresh(const AIRefreshEvent &event);
     bool runGoalSelectors();
     bool executeGoalAction();
     bool tryWanderRandom();
+    void tryActiveWingman();
     MessageBus::SubscriptionId subscription_id{-1};
 };
 

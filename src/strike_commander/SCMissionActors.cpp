@@ -1235,19 +1235,16 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         return;
     }
 
+    // override_progs (ordre radio accepte) est traite exclusivement par
+    // tryActiveWingman(), sous le selecteur GOAL_ACTIVE_WINGMAN — voir
+    // onAIRefresh()/runGoalSelectors(). Ce test reste ici : tant qu'un
+    // ordre est en cours, le script de mission normal ne doit pas reprendre
+    // la main.
     if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
         mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
         SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
         p->execute();
         delete p;
-    } else if (ai_actor->override_progs.size() > 0 && ai_actor->is_destroyed == false) {
-        SCProg *p = new SCProg(ai_actor, ai_actor->override_progs, mission, 255);
-        p->execute();
-        delete p;
-        if (ai_actor->current_command_executed) {
-            ai_actor->override_progs.clear();
-            ai_actor->override_progs.shrink_to_fit();
-        }
     }
 
     if (ai_actor->pilot == nullptr) {
@@ -1308,12 +1305,23 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
  * Extrait tel quel de l'ancien onMissionUpdate, seule sa cadence d'appel
  * change (25Hz via AIRefreshEvent au lieu de chaque frame).
  *
- * @return true si un objectif etait actif et a ete execute ce tick (le
- * selecteur "prend la main" — cf. Goal_ExecuteAction, AI_SYSTEM.md §4.3),
- * false si current_command est vide (OP_NOOP) : chaque selecteur GOAL est
- * autonome et gere son propre etat, donc runGoalSelectors() doit continuer
- * vers le selecteur suivant du fichier dans ce cas (sinon un acteur sans
- * commande active ne ferait jamais rien d'autre).
+ * @return true si un objectif de navigation pure etait actif et a ete
+ * execute ce tick (le selecteur "prend la main" — cf. Goal_ExecuteAction,
+ * AI_SYSTEM.md §4.3) ; false si current_command est vide (OP_NOOP) OU si
+ * c'est un objectif de combat (DESTROY_TARGET/DEFEND_TARGET/DEFEND_AREA).
+ *
+ * Le cas combat est deliberement traite a part : ces objectifs peuvent
+ * rester actifs tres longtemps (tant que la cible n'est pas detruite), et
+ * comme 2 precede 4 dans tous les fichiers PROF echantillons, un simple
+ * "true tant que current_command != OP_NOOP" empecherait le tournoi MVRS
+ * (selecteur 4) de jamais tourner en combat — exactement le moment ou il
+ * doit prendre la main pour la maneuvre. On execute quand meme l'objectif
+ * ici (pour garder l'avion en route vers/apres la cible), mais on rend la
+ * main a runGoalSelectors() pour que 4 (une fois cable) ait sa chance dans
+ * le meme passage. A revoir/confirmer une fois l'articulation reelle
+ * Goal_ExecuteAction/AI_BehaviorStateMachine tranchee en ASM (AI_SYSTEM.md
+ * §4.4 suggere que certains selecteurs delegue a MVRS en interne plutot
+ * qu'une simple exclusion mutuelle au niveau de la boucle GOAL).
  */
 bool SCMissionActors::executeGoalAction() {
     this->protectSelf();
@@ -1333,18 +1341,18 @@ bool SCMissionActors::executeGoalAction() {
         case OP_SET_OBJ_FLY_TO_AREA:
             this->current_command_executed = this->flyToArea(this->current_command_arg);
         break;
-        case OP_SET_OBJ_DESTROY_TARGET:
-            this->current_command_executed = this->destroyTarget(this->current_command_arg);
-        break;
-        case OP_SET_OBJ_DEFEND_TARGET:
-            this->current_command_executed = this->defendTarget(this->current_command_arg);
-        break;
-        case OP_SET_OBJ_DEFEND_AREA:
-            this->current_command_executed = this->defendArea(this->current_command_arg);
-        break;
         case OP_SET_OBJ_FOLLOW_ALLY:
             this->current_command_executed = this->followAlly(this->current_command_arg);
         break;
+        case OP_SET_OBJ_DESTROY_TARGET:
+            this->current_command_executed = this->destroyTarget(this->current_command_arg);
+            return false;
+        case OP_SET_OBJ_DEFEND_TARGET:
+            this->current_command_executed = this->defendTarget(this->current_command_arg);
+            return false;
+        case OP_SET_OBJ_DEFEND_AREA:
+            this->current_command_executed = this->defendArea(this->current_command_arg);
+            return false;
         default:
             return false;
     }
@@ -1380,6 +1388,29 @@ bool SCMissionActors::tryWanderRandom() {
     return true;
 }
 /**
+ * SCMissionActors::tryActiveWingman
+ *
+ * Implementation du selecteur GOAL_ACTIVE_WINGMAN (Goal_ActiveWingmanEngagement,
+ * cf. analysis/AI_SYSTEM.md §4.4) : execute le script d'ordre radio accepte
+ * (override_progs) s'il y en a un en cours. Ne "gagne" jamais le tick — le
+ * script ne fait que POSER current_command (setObjective, cf. SCProg.cpp),
+ * c'est toujours GOAL_EXECUTE_ACTION (executeGoalAction) qui l'execute
+ * reellement ; runGoalSelectors() doit donc toujours continuer vers le
+ * selecteur suivant du fichier apres cet appel.
+ */
+void SCMissionActors::tryActiveWingman() {
+    if (this->override_progs.empty() || this->is_destroyed) {
+        return;
+    }
+    SCProg *p = new SCProg(this, this->override_progs, this->mission, 255);
+    p->execute();
+    delete p;
+    if (this->current_command_executed) {
+        this->override_progs.clear();
+        this->override_progs.shrink_to_fit();
+    }
+}
+/**
  * SCMissionActors::onAIRefresh
  *
  * Point d'entree de la decision IA (equivalent AIEntity_MasterTick /
@@ -1412,11 +1443,12 @@ void SCMissionActors::onAIRefresh(const AIRefreshEvent &event) {
  * propre etat et signale lui-meme s'il a agi ou non ce tick, ce qui permet
  * de passer au suivant du fichier quand il n'a rien a faire (ex. GOAL_EXECUTE_ACTION
  * sans commande active laisse la main a GOAL_WANDER_RANDOM s'il suit dans
- * le fichier). Sélecteurs cables : 2 (GOAL_EXECUTE_ACTION, executeGoalAction)
- * et 3 (GOAL_WANDER_RANDOM, tryWanderRandom). 4/5 restent des points
- * d'extension explicites pour les prochaines sessions (tournoi MVRS,
- * escorte active — voir analysis/AI_IMPLEMENTATION_GUIDE.md §2.6/§3) et ne
- * "prennent" jamais la main pour l'instant.
+ * le fichier). Sélecteurs cables : 2 (GOAL_EXECUTE_ACTION, executeGoalAction),
+ * 3 (GOAL_WANDER_RANDOM, tryWanderRandom) et 5 (GOAL_ACTIVE_WINGMAN,
+ * tryActiveWingman — ne gagne jamais le tick, voir sa doc). 4 reste un point
+ * d'extension explicite pour une prochaine session (tournoi MVRS — voir
+ * analysis/AI_IMPLEMENTATION_GUIDE.md §3) et ne "prend" jamais la main pour
+ * l'instant.
  *
  * @return true si un selecteur a agi ce tick, false sinon.
  */
@@ -1439,7 +1471,11 @@ bool SCMissionActors::runGoalSelectors() {
                 // TODO tournoi MVRS — AI_IMPLEMENTATION_GUIDE.md §3
                 continue;
             case GOAL_ACTIVE_WINGMAN:
-                // TODO tryActiveWingman() — AI_IMPLEMENTATION_GUIDE.md §2.6
+                // Ne gagne jamais le tick : pose seulement current_command
+                // depuis l'ordre radio en cours, si il y en a un — c'est
+                // GOAL_EXECUTE_ACTION, plus loin dans le fichier, qui
+                // l'execute reellement (voir tryActiveWingman()).
+                this->tryActiveWingman();
                 continue;
             default:
                 continue;
