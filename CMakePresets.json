@@ -43,7 +43,11 @@
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
                 "CMAKE_MAKE_PROGRAM": "/usr/bin/make",
                 "CMAKE_BUILD_TYPE": "Debug"
-            }
+            },
+	    "environment": {
+        	"CFLAGS": "-Wno-error -Wno-error=override-init -Wno-error=incompatible-pointer-types",
+        	"CXXFLAGS": "-Wno-error -Wno-error=override-init -Wno-error=incompatible-pointer-types"
+      	    }
         },
         {
             "name": "linux_clang",

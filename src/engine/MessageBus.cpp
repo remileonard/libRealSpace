@@ -1,5 +1,5 @@
 #include "MessageBus.h"
-
+#include <stdexcept>
 
 MessageBus::SubscriptionId MessageBus::subscribeInput(InputCallback callback) {
     if (!callback) {
