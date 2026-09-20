@@ -13,10 +13,16 @@ void SCAIBrain::tick() {
         last_weapon_mask = weapon_mask;
     }
     fire_solution_quality = this->computeFireSolutionQuality();
+    if (fire_control_enabled) {
+        this->updateFireControl();
+    }
     if (weapon_mask != 0 && debug_ticks % 25 == 0) {
         printf("AI %s#%d weapon_mask=0x%X quality=%d\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask, fire_solution_quality);
     }
     this->runGoalSelectors();
+    if (pursuit_enabled) {
+        this->updatePursuit();
+    }
 }
 
 SCMissionActors *SCAIBrain::acquireBestThreat(bool allow_new_target) {
@@ -571,4 +577,102 @@ int SCAIBrain::computeFireSolutionQuality() {
         return 0;
     }
     return quality;
+}
+
+bool SCAIBrain::reactionThreshold(int quality) {
+    return 2 * quality >= owner->profile->ai.atrb.AA;
+}
+
+void SCAIBrain::updateFireControl() {
+    fire_request = false;
+    if (missile_cooldown > 0) {
+        missile_cooldown--;
+    }
+    if (air_target == nullptr || threat_state > 1) {
+        burst_remaining = 0;
+        burst_weapon = 0;
+        return;
+    }
+    uint16_t requested_weapon = 0;
+    if (burst_remaining > 0 && burst_weapon == 0x800) {
+        burst_remaining--;
+        fire_request = true;
+        requested_weapon = 0x800;
+    } else if (weapon_mask == 0x800) {
+        if (fire_solution_quality >= 2 && this->reactionThreshold(fire_solution_quality)) {
+            burst_remaining = ((std::rand() & 3) + 4) * fire_solution_quality / 10;
+            if (burst_remaining > 1) {
+                burst_weapon = 0x800;
+                fire_request = true;
+                requested_weapon = 0x800;
+            }
+        }
+    } else if (weapon_mask != 0 && fire_solution_quality > 0 && missile_cooldown == 0) {
+        fire_request = true;
+        requested_weapon = weapon_mask;
+        missile_cooldown = 75;
+    }
+    if (fire_request) {
+        owner->pilot->Fire(requested_weapon, air_target);
+        printf("AI %s#%d fire weapon=0x%X quality=%d burst=%d\n", owner->actor_name.c_str(), owner->actor_id, requested_weapon, fire_solution_quality, burst_remaining);
+    }
+}
+
+void SCAIBrain::updatePursuit() {
+    pursuit_active = false;
+    Vector3D own_position = owner->plane->position;
+    Vector3D own_velocity = (own_position - own_last_position) * (1.0f / TICK_DURATION);
+    own_last_position = own_position;
+    bool combat_order = owner->current_command == OP_SET_OBJ_DESTROY_TARGET || owner->current_command == OP_SET_OBJ_DEFEND_TARGET;
+    if (air_target == nullptr || air_target->plane == nullptr || threat_state > 1 || !combat_order || owner->plane->on_ground) {
+        pursuit_last_target = nullptr;
+        aim_trim = 0.0f;
+        return;
+    }
+    if (pursuit_last_target != air_target) {
+        aim_trim = 0.0f;
+    }
+    Vector3D target_position = air_target->plane->position;
+    Vector3D target_velocity = {0.0f, 0.0f, 0.0f};
+    if (pursuit_last_target == air_target) {
+        target_velocity = (target_position - target_last_position) * (1.0f / TICK_DURATION);
+    }
+    pursuit_last_target = air_target;
+    target_last_position = target_position;
+
+    RSIntel &intel = owner->mission->intel;
+    Vector3D delta = target_position - own_position;
+    float distance = delta.Length();
+    float own_speed = own_velocity.Length();
+    float time_to_go = own_speed > 1.0f ? distance / own_speed : 0.0f;
+    time_to_go = std::min(time_to_go, 3.0f);
+    Vector3D lead = target_position + target_velocity * time_to_go;
+    Vector3D direction = lead - own_position;
+    float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
+    direction.y = std::max(-horizontal, std::min(horizontal, direction.y));
+    float delta_horizontal = sqrtf(delta.x * delta.x + delta.z * delta.z);
+    float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
+    float los_elevation = radToDegree(atan2f(delta.y, delta_horizontal));
+    float aim_error = los_elevation - nose_elevation;
+    aim_trim += tanf(degreeToRad(aim_error)) * delta_horizontal * 0.1f;
+    aim_trim = std::max(-600.0f, std::min(600.0f, aim_trim));
+    Vector3D waypoint = own_position + direction;
+    waypoint.y += aim_trim;
+
+    owner->pilot->SetTargetWaypoint(waypoint);
+    if (waypoint.y < owner->plane->y) {
+        float ground_y = owner->plane->area->getY(waypoint.x, waypoint.z);
+        owner->pilot->target_climb = (int) std::max(waypoint.y, ground_y + 1000.0f);
+    }
+    float target_forward_speed = air_target->plane->vz;
+    if (distance > intel.range_medium) {
+        owner->pilot->target_speed = -60;
+    } else {
+        float faster = distance > intel.range_gun ? 10.0f : 0.0f;
+        owner->pilot->target_speed = (int) std::max(-60.0f, target_forward_speed - faster);
+    }
+    pursuit_active = true;
+    if (debug_ticks % 25 == 0) {
+        printf("AI %s#%d pursuit target=%s mission_target=%s d=%.0f own_speed=%.0f time_to_go=%.1f lead_dy=%.0f own_y=%.0f target_y=%.0f dy=%.0f waypoint_y=%.0f climb_cmd=%d speed_cmd=%d vz=%.0f target_vz=%.0f nose_elev=%.1f los_elev=%.1f aim_trim=%.0f\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), owner->target != nullptr ? owner->target->actor_name.c_str() : "none", distance, own_speed, time_to_go, lead.y - target_position.y, own_position.y, target_position.y, target_position.y - own_position.y, waypoint.y, owner->pilot->target_climb, owner->pilot->target_speed, owner->plane->vz, air_target->plane->vz, nose_elevation, los_elevation, aim_trim);
+    }
 }

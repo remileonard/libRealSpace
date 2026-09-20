@@ -91,4 +91,5 @@ public:
     ~SCPilot();
     void SetTargetWaypoint(Vector3D waypoint);
     void FlyTo();
+    void Fire(uint16_t weapon_mask, SCMissionActors *target);
 };

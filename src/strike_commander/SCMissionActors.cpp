@@ -226,7 +226,10 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             } else if (target_position_diff.Length() > 0.0f) {
                 target_position_update -= 1;
             }
-            this->pilot->SetTargetWaypoint(wp);
+            bool brain_pursues = this->brain != nullptr && this->brain->pursuit_active;
+            if (!brain_pursues) {
+                this->pilot->SetTargetWaypoint(wp);
+            }
             Vector3D diff = wp - position;
             float dist = diff.Length();
             if (!actor->plane->on_ground) {
@@ -257,11 +260,17 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                     }
                     hpt_id++;
                 }
-                this->pilot->target_climb = (int) wp.y;
+                if (!brain_pursues) {
+                    this->pilot->target_climb = (int) wp.y;
+                }
                 if (dist > attack_range - 1000.0f) {
-                    this->pilot->target_speed = -60;
+                    if (!brain_pursues) {
+                        this->pilot->target_speed = -60;
+                    }
                 } else if (dist < attack_range - 300.0f) {
-                    this->pilot->target_speed = (int) actor->plane->vz;
+                    if (!brain_pursues) {
+                        this->pilot->target_speed = (int) actor->plane->vz;
+                    }
                     // Calculate azimuth between plane and target
                     float target_azimuth = 0.0f;
                     if (actor->plane != nullptr) {
@@ -284,7 +293,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                         while (target_diff < -180.0f) target_diff += 360.0f;
      
                         // Only shoot if target is within firing arc
-                        if (std::abs(target_diff) < 30.0f) {
+                        if (std::abs(target_diff) < 30.0f && (this->brain == nullptr || !this->brain->fire_control_enabled)) {
                             if (this->plane->weaps_object.size() < max_weap) {
                                 int should_shoot = std::rand() % 16;
                                 if (should_shoot <= this->profile->ai.atrb.TH) {

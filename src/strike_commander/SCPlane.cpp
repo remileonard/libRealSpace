@@ -1307,6 +1307,14 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             return;
         }
     }
+    this->ShootDirect(weapon_hard_point_id, target, mission);
+}
+void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
+    SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
+    weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (weap_loadout == nullptr) {
+        return;
+    }
     SCSimulatedObject *weap{nullptr};
     Vector3D initial_trust = {0,0,0};
     

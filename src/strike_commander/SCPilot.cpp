@@ -266,3 +266,16 @@ void SCPilot::FlyTo() {
     planeControlEvent.wheel = this->gear;
     MessageBus::getInstance().publish(std::make_unique<PlaneControlEvent>(planeControlEvent));
 }
+void SCPilot::Fire(uint16_t weapon_mask, SCMissionActors *target) {
+    for (size_t hardpoint = 0; hardpoint < this->plane->weaps_load.size(); hardpoint++) {
+        SCWeaponLoadoutHardPoint *weap = this->plane->weaps_load[hardpoint];
+        if (weap == nullptr || weap->nb_weap <= 0) {
+            continue;
+        }
+        int weapon_id = weap->objct->wdat->weapon_id;
+        if (weapon_id >= 1 && ((1 << (weapon_id - 1)) & weapon_mask) != 0) {
+            this->plane->ShootDirect((int) hardpoint, target, this->actor->mission);
+            return;
+        }
+    }
+}

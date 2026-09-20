@@ -315,6 +315,7 @@ public:
     virtual void RenderSimulatedObject();
     virtual void RenderSmoke(); 
     virtual void Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    virtual void ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
     virtual void InitLoadout();
     void renderPlaneLined();
     // Nouvelle méthode pour simuler un tir
