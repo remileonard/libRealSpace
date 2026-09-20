@@ -102,12 +102,10 @@ static std::unordered_map<weapon_ids, std::string> weapon_names = {
     {weapon_ids::ID_GBU15, "GBU-15"},
     {weapon_ids::ID_AIM120, "AIM-120"}
 };
-enum weapon_category {
-    WCAT_GUN = 0,
+enum weapon_radar_type {
+    WCAT_NONE = 0,
     WCAT_IR = 1,
-    WCAT_RD = 2,
-    WCAT_BOMB = 3,
-    WCAT_POD = 4,
+    WCAT_RD = 2
 };
 enum prog_compare_return_values {
     PROG_CMP_EQUAL = 1,          // 000001
