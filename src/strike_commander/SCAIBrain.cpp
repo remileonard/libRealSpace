@@ -534,7 +534,8 @@ int SCAIBrain::computeFireSolutionQuality() {
             return 0;
         }
         float error = owner->plane->forward.AngleBetween(delta);
-        float tolerance = radToDegree(atanf((float) air_target->plane->airspeed / distance));
+        float target_speed_per_tick = std::fabs(air_target->plane->vz) * air_target->plane->tps * TICK_DURATION;
+        float tolerance = radToDegree(atanf(target_speed_per_tick / distance));
         if (tolerance <= 0.0f) {
             return 0;
         }
@@ -631,6 +632,7 @@ void SCAIBrain::updatePursuit() {
     if (air_target == nullptr || air_target->plane == nullptr || threat_state > 1 || !combat_order || owner->plane->on_ground) {
         pursuit_last_target = nullptr;
         aim_trim = 0.0f;
+        owner->pilot->attitude_mode = false;
         return;
     }
     if (pursuit_last_target != air_target) {
@@ -667,21 +669,37 @@ void SCAIBrain::updatePursuit() {
     Vector3D waypoint = own_position + direction;
     waypoint.y = own_position.y + std::max(-400.0f, std::min(400.0f, direction.y + aim_trim));
 
-    owner->pilot->SetTargetWaypoint(waypoint);
-    if (waypoint.y < owner->plane->y) {
-        float ground_y = owner->plane->area->getY(waypoint.x, waypoint.z);
-        owner->pilot->target_climb = (int) std::max(waypoint.y, ground_y + 1000.0f);
+    float heading_error = 0.0f;
+    float pitch_error = 0.0f;
+    if (attitude_control_enabled) {
+        this->computeAttitudeError(direction, heading_error, pitch_error);
+        if (distance < intel.range_medium) {
+            heading_error = std::max(-10.0f, std::min(10.0f, heading_error));
+            pitch_error = std::max(-10.0f, std::min(10.0f, pitch_error));
+        }
+        float ground_y = owner->plane->area->getY(own_position.x, own_position.z);
+        if (own_position.y - ground_y < 1000.0f && pitch_error < 0.0f) {
+            pitch_error = own_position.y - ground_y < 500.0f ? 10.0f : 0.0f;
+        }
+        owner->pilot->SetAttitudeError(heading_error, pitch_error, distance < intel.range_medium ? 0.5f : 2.0f);
+        owner->pilot->target_waypoint = lead;
+    } else {
+        owner->pilot->SetTargetWaypoint(waypoint);
+        if (waypoint.y < owner->plane->y) {
+            float ground_y = owner->plane->area->getY(waypoint.x, waypoint.z);
+            owner->pilot->target_climb = (int) std::max(waypoint.y, ground_y + 1000.0f);
+        }
     }
     float target_forward_speed = air_target->plane->vz;
     if (distance > intel.range_medium) {
         owner->pilot->target_speed = -60;
     } else {
-        float faster = distance > intel.range_gun ? 10.0f : 0.0f;
+        float faster = distance > intel.range_gun * 0.6f ? 10.0f : 0.0f;
         owner->pilot->target_speed = (int) std::max(-60.0f, target_forward_speed - faster);
     }
     pursuit_active = true;
     if (debug_ticks % 25 == 0) {
-        printf("AI %s#%d pursuit target=%s mission_target=%s d=%.0f own_speed=%.0f time_to_go=%.1f lead_dy=%.0f own_y=%.0f target_y=%.0f dy=%.0f waypoint_y=%.0f climb_cmd=%d speed_cmd=%d vz=%.0f target_vz=%.0f nose_elev=%.1f los_elev=%.1f aim_trim=%.0f\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), owner->target != nullptr ? owner->target->actor_name.c_str() : "none", distance, own_speed, time_to_go, lead.y - target_position.y, own_position.y, target_position.y, target_position.y - own_position.y, waypoint.y, owner->pilot->target_climb, owner->pilot->target_speed, owner->plane->vz, air_target->plane->vz, nose_elevation, los_elevation, aim_trim);
+        printf("AI %s#%d pursuit target=%s mission_target=%s d=%.0f own_speed=%.0f time_to_go=%.1f lead_dy=%.0f own_y=%.0f target_y=%.0f dy=%.0f waypoint_y=%.0f climb_cmd=%d speed_cmd=%d vz=%.0f target_vz=%.0f nose_elev=%.1f los_elev=%.1f aim_trim=%.0f heading_err=%.1f pitch_err=%.1f\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), owner->target != nullptr ? owner->target->actor_name.c_str() : "none", distance, own_speed, time_to_go, lead.y - target_position.y, own_position.y, target_position.y, target_position.y - own_position.y, waypoint.y, owner->pilot->target_climb, owner->pilot->target_speed, owner->plane->vz, air_target->plane->vz, nose_elevation, los_elevation, aim_trim, heading_error, pitch_error);
     }
 }
 
@@ -745,4 +763,23 @@ void SCAIBrain::reactToMissile() {
     if (debug_ticks % 25 == 0) {
         printf("AI %s#%d evade band=%d missile_d=%.0f hold=%d\n", owner->actor_name.c_str(), owner->actor_id, band, to_missile.Length(), evasion_hold);
     }
+}
+
+void SCAIBrain::computeAttitudeError(Vector3D direction, float &heading_error, float &pitch_error) {
+    float azimuth = atan2f(direction.z, direction.x) * 180.0f / (float) M_PI;
+    azimuth -= 360.0f;
+    azimuth += 90.0f;
+    while (azimuth < 0.0f) {
+        azimuth += 360.0f;
+    }
+    if (azimuth > 360.0f) {
+        azimuth -= 360.0f;
+    }
+    float target_yaw = norm3600(3600.0f - azimuth * 10.0f);
+    heading_error = -signed1800(target_yaw - owner->plane->yaw) / 10.0f;
+
+    float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
+    float desired_elevation = radToDegree(atan2f(direction.y, horizontal));
+    float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
+    pitch_error = desired_elevation - nose_elevation;
 }

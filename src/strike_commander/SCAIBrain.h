@@ -26,6 +26,7 @@ public:
     bool fire_request{false};
     bool pursuit_enabled{true};
     bool pursuit_active{false};
+    bool attitude_control_enabled{true};
     bool evasion_enabled{true};
     bool evasion_active{false};
     int fire_solution_quality{0};
@@ -55,6 +56,7 @@ private:
     bool reactionThreshold(int quality);
     void updateFireControl();
     void updatePursuit();
+    void computeAttitudeError(Vector3D direction, float &heading_error, float &pitch_error);
     int missileDistanceBand();
     void reactToMissile();
     ThreatScore scoreAirCandidate(SCMissionActors *candidate, Vector3D delta);

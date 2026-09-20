@@ -90,6 +90,11 @@ public:
     SCPilot();
     ~SCPilot();
     void SetTargetWaypoint(Vector3D waypoint);
+    void SetAttitudeError(float heading_error_deg, float pitch_error_deg, float deadband_deg);
+    bool attitude_mode{false};
+    float attitude_heading_error{0.0f};
+    float attitude_pitch_error{0.0f};
+    float attitude_deadband{0.0f};
     void FlyTo();
     void Fire(uint16_t weapon_mask, SCMissionActors *target);
 };

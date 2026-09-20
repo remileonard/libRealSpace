@@ -18,7 +18,15 @@ SCPilot::SCPilot() {
 
 SCPilot::~SCPilot() {}
 
+void SCPilot::SetAttitudeError(float heading_error_deg, float pitch_error_deg, float deadband_deg) {
+    this->attitude_mode = true;
+    this->attitude_heading_error = heading_error_deg;
+    this->attitude_pitch_error = pitch_error_deg;
+    this->attitude_deadband = deadband_deg;
+}
+
 void SCPilot::SetTargetWaypoint(Vector3D waypoint) {
+    this->attitude_mode = false;
     this->target_waypoint = {
         waypoint.x, waypoint.y, waypoint.z
     };
@@ -193,6 +201,12 @@ void SCPilot::FlyTo() {
     //
     float target_yaw  = norm3600(3600.0f - this->target_azimut);
     float heading_err = signed1800(target_yaw - this->plane->yaw);
+    if (this->attitude_mode) {
+        heading_err = -this->attitude_heading_error * 10.0f;
+        if (fabsf(heading_err) <= this->attitude_deadband * 10.0f) {
+            heading_err = 0.0f;
+        }
+    }
 
     float bank_limit = this->maxBankForG(this->plane->object->entity->jdyn->max_g);
     bank_limit = std::clamp(bank_limit, 250.0f, 600.0f);
@@ -248,6 +262,13 @@ void SCPilot::FlyTo() {
     float load_factor_ff = 1.0f / (std::max)(0.20f, cosf(bank_rad)) - 1.0f;
     float pitch_cmd = 1.35f * vario_err + load_factor_ff * 120.0f;
     pitch_cmd = std::clamp(pitch_cmd, -220.0f, 320.0f);
+    if (this->attitude_mode) {
+        float pitch_error = this->attitude_pitch_error * 10.0f;
+        if (fabsf(pitch_error) <= this->attitude_deadband * 10.0f) {
+            pitch_error = 0.0f;
+        }
+        pitch_cmd = std::clamp(this->plane->pitch + pitch_error, -450.0f, 450.0f) + load_factor_ff * 120.0f;
+    }
     
     float pitch_err = pitch_cmd - this->plane->pitch;
     float desired_pitch_speed = 0.6f * pitch_err - 2.00f * this->plane->pitch_speed;
