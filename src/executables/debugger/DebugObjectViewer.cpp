@@ -378,7 +378,7 @@ void DebugObjectViewer::renderUI() {
                     ImGui::Text("Radius: %d", entity->wdat->radius);
                     ImGui::Text("Weapon ID: %d", entity->wdat->weapon_id);
                     ImGui::Text("Weapon Category: %d", entity->wdat->weapon_category);
-                    ImGui::Text("Radar Type: %d", entity->wdat->radar_type);
+                    ImGui::Text("Target Domain: %d", entity->wdat->target_domain);
                     ImGui::Text("Weapon Aspect: %d", entity->wdat->weapon_aspec);
                     ImGui::Text("Target Range: %d", entity->wdat->target_range);
                     ImGui::Text("Tracking Cone: %d", entity->wdat->tracking_cone);

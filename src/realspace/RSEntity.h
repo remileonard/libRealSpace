@@ -180,7 +180,7 @@ class RSEntity {
         uint8_t unknown1{0};
         uint8_t weapon_id{0};
         uint8_t weapon_category{0};
-        uint8_t radar_type{0};
+        uint8_t target_domain{0};
         uint8_t weapon_aspec{0};
         uint32_t target_range{0};
         uint8_t tracking_cone{0};
