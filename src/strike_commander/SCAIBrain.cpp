@@ -20,7 +20,11 @@ void SCAIBrain::tick() {
         printf("AI %s#%d weapon_mask=0x%X quality=%d\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask, fire_solution_quality);
     }
     this->runGoalSelectors();
-    if (pursuit_enabled) {
+    evasion_active = false;
+    if (evasion_enabled) {
+        this->reactToMissile();
+    }
+    if (pursuit_enabled && !evasion_active) {
         this->updatePursuit();
     }
 }
@@ -588,7 +592,7 @@ void SCAIBrain::updateFireControl() {
     if (missile_cooldown > 0) {
         missile_cooldown--;
     }
-    if (air_target == nullptr || threat_state > 1) {
+    if (air_target == nullptr || threat_state > 1 || evasion_hold > 0) {
         burst_remaining = 0;
         burst_weapon = 0;
         return;
@@ -654,10 +658,14 @@ void SCAIBrain::updatePursuit() {
     float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
     float los_elevation = radToDegree(atan2f(delta.y, delta_horizontal));
     float aim_error = los_elevation - nose_elevation;
-    aim_trim += tanf(degreeToRad(aim_error)) * delta_horizontal * 0.1f;
-    aim_trim = std::max(-600.0f, std::min(600.0f, aim_trim));
+    if (distance < intel.range_medium && std::fabs(aim_error) < 10.0f) {
+        aim_trim += tanf(degreeToRad(aim_error)) * delta_horizontal * 0.05f;
+        aim_trim = std::max(-300.0f, std::min(300.0f, aim_trim));
+    } else if (distance >= intel.range_medium) {
+        aim_trim = 0.0f;
+    }
     Vector3D waypoint = own_position + direction;
-    waypoint.y += aim_trim;
+    waypoint.y = own_position.y + std::max(-400.0f, std::min(400.0f, direction.y + aim_trim));
 
     owner->pilot->SetTargetWaypoint(waypoint);
     if (waypoint.y < owner->plane->y) {
@@ -674,5 +682,67 @@ void SCAIBrain::updatePursuit() {
     pursuit_active = true;
     if (debug_ticks % 25 == 0) {
         printf("AI %s#%d pursuit target=%s mission_target=%s d=%.0f own_speed=%.0f time_to_go=%.1f lead_dy=%.0f own_y=%.0f target_y=%.0f dy=%.0f waypoint_y=%.0f climb_cmd=%d speed_cmd=%d vz=%.0f target_vz=%.0f nose_elev=%.1f los_elev=%.1f aim_trim=%.0f\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), owner->target != nullptr ? owner->target->actor_name.c_str() : "none", distance, own_speed, time_to_go, lead.y - target_position.y, own_position.y, target_position.y, target_position.y - own_position.y, waypoint.y, owner->pilot->target_climb, owner->pilot->target_speed, owner->plane->vz, air_target->plane->vz, nose_elevation, los_elevation, aim_trim);
+    }
+}
+
+int SCAIBrain::missileDistanceBand() {
+    Vector3D missile_position = {missile_threat->x, missile_threat->y, missile_threat->z};
+    float distance = (missile_position - owner->plane->position).Length();
+    int weapon_id = missile_threat->obj->wdat->weapon_id;
+    int missile_mask = weapon_id >= 1 ? (1 << (weapon_id - 1)) : 0;
+    RSIntel &intel = owner->mission->intel;
+    if ((missile_mask & 0x700) != 0) {
+        if (distance < intel.range_medium) {
+            return 1;
+        }
+        return distance < intel.range_far ? 2 : 3;
+    }
+    if ((missile_mask & 0x3) != 0) {
+        if (distance < intel.range_close) {
+            return 1;
+        }
+        return distance < intel.range_long ? 2 : 3;
+    }
+    return 0;
+}
+
+void SCAIBrain::reactToMissile() {
+    if (missile_threat != nullptr && (!missile_threat->alive || missile_threat->target != owner)) {
+        missile_threat = nullptr;
+        threat_state = 0;
+        evasion_hold = 0;
+        return;
+    }
+    if (threat_state == 2) {
+        evasion_hold = 25;
+    }
+    if (missile_threat == nullptr || evasion_hold <= 0) {
+        return;
+    }
+    evasion_hold--;
+    int band = this->missileDistanceBand();
+    if (band == 0) {
+        return;
+    }
+    Vector3D own_position = owner->plane->position;
+    Vector3D missile_position = {missile_threat->x, missile_threat->y, missile_threat->z};
+    Vector3D to_missile = missile_position - own_position;
+    to_missile.y = 0.0f;
+    Vector3D escape = -to_missile;
+    if (band != 3) {
+        escape = {to_missile.z, 0.0f, -to_missile.x};
+        Vector3D forward_horizontal = {owner->plane->forward.x, 0.0f, owner->plane->forward.z};
+        if (escape.DotProduct(&forward_horizontal) < 0.0f) {
+            escape = -escape;
+        }
+    }
+    escape.Normalize();
+    Vector3D waypoint = own_position + escape * 5000.0f;
+    waypoint.y = own_position.y;
+    owner->pilot->SetTargetWaypoint(waypoint);
+    owner->pilot->target_speed = -60;
+    evasion_active = true;
+    if (debug_ticks % 25 == 0) {
+        printf("AI %s#%d evade band=%d missile_d=%.0f hold=%d\n", owner->actor_name.c_str(), owner->actor_id, band, to_missile.Length(), evasion_hold);
     }
 }

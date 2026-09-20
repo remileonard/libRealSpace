@@ -26,6 +26,8 @@ public:
     bool fire_request{false};
     bool pursuit_enabled{true};
     bool pursuit_active{false};
+    bool evasion_enabled{true};
+    bool evasion_active{false};
     int fire_solution_quality{0};
 
     SCMissionActors *acquireBestThreat(bool allow_new_target);
@@ -42,6 +44,7 @@ private:
     int missile_cooldown{0};
     SCMissionActors *pursuit_last_target{nullptr};
     float aim_trim{0.0f};
+    int evasion_hold{0};
     Vector3D target_last_position{0.0f, 0.0f, 0.0f};
     Vector3D own_last_position{0.0f, 0.0f, 0.0f};
     bool fire_control_active{false};
@@ -52,6 +55,8 @@ private:
     bool reactionThreshold(int quality);
     void updateFireControl();
     void updatePursuit();
+    int missileDistanceBand();
+    void reactToMissile();
     ThreatScore scoreAirCandidate(SCMissionActors *candidate, Vector3D delta);
     ThreatScore scoreGroundCandidate(SCMissionActors *candidate, Vector3D delta);
     ThreatScore scoreMissile(SCSimulatedObject *missile);
