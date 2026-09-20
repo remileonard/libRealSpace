@@ -588,14 +588,34 @@ bool SCAIBrain::reactionThreshold(int quality) {
     return 2 * quality >= owner->profile->ai.atrb.AA;
 }
 
+RSEntity *SCAIBrain::loadedMissile(uint16_t mask) {
+    for (auto weap : owner->plane->weaps_load) {
+        if (weap == nullptr || weap->nb_weap <= 0) {
+            continue;
+        }
+        int weapon_id = weap->objct->wdat->weapon_id;
+        if (weapon_id >= 1 && (mask & (1 << (weapon_id - 1))) != 0) {
+            return weap->objct;
+        }
+    }
+    return nullptr;
+}
+
+bool SCAIBrain::testMissileLock(RSEntity *missile) {
+    Vector3D delta = air_target->plane->position - owner->plane->position;
+    float distance = delta.Length();
+    if (distance <= 0.0f || distance > missile->wdat->target_range) {
+        return false;
+    }
+    return owner->plane->forward.AngleBetween(delta) <= 90.0f - missile->wdat->tracking_cone;
+}
+
 void SCAIBrain::updateFireControl() {
     fire_request = false;
-    if (missile_cooldown > 0) {
-        missile_cooldown--;
-    }
     if (air_target == nullptr || threat_state > 1 || evasion_hold > 0) {
         burst_remaining = 0;
         burst_weapon = 0;
+        lock_target = nullptr;
         return;
     }
     uint16_t requested_weapon = 0;
@@ -612,10 +632,18 @@ void SCAIBrain::updateFireControl() {
                 requested_weapon = 0x800;
             }
         }
-    } else if (weapon_mask != 0 && fire_solution_quality > 0 && missile_cooldown == 0) {
-        fire_request = true;
-        requested_weapon = weapon_mask;
-        missile_cooldown = 75;
+    } else if (weapon_mask != 0) {
+        RSEntity *missile = this->loadedMissile(weapon_mask);
+        if (missile != nullptr) {
+            if (lock_target != air_target) {
+                lock_target = air_target;
+                printf("AI %s#%d seeker tracking target=%s weapon_id=%d aspec=%d cone=%d range=%u\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), missile->wdat->weapon_id, missile->wdat->weapon_aspec, missile->wdat->tracking_cone, missile->wdat->target_range);
+            } else if (this->testMissileLock(missile)) {
+                fire_request = true;
+                requested_weapon = weapon_mask;
+                lock_target = nullptr;
+            }
+        }
     }
     if (fire_request) {
         owner->pilot->Fire(requested_weapon, air_target);

@@ -42,7 +42,7 @@ private:
     int last_weapon_mask{-1};
     int burst_remaining{0};
     uint16_t burst_weapon{0};
-    int missile_cooldown{0};
+    SCMissionActors *lock_target{nullptr};
     SCMissionActors *pursuit_last_target{nullptr};
     float aim_trim{0.0f};
     int evasion_hold{0};
@@ -53,6 +53,8 @@ private:
     uint16_t loadedWeaponMask();
     uint16_t selectWeaponMask();
     int computeFireSolutionQuality();
+    RSEntity *loadedMissile(uint16_t mask);
+    bool testMissileLock(RSEntity *missile);
     bool reactionThreshold(int quality);
     void updateFireControl();
     void updatePursuit();
