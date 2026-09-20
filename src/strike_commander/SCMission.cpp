@@ -1,6 +1,7 @@
 #include "precomp.h"
 #include <limits>
 #include "SCMission.h"
+#include "SCAIBrain.h"
 #include "../engine/gametimer.h"
 
 SCMission::SCMission() {
@@ -79,6 +80,11 @@ void SCMission::loadMission() {
     this->mission = new RSMission();
     this->mission->InitFromRAM(mission_tre->data, mission_tre->size);
 
+    TreEntry *intel_tre = Assets.GetEntryByName(Assets.intel_root_path + "INTEL.IFF");
+    if (intel_tre != nullptr) {
+        this->intel.InitFromRAM(intel_tre->data, intel_tre->size);
+    }
+
 
     std::string area_filename = Assets.mission_root_path+this->mission->mission_data.world_filename + ".IFF";
     std::transform(area_filename.begin(), area_filename.end(), area_filename.begin(), ::toupper);   
@@ -154,6 +160,7 @@ void SCMission::loadMission() {
                 }
                 
                 if (actor->profile != nullptr && actor->profile->ai.isAI) {
+                    actor->brain = new SCAIBrain(actor);
                     if (actor->profile->ai.goal.size() > 0) {
                         actor->pilot = new SCPilot();
                         actor->pilot->actor = actor;

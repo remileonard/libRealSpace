@@ -65,6 +65,7 @@ public:
     SCMissionActors *player{nullptr};
     RSArea *area{nullptr};
     RSMission *mission{nullptr};
+    RSIntel intel;
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
     RSSound &sound = RSSound::getInstance();

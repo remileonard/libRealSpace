@@ -261,7 +261,6 @@ const Vector3D &SCCameraDirector::up() const {
     return this->out_up;
 }
 
-bool SCCameraDirector::s_debug = true;
 
 float SCCameraDirector::fov() const {
     float value = this->active_camera->fov();

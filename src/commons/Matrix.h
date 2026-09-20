@@ -150,6 +150,21 @@ public:
         return acc;
     };
 
+    inline float AngleBetween(const Vector3D& other) const {
+        float lengths = this->Length() * other.Length();
+        if (lengths == 0.0f) {
+            return 0.0f;
+        }
+        float cosine = (this->x * other.x + this->y * other.y + this->z * other.z) / lengths;
+        if (cosine > 1.0f) {
+            cosine = 1.0f;
+        }
+        if (cosine < -1.0f) {
+            cosine = -1.0f;
+        }
+        return radToDegree(acosf(cosine));
+    };
+
     inline Vector3D limit(float max_value) {
         if (this->Length() > max_value) {
             this->Scale(max_value / this->Length());

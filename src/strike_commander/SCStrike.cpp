@@ -1725,7 +1725,7 @@ void SCStrike::setMission(char const *missionName) {
 
     // Déclencheur : plan d'ouverture STARTCAM. camera_mode suit le directeur : on
     // le pose direct sur CAM_DIRECTOR et on synchronise last_director_view.
-    SCCameraSequence::s_debug = true;   // trace stdout pour le debug caméra
+    SCCameraSequence::s_debug = false;   // trace stdout pour le debug caméra
     this->camera_mode = View::CAM_DIRECTOR;
     this->last_director_view = View::CAM_DIRECTOR;
     CameraViewRequest startcam;

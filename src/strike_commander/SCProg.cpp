@@ -180,7 +180,7 @@ void SCProg::execute() {
                     this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, prog.arg);
                 break;
                 case OP_SET_OBJ_DEFEND_TARGET:
-                    this->actor->current_target = 0;
+                    this->actor->current_target = SCMissionActors::NO_TARGET;
                     this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, prog.arg);
                 break;
                 case OP_SET_OBJ_DEFEND_AREA:

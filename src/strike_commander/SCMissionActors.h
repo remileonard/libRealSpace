@@ -2,6 +2,7 @@
 #include "precomp.h"
 
 class SCMission;
+class SCAIBrain;
 
 
 class SCMissionActors {
@@ -23,6 +24,7 @@ public:
     MISN_PART *object{nullptr};
     SCPlane *plane{nullptr};
     SCPilot *pilot{nullptr};
+    SCAIBrain *brain{nullptr};
     SCMission *mission{nullptr};
     SCMissionActors *target{nullptr};
     SCMissionActors *attacker{nullptr};
@@ -37,7 +39,8 @@ public:
     bool prog_executed{false};
     int health{0};
     int team_id{0};
-    int current_target{0};
+    static constexpr int NO_TARGET = -1;
+    int current_target{NO_TARGET};
     bool current_command_executed{false};
     prog_op current_command{prog_op::OP_NOOP};
     prog_op override_command{prog_op::OP_NOOP};
@@ -65,7 +68,7 @@ public:
     virtual bool activateTarget(uint8_t arg);
     // Pose l'objectif courant (current_command/current_command_arg) sans
     // l'executer : le script PROG (SCProg) appelle uniquement ceci, c'est
-    // executeGoalAction() qui execute reellement la commande persistee, a
+    // SCAIBrain::executeGoalAction() qui execute reellement la commande persistee, a
     // la cadence GOAL/AIRefresh. Ne remet current_command_executed a false
     // que lors d'une VRAIE transition (commande ou argument different) —
     // sinon, comme le script repasse par cet appel a chaque frame tant que
@@ -99,15 +102,11 @@ private:
     // d'un profil GOAL (ai.isAI && !ai.goal.empty()). L'execution du script
     // de mission (on_update) reste dans onMissionUpdate, a chaque frame,
     // pour tous les acteurs : elle POSE current_command, elle ne l'execute
-    // pas — c'est le role d'executeGoalAction() ci-dessous. override_progs
+    // pas — c'est le role de SCAIBrain::executeGoalAction(). override_progs
     // (les ordres radio acceptes, expression du selecteur GOAL_ACTIVE_WINGMAN)
-    // est en revanche traite ici, via tryActiveWingman() — uniquement pour
+    // est en revanche traite par SCAIBrain::tryActiveWingman() — uniquement pour
     // les acteurs qui ont 5 dans leur GOAL.
     void onAIRefresh(const AIRefreshEvent &event);
-    bool runGoalSelectors();
-    bool executeGoalAction();
-    bool tryWanderRandom();
-    void tryActiveWingman();
     MessageBus::SubscriptionId subscription_id{-1};
 };
 

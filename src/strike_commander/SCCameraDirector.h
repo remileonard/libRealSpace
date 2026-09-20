@@ -73,7 +73,7 @@ public:
     // scriptées, sans backing fichier).
     float fov() const;
 
-    static bool s_debug;   // true = trace chaque appel à fov() au stdout
+    static const bool s_debug=false;   // true = trace chaque appel à fov() au stdout
 
     const CameraViewDesc &viewDesc() const;
     View                  currentView() const;

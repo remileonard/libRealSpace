@@ -1,0 +1,46 @@
+#pragma once
+#include "precomp.h"
+
+class SCMissionActors;
+class SCSimulatedObject;
+
+struct ThreatScore {
+    int a{0};
+    int b{0};
+    int aptitude{0};
+};
+
+class SCAIBrain {
+public:
+    SCAIBrain(SCMissionActors *owner);
+    void tick();
+    bool runGoalSelectors();
+
+    SCMissionActors *air_target{nullptr};
+    SCMissionActors *ground_target{nullptr};
+    SCSimulatedObject *missile_threat{nullptr};
+    uint8_t threat_state{0};
+    uint16_t weapon_mask{0};
+    int fire_solution_quality{0};
+
+    SCMissionActors *acquireBestThreat(bool allow_new_target);
+
+private:
+    SCMissionActors *owner{nullptr};
+    int last_air_candidates{-1};
+    int last_ground_candidates{-1};
+    int last_missile_candidates{-1};
+    int debug_ticks{0};
+    int last_weapon_mask{-1};
+    bool fire_control_active{false};
+    bool skillCheck(uint8_t stat, int modifier);
+    uint16_t loadedWeaponMask();
+    uint16_t selectWeaponMask();
+    int computeFireSolutionQuality();
+    ThreatScore scoreAirCandidate(SCMissionActors *candidate, Vector3D delta);
+    ThreatScore scoreGroundCandidate(SCMissionActors *candidate, Vector3D delta);
+    ThreatScore scoreMissile(SCSimulatedObject *missile);
+    bool executeGoalAction();
+    bool tryWanderRandom();
+    void tryActiveWingman();
+};

@@ -70,6 +70,7 @@ extern "C" {
     #include "RSSmokeSet.h"
     #include "RSEntity.h"
     #include "RSProf.h"
+    #include "RSIntel.h"
     #include "RSMusic.h"
     #include "RSSound.h"
     #include "RSMapTextureSet.h"

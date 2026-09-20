@@ -142,8 +142,7 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
 
     float lift_y = lift_force.y;
     float gravity_y = this->weight * GRAVITY;
-    printf("[LIFT DEBUG] lift=%.2f < gravity=%.2f (deficit=%.2f) max_speed=%.1f, speed_mps=%.1f thrust=%.1f, y=%.1f\n",
-            lift_y, gravity_y, gravity_y - lift_y, mps, speed_mps, thrust, this->y);
+    //printf("[LIFT DEBUG] lift=%.2f < gravity=%.2f (deficit=%.2f) max_speed=%.1f, speed_mps=%.1f thrust=%.1f, y=%.1f\n", lift_y, gravity_y, gravity_y - lift_y, mps, speed_mps, thrust, this->y);
     if (this->guidance && this->target != nullptr && speed > 1.0f) {
         // Direction vers la cible
         Vector3D to_target_dir = (to_target - position);

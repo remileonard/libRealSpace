@@ -68,8 +68,7 @@ void SCCameraSequence::start(const RSCameraSequence *sequence, SCPlane *target) 
 // ---------------------------------------------------------------------------
 
 void SCCameraSequence::dumpProgram(const RSCameraSequence &seq) {
-    printf("[COMP program] %s  (%zu instr, handoff='%s')\n",
-           seq.name.c_str(), seq.program.size(), seq.handoffView.c_str());
+    printf("[COMP program] %s  (%zu instr, handoff='%s')\n", seq.name.c_str(), seq.program.size(), seq.handoffView.c_str());
     for (size_t k = 0; k < seq.program.size(); k++) {
         const COMPInstr &pi = seq.program[k];
         printf("    %2zu: %-26s argc=%d  fichier[%.3f, %.3f, %.3f, %.3f]  name='%s'\n",
@@ -372,7 +371,7 @@ SCCameraSequence::Status SCCameraSequence::tick(float dt) {
     if (s_debug) {
         static long f = 0;
         f = f + 1;
-        printf("[COMP] f=%ld dt=%.5f elapsed=%.4f yaw=%.4f dist=%.3f campos=(%.3f, %.3f, %.3f) aim=(%.3f, %.3f, %.3f)\n",
+        printf("[COMP qui devrait pas] f=%ld dt=%.5f elapsed=%.4f yaw=%.4f dist=%.3f campos=(%.3f, %.3f, %.3f) aim=(%.3f, %.3f, %.3f)\n",
                f, dt, this->elapsed, this->angles.y, this->dist,
                this->position.x, this->position.y, this->position.z,
                this->out_aim.x, this->out_aim.y, this->out_aim.z);

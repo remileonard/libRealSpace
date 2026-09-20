@@ -26,7 +26,7 @@
 //
 class SCTargetCamera : public SCOrbitCamera {
 public:
-    static bool s_debug;   // true = trace TARGET (activation + par frame) au stdout
+    static bool s_debug;;   // true = trace TARGET (activation + par frame) au stdout
 
     explicit SCTargetCamera(const RSCameraDef *def) : SCOrbitCamera(def) {}
 
