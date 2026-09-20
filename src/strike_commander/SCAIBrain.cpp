@@ -97,7 +97,7 @@ SCMissionActors *SCAIBrain::acquireBestThreat(bool allow_new_target) {
         }
     }
     SCSimulatedObject *missile = owner->weapon_shooted_at_me;
-    if (missile != nullptr && missile->alive && missile->target == owner && missile->obj->entity_type == EntityType::missiles && missile->obj->wdat->weapon_category == 1) {
+    if (missile != nullptr && missile->alive && missile->target == owner && missile->obj->entity_type == EntityType::missiles && missile->obj->wdat->target_domain == 1) {
         missile_candidates++;
         ThreatScore score = this->scoreMissile(missile);
         bool accepted = this->skillCheck(owner->profile->ai.atrb.TH, score.aptitude);
