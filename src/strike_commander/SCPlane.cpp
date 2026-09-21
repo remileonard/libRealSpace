@@ -1421,7 +1421,7 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
 
-    weap->weight = wobj->weight_in_kg*2.205f;
+    weap->weight = wobj->weight_in_kg;
     
     this->weaps_object.push_back(weap);
 }

@@ -307,11 +307,14 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             }
         } else {
             is_ground_target = true;
+            bool brain_ground = this->brain != nullptr && this->brain->ground_attack_active;
             wp.x = actor->object->position.x;
             wp.y = this->plane->y; // Garder l'altitude actuelle
             wp.z = actor->object->position.z;
             
-            this->pilot->SetTargetWaypoint(wp);
+            if (!brain_ground) {
+                this->pilot->SetTargetWaypoint(wp);
+            }
             Vector3D diff = wp - position;
             float dist = diff.Length();
             
@@ -371,10 +374,10 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             }
             
             // Ajuster la vitesse et l'altitude en fonction de la distance
-            if (dist > attack_range) {
+            if (!brain_ground && dist > attack_range) {
                 this->pilot->target_climb = (int) wp.y;
                 this->pilot->target_speed = -60;
-            } else if (dist < attack_range && can_attack) {
+            } else if (!brain_ground && dist < attack_range && can_attack) {
                 this->pilot->target_speed = -20;
                 this->pilot->target_climb = (int) actor->object->position.y + 500.0f;
                 

@@ -29,6 +29,8 @@ public:
     bool attitude_control_enabled{true};
     bool evasion_enabled{true};
     bool evasion_active{false};
+    bool ground_attack_enabled{true};
+    bool ground_attack_active{false};
     int fire_solution_quality{0};
 
     SCMissionActors *acquireBestThreat(bool allow_new_target);
@@ -43,6 +45,12 @@ private:
     int burst_remaining{0};
     uint16_t burst_weapon{0};
     SCMissionActors *lock_target{nullptr};
+    SCMissionActors *ground_attack_target{nullptr};
+    int ground_phase{0};
+    RSEntity *ground_weapon{nullptr};
+    SCSimulatedObject *ground_released{nullptr};
+    Vector3D ground_last_position{0.0f, 0.0f, 0.0f};
+    int ground_last_tick{-2};
     SCMissionActors *pursuit_last_target{nullptr};
     float aim_trim{0.0f};
     int evasion_hold{0};
@@ -58,6 +66,11 @@ private:
     bool reactionThreshold(int quality);
     void updateFireControl();
     void updatePursuit();
+    void updateGroundAttack();
+    void resetGroundAttack();
+    RSEntity *selectGroundWeapon();
+    Vector3D predictBombImpact(RSEntity *bomb);
+    float headingDelta(Vector3D direction);
     void computeAttitudeError(Vector3D direction, float &heading_error, float &pitch_error);
     int missileDistanceBand();
     void reactToMissile();

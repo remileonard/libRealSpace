@@ -27,6 +27,10 @@ void SCAIBrain::tick() {
     if (pursuit_enabled && !evasion_active) {
         this->updatePursuit();
     }
+    ground_attack_active = false;
+    if (ground_attack_enabled && !evasion_active) {
+        this->updateGroundAttack();
+    }
 }
 
 SCMissionActors *SCAIBrain::acquireBestThreat(bool allow_new_target) {
@@ -648,6 +652,182 @@ void SCAIBrain::updateFireControl() {
     if (fire_request) {
         owner->pilot->Fire(requested_weapon, air_target);
         printf("AI %s#%d fire weapon=0x%X quality=%d burst=%d\n", owner->actor_name.c_str(), owner->actor_id, requested_weapon, fire_solution_quality, burst_remaining);
+    }
+}
+
+void SCAIBrain::resetGroundAttack() {
+    ground_phase = 0;
+    ground_weapon = nullptr;
+    ground_released = nullptr;
+    ground_attack_target = nullptr;
+    ground_attack_active = false;
+}
+
+float SCAIBrain::headingDelta(Vector3D direction) {
+    float direction_heading = radToDegree(atan2f(direction.z, direction.x));
+    float nose_heading = radToDegree(atan2f(owner->plane->forward.z, owner->plane->forward.x));
+    float delta = direction_heading - nose_heading;
+    while (delta > 180.0f) {
+        delta -= 360.0f;
+    }
+    while (delta < -180.0f) {
+        delta += 360.0f;
+    }
+    return std::fabs(delta);
+}
+
+RSEntity *SCAIBrain::selectGroundWeapon() {
+    static const int order[] = {ID_AGM65D, ID_GBU15, ID_MK20, ID_MK82, ID_LAU3};
+    for (int weapon_id : order) {
+        for (auto weap : owner->plane->weaps_load) {
+            if (weap != nullptr && weap->nb_weap > 0 && weap->objct->wdat->weapon_id == weapon_id) {
+                return weap->objct;
+            }
+        }
+    }
+    return nullptr;
+}
+
+Vector3D SCAIBrain::predictBombImpact(RSEntity *bomb) {
+    GunSimulatedObject *simulated = new GunSimulatedObject();
+    Vector3D initial_thrust = owner->plane->getWeaponIntialVector(1.0f);
+    simulated->obj = bomb;
+    simulated->x = owner->plane->x;
+    simulated->y = owner->plane->y;
+    simulated->z = owner->plane->z;
+    simulated->vx = initial_thrust.x;
+    simulated->vy = initial_thrust.y;
+    simulated->vz = initial_thrust.z;
+    simulated->weight = bomb->weight_in_kg;
+    simulated->azimuthf = owner->plane->yaw;
+    simulated->elevationf = owner->plane->pitch;
+    simulated->target = nullptr;
+    simulated->mission = owner->mission;
+    Vector3D impact{0.0f, 0.0f, 0.0f};
+    Vector3D velocity{0.0f, 0.0f, 0.0f};
+    std::tie(impact, velocity) = simulated->ComputeTrajectoryUntilGround(owner->plane->tps);
+    delete simulated;
+    return impact;
+}
+
+void SCAIBrain::updateGroundAttack() {
+    SCMissionActors *target = owner->target;
+    bool destroy_order = owner->current_command == OP_SET_OBJ_DESTROY_TARGET;
+    bool ground = target != nullptr && !target->is_destroyed && target->object != nullptr && target->object->entity != nullptr && target->object->entity->target_type == 2;
+    if (!ground || !destroy_order || air_target != nullptr || threat_state > 1 || owner->plane->on_ground) {
+        this->resetGroundAttack();
+        return;
+    }
+    if (ground_attack_target != target) {
+        this->resetGroundAttack();
+        ground_attack_target = target;
+    }
+    if (ground_phase == 6) {
+        return;
+    }
+    Vector3D own_position = owner->plane->position;
+    if (debug_ticks != ground_last_tick + 1) {
+        ground_last_position = own_position;
+    }
+    ground_last_tick = debug_ticks;
+    Vector3D own_velocity = (own_position - ground_last_position) * (1.0f / TICK_DURATION);
+    float own_speed = own_velocity.Length();
+    ground_last_position = own_position;
+    Vector3D target_position = target->object->position;
+    Vector3D aim_point = target_position;
+    aim_point.y += 1000.0f;
+    Vector3D away = own_position - aim_point;
+    float horizontal_distance = sqrtf(away.x * away.x + away.z * away.z);
+    float angle = this->headingDelta(away);
+    int previous_phase = ground_phase;
+    float heading_error = 0.0f;
+    float pitch_error = 0.0f;
+    float ground_y = owner->plane->area->getY(own_position.x, own_position.z);
+    float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
+
+    if (ground_phase == 4) {
+        bool released_flying = std::find(owner->plane->weaps_object.begin(), owner->plane->weaps_object.end(), ground_released) != owner->plane->weaps_object.end();
+        if (!released_flying) {
+            this->resetGroundAttack();
+            return;
+        }
+        pitch_error = 5.0f - nose_elevation;
+        owner->pilot->SetAttitudeError(0.0f, pitch_error, 2.0f);
+        owner->pilot->target_speed = -60;
+        ground_attack_active = true;
+        return;
+    }
+
+    if (ground_phase <= 1) {
+        bool aligned = angle > 170.0f;
+        bool close = horizontal_distance < 5000.0f;
+        if (!aligned && close) {
+            ground_phase = 0;
+        } else if (aligned && close) {
+            this->computeAttitudeError(-away, heading_error, pitch_error);
+            if (std::fabs(heading_error) < 5.0f) {
+                ground_phase = 2;
+            }
+        } else if (horizontal_distance > 8000.0f || !aligned) {
+            ground_phase = 1;
+        }
+    } else if (ground_phase == 2) {
+        ground_phase = 3;
+    }
+
+    Vector3D direction = ground_phase == 0 ? away : -away;
+    float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
+    direction.y = ground_phase == 0 ? 0.0f : std::max(-horizontal, std::min(horizontal, direction.y));
+    this->computeAttitudeError(direction, heading_error, pitch_error);
+    if (angle > 169.0f && horizontal_distance > 9000.0f) {
+        pitch_error = -nose_elevation;
+    }
+    if (own_position.y - ground_y < 1000.0f && pitch_error < 0.0f) {
+        pitch_error = own_position.y - ground_y < 500.0f ? 10.0f : 0.0f;
+    }
+    owner->pilot->SetAttitudeError(heading_error, pitch_error, 2.0f);
+    owner->pilot->target_speed = -60;
+    ground_attack_active = true;
+
+    if (ground_phase == 3) {
+        if (ground_weapon == nullptr) {
+            ground_weapon = this->selectGroundWeapon();
+            if (ground_weapon == nullptr || (ground_weapon->wdat->weapon_id != ID_MK20 && ground_weapon->wdat->weapon_id != ID_MK82)) {
+                printf("AI %s#%d ground attack weapon=%d not handled, old code takes over\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon != nullptr ? ground_weapon->wdat->weapon_id : 0);
+                ground_phase = 6;
+                ground_attack_active = false;
+                return;
+            }
+        }
+        Vector3D impact = this->predictBombImpact(ground_weapon);
+        float drop_height = own_position.y - target_position.y;
+        float descent_speed = -own_velocity.y;
+        float ballistic_time = drop_height > 0.0f ? (-descent_speed + sqrtf(descent_speed * descent_speed + 2.0f * 9.8f * drop_height)) / 9.8f : 0.0f;
+        float ballistic_range = sqrtf(own_velocity.x * own_velocity.x + own_velocity.z * own_velocity.z) * ballistic_time;
+        float miss = sqrtf((impact.x - target_position.x) * (impact.x - target_position.x) + (impact.z - target_position.z) * (impact.z - target_position.z));
+        float tolerance = 20.0f + own_speed * TICK_DURATION;
+        if ((std::rand() & 0xF) > owner->profile->ai.atrb.AG) {
+            tolerance += 150.0f;
+        }
+        if (miss <= tolerance) {
+            size_t before = owner->plane->weaps_object.size();
+            owner->pilot->Fire(1 << (ground_weapon->wdat->weapon_id - 1), target);
+            if (owner->plane->weaps_object.size() > before) {
+                ground_released = owner->plane->weaps_object.back();
+                ground_phase = 4;
+                printf("AI %s#%d bomb released weapon=%d miss=%.0f tolerance=%.0f d=%.0f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id, miss, tolerance, horizontal_distance, own_position.y, own_speed);
+            }
+        } else if (angle < 90.0f) {
+            ground_phase = 0;
+        }
+        if (debug_ticks % 25 == 0) {
+            printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f miss=%.0f tolerance=%.0f impact=(%.0f,%.0f) impact_y=%.0f target_y=%.0f range=%.0f ballistic_range=%.0f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, miss, tolerance, impact.x, impact.z, impact.y, target_position.y, sqrtf((impact.x - own_position.x) * (impact.x - own_position.x) + (impact.z - own_position.z) * (impact.z - own_position.z)), ballistic_range, own_position.y, own_speed);
+        }
+    } else if (debug_ticks % 25 == 0) {
+        printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f heading_err=%.1f pitch_err=%.1f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, heading_error, pitch_error, own_position.y, own_speed);
+    }
+    if (ground_phase != previous_phase) {
+        printf("AI %s#%d ground attack phase %d -> %d\n", owner->actor_name.c_str(), owner->actor_id, previous_phase, ground_phase);
     }
 }
 
