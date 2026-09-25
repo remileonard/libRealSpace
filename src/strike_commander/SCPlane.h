@@ -50,6 +50,9 @@ class SCMissionActors;
 class SCMission;
 class SCWeaponPredictor;
 class PlaneControlEvent;
+class PlaneKinematicEvent;
+class PlaneFireEvent;
+class PlaneWreckEvent;
 
 struct SCWeaponLoadoutHardPoint {
     RSEntity *objct;
@@ -151,13 +154,19 @@ protected:
     virtual void computeThrust();
     virtual void processInput();
     virtual void updatePlaneStatus();
-    int autopilot_state{-1};
-    Vector3D autopilot_point{0.0f, 0.0f, 0.0f};
-    Vector3D autopilot_velocity{0.0f, 0.0f, 0.0f};
-    bool autopilot_reached{false};
-    float autopilot_hspeed{0.0f};
-    void simulateAutopilot(float dt);
-    virtual void syncAutopilotVelocity(float dt);
+    bool stick_normalized{false};
+    float stick_norm_x{0.0f};
+    float stick_norm_y{0.0f};
+    bool kinematic_mode{false};
+    Vector3D kinematic_velocity{0.0f, 0.0f, 0.0f};
+    float kinematic_yaw{0.0f};
+    float kinematic_pitch{0.0f};
+    float kinematic_roll{0.0f};
+    void simulateKinematic(float dt);
+    virtual void syncKinematicVelocity(float dt);
+    void onPlaneKinematic(const PlaneKinematicEvent &event);
+    void onPlaneFire(const PlaneFireEvent &event);
+    virtual void onPlaneWreck(const PlaneWreckEvent &event);
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
      // Stocke le prédicteur de trajectoire
@@ -334,11 +343,9 @@ public:
     // Visualisation de la trajectoire projetée
     void RenderWeaponTrajectories();
     Vector3D getWeaponIntialVector(float speedFactor);
-    void engageAutopilot(Vector3D target_point, Vector3D desired_velocity);
-    void setAutopilotTarget(Vector3D target_point, Vector3D desired_velocity);
-    void disengageAutopilot();
-    bool autopilotActive() const { return autopilot_state >= 0; }
-    bool autopilotReached() const { return autopilot_reached; }
+    bool kinematicMode() const { return kinematic_mode; }
+    virtual float forwardSpeedPerTick() { return vz; }
+    virtual float maxRollRate() { return object->entity->jdyn->max_turn_rate_dps; }
 };
 
 #endif

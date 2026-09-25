@@ -6,6 +6,9 @@ SCAIBrain::SCAIBrain(SCMissionActors *owner) {
 }
 
 void SCAIBrain::tick() {
+    if (owner->pilot != nullptr) {
+        owner->pilot->ClearGuidance();
+    }
     this->acquireBestThreat(true);
     weapon_mask = this->selectWeaponMask();
     if (weapon_mask != last_weapon_mask) {
@@ -659,7 +662,7 @@ void SCAIBrain::updateFireControl() {
 
 void SCAIBrain::resetGroundAttack() {
     if (ground_phase == 3) {
-        owner->plane->disengageAutopilot();
+        owner->pilot->disengageAutopilot();
     }
     ground_phase = 0;
     ground_weapon = nullptr;
@@ -751,16 +754,27 @@ void SCAIBrain::updateGroundAttack() {
     float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
 
     if (ground_phase != 3) {
-        owner->plane->disengageAutopilot();
+        owner->pilot->disengageAutopilot();
     }
     if (ground_phase == 4) {
-        bool released_flying = std::find(owner->plane->weaps_object.begin(), owner->plane->weaps_object.end(), ground_released) != owner->plane->weaps_object.end();
-        if (!released_flying) {
+        if (ground_released == nullptr) {
+            for (auto weapon : owner->plane->weaps_object) {
+                if (weapon->obj == ground_weapon && std::find(ground_known_objects.begin(), ground_known_objects.end(), weapon) == ground_known_objects.end()) {
+                    ground_released = weapon;
+                    printf("AI %s#%d bomb released weapon=%d\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id);
+                    break;
+                }
+            }
+            if (ground_released == nullptr && --ground_release_wait <= 0) {
+                printf("AI %s#%d bomb release not seen, attack restarts\n", owner->actor_name.c_str(), owner->actor_id);
+                this->resetGroundAttack();
+                return;
+            }
+        } else if (std::find(owner->plane->weaps_object.begin(), owner->plane->weaps_object.end(), ground_released) == owner->plane->weaps_object.end()) {
             this->resetGroundAttack();
             return;
         }
-        pitch_error = 5.0f - nose_elevation;
-        owner->pilot->SetAttitudeError(0.0f, pitch_error, 2.0f);
+        owner->pilot->SetPitchCommand(5.0f, 5.0f);
         owner->pilot->target_speed = -60;
         ground_attack_active = true;
         return;
@@ -784,28 +798,29 @@ void SCAIBrain::updateGroundAttack() {
     if (ground_phase == 2) {
         Vector3D autopilot_velocity = aim_point - own_position;
         autopilot_velocity.Normalize();
-        owner->plane->engageAutopilot(aim_point, autopilot_velocity * 100.0f);
+        owner->pilot->engageAutopilot(aim_point, autopilot_velocity * 100.0f);
         ground_autopilot_target = target_position;
         ground_phase = 3;
     } else if (ground_phase == 3) {
         if (target_position.x != ground_autopilot_target.x || target_position.y != ground_autopilot_target.y || target_position.z != ground_autopilot_target.z) {
             Vector3D autopilot_velocity = aim_point - own_position;
             autopilot_velocity.Normalize();
-            owner->plane->setAutopilotTarget(aim_point, autopilot_velocity * 100.0f);
+            owner->pilot->setAutopilotTarget(aim_point, autopilot_velocity * 100.0f);
             ground_autopilot_target = target_position;
         }
     } else {
         Vector3D direction = ground_phase == 0 ? away : -away;
-        float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
-        direction.y = ground_phase == 0 ? 0.0f : std::max(-horizontal, std::min(horizontal, direction.y));
+        if (ground_phase == 0) {
+            direction.y = 0.0f;
+        }
         this->computeAttitudeError(direction, heading_error, pitch_error);
         if (angle > 169.0f && horizontal_distance > 9000.0f) {
-            pitch_error = -nose_elevation;
+            owner->pilot->SetPitchCommand(0.0f, 5.0f);
+        } else if (ground_phase == 1 && angle > 169.0f && own_position.y - aim_point.y > 2000.0f) {
+            owner->pilot->SetPitchCommand(-40.0f, 5.0f);
+        } else {
+            owner->pilot->SetGuidanceDirection(direction);
         }
-        if (own_position.y - ground_y < 1000.0f && pitch_error < 0.0f) {
-            pitch_error = own_position.y - ground_y < 500.0f ? 10.0f : 0.0f;
-        }
-        owner->pilot->SetAttitudeError(heading_error, pitch_error, 2.0f);
     }
     owner->pilot->target_speed = -60;
     ground_attack_active = true;
@@ -815,7 +830,7 @@ void SCAIBrain::updateGroundAttack() {
             ground_weapon = this->selectGroundWeapon();
             if (ground_weapon == nullptr || (ground_weapon->wdat->weapon_id != ID_MK20 && ground_weapon->wdat->weapon_id != ID_MK82)) {
                 printf("AI %s#%d ground attack weapon=%d not handled, old code takes over\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon != nullptr ? ground_weapon->wdat->weapon_id : 0);
-                owner->plane->disengageAutopilot();
+                owner->pilot->disengageAutopilot();
                 ground_phase = 6;
                 ground_attack_active = false;
                 return;
@@ -832,20 +847,19 @@ void SCAIBrain::updateGroundAttack() {
             tolerance += 150.0f;
         }
         if (miss <= tolerance) {
-            size_t before = owner->plane->weaps_object.size();
+            ground_known_objects = owner->plane->weaps_object;
             owner->pilot->Fire(1 << (ground_weapon->wdat->weapon_id - 1), target);
-            if (owner->plane->weaps_object.size() > before) {
-                ground_released = owner->plane->weaps_object.back();
-                owner->plane->disengageAutopilot();
-                ground_phase = 4;
-                printf("AI %s#%d bomb released weapon=%d miss=%.0f tolerance=%.0f d=%.0f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id, miss, tolerance, horizontal_distance, own_position.y, own_speed);
-            }
-        } else if (owner->plane->autopilotReached()) {
-            owner->plane->disengageAutopilot();
+            owner->pilot->disengageAutopilot();
+            ground_released = nullptr;
+            ground_release_wait = 25;
+            ground_phase = 4;
+            printf("AI %s#%d bomb release requested weapon=%d miss=%.0f tolerance=%.0f d=%.0f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id, miss, tolerance, horizontal_distance, own_position.y, own_speed);
+        } else if (owner->pilot->autopilotReached()) {
+            owner->pilot->disengageAutopilot();
             ground_phase = 0;
         }
         if (debug_ticks % 25 == 0) {
-            printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f miss=%.0f tolerance=%.0f impact=(%.0f,%.0f) impact_y=%.0f target_y=%.0f range=%.0f ballistic_range=%.0f own_y=%.0f speed=%.0f autopilot=%d reached=%d\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, miss, tolerance, impact.x, impact.z, impact.y, target_position.y, sqrtf((impact.x - own_position.x) * (impact.x - own_position.x) + (impact.z - own_position.z) * (impact.z - own_position.z)), ballistic_range, own_position.y, own_speed, owner->plane->autopilotActive() ? 1 : 0, owner->plane->autopilotReached() ? 1 : 0);
+            printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f miss=%.0f tolerance=%.0f impact=(%.0f,%.0f) impact_y=%.0f target_y=%.0f range=%.0f ballistic_range=%.0f own_y=%.0f speed=%.0f autopilot=%d reached=%d\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, miss, tolerance, impact.x, impact.z, impact.y, target_position.y, sqrtf((impact.x - own_position.x) * (impact.x - own_position.x) + (impact.z - own_position.z) * (impact.z - own_position.z)), ballistic_range, own_position.y, own_speed, owner->pilot->autopilotActive() ? 1 : 0, owner->pilot->autopilotReached() ? 1 : 0);
         }
     } else if (debug_ticks % 25 == 0) {
         printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f heading_err=%.1f pitch_err=%.1f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, heading_error, pitch_error, own_position.y, own_speed);
@@ -904,16 +918,8 @@ void SCAIBrain::updatePursuit() {
     float heading_error = 0.0f;
     float pitch_error = 0.0f;
     if (attitude_control_enabled) {
-        this->computeAttitudeError(direction, heading_error, pitch_error);
-        if (distance < intel.range_medium) {
-            heading_error = std::max(-10.0f, std::min(10.0f, heading_error));
-            pitch_error = std::max(-10.0f, std::min(10.0f, pitch_error));
-        }
-        float ground_y = owner->plane->area->getY(own_position.x, own_position.z);
-        if (own_position.y - ground_y < 1000.0f && pitch_error < 0.0f) {
-            pitch_error = own_position.y - ground_y < 500.0f ? 10.0f : 0.0f;
-        }
-        owner->pilot->SetAttitudeError(heading_error, pitch_error, distance < intel.range_medium ? 0.5f : 2.0f);
+        this->computeAttitudeError(lead - own_position, heading_error, pitch_error);
+        owner->pilot->SetGuidanceDirection(lead - own_position);
         owner->pilot->target_waypoint = lead;
     } else {
         owner->pilot->SetTargetWaypoint(waypoint);
@@ -922,7 +928,7 @@ void SCAIBrain::updatePursuit() {
             owner->pilot->target_climb = (int) std::max(waypoint.y, ground_y + 1000.0f);
         }
     }
-    float target_forward_speed = air_target->plane->vz;
+    float target_forward_speed = air_target->plane->forwardSpeedPerTick();
     if (distance > intel.range_medium) {
         owner->pilot->target_speed = -60;
     } else {
@@ -987,9 +993,7 @@ void SCAIBrain::reactToMissile() {
         }
     }
     escape.Normalize();
-    Vector3D waypoint = own_position + escape * 5000.0f;
-    waypoint.y = own_position.y;
-    owner->pilot->SetTargetWaypoint(waypoint);
+    owner->pilot->SetGuidanceDirection(escape);
     owner->pilot->target_speed = -60;
     evasion_active = true;
     if (debug_ticks % 25 == 0) {

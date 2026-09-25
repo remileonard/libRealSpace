@@ -144,7 +144,7 @@ typedef struct JDYN {
     uint8_t max_bank_deg;           // #14 [+0x56]  inclinaison max (deg) -- a confirmer
     uint8_t pitch_rate_limit_dps;   // #15 [+0x57]  limite du taux de tangage (deg/s)
     uint8_t pitch_margin_deg;       // #16 [+0x58]  marge de tangage (deg) -- a confirmer
-    float ground_effect_ceiling_m;  // #17 [+0x59]  plafond d'effet de sol (m)
+    float control_speed_ms;         // #17 [+0x59]  vitesse d'efficacite des gouvernes (m/s)
     float induced_drag_k;           // #18 [+0x5D]  1/(pi*e*AR)
     float lift_gain;                // #19 [+0x61]  gain de portance (~ Cl_alpha * S)
     uint8_t pitch_stick_gain;       // #20 [+0x65]  borne finale de la consigne de tangage

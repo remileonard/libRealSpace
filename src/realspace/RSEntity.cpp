@@ -744,7 +744,7 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size) {
     dyn->max_bank_deg = bs.ReadByte();
     dyn->pitch_rate_limit_dps = bs.ReadByte();
     dyn->pitch_margin_deg = bs.ReadByte();
-    dyn->ground_effect_ceiling_m = bs.ReadFixedFloatLE();
+    dyn->control_speed_ms = bs.ReadFixedFloatLE();
     dyn->induced_drag_k = bs.ReadFixedFloatLE();
     dyn->lift_gain = bs.ReadFixedFloatLE();
     dyn->pitch_stick_gain = bs.ReadByte();

@@ -43,4 +43,25 @@ public:
     int flaps{0};
     int spoilers{0};
     int wheel{0};
+    bool normalized_stick{false};
+};
+class PlaneFireEvent: public EventMessage {
+public:
+    SCPlane *plane{nullptr};
+    int hardpoint{0};
+    SCMissionActors *target{nullptr};
+    SCMission *mission{nullptr};
+};
+class PlaneWreckEvent: public EventMessage {
+public:
+    SCPlane *plane{nullptr};
+};
+class PlaneKinematicEvent: public EventMessage {
+public:
+    SCPlane *plane{nullptr};
+    bool engaged{false};
+    Vector3D velocity{0.0f, 0.0f, 0.0f};
+    float yaw{0.0f};
+    float pitch{0.0f};
+    float roll{0.0f};
 };

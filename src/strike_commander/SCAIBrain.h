@@ -52,6 +52,8 @@ private:
     Vector3D ground_last_position{0.0f, 0.0f, 0.0f};
     int ground_last_tick{-2};
     Vector3D ground_autopilot_target{0.0f, 0.0f, 0.0f};
+    std::vector<SCSimulatedObject *> ground_known_objects;
+    int ground_release_wait{0};
     SCMissionActors *pursuit_last_target{nullptr};
     float aim_trim{0.0f};
     int evasion_hold{0};

@@ -226,7 +226,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             } else if (target_position_diff.Length() > 0.0f) {
                 target_position_update -= 1;
             }
-            bool brain_pursues = this->brain != nullptr && this->brain->pursuit_active;
+            bool brain_pursues = this->brain != nullptr && (this->brain->pursuit_active || this->brain->evasion_active);
             if (!brain_pursues) {
                 this->pilot->SetTargetWaypoint(wp);
             }
@@ -269,7 +269,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
                     }
                 } else if (dist < attack_range - 300.0f) {
                     if (!brain_pursues) {
-                        this->pilot->target_speed = (int) actor->plane->vz;
+                        this->pilot->target_speed = (int) actor->plane->forwardSpeedPerTick();
                     }
                     // Calculate azimuth between plane and target
                     float target_azimuth = 0.0f;
@@ -631,7 +631,7 @@ bool SCMissionActors::followAlly(uint8_t arg) {
                 if (dist > 1000.0f) {
                     this->pilot->target_speed = -60;
                 } else if (dist < 400.0f) {
-                    this->pilot->target_speed = (int) actor->plane->vz;
+                    this->pilot->target_speed = (int) actor->plane->forwardSpeedPerTick();
                     this->pilot->turning = false;
                 }
             }
@@ -1069,12 +1069,10 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         i = 0;
         for (auto &sub_system: this->plane->system_health[system_name]) {
             if (i == sub_system_to_hit) {
-                sub_system.second -= damage;
-                if (sub_system.second < 0) {
-                    sub_system.second = 0;
-                }
+                sub_system.second = sub_system.second > damage ? sub_system.second - damage : 0;
                 break;
             }
+            i++;
         }
     }
     this->health -= damage;
@@ -1475,12 +1473,10 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
         i = 0;
         for (auto &sub_system: this->plane->system_health[system_name]) {
             if (i == sub_system_to_hit) {
-                sub_system.second -= damage;
-                if (sub_system.second < 0) {
-                    sub_system.second = 0;
-                }
+                sub_system.second = sub_system.second > damage ? sub_system.second - damage : 0;
                 break;
             }
+            i++;
         }
     }
     this->health -= damage;

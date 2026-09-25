@@ -106,8 +106,8 @@ void SCJdynPlane::Simulate() {
     this->gravity = GRAVITY * dt * dt;
     this->fps_knots = 1.944f / dt;
     this->groundlevel = this->area->getY(this->x, this->z);
-    if (this->autopilotActive()) {
-        this->simulateAutopilot(dt);
+    if (this->kinematic_mode) {
+        this->simulateKinematic(dt);
     } else {
         this->computeGravity();
         this->processInput();

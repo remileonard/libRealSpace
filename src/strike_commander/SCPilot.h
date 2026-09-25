@@ -75,8 +75,46 @@ private:
     int flap{0};
     int gear{1};
     int spoilers{0};
+    int autopilot_state{-1};
+    Vector3D autopilot_point{0.0f, 0.0f, 0.0f};
+    Vector3D autopilot_velocity{0.0f, 0.0f, 0.0f};
+    Vector3D autopilot_world_velocity{0.0f, 0.0f, 0.0f};
+    bool autopilot_reached{false};
+    float autopilot_hspeed{0.0f};
+    void runAutopilot(float dt);
+    void publishControls(bool normalized = false);
+    enum GuidanceMode {
+        GUIDANCE_NONE,
+        GUIDANCE_DIRECTION,
+        GUIDANCE_PITCH
+    };
+    GuidanceMode guidance_mode{GUIDANCE_NONE};
+    Vector3D guidance_direction{0.0f, 0.0f, 0.0f};
+    float guidance_pitch{0.0f};
+    float guidance_deadzone{0.0f};
+    float roll_stick{0.0f};
+    float pitch_stick{0.0f};
+    int guidance_log_counter{0};
+    float guidance_log_h{0.0f};
+    float guidance_log_v{0.0f};
+    float guidance_log_r{0.0f};
+    void runGuidance(float dt);
+    float bankAngle();
+    float nosePitch();
+    Vector3D worldVelocity(float dt);
+    float compassHeading(Vector3D v);
+    float elevationOf(Vector3D v);
+    void guidanceSolution(Vector3D direction, float dt);
+    void combatDecision(float h, float v, float r, float dt);
+    bool bankError(float error, float deadzone, float dt);
+    bool rollToAngle(float bank, float deadzone, float dt);
+    void pitchToAngle(float pitch, float deadzone, float dt);
+    float rollStickFromError(float error, float dt);
+    float maxRollRate(float dt);
+    float clampPitch(float stick);
 public:
     Vector3D target_waypoint{0.0f, 0.0f, 0.0f};
+    bool has_waypoint{false};
     bool turning{false};
     int target_speed{0};
     int target_climb{0};
@@ -91,10 +129,18 @@ public:
     ~SCPilot();
     void SetTargetWaypoint(Vector3D waypoint);
     void SetAttitudeError(float heading_error_deg, float pitch_error_deg, float deadband_deg);
+    void SetGuidanceDirection(Vector3D direction);
+    void SetPitchCommand(float pitch_deg, float deadzone_deg);
+    void ClearGuidance();
     bool attitude_mode{false};
     float attitude_heading_error{0.0f};
     float attitude_pitch_error{0.0f};
     float attitude_deadband{0.0f};
     void FlyTo();
     void Fire(uint16_t weapon_mask, SCMissionActors *target);
+    void engageAutopilot(Vector3D target_point, Vector3D desired_velocity);
+    void setAutopilotTarget(Vector3D target_point, Vector3D desired_velocity);
+    void disengageAutopilot();
+    bool autopilotActive() const { return autopilot_state >= 0; }
+    bool autopilotReached() const { return autopilot_reached; }
 };

@@ -21,12 +21,8 @@
 class SCJetpPlane : public SCPlane {
 
 protected:
-    // Pas d'etat d'orientation matriciel/quaternion : Physics_IntegrateSecondaryPosition (seg102
-    // L15-73, decode cette session) montre que l'ASM integre pitch/roll/yaw comme 3 accumulateurs
-    // scalaires INDEPENDANTS ("angle += vitesse * dt", sans couplage). pitch/roll/yaw (herites de
-    // SCPlane) SONT donc l'etat physique reel ici. ptw/forward/vx-vy-vz restent maintenus pour le
-    // reste du moteur mais sont reconstruits a neuf depuis ces 3 angles a chaque tic dans
-    // updatePosition() - jamais relus pour faire avancer la physique.
+    // L'etat d'orientation est la matrice ptw, tournee chaque tick par omega*dt (comme
+    // WorldObject_IntegrateBodyMotion_3D31D dans l'original) ; pitch/yaw/roll en sont derives.
 
     // --- Coefficients par avion, charges une fois depuis object->entity ---
     bool entity_loaded{false};
@@ -61,12 +57,21 @@ protected:
                                           // de tangage dediee, distincte de pitch_rate_gain (champ 8,
                                           // reutilise pour roulis/lacet, jamais remis en cause) -
                                           // jamais chargee jusqu'ici, cf. RSEntity.h struct JDYN.
-    float ground_effect_ceiling_m{0.0f}; // JDYN champ 17
+    float control_speed_ms{0.0f};        // JDYN champ 17
     float induced_drag_k{0.0f};          // JDYN champ 18
     float lift_gain{0.0f};               // JDYN champ 19
     float pitch_stick_gain{0.0f};        // JDYN champ 20 ("aileron", jdyn[0x65]) : borne finale de la consigne de tangage
     float yaw_authority{0.0f};           // JDYN champ 21 ("gouverne") : gain palonnier -> consigne de lacet
     float pitch_load_gain{0.0f};         // JDYN champ 22 ("MAX_G", jdyn[0x67]) : gain manche -> demande de charge (tangage)
+
+    float g_engine{1.0f};
+    float g_fuel{1.0f};
+    float g_wing{1.0f};
+    float g_elevator{1.0f};
+    float g_rudder{1.0f};
+    float g_aileron{1.0f};
+    float componentGain(const char *first, const char *second);
+    void updateDamageGains();
 
     float fuel_kg{0.0f};                 // carburant courant (precision flottante ; miroir dans SCPlane::fuel)
 
@@ -111,7 +116,8 @@ protected:
     void updateSpeedOfSound() override;
     void checkStatus() override;
     void updatePlaneStatus() override;
-    void syncAutopilotVelocity(float dt) override;
+    void syncKinematicVelocity(float dt) override;
+    void onPlaneWreck(const PlaneWreckEvent &event) override;
 
 public:
     SCJetpPlane();
@@ -120,4 +126,6 @@ public:
                 RSArea *area, float x, float y, float z);
     ~SCJetpPlane();
     void Simulate() override;
+    float maxRollRate() override;
+    float forwardSpeedPerTick() override { return this->tps > 0 ? this->vz / (float) this->tps : this->vz; }
 };

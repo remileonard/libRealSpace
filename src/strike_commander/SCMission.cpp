@@ -166,7 +166,7 @@ void SCMission::loadMission() {
                         actor->pilot->actor = actor;
                         BoudingBox *bb = actor->object->entity->GetBoudingBpx();
                         
-                        actor->plane = new SCJdynPlane(
+                        actor->plane = new SCJetpPlane(
                             actor->object->entity->jdyn->max_g,
                             -(float) actor->object->entity->jdyn->max_g/2.0f,
                             40.0f,
@@ -216,6 +216,9 @@ void SCMission::loadMission() {
                             actor->plane->SetThrottle(100);
                             actor->pilot->target_climb = (int) (part->position.y);
                             actor->plane->vz = -20;
+                            float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
+                            float spawn_speed = (float) actor->object->entity->jdyn->ai_speed_cruise;
+                            actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
                             actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
                             actor->pilot->target_speed = -20;
                         } else {

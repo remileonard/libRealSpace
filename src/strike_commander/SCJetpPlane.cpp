@@ -25,8 +25,8 @@ constexpr float HREF_M = 11000.0f;      // altitude de reference du lapse de pou
 // soit 56/256 = 0.21875 degre. Valeur physique reelle en degres.
 constexpr float ATTITUDE_DEAD_ZONE_DEG = 0.21875f;
 
-// Coefficient du servo Aero_ComputeForcesMain (dword_70454, defaut seg112, = 1/dt_asm a 25 Hz).
-// Sert de gain proportionnel fixe qui borne la loi racine pres de zero (target <= K*|err|).
+// Coefficient du servo Aero_ComputeForcesMain (dword_70454) : frequence de simulation 1/dt, plafonnee
+// a 25 dans l'original (attente active au-dela de 25 images/s). 25 reproduit la cadence nominale.
 constexpr float SERVO_K = 25.0f;
 }
 
@@ -88,7 +88,7 @@ void SCJetpPlane::loadFromEntity() {
         this->wing_incidence_deg = (float)jdyn->wing_incidence_deg;
         this->flap_lift_increment_deg = (float)jdyn->flap_lift_increment_deg;
         this->pitch_rate_limit_dps = (float)jdyn->pitch_rate_limit_dps;
-        this->ground_effect_ceiling_m = jdyn->ground_effect_ceiling_m;
+        this->control_speed_ms = jdyn->control_speed_ms;
         this->induced_drag_k = jdyn->induced_drag_k;
         this->lift_gain = jdyn->lift_gain;
         this->yaw_authority = (float)jdyn->yaw_authority; 
@@ -174,9 +174,13 @@ void SCJetpPlane::computeGravity() {
 }
 
 void SCJetpPlane::computeThrust() {
+    int max_notch = (int) lroundf(10.0f * this->g_engine);
+    if (this->thrust > max_notch * 10) {
+        this->thrust = max_notch * 10;
+    }
     float notch = this->thrust / 10.0f;
     float fraction = this->throttleNotchToThrustFraction(notch) * this->altitudeLapseFraction(this->y);
-    this->thrust_force = this->thrust_max_n * fraction;
+    this->thrust_force = this->thrust_max_n * fraction * this->g_engine;
     if (this->fuel_kg <= 0.0f) {
         this->thrust_force = 0.0f;
     }
@@ -221,7 +225,7 @@ void SCJetpPlane::computeLift() {
     this->dynamic_pressure = 0.5f * this->airDensity(this->y) * V * V;
 
     // Portance + force laterale : Aero_ComputeLiftAndSideForce (DATA_MODEL.md §6.2).
-    float k_lift = this->lift_gain * this->dynamic_pressure;
+    float k_lift = this->lift_gain * this->g_wing * this->dynamic_pressure;
     this->lift_force = hard_stall ? 0.0f : k_lift * this->alpha_eff_deg;
     Vector3D dirLift(0.0f, -this->vz, this->vy); // perpendiculaire a la vitesse, plan vertical corps
     dirLift.Normalize();
@@ -329,9 +333,10 @@ void SCJetpPlane::updatePosition() {
     //   WorldObject_ComposeOrientation3Angles_3CAE3 (methode vtable des objets du monde, famille
     //   ~18 vtables) -> Matrix_BuildFullOrientation_575B2(objet+0x2C, &aX, &aY, &aZ)
     //     -> Matrix_BuildAxisX/Y/Z_56EC3 : chacun applique une rotation d'axe INCREMENTALE EN PLACE
-    //        sur les lignes de la matrice d'orientation PERSISTANTE (row1' = row1*sin + row2*cos ;
-    //        row2' = row2*sin - row1*cos), sans reconstruction from-scratch, no-op si |angle| <
-    //        0x38 brut = 56/256 = 0.21875 deg.
+    //        sur les lignes de la matrice d'orientation PERSISTANTE (rotation standard :
+    //        ligne0' = c*ligne0 - s*ligne2, ligne2' = c*ligne2 + s*ligne0), sans reconstruction,
+    //        no-op si |angle| < 0x38 brut = 56/256 = 0.21875 deg. L'integration est faite par
+    //        WorldObject_IntegrateBodyMotion_3D31D (methode +0x14), qui fait aussi position += v*dt.
     // Les 3 angles sont les INCREMENTS = vitesses angulaires physique * dt. Il n'y a donc PAS
     // d'accumulateur d'angle d'Euler cote jeu d'origine : l'etat d'orientation vit uniquement dans
     // la matrice. `pitch`/`yaw`/`roll` (SCPlane) sont ici RE-DERIVES de la matrice a chaque tic pour
@@ -418,7 +423,7 @@ void SCJetpPlane::updatePosition() {
     this->groundlevel = this->area->getY(this->x, this->z);
 
     this->ptw.SetTranslation(this->x, this->y, this->z);
-    this->forward = Vector3D(0.0f, 0.0f, -1.0f).transformPoint(this->ptw);
+    this->forward = Vector3D(-this->ptw.v[2][0], -this->ptw.v[2][1], -this->ptw.v[2][2]);
 
     Matrix worldToBody = this->ptw;
     worldToBody.v[3][0] = worldToBody.v[3][1] = worldToBody.v[3][2] = 0.0f;
@@ -453,6 +458,10 @@ void SCJetpPlane::processInput() {
     // elevator NEGATIF quand on tire le manche.
     this->elevator = (std::clamp)(-(this->control_stick_y / refY), -1.0f, 1.0f);
     this->rollers = (std::clamp)(-(this->control_stick_x / refX), -1.0f, 1.0f);
+    if (this->stick_normalized) {
+        this->elevator = (std::clamp)(-this->stick_norm_y, -1.0f, 1.0f);
+        this->rollers = (std::clamp)(-this->stick_norm_x, -1.0f, 1.0f);
+    }
 
     float V = sqrtf(this->vx * this->vx + this->vy * this->vy + this->vz * this->vz);
 
@@ -463,7 +472,7 @@ void SCJetpPlane::processInput() {
         qServo = 0.0f;
     }
 
-    // TANGAGE et LACET : l'ASM (Aero_ComputeControlFlags75Bit5B) ne gate PAS sur on_ground -
+    // TANGAGE et LACET : l'ASM (Aero_ComputeAoACommand_48862) ne gate PAS sur on_ground -
     // seulement sur flags_75.bit5 ou q trop faible (pas d'air). Il FAUT l'autorite de tangage au
     // sol pour cabrer au decollage. Le seul gate est "assez de pression dynamique".
     bool ctrlLive = (q > 1.0f);
@@ -472,7 +481,7 @@ void SCJetpPlane::processInput() {
     bool rollLive = (!this->on_ground && V > 40.0f);
 
     // ===================================================================================
-    // TANGAGE : Aero_ComputeControlFlags75Bit5B (consigne d'alpha) + Aero_ComputeForcesMain (servo)
+    // TANGAGE : Aero_ComputeAoACommand_48862 (consigne d'alpha) + Aero_ComputeForcesMain (servo)
     // Transcription fidele du seg103 L1155-1529 + seg102.
     // Echelle manche : l'ASM fait `loadDemand = MAX_G * [ctrl+0x1F] / 16`. `[ctrl+0x1F]` est un
     // 24.8 fixe de pleine butee +/-16.0 (le code lit sa partie entiere par `sar eax,8`). Le `/16`
@@ -486,7 +495,7 @@ void SCJetpPlane::processInput() {
     }
     float loadDemand = -this->elevator * loadGain;    // -elevator : tirer -> demande positive
 
-    // var_30 = sin(angle(vecteur avant, Z monde)) ~ cos(tangage) ; signe inverse si sur le dos.
+    // var_30 = cos(tangage du nez) ; signe inverse si sur le dos.
     float bankTerm = cosf(tenthOfDegreeToRad(this->pitch));
     if (this->ptw.v[1][1] < 0.0f) {
         bankTerm = -bankTerm;
@@ -519,7 +528,13 @@ void SCJetpPlane::processInput() {
     // rend le manche neutre STABLE : boundA==boundB en neutre -> le clamp laisse var_1A = alpha
     // -> err = alpha - alpha = 0 -> aucune action. (Avec var_1A=0 comme avant, err = -alpha ->
     // le servo poussait alpha vers 0 -> alpha_eff = calage_aile -> ~2.2G sans manche.)
-    float pitchCommandDeg = this->alpha_deg;
+    float pitchCommandDeg = 0.0f;
+    if (!this->on_ground && !this->wing_stall) {
+        pitchCommandDeg = this->alpha_deg;
+        if (pitchCommandDeg < 0.0f) {
+            pitchCommandDeg *= fabsf(cosf(tenthOfDegreeToRad(this->roll)));
+        }
+    }
     // Clamp loc_48B42 : ramene var_1A vers boundA SAUF si var_1A est deja dans l'intervalle
     // [0..boundB] (borne = boundA sinon boundB selon les tests jle/jg/jge exacts).
     
@@ -535,7 +550,7 @@ void SCJetpPlane::processInput() {
     }
     
     // clamp final +/- pitch_stick_gain (jdyn[0x65])
-    pitchCommandDeg = (std::clamp)(pitchCommandDeg, -this->pitch_stick_gain, this->pitch_stick_gain);
+    pitchCommandDeg = (std::clamp)(pitchCommandDeg, -this->pitch_stick_gain * this->g_elevator, this->pitch_stick_gain * this->g_elevator);
 
     // --- Servo Aero_ComputeForcesMain (seg102) + Physics_IntegrateSecondaryPosition ---
     // Relu octet-pres (seg102 L2440-2652, seg112 L999-1045) :
@@ -563,41 +578,6 @@ void SCJetpPlane::processInput() {
     
     float horizontalSpeed = sqrtf(this->velocity.x * this->velocity.x + this->velocity.z * this->velocity.z);
     float gammaDeg = RAD2DEG_57_29 * atan2f(this->velocity.y, horizontalSpeed);
-    printf(
-        "[pitch2] og=%d aero=%d V=%.1f gl=%.2f y=%.2f x=%.1f z=%.1f status=%u mrate=%.2f target=%.3f "
-        "boundA=%.2f boundB=%.2f\n",
-        (int)this->on_ground,
-        (int)ctrlLive,
-        V,
-        this->groundlevel,
-        this->y,
-        this->x,
-        this->z,
-        this->status,
-        this->max_turn_rate_dps,
-        targetPitchRate,
-        boundA,
-        boundB
-    );
-    printf(
-        "[pitch] elev=%.2f loadDem=%.2f iPG=%.3f var38=%.2f cmd=%.3f alpha=%.3f err=%.3f "
-        "q=%.1f qS=%.3f rate=%.3f | pDeg=%.2f gDeg=%.2f alt=%.0f\n",
-        this->elevator,
-        loadDemand,
-        incidencePerG, 
-        var38,
-        pitchCommandDeg,
-        this->alpha_deg,
-        errPitch,
-        q,
-        qServo, 
-        this->pitch_speed,
-        this->pitch / 10.0f,
-        gammaDeg,
-        this->y
-    );
-    
-
     // ===================================================================================
     // LACET : servo fidele Aero_ComputeForcesMain, err = consigne_palonnier - beta.
     //   - consigne (Aero_ResetAccumulatorFlags75Bit5) = (yaw_authority) * (palonnier/16), PAS de beta.
@@ -609,7 +589,7 @@ void SCJetpPlane::processInput() {
     // de lacet est inverse. On NEGATE la sortie du servo pour retablir la chiralite (sinon
     // beta<0 -> nez tourne du mauvais cote -> derapage amplifie -> vrille divergente).
     // ===================================================================================
-    float yawCommandDeg = (this->rudder / 10.0f) * this->yaw_authority;
+    float yawCommandDeg = (this->rudder / 10.0f) * this->yaw_authority * this->g_rudder;
     float errYaw = yawCommandDeg - this->beta_deg;
     float targetYawRate = 0.0f;
     if (ctrlLive && fabsf(errYaw) >= ATTITUDE_DEAD_ZONE_DEG) {
@@ -620,18 +600,21 @@ void SCJetpPlane::processInput() {
     float maxYawAccel = 3.0f * qServo * dt;
     this->yaw_speed += (std::clamp)(targetYawRate - this->yaw_speed, -maxYawAccel, maxYawAccel);
     this->yaw_speed = (std::clamp)(this->yaw_speed, -this->max_turn_rate_dps, this->max_turn_rate_dps);
-    if (this->on_ground) {
+    if (this->on_ground && V < 40.0f) {
+        this->yaw_speed = this->rollers * V / 4.0f;
+    } else if (this->on_ground) {
         this->yaw_speed = 0.0f;
     }
 
     // ===================================================================================
     // ROULIS : Aero_ComputeControlFlags75Bit5C - loi directe manche, pas de couplage.
     // ===================================================================================
+    float rollRateMax = this->maxRollRate() * this->g_aileron;
     float rollRateTarget = 0.0f;
     if (rollLive) {
-        rollRateTarget = this->rollers * this->max_turn_rate_dps;
+        rollRateTarget = this->rollers * rollRateMax;
     }
-    rollRateTarget = (std::clamp)(rollRateTarget, -this->max_turn_rate_dps, this->max_turn_rate_dps);
+    rollRateTarget = (std::clamp)(rollRateTarget, -rollRateMax, rollRateMax);
 
     float maxRollDelta = this->rate_limit_dps * dt;
     this->roll_speed += (std::clamp)(rollRateTarget - (float)this->roll_speed, -maxRollDelta, maxRollDelta);
@@ -712,10 +695,18 @@ void SCJetpPlane::checkStatus() {
     }
 }
 
-void SCJetpPlane::syncAutopilotVelocity(float dt) {
+void SCJetpPlane::syncKinematicVelocity(float dt) {
     this->vx = this->velocity.x * this->ptw.v[0][0] + this->velocity.y * this->ptw.v[0][1] + this->velocity.z * this->ptw.v[0][2];
     this->vy = this->velocity.x * this->ptw.v[1][0] + this->velocity.y * this->ptw.v[1][1] + this->velocity.z * this->ptw.v[1][2];
     this->vz = this->velocity.x * this->ptw.v[2][0] + this->velocity.y * this->ptw.v[2][1] + this->velocity.z * this->ptw.v[2][2];
+}
+
+void SCJetpPlane::onPlaneWreck(const PlaneWreckEvent &event) {
+    if (event.plane != this) {
+        return;
+    }
+    SCPlane::onPlaneWreck(event);
+    this->lift_gain = 0.0f;
 }
 
 void SCJetpPlane::updatePlaneStatus() {
@@ -731,6 +722,7 @@ void SCJetpPlane::updatePlaneStatus() {
 void SCJetpPlane::Simulate() {
     if (!this->entity_loaded)
         this->loadFromEntity();
+    this->updateDamageGains();
 
     float dt = GameTimer::getInstance().getDeltaTime();
     if (dt <= 0.0f)
@@ -745,9 +737,9 @@ void SCJetpPlane::Simulate() {
 
     this->groundlevel = this->area->getY(this->x, this->z);
 
-    if (this->autopilotActive()) {
+    if (this->kinematic_mode) {
         this->computeThrust();
-        this->simulateAutopilot(dt);
+        this->simulateKinematic(dt);
     } else {
         this->computeGravity();
         this->processInput();
@@ -765,11 +757,19 @@ void SCJetpPlane::Simulate() {
 
     // Consommation carburant : facteur MIL/PC x SFC x cran x dt (PhysicsTicks, DATA_MODEL.md §6.2).
     float notch = this->thrust / 10.0f;
-    float burnFactor = (notch <= 5.0f) ? 0.2f : 0.3f;
-    float burn = burnFactor * this->sfc * fabsf(notch) * dt;
-    this->fuel_kg -= burn;
-    if (this->fuel_kg < 0.0f)
+    if (this->fuel_kg <= 0.0f) {
         this->fuel_kg = 0.0f;
+        this->thrust_force = 0.0f;
+    } else {
+        float factor = (notch <= 5.0f) ? notch * (51.0f / 256.0f) : notch * (76.0f / 256.0f);
+        float burn = (10.0f - 9.0f * this->g_fuel) * this->sfc;
+        if (factor > 0.0f) {
+            burn *= factor;
+        }
+        this->fuel_kg -= burn * dt;
+        if (this->fuel_kg < 0.0f)
+            this->fuel_kg = 0.0f;
+    }
     this->fuel = (int)this->fuel_kg;
 
     if (this->wheels) {
@@ -831,4 +831,49 @@ void SCJetpPlane::Simulate() {
     this->azimuthf = this->yaw;
     this->elevationf = this->pitch;
     this->twist = this->roll;
+}
+
+float SCJetpPlane::componentGain(const char *first, const char *second) {
+    float current = 0.0f;
+    float initial = 0.0f;
+    for (auto &system : this->object->entity->sysm) {
+        for (auto &sub_system : system.second) {
+            if (sub_system.first == first || (second != nullptr && sub_system.first == second)) {
+                initial += (float) sub_system.second;
+                auto health_system = this->system_health.find(system.first);
+                if (health_system == this->system_health.end() || health_system->second.find(sub_system.first) == health_system->second.end()) {
+                    current += (float) sub_system.second;
+                } else {
+                    current += (float) health_system->second[sub_system.first];
+                }
+            }
+        }
+    }
+    if (initial <= 0.0f) {
+        return 1.0f;
+    }
+    return current / initial;
+}
+
+void SCJetpPlane::updateDamageGains() {
+    this->g_engine = this->componentGain("ENGINE", nullptr);
+    this->g_fuel = this->componentGain("FUEL", nullptr);
+    this->g_wing = this->componentGain("LWING", "RWING");
+    this->g_elevator = this->componentGain("ELEVATOR", nullptr);
+    this->g_rudder = this->componentGain("RUDDER", nullptr);
+    this->g_aileron = this->componentGain("AILERON", nullptr);
+}
+
+float SCJetpPlane::maxRollRate() {
+    float rate = this->max_turn_rate_dps;
+    float flow = sqrtf(this->alpha_deg * this->alpha_deg + this->beta_deg * this->beta_deg);
+    float onset = this->stall_alpha_deg - 5.0f;
+    if (flow > onset) {
+        rate /= (flow - onset + 1.0f);
+    }
+    float V = sqrtf(this->vx * this->vx + this->vy * this->vy + this->vz * this->vz);
+    if (V < this->control_speed_ms) {
+        rate *= V / this->control_speed_ms;
+    }
+    return rate;
 }
