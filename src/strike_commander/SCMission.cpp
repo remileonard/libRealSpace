@@ -236,7 +236,7 @@ void SCMission::loadMission() {
                                                 23000.0f, 32.0f, .93f, 120, this->area, part->position.x,
                                                 part->position.y, part->position.z);*/
                     BoudingBox *bb = actor->object->entity->GetBoudingBpx();
-                    actor->plane = new SCJetpPlane(
+                    actor->plane = new SCJdynPlane(
                         actor->object->entity->jdyn->max_g,
                         -actor->object->entity->jdyn->max_g/2.0f,
                         40.0f,
