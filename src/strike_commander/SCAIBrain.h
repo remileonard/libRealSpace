@@ -4,6 +4,35 @@
 class SCMissionActors;
 class SCSimulatedObject;
 
+enum ReactionLevel : uint8_t {
+    REACT_NONE = 0,
+    REACT_ENGAGED = 1,
+    REACT_MISSILE = 2,
+    REACT_NEW_TARGET = 3,
+    REACT_GROUND_AVOID = 4,
+    REACT_STALL_RECOVERY = 5
+};
+
+struct CombatContext {
+    SCMissionActors *target{nullptr};
+    bool aircraft{true};
+    float my_speed{0.0f};
+    float cruise{0.0f};
+    float min_speed{0.0f};
+    float ias{0.0f};
+    Vector3D D{0.0f, 0.0f, 0.0f};
+    Vector3D future_rel{0.0f, 0.0f, 0.0f};
+    float dist{0.0f};
+    float nose_angle{0.0f};
+    float future_angle{0.0f};
+    float target_vel_angle{0.0f};
+    float aspect{0.0f};
+    float target_speed{0.0f};
+    float side{0.0f};
+    bool behind{false};
+    bool head_on{false};
+};
+
 struct ThreatScore {
     int a{0};
     int b{0};
@@ -31,6 +60,12 @@ public:
     bool evasion_active{false};
     bool ground_attack_enabled{true};
     bool ground_attack_active{false};
+    bool brain_orders_enabled{true};
+    uint8_t reaction_level{REACT_NONE};
+    bool just_hit{false};
+    SCMissionActors *last_attacker{nullptr};
+    bool objective_locked{false};
+    int morale{2};
     int fire_solution_quality{0};
 
     SCMissionActors *acquireBestThreat(bool allow_new_target);
@@ -69,7 +104,79 @@ private:
     bool reactionThreshold(int quality);
     void updateFireControl();
     void updatePursuit();
-    void updateGroundAttack();
+    void updateGroundAttack(SCMissionActors *target);
+    bool combatStep(bool ground_allowed);
+    bool destroyTargetOrder(uint8_t arg);
+    bool defendTargetOrder(uint8_t arg);
+    bool followAllyOrder(uint8_t arg);
+    CombatContext ctx;
+    int maneuver_id{0};
+    SCMissionActors *maneuver_target{nullptr};
+    uint8_t maneuver_level{0};
+    float maneuver_timer{0.0f};
+    int maneuver_phase{0};
+    int maneuver_phase_hint{0};
+    int maneuver_legs{0};
+    int maneuver_side{0};
+    uint8_t maneuver_bits{0};
+    Vector3D maneuver_point{0.0f, 0.0f, 0.0f};
+    Vector3D maneuver_leg{0.0f, 0.0f, 0.0f};
+    float maneuver_leg_timer{0.0f};
+    float maneuver_start_heading{0.0f};
+    int maneuver_uses[32]{};
+    bool threat_alerted{false};
+    bool combat_step_called{false};
+    float retarget_clock{0.0f};
+    bool retarget_fired{false};
+    SCSimulatedObject *complained_missile{nullptr};
+    float ground_phase3_time{0.0f};
+    Vector3D actorVelocity(SCMissionActors *actor);
+    float floorAltitude();
+    float indicatedAirspeed();
+    bool tooSlow();
+    bool tooLow();
+    int decisionWeight();
+    void buildCombatContext(SCMissionActors *target);
+    int scoreManeuver(int id, SCMissionActors *target);
+    bool runTournament();
+    void applyManeuver(int id, SCMissionActors *target, uint8_t level);
+    void endManeuver();
+    bool tickManeuver();
+    bool tickLeg();
+    void maneuverSpeed(float wanted);
+    void speedThrottle(float wanted);
+    bool ejectDecision(int mode);
+    void runReflexes();
+    void incomingThreatWarning();
+    int computeMorale();
+    bool canHoldOrder();
+    bool moraleReaction();
+    void leaveFight();
+    SCMissionActors *playerActor();
+    SCMissionActors *leaderActor();
+    bool disciplined{true};
+    float discipline_timer{0.0f};
+    float morale_timer{0.0f};
+    bool mutiny{false};
+    bool fleeing{false};
+    Vector3D brain_destination{0.0f, 0.0f, 0.0f};
+    Vector3D home_position{0.0f, 0.0f, 0.0f};
+    bool home_set{false};
+    int enemies_alive{0};
+    int own_losses{0};
+    bool enemies_active{false};
+    bool engageAttackerReaction();
+    uint8_t leader_state{0};
+    bool navigateToPoint(Vector3D point, float radius);
+    void stopNavigation();
+    void navigateToPilotWaypoint();
+    void wander();
+    bool nav_active{false};
+    bool nav_requested{false};
+    Vector3D wander_point{0.0f, 0.0f, 0.0f};
+    bool wander_point_set{false};
+    int defend_state{-1};
+    bool ground_attack_seen{false};
     void resetGroundAttack();
     RSEntity *selectGroundWeapon();
     Vector3D predictBombImpact(RSEntity *bomb);

@@ -33,6 +33,7 @@ void SCPilot::SetPitchCommand(float pitch_deg, float deadzone_deg) {
 
 void SCPilot::ClearGuidance() {
     this->guidance_mode = GUIDANCE_NONE;
+    this->target_speed_ms = 0.0f;
 }
 
 void SCPilot::SetAttitudeError(float heading_error_deg, float pitch_error_deg, float deadband_deg) {
@@ -138,6 +139,16 @@ float SCPilot::maxBankForG(float maxG) {
  * Rappel : vz est negatif quand l'avion avance, target_speed est negatif aussi.
  */
 void SCPilot::controlThrottle() {
+    if (this->target_speed_ms > 0.0f) {
+        float tps = this->plane->tps > 0 ? (float) this->plane->tps : 25.0f;
+        Vector3D velocity((this->plane->x - this->plane->last_px) * tps, (this->plane->y - this->plane->last_py) * tps, (this->plane->z - this->plane->last_pz) * tps);
+        if (velocity.Length() < this->target_speed_ms) {
+            this->throttle = 100;
+        } else {
+            this->throttle = std::max(0.0f, this->throttle - 10.0f);
+        }
+        return;
+    }
     if (this->plane->forwardSpeedPerTick() > this->target_speed) {
         this->throttle = 100;
     } else {
@@ -213,6 +224,15 @@ void SCPilot::FlyTo() {
         float recover_stick = 0.50f * roll_signed + 1.0f * this->plane->roll_speed;
         this->control_stick_x = std::clamp((int)recover_stick, -160, 160);
         this->publishControls();
+        return;
+    }
+    if (this->guidance_mode == GUIDANCE_MANUAL) {
+        if (this->manual_throttle >= 0) {
+            this->throttle = (float) this->manual_throttle;
+        }
+        this->control_stick_x = this->roll_stick / 16.0f;
+        this->control_stick_y = this->pitch_stick / 16.0f;
+        this->publishControls(true);
         return;
     }
     if (this->guidance_mode != GUIDANCE_NONE) {
@@ -654,7 +674,7 @@ bool SCPilot::rollToAngle(float bank, float deadzone, float dt) {
     return true;
 }
 
-void SCPilot::pitchToAngle(float pitch, float deadzone, float dt) {
+bool SCPilot::pitchToAngle(float pitch, float deadzone, float dt) {
     float error = pitch - this->nosePitch();
     float bank = this->bankAngle();
     this->guidance_log_h = 0.0f;
@@ -662,19 +682,67 @@ void SCPilot::pitchToAngle(float pitch, float deadzone, float dt) {
     this->guidance_log_r = 0.0f;
     if (std::fabs(error) <= deadzone) {
         this->rollToAngle(0.0f, 5.0f, dt);
-        return;
+        return true;
     }
     if (error < -15.0f || (std::fabs(bank) > 90.0f && error < 0.0f)) {
         this->rollToAngle(180.0f, 5.0f, dt);
         if (std::fabs(bank) > 165.0f) {
             this->pitch_stick = this->clampPitch(16.0f * std::max(1.0f, std::fabs(error) / 15.0f));
         }
-        return;
+        return false;
     }
     this->rollToAngle(0.0f, 5.0f, dt);
     if (std::fabs(bank) < 15.0f) {
         this->pitch_stick = this->clampPitch(error < 15.0f ? 16.0f * error / 15.0f : 16.0f);
     }
+    return false;
+}
+
+void SCPilot::BeginManual() {
+    this->attitude_mode = false;
+    this->guidance_mode = GUIDANCE_MANUAL;
+    this->roll_stick = 0.0f;
+    this->pitch_stick = 0.0f;
+    this->manual_throttle = -1;
+}
+
+bool SCPilot::CmdRollTo(float bank_deg, float deadzone_deg) {
+    return this->rollToAngle(bank_deg, deadzone_deg, 1.0f / 25.0f);
+}
+
+bool SCPilot::CmdPitchTo(float pitch_deg, float deadzone_deg) {
+    return this->pitchToAngle(pitch_deg, deadzone_deg, 1.0f / 25.0f);
+}
+
+void SCPilot::CmdGuidance(Vector3D direction) {
+    this->guidanceSolution(direction, 1.0f / 25.0f);
+}
+
+void SCPilot::CmdPitchStick(float stick16) {
+    this->pitch_stick = this->clampPitch(stick16);
+}
+
+void SCPilot::CmdRollStick(float stick16) {
+    this->roll_stick = std::clamp(stick16, -16.0f, 16.0f);
+}
+
+void SCPilot::CmdThrottle(int notch) {
+    this->manual_throttle = std::clamp(notch, 0, 10) * 10;
+}
+
+float SCPilot::BankAngle() {
+    return this->bankAngle();
+}
+
+float SCPilot::NosePitch() {
+    return this->nosePitch();
+}
+
+float SCPilot::BearingToRef(Vector3D direction) {
+    Matrix &m = this->plane->ptw;
+    float lx = direction.x * m.v[0][0] + direction.y * m.v[0][1] + direction.z * m.v[0][2];
+    float ly = direction.x * m.v[1][0] + direction.y * m.v[1][1] + direction.z * m.v[1][2];
+    return radToDegree(atan2f(lx, ly));
 }
 
 float SCPilot::rollStickFromError(float error, float dt) {

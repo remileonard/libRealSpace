@@ -86,8 +86,10 @@ private:
     enum GuidanceMode {
         GUIDANCE_NONE,
         GUIDANCE_DIRECTION,
-        GUIDANCE_PITCH
+        GUIDANCE_PITCH,
+        GUIDANCE_MANUAL
     };
+    int manual_throttle{-1};
     GuidanceMode guidance_mode{GUIDANCE_NONE};
     Vector3D guidance_direction{0.0f, 0.0f, 0.0f};
     float guidance_pitch{0.0f};
@@ -108,7 +110,7 @@ private:
     void combatDecision(float h, float v, float r, float dt);
     bool bankError(float error, float deadzone, float dt);
     bool rollToAngle(float bank, float deadzone, float dt);
-    void pitchToAngle(float pitch, float deadzone, float dt);
+    bool pitchToAngle(float pitch, float deadzone, float dt);
     float rollStickFromError(float error, float dt);
     float maxRollRate(float dt);
     float clampPitch(float stick);
@@ -117,6 +119,7 @@ public:
     bool has_waypoint{false};
     bool turning{false};
     int target_speed{0};
+    float target_speed_ms{0.0f};
     int target_climb{0};
     float target_azimut{0.0f};
     float old_target_azimut{0.0f};
@@ -131,6 +134,17 @@ public:
     void SetAttitudeError(float heading_error_deg, float pitch_error_deg, float deadband_deg);
     void SetGuidanceDirection(Vector3D direction);
     void SetPitchCommand(float pitch_deg, float deadzone_deg);
+    void BeginManual();
+    bool CmdRollTo(float bank_deg, float deadzone_deg);
+    bool CmdPitchTo(float pitch_deg, float deadzone_deg);
+    void CmdGuidance(Vector3D direction);
+    void CmdPitchStick(float stick16);
+    void CmdRollStick(float stick16);
+    void CmdThrottle(int notch);
+    float BankAngle();
+    float NosePitch();
+    float BearingToRef(Vector3D direction);
+    float RollStickValue() { return roll_stick; }
     void ClearGuidance();
     bool attitude_mode{false};
     float attitude_heading_error{0.0f};

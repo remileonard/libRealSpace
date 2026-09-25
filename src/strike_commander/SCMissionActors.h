@@ -62,6 +62,7 @@ public:
     virtual bool deactivate(uint8_t arg);
     virtual bool setMessage(uint8_t arg);
     virtual bool followAlly(uint8_t arg);
+    bool followAllyFormation(uint8_t arg);
     virtual bool protectSelf();
     virtual bool ifTargetInSameArea(uint8_t arg);
     virtual bool respondToRadioMessage(int message_id, SCMission *mission, SCMissionActors *sender=nullptr);

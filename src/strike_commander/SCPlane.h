@@ -344,6 +344,7 @@ public:
     void RenderWeaponTrajectories();
     Vector3D getWeaponIntialVector(float speedFactor);
     bool kinematicMode() const { return kinematic_mode; }
+    int GetFuel() const { return fuel; }
     virtual float forwardSpeedPerTick() { return vz; }
     virtual float maxRollRate() { return object->entity->jdyn->max_turn_rate_dps; }
 };
