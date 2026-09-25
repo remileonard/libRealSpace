@@ -245,6 +245,7 @@ public:
     // Chunk STBL (jamais lu jusqu'ici) : coefficient d'autorite de tangage/lacet
     // utilise par l'asservissement d'attitude (q' = q * stability_gain / 100).
     float stability_gain{0.0f};
+    float parasite_drag{1.0f};  // chunk ATMO (u32 24.8) : multiplie la trainee parasite
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
     uint8_t health{0};

@@ -693,6 +693,10 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_ATMO(uint8_t *data, size_t size) {
         return;
     ByteStream bs(data, size);
     this->drag = bs.ReadUShort();
+    if (size >= 4) {
+        ByteStream fixed(data, size);
+        this->parasite_drag = fixed.ReadFixedFloatLE();
+    }
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_GRAV(uint8_t *data, size_t size) {
     this->gravity = true;

@@ -101,6 +101,9 @@ private:
     int computeFireSolutionQuality();
     RSEntity *loadedMissile(uint16_t mask);
     bool testMissileLock(RSEntity *missile);
+    int seekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity);
+    bool seekerSees(RSEntity *weapon, SCMissionActors *candidate);
+    SCMissionActors *seekerSelect(RSEntity *weapon, SCMissionActors *desired);
     bool reactionThreshold(int quality);
     void updateFireControl();
     void updatePursuit();

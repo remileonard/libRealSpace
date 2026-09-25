@@ -35,12 +35,14 @@ protected:
 
     RSAirdens airdens;   // table DATA\AIRDENS.TBL, chargee dans loadFromEntity()
 
-    float mass_kg{0.0f};                 // chunk DYNM
+    float mass_kg{0.0f};                 // masse totale : cellule + carburant + armes
+    float empty_mass_kg{0.0f};           // chunk DYNM
     float thrust_max_n{0.0f};            // chunk THRS (poussee pleine post-combustion)
     float thrust_mil_fraction{0.7f};     // chunk THRS, octet 1
     float thrust_ref_alt_fraction{1.0f}; // chunk THRS, octet 2
     float thrust_cutoff_alt_m{23100.0f}; // chunk THRS, octet 3 * 100
     float stability_gain{0.0f};          // chunk STBL
+    float parasite_drag{1.0f};           // chunk ATMO
 
     float fuel_capacity_kg{0.0f};        // JDYN champ 1
     float sfc{0.0f};                     // JDYN champ 2 (consommation specifique)
@@ -72,6 +74,7 @@ protected:
     float g_aileron{1.0f};
     float componentGain(const char *first, const char *second);
     void updateDamageGains();
+    void updateMass();
 
     float fuel_kg{0.0f};                 // carburant courant (precision flottante ; miroir dans SCPlane::fuel)
 
