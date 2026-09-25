@@ -712,6 +712,12 @@ void SCJetpPlane::checkStatus() {
     }
 }
 
+void SCJetpPlane::syncAutopilotVelocity(float dt) {
+    this->vx = this->velocity.x * this->ptw.v[0][0] + this->velocity.y * this->ptw.v[0][1] + this->velocity.z * this->ptw.v[0][2];
+    this->vy = this->velocity.x * this->ptw.v[1][0] + this->velocity.y * this->ptw.v[1][1] + this->velocity.z * this->ptw.v[1][2];
+    this->vz = this->velocity.x * this->ptw.v[2][0] + this->velocity.y * this->ptw.v[2][1] + this->velocity.z * this->ptw.v[2][2];
+}
+
 void SCJetpPlane::updatePlaneStatus() {
     float V = sqrtf(this->vx * this->vx + this->vy * this->vy + this->vz * this->vz);
     this->airspeed = (int)(V * 1.944f); // m/s -> noeuds, pour les instruments existants
@@ -739,17 +745,22 @@ void SCJetpPlane::Simulate() {
 
     this->groundlevel = this->area->getY(this->x, this->z);
 
-    this->computeGravity();
-    this->processInput();
-    this->updatePosition();
-    this->updateSpeedOfSound();
-    this->checkStatus();
-    this->computeLift();
-    this->computeThrust();
-    this->computeDrag();
-    this->updateForces();
-    this->updateAcceleration();
-    this->updateVelocity();
+    if (this->autopilotActive()) {
+        this->computeThrust();
+        this->simulateAutopilot(dt);
+    } else {
+        this->computeGravity();
+        this->processInput();
+        this->updatePosition();
+        this->updateSpeedOfSound();
+        this->checkStatus();
+        this->computeLift();
+        this->computeThrust();
+        this->computeDrag();
+        this->updateForces();
+        this->updateAcceleration();
+        this->updateVelocity();
+    }
     this->updatePlaneStatus();
 
     // Consommation carburant : facteur MIL/PC x SFC x cran x dt (PhysicsTicks, DATA_MODEL.md §6.2).

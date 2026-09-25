@@ -51,6 +51,7 @@ private:
     SCSimulatedObject *ground_released{nullptr};
     Vector3D ground_last_position{0.0f, 0.0f, 0.0f};
     int ground_last_tick{-2};
+    Vector3D ground_autopilot_target{0.0f, 0.0f, 0.0f};
     SCMissionActors *pursuit_last_target{nullptr};
     float aim_trim{0.0f};
     int evasion_hold{0};

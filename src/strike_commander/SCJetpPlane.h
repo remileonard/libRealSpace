@@ -111,6 +111,7 @@ protected:
     void updateSpeedOfSound() override;
     void checkStatus() override;
     void updatePlaneStatus() override;
+    void syncAutopilotVelocity(float dt) override;
 
 public:
     SCJetpPlane();

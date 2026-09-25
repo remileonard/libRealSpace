@@ -192,7 +192,7 @@ bool SCMissionActors::destroyTarget(uint8_t arg) {
             }
         }
     }
-    if (this->current_target != NO_TARGET && this->target != nullptr && this->target->plane != nullptr && this->target->plane->object->alive == 0) {
+    if (this->current_target != NO_TARGET && this->target != nullptr && (this->target->is_destroyed || (this->target->plane != nullptr && this->target->plane->object->alive == 0))) {
         this->current_target = NO_TARGET;
         this->target->attacker = nullptr;
         this->target = nullptr;

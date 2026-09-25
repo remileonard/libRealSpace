@@ -1743,3 +1743,148 @@ void SCPlane::renderPlaneLined() {
         }, {0.0f, 1.0f, 0.0f});*/
     }
 }
+static float autopilotWrap180(float angle) {
+    while (angle > 180.0f) {
+        angle -= 360.0f;
+    }
+    while (angle < -180.0f) {
+        angle += 360.0f;
+    }
+    return angle;
+}
+
+static float autopilotHeading(Vector3D v) {
+    return radToDegree(atan2f(v.x, v.z));
+}
+
+void SCPlane::engageAutopilot(Vector3D target_point, Vector3D desired_velocity) {
+    this->setAutopilotTarget(target_point, desired_velocity);
+    this->autopilot_state = 0;
+    this->autopilot_reached = false;
+    float dt = this->tps > 0 ? 1.0f / (float) this->tps : 0.04f;
+    this->velocity = Vector3D(this->x - this->last_px, this->y - this->last_py, this->z - this->last_pz) * (1.0f / dt);
+    this->autopilot_hspeed = sqrtf(this->velocity.x * this->velocity.x + this->velocity.z * this->velocity.z);
+}
+
+void SCPlane::setAutopilotTarget(Vector3D target_point, Vector3D desired_velocity) {
+    this->autopilot_point = target_point;
+    this->autopilot_velocity = desired_velocity;
+}
+
+void SCPlane::disengageAutopilot() {
+    this->autopilot_state = -1;
+    this->autopilot_reached = false;
+}
+
+void SCPlane::simulateAutopilot(float dt) {
+    Vector3D P = this->autopilot_point;
+    Vector3D W = this->autopilot_velocity;
+    Vector3D own(this->x, this->y, this->z);
+    float w_length = sqrtf(W.x * W.x + W.z * W.z);
+    float w_heading = autopilotHeading(W);
+    float R = w_length * 180.0f / (20.0f * (float) M_PI);
+    float r = R - w_length * dt;
+    Vector3D perp(W.z / w_length * r, 0.0f, -W.x / w_length * r);
+    Vector3D right_center = P + perp;
+    Vector3D left_center = P - perp;
+    float d_left = sqrtf((left_center.x - own.x) * (left_center.x - own.x) + (left_center.z - own.z) * (left_center.z - own.z));
+    float d_right = sqrtf((right_center.x - own.x) * (right_center.x - own.x) + (right_center.z - own.z) * (right_center.z - own.z));
+    if (this->autopilot_state == 0) {
+        this->autopilot_state = ((d_left < d_right && d_left > r) || d_right < r) ? 1 : 2;
+    }
+    Vector3D center = this->autopilot_state == 1 ? left_center : right_center;
+    float d = this->autopilot_state == 1 ? d_left : d_right;
+
+    float nose_heading = autopilotHeading(this->forward);
+    float error = 0.0f;
+    if (d < R) {
+        error = 0.0f;
+    } else if (d < R + w_length * dt) {
+        error = autopilotWrap180(w_heading - nose_heading);
+        if (this->autopilot_state == 1 && error > 0.0f) {
+            error -= 360.0f;
+        }
+        if (this->autopilot_state == 2 && error < 0.0f) {
+            error += 360.0f;
+        }
+    } else {
+        float tangent = radToDegree(asinf(R / d));
+        float aim = autopilotHeading(center - own) + (this->autopilot_state == 1 ? tangent : -tangent);
+        error = autopilotWrap180(autopilotWrap180(aim) - nose_heading);
+    }
+    float unclamped = error;
+    error = std::clamp(error, -20.0f * dt, 20.0f * dt);
+    float heading = nose_heading + error;
+
+    float nose_pitch = radToDegree(asinf(std::clamp(this->forward.y, -1.0f, 1.0f)));
+    float velocity_elevation = radToDegree(atan2f(this->velocity.y, sqrtf(this->velocity.x * this->velocity.x + this->velocity.z * this->velocity.z)));
+    float pitch_gap = velocity_elevation - nose_pitch;
+    if (pitch_gap != 0.0f) {
+        float f = std::min(1.0f, 5.0f * dt / std::fabs(pitch_gap));
+        Vector3D nose = this->forward;
+        Vector3D level(nose.x, 0.0f, nose.z);
+        level.Normalize();
+        nose = nose + (level - nose) * f;
+        nose.Normalize();
+        nose_pitch = radToDegree(asinf(std::clamp(nose.y, -1.0f, 1.0f)));
+    }
+
+    float roll_deg = autopilotWrap180(this->roll / 10.0f);
+    float roll_target = std::fabs(unclamped) > 10.0f ? (error > 0.0f ? 10.0f : -10.0f) : 0.0f;
+    float roll_step = this->object->entity->jdyn->max_turn_rate_dps * dt;
+    roll_deg += std::clamp(roll_target - roll_deg, -roll_step, roll_step);
+
+    float floor = this->area->getY(this->x, this->z) + 250.0f;
+    float target_y = P.y;
+    if (target_y < floor) {
+        target_y = this->y < floor ? floor : this->y;
+    }
+    float vertical_speed = std::clamp(target_y - this->y, -50.0f, 50.0f);
+
+    float speed_gap = w_length - this->autopilot_hspeed;
+    if (std::fabs(speed_gap) < 25.0f * dt) {
+        this->autopilot_hspeed = w_length;
+    } else {
+        this->autopilot_hspeed += speed_gap > 0.0f ? 25.0f * dt : -25.0f * dt;
+    }
+
+    Vector3D horizontal(sinf(degreeToRad(heading)), 0.0f, cosf(degreeToRad(heading)));
+    this->velocity = horizontal * this->autopilot_hspeed + Vector3D(0.0f, vertical_speed, 0.0f);
+
+    this->last_px = this->x;
+    this->last_py = this->y;
+    this->last_pz = this->z;
+    this->x += this->velocity.x * dt;
+    this->y += this->velocity.y * dt;
+    this->z += this->velocity.z * dt;
+    this->position = Vector3D(this->x, this->y, this->z);
+
+    this->m_old_pitch = this->pitch;
+    this->m_old_yaw = this->yaw;
+    this->yaw = norm3600((heading - 180.0f) * 10.0f);
+    this->pitch = nose_pitch * 10.0f;
+    this->roll = norm3600(roll_deg * 10.0f);
+    this->pitch_speed = 0.0f;
+    this->yaw_speed = 0.0f;
+    this->roll_speed = 0.0f;
+    this->angular_velocity = Vector3D(0.0f, 0.0f, 0.0f);
+
+    this->ptw.Identity();
+    this->ptw.translateM(this->x, this->y, this->z);
+    this->ptw.rotateM(tenthOfDegreeToRad(this->yaw), 0, 1, 0);
+    this->ptw.rotateM(tenthOfDegreeToRad(this->pitch), 1, 0, 0);
+    this->ptw.rotateM(tenthOfDegreeToRad(this->roll), 0, 0, 1);
+    this->forward = Vector3D(-this->ptw.v[2][0], -this->ptw.v[2][1], -this->ptw.v[2][2]);
+    this->groundlevel = this->area->getY(this->x, this->z);
+
+    float reach_distance = 20.0f * w_length * std::max(dt, 0.2f);
+    this->autopilot_reached = std::fabs(autopilotWrap180(w_heading - heading)) < 5.0f && (this->autopilot_point - this->position).Length() < reach_distance;
+    this->syncAutopilotVelocity(dt);
+}
+
+void SCPlane::syncAutopilotVelocity(float dt) {
+    Vector3D displacement = this->velocity * dt;
+    this->vx = displacement.x * this->ptw.v[0][0] + displacement.y * this->ptw.v[0][1] + displacement.z * this->ptw.v[0][2];
+    this->vy = displacement.x * this->ptw.v[1][0] + displacement.y * this->ptw.v[1][1] + displacement.z * this->ptw.v[1][2];
+    this->vz = displacement.x * this->ptw.v[2][0] + displacement.y * this->ptw.v[2][1] + displacement.z * this->ptw.v[2][2];
+}

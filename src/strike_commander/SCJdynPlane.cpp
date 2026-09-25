@@ -106,17 +106,21 @@ void SCJdynPlane::Simulate() {
     this->gravity = GRAVITY * dt * dt;
     this->fps_knots = 1.944f / dt;
     this->groundlevel = this->area->getY(this->x, this->z);
-    this->computeGravity();
-    this->processInput();
-    this->updatePosition();
-    this->updateSpeedOfSound();
-    this->checkStatus();
-    this->computeLift();
-    this->computeThrust();
-    this->computeDrag();
-    this->updateForces();
-    this->updateAcceleration();
-    this->updateVelocity();
+    if (this->autopilotActive()) {
+        this->simulateAutopilot(dt);
+    } else {
+        this->computeGravity();
+        this->processInput();
+        this->updatePosition();
+        this->updateSpeedOfSound();
+        this->checkStatus();
+        this->computeLift();
+        this->computeThrust();
+        this->computeDrag();
+        this->updateForces();
+        this->updateAcceleration();
+        this->updateVelocity();
+    }
 
     // Calculer la distance parcourue depuis la dernière frame
     

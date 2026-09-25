@@ -151,6 +151,13 @@ protected:
     virtual void computeThrust();
     virtual void processInput();
     virtual void updatePlaneStatus();
+    int autopilot_state{-1};
+    Vector3D autopilot_point{0.0f, 0.0f, 0.0f};
+    Vector3D autopilot_velocity{0.0f, 0.0f, 0.0f};
+    bool autopilot_reached{false};
+    float autopilot_hspeed{0.0f};
+    void simulateAutopilot(float dt);
+    virtual void syncAutopilotVelocity(float dt);
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
      // Stocke le prédicteur de trajectoire
@@ -327,7 +334,11 @@ public:
     // Visualisation de la trajectoire projetée
     void RenderWeaponTrajectories();
     Vector3D getWeaponIntialVector(float speedFactor);
-    
+    void engageAutopilot(Vector3D target_point, Vector3D desired_velocity);
+    void setAutopilotTarget(Vector3D target_point, Vector3D desired_velocity);
+    void disengageAutopilot();
+    bool autopilotActive() const { return autopilot_state >= 0; }
+    bool autopilotReached() const { return autopilot_reached; }
 };
 
 #endif
