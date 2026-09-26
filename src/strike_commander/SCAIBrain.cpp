@@ -60,11 +60,18 @@ void SCAIBrain::tick() {
     ground_attack_active = false;
     ground_attack_seen = false;
     combat_step_called = false;
+    // AI_TopLevelThink : menaces sautees en 0xA1/0xA2 ; reflexes et esquive seulement sans comportement en cours
+    bool ground_order = owner->current_command == OP_SET_OBJ_TAKE_OFF || owner->current_command == OP_SET_OBJ_LAND;
+    bool behavior_running = ground_op != GROUND_OP_NONE;
     if (owner->pilot != nullptr && !owner->plane->on_ground) {
-        this->incomingThreatWarning();
-        this->runReflexes();
+        if (!ground_order) {
+            this->incomingThreatWarning();
+        }
+        if (!behavior_running) {
+            this->runReflexes();
+        }
     }
-    if (evasion_enabled && (reaction_level == REACT_NONE || reaction_level == REACT_ENGAGED || reaction_level == REACT_MISSILE)) {
+    if (evasion_enabled && !behavior_running && (reaction_level == REACT_NONE || reaction_level == REACT_ENGAGED || reaction_level == REACT_MISSILE)) {
         this->reactToMissile();
     }
     if (evasion_active) {
@@ -771,9 +778,17 @@ bool SCAIBrain::executeGoalAction() {
             owner->current_command_executed = owner->wait(owner->current_command_arg);
         break;
         case OP_SET_OBJ_TAKE_OFF:
+            if (brain_orders_enabled) {
+                owner->current_command_executed = this->takeoffOrder();
+                break;
+            }
             owner->current_command_executed = owner->takeOff(owner->current_command_arg);
         break;
         case OP_SET_OBJ_LAND:
+            if (brain_orders_enabled) {
+                owner->current_command_executed = this->landingOrder(owner->current_command_arg, owner->current_command_arg2);
+                break;
+            }
             owner->current_command_executed = owner->land(owner->current_command_arg);
         break;
         case OP_SET_OBJ_FLY_TO_WP:
@@ -1627,4 +1642,195 @@ void SCAIBrain::computeAttitudeError(Vector3D direction, float &heading_error, f
     float desired_elevation = radToDegree(atan2f(direction.y, horizontal));
     float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
     pitch_error = desired_elevation - nose_elevation;
+}
+
+Vector3D SCAIBrain::runwayAxis(Vector3D direction) {
+    const float zero = 1.0f / 256.0f;
+    if (fabsf(direction.x) < zero && fabsf(direction.z) >= zero) {
+        return Vector3D(0.0f, 0.0f, direction.z > 0.0f ? 1.0f : -1.0f);
+    }
+    if (fabsf(direction.z) < zero && fabsf(direction.x) >= zero) {
+        return Vector3D(direction.x > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+    }
+    printf("AI %s#%d runway not axial (%.3f, %.3f), using the nose direction\n", owner->actor_name.c_str(), owner->actor_id, direction.x, direction.z);
+    Vector3D horizontal(direction.x, 0.0f, direction.z);
+    horizontal.Normalize();
+    return horizontal;
+}
+
+void SCAIBrain::endGroundOp() {
+    owner->pilot->EndGroundOps();
+    ground_op = GROUND_OP_NONE;
+}
+
+bool SCAIBrain::takeoffOrder() {
+    SCPlane *plane = owner->plane;
+    SCPilot *pilot = owner->pilot;
+    RSEntity *entity = plane->object->entity;
+    if (ground_op != GROUND_OP_TAKEOFF) {
+        if (owner->taken_off || plane->velocity.Length() > 10.0f) {
+            owner->taken_off = true;
+            return true;
+        }
+        ground_op = GROUND_OP_TAKEOFF;
+        ground_op_phase = 0;
+        ground_op_time = 0.0f;
+        ground_op_stick = 0.0f;
+        landing_done = false;
+        ground_op_axis = this->runwayAxis(plane->forward);
+        pilot->BeginGroundOps();
+        printf("AI %s#%d takeoff accel=%d rotate=%d pitch=%d gain=%d\n", owner->actor_name.c_str(), owner->actor_id, entity->takeoff_roll_accel, entity->takeoff_rotate_speed, entity->takeoff_climb_pitch, entity->takeoff_pitch_gain);
+    }
+    switch (ground_op_phase) {
+        case 0: {
+            pilot->CmdGroundControls(0.0f, 10, plane->GetFlaps(), 1, 0);
+            ground_op_time += TICK_DURATION;
+            float speed = entity->takeoff_roll_accel * ground_op_time;
+            if (speed > entity->takeoff_rotate_speed) {
+                pilot->CmdKinematic(false, ground_op_axis * speed, ground_op_axis, 0.0f);
+                ground_op_phase = 1;
+            } else {
+                pilot->CmdKinematic(true, ground_op_axis * speed, ground_op_axis, 0.0f);
+            }
+            break;
+        }
+        case 1: {
+            if (plane->y - plane->groundlevel > 300.0f) {
+                pilot->CmdGroundControls(ground_op_stick, 5, 1, 1, 0);
+                ground_op_phase = 2;
+                break;
+            }
+            // AI_PitchAttitudeHold_126CC
+            float gain = (float) entity->takeoff_pitch_gain;
+            float error = (float) entity->takeoff_climb_pitch - pilot->NosePitch();
+            ground_op_stick = floorf(std::clamp(error * gain / 8.0f, -gain, gain));
+            pilot->CmdGroundControls(ground_op_stick, 10, 1, 1, 0);
+            break;
+        }
+        case 2:
+            pilot->CmdGroundControls(ground_op_stick, 5, 0, 0, 0);
+            ground_op_phase = 3;
+            break;
+        case 3:
+            if (pilot->NosePitch() > 17.0f) {
+                ground_op_stick = -16.0f;
+            } else {
+                ground_op_stick = 8.0f;
+                ground_op_phase = 4;
+            }
+            pilot->CmdGroundControls(ground_op_stick, 5, 0, 0, 0);
+            break;
+        default:
+            this->endGroundOp();
+            owner->taken_off = true;
+            printf("AI %s#%d takeoff done\n", owner->actor_name.c_str(), owner->actor_id);
+            return true;
+    }
+    return false;
+}
+
+bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
+    if (landing_done) {
+        return true;
+    }
+    SCPlane *plane = owner->plane;
+    SCPilot *pilot = owner->pilot;
+    RSEntity *entity = plane->object->entity;
+    std::vector<SPOT *> &spots = owner->mission->mission->mission_data.spots;
+    if (ground_op != GROUND_OP_LANDING) {
+        // Player_ResolveAttachPointN_5305A : index hors table -> (0, 0, 0)
+        Vector3D approach(0.0f, 0.0f, 0.0f);
+        Vector3D touchdown(0.0f, 0.0f, 0.0f);
+        if (approach_spot < spots.size()) {
+            approach = spots[approach_spot]->position;
+        }
+        if (touchdown_spot < spots.size()) {
+            touchdown = spots[touchdown_spot]->position;
+        }
+        auto it = std::find(owner->mission->friendlies.begin(), owner->mission->friendlies.end(), owner);
+        if (it != owner->mission->friendlies.end()) {
+            owner->mission->friendlies.erase(it);
+        }
+        // LandingBehavior_Start_75746 : l'IA est teleportee au point d'approche
+        ground_op_origin = approach;
+        // Landing_Phase1_SetupApproach_75D51
+        landing_target = touchdown + Vector3D(0.0f, (float) entity->landing_aim_height, 0.0f);
+        Vector3D delta = landing_target - ground_op_origin;
+        ground_op_axis = this->runwayAxis(delta);
+        landing_speed = (float) entity->landing_speed;
+        landing_duration = delta.Length() / landing_speed;
+        landing_dir = delta;
+        landing_dir.Normalize();
+        landing_counter = 0;
+        landing_pitch = 0.0f;
+        landing_leveled = false;
+        ground_op_time = 0.0f;
+        ground_op = GROUND_OP_LANDING;
+        ground_op_phase = 2;
+        pilot->BeginGroundOps();
+        pilot->CmdGroundControls(0.0f, plane->GetThrottle() / 10, plane->GetFlaps(), 1, 0);
+        pilot->CmdPlaceAt(ground_op_origin, ground_op_axis, 0.0f);
+        printf("AI %s#%d landing approach=%d touchdown=%d speed=%d aim=%d steps=%d\n", owner->actor_name.c_str(), owner->actor_id, approach_spot, touchdown_spot, entity->landing_speed, entity->landing_aim_height, entity->landing_pitch_steps);
+        return false;
+    }
+    switch (ground_op_phase) {
+        case 2: {
+            // Landing_Phase2_Approach_76325
+            ground_op_time += TICK_DURATION;
+            landing_counter -= 1;
+            if (landing_counter < entity->landing_pitch_steps) {
+                landing_counter = entity->landing_pitch_steps;
+            } else {
+                landing_pitch += 1.0f;
+            }
+            pilot->CmdKinematic(true, landing_dir * landing_speed, ground_op_axis, landing_pitch);
+            if (ground_op_time >= landing_duration) {
+                ground_op_time = 0.0f;
+                ground_op_phase = 3;
+            }
+            break;
+        }
+        case 3: {
+            // Landing_Phase3_TouchdownRoll_765B2
+            if (ground_op_time == 0.0f) {
+                pilot->CmdPlaceAt(landing_target, ground_op_axis, landing_pitch);
+            }
+            landing_counter += 1;
+            if (landing_counter >= entity->landing_pitch_steps / 6) {
+                landing_counter = 0;
+            } else {
+                landing_pitch -= 1.0f;
+            }
+            ground_op_time += TICK_DURATION;
+            if (landing_counter == 0 && !landing_leveled) {
+                landing_pitch = 0.0f;
+                landing_leveled = true;
+                ground_op_time = 0.0f;
+                ground_op_phase = 4;
+            }
+            pilot->CmdKinematic(true, ground_op_axis * landing_speed, ground_op_axis, landing_pitch);
+            break;
+        }
+        case 4: {
+            // Landing_Phase4_Braking_76C09 : la vitesse baisse par secondes entieres
+            ground_op_time += TICK_DURATION;
+            int speed = (int) landing_speed - 2 * (int) ground_op_time;
+            pilot->CmdKinematic(true, ground_op_axis * (float) speed, ground_op_axis, 0.0f);
+            if (speed <= 0) {
+                ground_op_phase = 5;
+            }
+            break;
+        }
+        default: {
+            // Landing_Phase5_Stop_76E67
+            Vector3D parked(plane->x, plane->groundlevel, plane->z);
+            pilot->CmdGroundControls(0.0f, -1, 0, 1, 0);
+            pilot->CmdPlaceAt(parked, ground_op_axis, 0.0f);
+            landing_done = true;
+            this->endGroundOp();
+            printf("AI %s#%d landed\n", owner->actor_name.c_str(), owner->actor_id);
+            return true;
+        }
+    }
+    return false;
 }

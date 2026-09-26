@@ -197,6 +197,13 @@ void SCPilot::FlyTo() {
         return;
     }
 
+    if (this->ground_ops) {
+        this->throttle = (float) this->ground_throttle;
+        this->control_stick_x = 0.0f;
+        this->control_stick_y = this->ground_pitch_stick / 16.0f;
+        this->publishControls(true);
+        return;
+    }
     if (!this->plane->on_ground && this->plane->GetWheel()) {
         this->gear = 0;
     }
@@ -728,6 +735,47 @@ void SCPilot::CmdRollStick(float stick16) {
 
 void SCPilot::CmdThrottle(int notch) {
     this->manual_throttle = std::clamp(notch, 0, 10) * 10;
+}
+
+void SCPilot::BeginGroundOps() {
+    this->ground_ops = true;
+}
+
+void SCPilot::EndGroundOps() {
+    this->ground_ops = false;
+}
+
+void SCPilot::CmdGroundControls(float pitch_stick16, int throttle_notch, int flaps, int gear, int spoilers) {
+    this->ground_pitch_stick = std::clamp(pitch_stick16, -16.0f, 16.0f);
+    this->ground_throttle = (throttle_notch < 0 || throttle_notch > 10) ? 0 : throttle_notch * 10;
+    this->flap = flaps;
+    this->gear = gear;
+    this->spoilers = spoilers;
+}
+
+static float kinematicYaw(Vector3D heading_dir) {
+    return norm3600((radToDegree(atan2f(heading_dir.x, heading_dir.z)) - 180.0f) * 10.0f);
+}
+
+void SCPilot::CmdKinematic(bool engaged, Vector3D velocity, Vector3D heading_dir, float pitch_deg) {
+    PlaneKinematicEvent event;
+    event.plane = this->plane;
+    event.engaged = engaged;
+    event.velocity = velocity;
+    event.yaw = kinematicYaw(heading_dir);
+    event.pitch = pitch_deg * 10.0f;
+    MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
+}
+
+void SCPilot::CmdPlaceAt(Vector3D position, Vector3D heading_dir, float pitch_deg) {
+    PlaneKinematicEvent event;
+    event.plane = this->plane;
+    event.engaged = true;
+    event.yaw = kinematicYaw(heading_dir);
+    event.pitch = pitch_deg * 10.0f;
+    event.set_position = true;
+    event.position = position;
+    MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
 }
 
 float SCPilot::BankAngle() {

@@ -90,6 +90,9 @@ private:
         GUIDANCE_MANUAL
     };
     int manual_throttle{-1};
+    bool ground_ops{false};
+    float ground_pitch_stick{0.0f};
+    int ground_throttle{0};
     GuidanceMode guidance_mode{GUIDANCE_NONE};
     Vector3D guidance_direction{0.0f, 0.0f, 0.0f};
     float guidance_pitch{0.0f};
@@ -141,6 +144,12 @@ public:
     void CmdPitchStick(float stick16);
     void CmdRollStick(float stick16);
     void CmdThrottle(int notch);
+    void BeginGroundOps();
+    void EndGroundOps();
+    bool GroundOpsActive() const { return ground_ops; }
+    void CmdGroundControls(float pitch_stick16, int throttle_notch, int flaps, int gear, int spoilers);
+    void CmdKinematic(bool engaged, Vector3D velocity, Vector3D heading_dir, float pitch_deg);
+    void CmdPlaceAt(Vector3D position, Vector3D heading_dir, float pitch_deg);
     float BankAngle();
     float NosePitch();
     float BearingToRef(Vector3D direction);

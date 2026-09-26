@@ -246,6 +246,16 @@ public:
     // utilise par l'asservissement d'attitude (q' = q * stability_gain / 100).
     float stability_gain{0.0f};
     float parasite_drag{1.0f};  // chunk ATMO (u32 24.8) : multiplie la trainee parasite
+    // Chunk TOFF (TakeoffBehavior_Start_11D03), valeurs par defaut de l'original
+    int16_t takeoff_roll_accel{20};     // m/s2
+    int16_t takeoff_rotate_speed{150};  // m/s
+    int16_t takeoff_climb_pitch{30};    // deg
+    int16_t takeoff_pitch_gain{8};
+    // Chunk LAND (LandingBehavior_Start_75746)
+    int16_t landing_speed{200};         // m/s
+    int32_t landing_unused{0x64};
+    int16_t landing_aim_height{6};      // m
+    int16_t landing_pitch_steps{20};
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
     uint8_t health{0};

@@ -169,6 +169,11 @@ void SCProg::execute() {
                 break;
                 case OP_SET_OBJ_LAND:
                     this->actor->setObjective(OP_SET_OBJ_LAND, prog.arg);
+                    if (this->actor->current_command == OP_SET_OBJ_LAND && this->actor->current_command_arg == prog.arg) {
+                        // Expr_VM_ReadNextToken_50F85 : un opcode 9 qui suit fournit le 2e operande (spot de toucher)
+                        bool has_second = (size_t) i + 1 < this->prog.size() && this->prog[i + 1].opcode == OP_SPOT_DATA;
+                        this->actor->current_command_arg2 = has_second ? (uint8_t) this->prog[i + 1].arg : 0xFF;
+                    }
                 break;
                 case OP_SET_OBJ_FLY_TO_WP:
                     this->actor->setObjective(OP_SET_OBJ_FLY_TO_WP, prog.arg);

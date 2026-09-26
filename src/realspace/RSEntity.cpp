@@ -651,8 +651,26 @@ void RSEntity::parseREAL_OBJT_JETP_CKPT(uint8_t *data, size_t size) {
     std::transform(str3.begin(), str3.end(), str3.begin(), ::toupper);
     this->cockpit_name = str3;
 }
-void RSEntity::parseREAL_OBJT_JETP_TOFF(uint8_t *data, size_t size) {}
-void RSEntity::parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_TOFF(uint8_t *data, size_t size) {
+    if (size < 8) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->takeoff_roll_accel = bs.ReadShort();
+    this->takeoff_rotate_speed = bs.ReadShort();
+    this->takeoff_climb_pitch = bs.ReadShort();
+    this->takeoff_pitch_gain = bs.ReadShort();
+}
+void RSEntity::parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size) {
+    if (size < 10) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->landing_speed = bs.ReadShort();
+    this->landing_unused = (int32_t) bs.ReadUInt32LE();
+    this->landing_aim_height = bs.ReadShort();
+    this->landing_pitch_steps = bs.ReadShort();
+}
 void RSEntity::parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 

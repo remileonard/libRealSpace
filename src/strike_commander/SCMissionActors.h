@@ -45,6 +45,7 @@ public:
     prog_op current_command{prog_op::OP_NOOP};
     prog_op override_command{prog_op::OP_NOOP};
     uint8_t current_command_arg;
+    uint8_t current_command_arg2{0xFF};
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
     int retarget_cooldown{0};

@@ -1790,6 +1790,12 @@ void SCPlane::onPlaneKinematic(const PlaneKinematicEvent &event) {
     this->kinematic_yaw = event.yaw;
     this->kinematic_pitch = event.pitch;
     this->kinematic_roll = event.roll;
+    if (event.set_position) {
+        this->x = this->last_px = event.position.x;
+        this->y = this->last_py = event.position.y;
+        this->z = this->last_pz = event.position.z;
+        this->position = event.position;
+    }
 }
 
 void SCPlane::simulateKinematic(float dt) {

@@ -110,6 +110,9 @@ private:
     void updateGroundAttack(SCMissionActors *target);
     bool combatStep(bool ground_allowed);
     bool destroyTargetOrder(uint8_t arg);
+    bool takeoffOrder();
+    bool landingOrder(uint8_t approach_spot, uint8_t touchdown_spot);
+    bool groundOpRunning() const { return ground_op != GROUND_OP_NONE; }
     bool defendTargetOrder(uint8_t arg);
     bool followAllyOrder(uint8_t arg);
     CombatContext ctx;
@@ -193,4 +196,21 @@ private:
     bool executeGoalAction();
     bool tryWanderRandom();
     void tryActiveWingman();
+    enum GroundOp { GROUND_OP_NONE, GROUND_OP_TAKEOFF, GROUND_OP_LANDING };
+    GroundOp ground_op{GROUND_OP_NONE};
+    int ground_op_phase{0};
+    float ground_op_time{0.0f};
+    float ground_op_stick{0.0f};
+    Vector3D ground_op_axis{0.0f, 0.0f, 1.0f};
+    Vector3D ground_op_origin{0.0f, 0.0f, 0.0f};
+    Vector3D landing_target{0.0f, 0.0f, 0.0f};
+    Vector3D landing_dir{0.0f, 0.0f, 0.0f};
+    float landing_speed{0.0f};
+    float landing_duration{0.0f};
+    float landing_pitch{0.0f};
+    int landing_counter{0};
+    bool landing_leveled{false};
+    bool landing_done{false};
+    Vector3D runwayAxis(Vector3D direction);
+    void endGroundOp();
 };
