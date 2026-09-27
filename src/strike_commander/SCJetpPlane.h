@@ -130,5 +130,6 @@ public:
     ~SCJetpPlane();
     void Simulate() override;
     float maxRollRate() override;
+    Vector3D worldVelocity() override { return this->velocity; }
     float forwardSpeedPerTick() override { return this->tps > 0 ? this->vz / (float) this->tps : this->vz; }
 };

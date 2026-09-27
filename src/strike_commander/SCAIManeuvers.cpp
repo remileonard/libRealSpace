@@ -1,53 +1,16 @@
 #include "precomp.h"
 #include "SCAIBrain.h"
 
-static float mvWrap180(float angle) {
-    while (angle > 180.0f) {
-        angle -= 360.0f;
-    }
-    while (angle < -180.0f) {
-        angle += 360.0f;
-    }
-    return angle;
-}
-
-static float mvCompass(Vector3D v) {
-    return radToDegree(atan2f(-v.x, v.z));
-}
-
-static float mvElevation(Vector3D v) {
-    return radToDegree(atan2f(v.y, sqrtf(v.x * v.x + v.z * v.z)));
-}
-
-static Vector3D mvRotateHorizontal(Vector3D v, float degrees) {
-    float length = sqrtf(v.x * v.x + v.z * v.z);
-    float angle = atan2f(v.x, v.z) - degreeToRad(degrees);
-    return Vector3D(sinf(angle) * length, 0.0f, cosf(angle) * length);
-}
-
-Vector3D SCAIBrain::actorVelocity(SCMissionActors *actor) {
-    SCPlane *plane = actor->plane;
-    float tps = plane->tps > 0 ? (float) plane->tps : 25.0f;
-    return Vector3D(plane->x - plane->last_px, plane->y - plane->last_py, plane->z - plane->last_pz) * tps;
-}
-
 float SCAIBrain::floorAltitude() {
-    return owner->plane->area->getY(owner->plane->x, owner->plane->z) + 200.0f;
-}
-
-float SCAIBrain::indicatedAirspeed() {
-    float speed = this->actorVelocity(owner).Length();
-    float altitude = std::max(0.0f, owner->plane->y);
-    float sigma = powf(std::max(0.0f, 1.0f - 2.2558e-5f * altitude), 4.2559f);
-    return speed * sqrtf(sigma);
+    return owner->plane->groundlevel + 200.0f;
 }
 
 bool SCAIBrain::tooSlow() {
-    return owner->plane->wing_stall > 0 || this->indicatedAirspeed() <= (float) owner->object->entity->jdyn->ai_speed_min;
+    return owner->plane->wing_stall > 0 || owner->plane->indicatedAirspeed() <= (float) owner->object->entity->jdyn->ai_speed_min;
 }
 
 bool SCAIBrain::tooLow() {
-    return owner->plane->y < owner->plane->area->getY(owner->plane->x, owner->plane->z) + 4.0f * 200.0f;
+    return owner->plane->y < owner->plane->groundlevel + 4.0f * 200.0f;
 }
 
 int SCAIBrain::decisionWeight() {
@@ -61,11 +24,11 @@ int SCAIBrain::decisionWeight() {
 void SCAIBrain::buildCombatContext(SCMissionActors *target) {
     JDYN *jdyn = owner->object->entity->jdyn;
     ctx.aircraft = owner->plane != nullptr;
-    Vector3D own_velocity = this->actorVelocity(owner);
+    Vector3D own_velocity = owner->plane->worldVelocity();
     ctx.my_speed = own_velocity.Length();
     ctx.cruise = (float) jdyn->ai_speed_cruise;
     ctx.min_speed = (float) jdyn->ai_speed_min;
-    ctx.ias = this->indicatedAirspeed();
+    ctx.ias = owner->plane->indicatedAirspeed();
     ctx.target = target;
     ctx.behind = false;
     ctx.head_on = false;
@@ -74,7 +37,7 @@ void SCAIBrain::buildCombatContext(SCMissionActors *target) {
         return;
     }
     Vector3D forward = owner->plane->forward;
-    Vector3D target_velocity = this->actorVelocity(target);
+    Vector3D target_velocity = target->plane->worldVelocity();
     ctx.D = target->plane->position - owner->plane->position;
     ctx.dist = ctx.D.Length();
     ctx.future_rel = (target->plane->position + target_velocity * 3.0f) - (owner->plane->position + own_velocity * 3.0f);
@@ -83,7 +46,7 @@ void SCAIBrain::buildCombatContext(SCMissionActors *target) {
     ctx.target_vel_angle = ctx.D.AngleBetween(target_velocity);
     ctx.aspect = 180.0f - ctx.target_vel_angle;
     ctx.target_speed = target_velocity.Length();
-    ctx.side = mvWrap180(mvCompass(ctx.D) - mvCompass(forward));
+    ctx.side = signed180(forward.Azimuth() - ctx.D.Azimuth());
     Vector3D direction = ctx.D;
     direction.Normalize();
     float los_speed = std::fabs(target_velocity.x * direction.x + target_velocity.y * direction.y + target_velocity.z * direction.z);
@@ -296,7 +259,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
                 if (ctx.target_vel_angle < 90.0f) {
                     score += 4;
                 }
-                float elevation = mvElevation(ctx.D);
+                float elevation = ctx.D.Elevation();
                 if (elevation > 45.0f) {
                     score -= (int) ((elevation - 20.0f) * 6.0f / 25.0f) + 4;
                     score -= this->tooSlow() ? 4 : 2;
@@ -353,9 +316,9 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
                 return 0;
             }
             float clear = std::min(9.0f * (float) std::max(flying, 8) / 32.0f, 5.0f);
-            float height = owner->plane->y - owner->plane->area->getY(owner->plane->x, owner->plane->z);
+            float height = owner->plane->y - owner->plane->groundlevel;
             float roll = owner->pilot->BankAngle();
-            float vertical_speed = this->actorVelocity(owner).y;
+            float vertical_speed = owner->plane->worldVelocity().y;
             if (height < clear * (1.0f + sinf(degreeToRad(roll / 2.0f)) / 2.0f) || (owner->plane->y < this->floorAltitude() && vertical_speed < 0.0f)) {
                 return 10;
             }
@@ -445,7 +408,7 @@ void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
     maneuver_timer = 2.0f;
     maneuver_phase = 0;
     maneuver_legs = 0;
-    maneuver_start_heading = mvCompass(owner->plane->forward);
+    maneuver_start_heading = owner->plane->forward.Azimuth();
     maneuver_uses[id]++;
     owner->pilot->disengageAutopilot();
     nav_behavior = false;
@@ -454,7 +417,7 @@ void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
     switch (id) {
         case 1: {
             float side = ctx.side >= 0.0f ? 1.0f : -1.0f;
-            maneuver_leg = mvRotateHorizontal(owner->plane->forward, 30.0f * side);
+            maneuver_leg = owner->plane->forward.RotateAzimuth(30.0f * side);
             maneuver_leg_timer = 1.0f;
             maneuver_legs = 4;
             break;
@@ -515,7 +478,7 @@ void SCAIBrain::endManeuver() {
 }
 
 void SCAIBrain::maneuverSpeed(float wanted) {
-    float speed = this->actorVelocity(owner).Length();
+    float speed = owner->plane->worldVelocity().Length();
     if (maneuver_target != nullptr && maneuver_target->plane != nullptr) {
         if (ctx.dist < 1800.0f) {
             wanted = wanted * (3600.0f - ctx.dist) / 1800.0f;
@@ -530,7 +493,7 @@ void SCAIBrain::maneuverSpeed(float wanted) {
 }
 
 void SCAIBrain::speedThrottle(float wanted) {
-    float speed = this->actorVelocity(owner).Length();
+    float speed = owner->plane->worldVelocity().Length();
     if (speed < wanted * 0.98f) {
         owner->pilot->CmdThrottle(10);
     } else if (speed > wanted * 1.02f) {
@@ -602,7 +565,7 @@ bool SCAIBrain::tickManeuver() {
             }
             if (!this->tickLeg()) {
                 maneuver_legs--;
-                maneuver_leg = mvRotateHorizontal(owner->plane->forward, -60.0f);
+                maneuver_leg = owner->plane->forward.RotateAzimuth(-60.0f);
                 maneuver_leg_timer = 1.0f;
             }
             this->maneuverSpeed(cruise);
@@ -651,7 +614,7 @@ bool SCAIBrain::tickManeuver() {
                     if (maneuver_phase == 1) {
                         maneuver_legs++;
                         float magnitude = (maneuver_legs & 1) ? 32.0f : 64.0f;
-                        maneuver_leg = mvRotateHorizontal(owner->plane->forward, (maneuver_legs & 2) ? -magnitude : magnitude);
+                        maneuver_leg = owner->plane->forward.RotateAzimuth((maneuver_legs & 2) ? -magnitude : magnitude);
                         maneuver_leg_timer = 1.0f;
                     }
                     break;
@@ -671,7 +634,7 @@ bool SCAIBrain::tickManeuver() {
                     }
                     break;
                 case 3:
-                    if (this->tooLow() || this->actorVelocity(owner).Length() >= cruise) {
+                    if (this->tooLow() || owner->plane->worldVelocity().Length() >= cruise) {
                         if (pilot->CmdPitchTo(5.0f, 5.0f)) {
                             maneuver_phase = 0;
                         }
@@ -705,7 +668,7 @@ bool SCAIBrain::tickManeuver() {
             }
             break;
         case 4: {
-            float turned = std::fabs(mvWrap180(mvCompass(owner->plane->forward) - maneuver_start_heading));
+            float turned = std::fabs(signed180(owner->plane->forward.Azimuth() - maneuver_start_heading));
             if (maneuver_timer < -2.0f) {
                 running = false;
                 break;
@@ -752,13 +715,13 @@ bool SCAIBrain::tickManeuver() {
                     if (maneuver_id == 5) {
                         pilot->CmdThrottle(10);
                         pilot->CmdPitchTo(this->tooLow() ? 5.0f : -30.0f, 5.0f);
-                        if (this->actorVelocity(owner).Length() >= cruise) {
+                        if (owner->plane->worldVelocity().Length() >= cruise) {
                             maneuver_phase = 3;
                         }
                     } else {
                         this->speedThrottle((float) owner->object->entity->jdyn->ai_speed_min);
                         pilot->CmdPitchTo(20.0f, 5.0f);
-                        if (this->actorVelocity(owner).Length() < cruise) {
+                        if (owner->plane->worldVelocity().Length() < cruise) {
                             maneuver_phase = 3;
                         }
                     }
@@ -792,7 +755,7 @@ bool SCAIBrain::tickManeuver() {
                     }
                     break;
                 case 7:
-                    if (pilot->CmdPitchTo(has_target ? mvElevation(direction) : 0.0f, 5.0f)) {
+                    if (pilot->CmdPitchTo(has_target ? direction.Elevation() : 0.0f, 5.0f)) {
                         maneuver_phase = 8;
                     }
                     break;
@@ -834,7 +797,7 @@ bool SCAIBrain::tickManeuver() {
                     if (ctx.dist <= threshold) {
                         maneuver_timer = 4.0f;
                         maneuver_bits |= 0x10;
-                        maneuver_point = target->plane->position + this->actorVelocity(target) * 4.0f;
+                        maneuver_point = target->plane->position + target->plane->worldVelocity() * 4.0f;
                     }
                 } else if (ctx.nose_angle <= 60.0f && ctx.aspect < 60.0f) {
                     maneuver_bits |= 8;
@@ -892,7 +855,7 @@ bool SCAIBrain::tickManeuver() {
                 running = false;
                 break;
             }
-            float vertical_speed = this->actorVelocity(owner).y;
+            float vertical_speed = owner->plane->worldVelocity().y;
             if (vertical_speed > 0.0f && owner->plane->y > this->floorAltitude()) {
                 pilot->CmdPitchTo(30.0f, 10.0f);
                 pilot->CmdThrottle(10);
@@ -991,7 +954,7 @@ void SCAIBrain::incomingThreatWarning() {
         if (delta.Length() > owner->mission->intel.range_gun) {
             continue;
         }
-        Vector3D closing = this->actorVelocity(actor) - this->actorVelocity(owner);
+        Vector3D closing = actor->plane->worldVelocity() - owner->plane->worldVelocity();
         if (closing.x * delta.x + closing.y * delta.y + closing.z * delta.z >= 0.0f) {
             continue;
         }

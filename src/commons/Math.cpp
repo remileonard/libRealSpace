@@ -39,6 +39,18 @@ float signed1800(float angle) {
     }
     return angle;
 }
+float signed180(float angle) {
+    while (angle > 180.0f) {
+        angle -= 360.0f;
+    }
+    while (angle < -180.0f) {
+        angle += 360.0f;
+    }
+    return angle;
+}
+float Vector2D::Angle() const {
+    return radToDegree(atan2f(this->y, this->x));
+}
 float signedRoll(float roll) {
     roll = norm3600(roll);
     if (roll > 1800.0f) {

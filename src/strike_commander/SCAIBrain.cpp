@@ -424,7 +424,7 @@ void SCAIBrain::navigateWithVelocity(Vector3D point, Vector3D velocity) {
     if (owner->pilot->autopilotActive()) {
         owner->pilot->setAutopilotTarget(point, velocity);
     } else {
-        float nose_pitch = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
+        float nose_pitch = owner->pilot->NosePitch();
         if (std::fabs(nose_pitch) < 15.0f) {
             owner->pilot->engageAutopilot(point, velocity);
         } else {
@@ -522,7 +522,7 @@ bool SCAIBrain::navSolutionToPoint() {
     if (nav_reference != nullptr) {
         point = nav_reference->plane != nullptr ? nav_reference->plane->position : nav_reference->object->position;
     }
-    point.y = plane->area->getY(plane->position.x, plane->position.z) + nav_altitude;
+    point.y = plane->groundlevel + nav_altitude;
     Vector3D delta = point - plane->position;
     if (nav_radius >= delta.Length()) {
         return false;
@@ -548,7 +548,7 @@ void SCAIBrain::wander() {
     Vector3D direction(rx, 0.0f, -ry);
     direction.Normalize();
     SCPlane *plane = owner->plane;
-    float climb = plane->area->getY(plane->position.x, plane->position.z) + nav_altitude - plane->position.y;
+    float climb = plane->groundlevel + nav_altitude - plane->position.y;
     climb = std::clamp(climb, -1000.0f, 1000.0f);
     Vector3D point = plane->position + direction * 30000.0f + Vector3D(0.0f, climb, 0.0f);
     this->applyNavigation(point, direction * nav_speed, 30.0f);
@@ -1297,7 +1297,7 @@ int SCAIBrain::seekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vec
     if (candidate->plane == nullptr) {
         return entity->radar_signature != nullptr ? entity->radar_signature->unknown1 : 0;
     }
-    Vector3D target_velocity = this->actorVelocity(candidate);
+    Vector3D target_velocity = candidate->plane->worldVelocity();
     bool behind = reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z > 0.0f;
     float factor = behind ? 100.0f : 50.0f;
     float signature = 10.0f + target_velocity.Length() / 602.0f * factor;
@@ -1319,7 +1319,7 @@ bool SCAIBrain::seekerSees(RSEntity *weapon, SCMissionActors *candidate) {
 
 SCMissionActors *SCAIBrain::seekerSelect(RSEntity *weapon, SCMissionActors *desired) {
     int aspec = weapon->wdat->weapon_aspec;
-    Vector3D reference_velocity = this->actorVelocity(owner);
+    Vector3D reference_velocity = owner->plane->worldVelocity();
     if (aspec == 5 || aspec == 6) {
         return (desired != nullptr && this->seekerSees(weapon, desired)) ? desired : nullptr;
     }
@@ -1364,7 +1364,7 @@ SCMissionActors *SCAIBrain::seekerSelect(RSEntity *weapon, SCMissionActors *desi
         return nullptr;
     }
     if (aspec == 1) {
-        Vector3D target_velocity = this->actorVelocity(result);
+        Vector3D target_velocity = result->plane->worldVelocity();
         if (reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z < 0.0f) {
             return nullptr;
         }
@@ -1433,16 +1433,7 @@ void SCAIBrain::resetGroundAttack() {
 }
 
 float SCAIBrain::headingDelta(Vector3D direction) {
-    float direction_heading = radToDegree(atan2f(direction.z, direction.x));
-    float nose_heading = radToDegree(atan2f(owner->plane->forward.z, owner->plane->forward.x));
-    float delta = direction_heading - nose_heading;
-    while (delta > 180.0f) {
-        delta -= 360.0f;
-    }
-    while (delta < -180.0f) {
-        delta += 360.0f;
-    }
-    return std::fabs(delta);
+    return std::fabs(signed180(owner->plane->forward.Azimuth() - direction.Azimuth()));
 }
 
 RSEntity *SCAIBrain::selectGroundWeapon() {
@@ -1512,8 +1503,8 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     int previous_phase = ground_phase;
     float heading_error = 0.0f;
     float pitch_error = 0.0f;
-    float ground_y = owner->plane->area->getY(own_position.x, own_position.z);
-    float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
+    float ground_y = owner->plane->groundlevel;
+    float nose_elevation = owner->pilot->NosePitch();
 
     if (ground_phase != 3) {
         owner->pilot->disengageAutopilot();
@@ -1685,8 +1676,8 @@ void SCAIBrain::updatePursuit() {
     float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
     direction.y = std::max(-horizontal, std::min(horizontal, direction.y));
     float delta_horizontal = sqrtf(delta.x * delta.x + delta.z * delta.z);
-    float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
-    float los_elevation = radToDegree(atan2f(delta.y, delta_horizontal));
+    float nose_elevation = owner->pilot->NosePitch();
+    float los_elevation = delta.Elevation();
     float aim_error = los_elevation - nose_elevation;
     if (distance < intel.range_medium && std::fabs(aim_error) < 10.0f) {
         aim_trim += tanf(degreeToRad(aim_error)) * delta_horizontal * 0.05f;
@@ -1790,22 +1781,8 @@ void SCAIBrain::reactToMissile() {
 }
 
 void SCAIBrain::computeAttitudeError(Vector3D direction, float &heading_error, float &pitch_error) {
-    float azimuth = atan2f(direction.z, direction.x) * 180.0f / (float) M_PI;
-    azimuth -= 360.0f;
-    azimuth += 90.0f;
-    while (azimuth < 0.0f) {
-        azimuth += 360.0f;
-    }
-    if (azimuth > 360.0f) {
-        azimuth -= 360.0f;
-    }
-    float target_yaw = norm3600(3600.0f - azimuth * 10.0f);
-    heading_error = -signed1800(target_yaw - owner->plane->yaw) / 10.0f;
-
-    float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
-    float desired_elevation = radToDegree(atan2f(direction.y, horizontal));
-    float nose_elevation = radToDegree(asinf(std::max(-1.0f, std::min(1.0f, owner->plane->forward.y))));
-    pitch_error = desired_elevation - nose_elevation;
+    heading_error = -signed1800(SCPilot::YawOf(direction) - owner->plane->yaw) / 10.0f;
+    pitch_error = direction.Elevation() - owner->pilot->NosePitch();
 }
 
 Vector3D SCAIBrain::runwayAxis(Vector3D direction) {
@@ -1832,7 +1809,7 @@ bool SCAIBrain::takeoffOrder() {
     SCPilot *pilot = owner->pilot;
     RSEntity *entity = plane->object->entity;
     if (ground_op != GROUND_OP_TAKEOFF) {
-        if (owner->taken_off || plane->velocity.Length() > 10.0f) {
+        if (owner->taken_off || plane->worldVelocity().Length() > 10.0f) {
             owner->taken_off = true;
             return true;
         }
@@ -2057,7 +2034,7 @@ bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
     if (formation_active && !result) {
         formation_history_ready = false;
         owner->pilot->EndGroundOps();
-        owner->pilot->CmdKinematic(false, owner->plane->velocity, owner->plane->forward, radToDegree(asinf(std::clamp(owner->plane->forward.y, -1.0f, 1.0f))));
+        owner->pilot->CmdKinematic(false, owner->plane->worldVelocity(), owner->plane->forward, owner->pilot->NosePitch());
     }
     formation_active = result;
     return result;
@@ -2102,7 +2079,7 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     Vector3D own_nose = plane->forward;
     Vector3D lead_span(lead->ptw.v[0][0], lead->ptw.v[0][1], lead->ptw.v[0][2]);
     Vector3D own_span(plane->ptw.v[0][0], plane->ptw.v[0][1], plane->ptw.v[0][2]);
-    float step = lead->velocity.Length() * dt;
+    float step = lead->worldVelocity().Length() * dt;
     Vector3D offset = this->formationSlot(leader);
     float offset_length = offset.Length();
     Vector3D to_slot = lead->position + offset - plane->position;
@@ -2151,7 +2128,7 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
         } else {
             Matrix level;
             level.Identity();
-            level.rotateM(atan2f(-own_nose.x, -own_nose.z), 0, 1, 0);
+            level.rotateM(degreeToRad((-own_nose).Azimuth()), 0, 1, 0);
             formation_span[formation_index] = Vector3D(level.v[0][0], level.v[0][1], level.v[0][2]);
         }
         formation_index = (formation_index + 1) & 31;
@@ -2171,24 +2148,24 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     toward.Normalize();
     motion = motion + toward * correction;
     // orientation : nez du leader, envergure moyenne (Matrix_OrthonormalizeKeepRow1_57660)
-    Vector3D span = mean_span - lead_nose * (mean_span.x * lead_nose.x + mean_span.y * lead_nose.y + mean_span.z * lead_nose.z);
+    Vector3D span = mean_span - lead_nose * mean_span.DotProduct(&lead_nose);
     span.Normalize();
-    float yaw = atan2f(-lead_nose.x, -lead_nose.z);
-    float pitch = asinf(std::clamp(lead_nose.y, -1.0f, 1.0f));
+    float yaw = (-lead_nose).Azimuth();
+    float pitch = lead_nose.Elevation();
     Matrix zero_roll;
     zero_roll.Identity();
-    zero_roll.rotateM(yaw, 0, 1, 0);
-    zero_roll.rotateM(pitch, 1, 0, 0);
+    zero_roll.rotateM(degreeToRad(yaw), 0, 1, 0);
+    zero_roll.rotateM(degreeToRad(pitch), 1, 0, 0);
     Vector3D right0(zero_roll.v[0][0], zero_roll.v[0][1], zero_roll.v[0][2]);
     Vector3D up0(zero_roll.v[1][0], zero_roll.v[1][1], zero_roll.v[1][2]);
-    float roll = atan2f(span.x * up0.x + span.y * up0.y + span.z * up0.z, span.x * right0.x + span.y * right0.y + span.z * right0.z);
+    float roll = Vector2D(span.DotProduct(&right0), span.DotProduct(&up0)).Angle();
     PlaneKinematicEvent event;
     event.plane = plane;
     event.engaged = true;
     event.velocity = motion * (1.0f / dt);
-    event.yaw = norm3600(radToDegree(yaw) * 10.0f);
-    event.pitch = radToDegree(pitch) * 10.0f;
-    event.roll = norm3600(radToDegree(roll) * 10.0f);
+    event.yaw = norm3600(yaw * 10.0f);
+    event.pitch = pitch * 10.0f;
+    event.roll = norm3600(roll * 10.0f);
     MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
     return true;
 }
@@ -2217,6 +2194,6 @@ void SCAIBrain::followWaypoints(SCMissionActors *leader) {
     }
     // noeud entite+0xD1 = ID21 : 1000 m au-dessus du leader, vitesse = nez * 200 + vitesse du leader
     Vector3D point = lead->position + Vector3D(0.0f, 1000.0f, 0.0f);
-    Vector3D velocity = lead->forward * 200.0f + lead->velocity;
+    Vector3D velocity = lead->forward * 200.0f + lead->worldVelocity();
     this->applyNavigation(point, velocity, 2.0f);
 }

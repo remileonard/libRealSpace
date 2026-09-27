@@ -314,6 +314,8 @@ public:
             RSArea *area, float x, float y, float z);
     ~SCPlane();
     virtual void init();
+    virtual Vector3D worldVelocity();
+    float indicatedAirspeed();
     int isOnRunWay();
     void SetThrottle(int throttle);
     int GetThrottle();

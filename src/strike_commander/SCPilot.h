@@ -106,9 +106,6 @@ private:
     void runGuidance(float dt);
     float bankAngle();
     float nosePitch();
-    Vector3D worldVelocity(float dt);
-    float compassHeading(Vector3D v);
-    float elevationOf(Vector3D v);
     void guidanceSolution(Vector3D direction, float dt);
     void combatDecision(float h, float v, float r, float dt);
     bool bankError(float error, float deadzone, float dt);
@@ -151,6 +148,7 @@ public:
     void CmdGroundControls(float pitch_stick16, int throttle_notch, int flaps, int gear, int spoilers);
     void CmdKinematic(bool engaged, Vector3D velocity, Vector3D heading_dir, float pitch_deg);
     void CmdPlaceAt(Vector3D position, Vector3D heading_dir, float pitch_deg);
+    static float YawOf(Vector3D heading_dir);
     float BankAngle();
     float NosePitch();
     float BearingToRef(Vector3D direction);

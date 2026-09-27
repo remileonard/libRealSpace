@@ -136,9 +136,7 @@ private:
     bool retarget_fired{false};
     SCSimulatedObject *complained_missile{nullptr};
     float ground_phase3_time{0.0f};
-    Vector3D actorVelocity(SCMissionActors *actor);
     float floorAltitude();
-    float indicatedAirspeed();
     bool tooSlow();
     bool tooLow();
     int decisionWeight();

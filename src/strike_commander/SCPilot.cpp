@@ -141,9 +141,7 @@ float SCPilot::maxBankForG(float maxG) {
  */
 void SCPilot::controlThrottle() {
     if (this->target_speed_ms > 0.0f) {
-        float tps = this->plane->tps > 0 ? (float) this->plane->tps : 25.0f;
-        Vector3D velocity((this->plane->x - this->plane->last_px) * tps, (this->plane->y - this->plane->last_py) * tps, (this->plane->z - this->plane->last_pz) * tps);
-        if (velocity.Length() < this->target_speed_ms) {
+        if (this->plane->worldVelocity().Length() < this->target_speed_ms) {
             this->throttle = 100;
         } else {
             this->throttle = std::max(0.0f, this->throttle - 10.0f);
@@ -380,26 +378,12 @@ void SCPilot::Fire(uint16_t weapon_mask, SCMissionActors *target) {
     }
 }
 
-static float autopilotWrap180(float angle) {
-    while (angle > 180.0f) {
-        angle -= 360.0f;
-    }
-    while (angle < -180.0f) {
-        angle += 360.0f;
-    }
-    return angle;
-}
-
-static float autopilotHeading(Vector3D v) {
-    return radToDegree(atan2f(v.x, v.z));
-}
-
 void SCPilot::engageAutopilot(Vector3D target_point, Vector3D desired_velocity) {
     this->setAutopilotTarget(target_point, desired_velocity);
     this->autopilot_state = 0;
     this->autopilot_reached = false;
     float dt = this->getDeltaTime();
-    this->autopilot_world_velocity = Vector3D(this->plane->x - this->plane->last_px, this->plane->y - this->plane->last_py, this->plane->z - this->plane->last_pz) * (1.0f / dt);
+    this->autopilot_world_velocity = this->plane->worldVelocity();
     this->autopilot_hspeed = sqrtf(this->autopilot_world_velocity.x * this->autopilot_world_velocity.x + this->autopilot_world_velocity.z * this->autopilot_world_velocity.z);
 }
 
@@ -427,7 +411,7 @@ void SCPilot::runAutopilot(float dt) {
     Vector3D W = this->autopilot_velocity;
     Vector3D own(this->plane->x, this->plane->y, this->plane->z);
     float w_length = sqrtf(W.x * W.x + W.z * W.z);
-    float w_heading = autopilotHeading(W);
+    float w_heading = W.Azimuth();
     float R = w_length * 180.0f / (20.0f * (float) M_PI);
     float r = R - w_length * dt;
     Vector3D perp(W.z / w_length * r, 0.0f, -W.x / w_length * r);
@@ -441,12 +425,12 @@ void SCPilot::runAutopilot(float dt) {
     Vector3D center = this->autopilot_state == 1 ? left_center : right_center;
     float d = this->autopilot_state == 1 ? d_left : d_right;
 
-    float nose_heading = autopilotHeading(this->plane->forward);
+    float nose_heading = this->plane->forward.Azimuth();
     float error = 0.0f;
     if (d < R) {
         error = 0.0f;
     } else if (d < R + w_length * dt) {
-        error = autopilotWrap180(w_heading - nose_heading);
+        error = signed180(w_heading - nose_heading);
         if (this->autopilot_state == 1 && error > 0.0f) {
             error -= 360.0f;
         }
@@ -455,17 +439,17 @@ void SCPilot::runAutopilot(float dt) {
         }
     } else {
         float tangent = radToDegree(asinf(R / d));
-        float aim = autopilotHeading(center - own) + (this->autopilot_state == 1 ? tangent : -tangent);
-        error = autopilotWrap180(autopilotWrap180(aim) - nose_heading);
+        float aim = (center - own).Azimuth() + (this->autopilot_state == 1 ? tangent : -tangent);
+        error = signed180(signed180(aim) - nose_heading);
     }
     float unclamped = error;
     error = std::clamp(error, -20.0f * dt, 20.0f * dt);
     float heading = nose_heading + error;
 
     Vector3D nose = this->plane->forward;
-    float nose_pitch = radToDegree(asinf(std::clamp(nose.y, -1.0f, 1.0f)));
+    float nose_pitch = this->nosePitch();
     Vector3D v = this->autopilot_world_velocity;
-    float velocity_elevation = radToDegree(atan2f(v.y, sqrtf(v.x * v.x + v.z * v.z)));
+    float velocity_elevation = v.Elevation();
     float pitch_gap = velocity_elevation - nose_pitch;
     if (pitch_gap != 0.0f) {
         float f = std::min(1.0f, 5.0f * dt / std::fabs(pitch_gap));
@@ -473,15 +457,15 @@ void SCPilot::runAutopilot(float dt) {
         level.Normalize();
         nose = nose + (level - nose) * f;
         nose.Normalize();
-        nose_pitch = radToDegree(asinf(std::clamp(nose.y, -1.0f, 1.0f)));
+        nose_pitch = nose.Elevation();
     }
 
-    float roll_deg = autopilotWrap180(this->plane->roll / 10.0f);
+    float roll_deg = signed180(this->plane->roll / 10.0f);
     float roll_target = std::fabs(unclamped) > 10.0f ? (error > 0.0f ? 10.0f : -10.0f) : 0.0f;
     float roll_step = this->plane->object->entity->jdyn->max_turn_rate_dps * dt;
     roll_deg += std::clamp(roll_target - roll_deg, -roll_step, roll_step);
 
-    float floor = this->plane->area->getY(own.x, own.z) + 250.0f;
+    float floor = this->plane->groundlevel + 250.0f;
     float target_y = P.y;
     if (target_y < floor) {
         target_y = own.y < floor ? floor : own.y;
@@ -499,7 +483,7 @@ void SCPilot::runAutopilot(float dt) {
     this->autopilot_world_velocity = horizontal * this->autopilot_hspeed + Vector3D(0.0f, vertical_speed, 0.0f);
 
     float reach_distance = 20.0f * w_length * std::max(dt, 0.2f);
-    this->autopilot_reached = std::fabs(autopilotWrap180(w_heading - heading)) < 5.0f && (P - own).Length() < reach_distance;
+    this->autopilot_reached = std::fabs(signed180(w_heading - heading)) < 5.0f && (P - own).Length() < reach_distance;
 
     PlaneKinematicEvent event;
     event.plane = this->plane;
@@ -511,38 +495,12 @@ void SCPilot::runAutopilot(float dt) {
     MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
 }
 
-static float guidanceWrap180(float angle) {
-    while (angle > 180.0f) {
-        angle -= 360.0f;
-    }
-    while (angle < -180.0f) {
-        angle += 360.0f;
-    }
-    return angle;
-}
-
 float SCPilot::bankAngle() {
     return -signedRoll(this->plane->roll) / 10.0f;
 }
 
 float SCPilot::nosePitch() {
     return radToDegree(asinf(std::clamp(this->plane->forward.y, -1.0f, 1.0f)));
-}
-
-Vector3D SCPilot::worldVelocity(float dt) {
-    Vector3D velocity((this->plane->x - this->plane->last_px) / dt, (this->plane->y - this->plane->last_py) / dt, (this->plane->z - this->plane->last_pz) / dt);
-    if (velocity.Length() < 1.0f) {
-        return this->plane->forward;
-    }
-    return velocity;
-}
-
-float SCPilot::compassHeading(Vector3D v) {
-    return radToDegree(atan2f(-v.x, v.z));
-}
-
-float SCPilot::elevationOf(Vector3D v) {
-    return radToDegree(atan2f(v.y, sqrtf(v.x * v.x + v.z * v.z)));
 }
 
 void SCPilot::runGuidance(float dt) {
@@ -563,12 +521,15 @@ void SCPilot::runGuidance(float dt) {
 }
 
 void SCPilot::guidanceSolution(Vector3D direction, float dt) {
-    Vector3D reference = this->worldVelocity(dt);
-    float h = guidanceWrap180(this->compassHeading(direction) - this->compassHeading(reference));
+    Vector3D reference = this->plane->worldVelocity();
+    if (reference.Length() < 1.0f) {
+        reference = this->plane->forward;
+    }
+    float h = signed180(reference.Azimuth() - direction.Azimuth());
     float p = this->nosePitch();
-    float e = std::fabs(h) >= 90.0f ? 0.0f : this->elevationOf(direction);
+    float e = std::fabs(h) >= 90.0f ? 0.0f : direction.Elevation();
     float deck = 200.0f;
-    float floor = this->plane->area->getY(this->plane->x, this->plane->z) + deck;
+    float floor = this->plane->groundlevel + deck;
     float altitude = this->plane->y;
     bool corrected = false;
     if (altitude <= floor && e < p) {
@@ -598,7 +559,7 @@ void SCPilot::guidanceSolution(Vector3D direction, float dt) {
         float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
         direction.y = sinf(degreeToRad(e)) * horizontal;
     }
-    float v = guidanceWrap180(this->elevationOf(direction) - this->elevationOf(reference));
+    float v = signed180(direction.Elevation() - reference.Elevation());
     float bank = this->bankAngle();
     float r = 0.0f;
     if (h >= 90.0f) {
@@ -606,12 +567,9 @@ void SCPilot::guidanceSolution(Vector3D direction, float dt) {
     } else if (h <= -90.0f) {
         r = -90.0f - bank + (v > 0.0f ? v : 0.0f);
     } else {
-        Matrix &m = this->plane->ptw;
-        float lx = direction.x * m.v[0][0] + direction.y * m.v[0][1] + direction.z * m.v[0][2];
-        float ly = direction.x * m.v[1][0] + direction.y * m.v[1][1] + direction.z * m.v[1][2];
-        r = radToDegree(atan2f(lx, ly));
+        r = this->BearingToRef(direction);
     }
-    r = guidanceWrap180(r);
+    r = signed180(r);
     this->guidance_log_h = h;
     this->guidance_log_v = v;
     this->guidance_log_r = r;
@@ -619,7 +577,7 @@ void SCPilot::guidanceSolution(Vector3D direction, float dt) {
 }
 
 void SCPilot::combatDecision(float h, float v, float r, float dt) {
-    float speed = this->worldVelocity(dt).Length();
+    float speed = this->plane->worldVelocity().Length();
     bool too_slow = this->plane->wing_stall > 0 || speed <= (float) this->plane->object->entity->jdyn->ai_speed_min;
     if (too_slow) {
         this->throttle = 100;
@@ -639,7 +597,7 @@ void SCPilot::combatDecision(float h, float v, float r, float dt) {
         }
         return;
     }
-    float w = guidanceWrap180(this->bankAngle() + r);
+    float w = signed180(this->bankAngle() + r);
     if (std::fabs(w) > 145.0f) {
         float s = std::max(-16.0f, -16.0f * (v / 10.0f) * (v / 10.0f));
         if (this->rollToAngle(0.0f, 5.0f, dt)) {
@@ -676,7 +634,7 @@ bool SCPilot::bankError(float error, float deadzone, float dt) {
 }
 
 bool SCPilot::rollToAngle(float bank, float deadzone, float dt) {
-    float error = guidanceWrap180(bank - this->bankAngle());
+    float error = signed180(bank - this->bankAngle());
     if (std::fabs(error) > deadzone) {
         this->roll_stick = this->rollStickFromError(error, dt);
         return false;
@@ -756,8 +714,8 @@ void SCPilot::CmdGroundControls(float pitch_stick16, int throttle_notch, int fla
     this->spoilers = spoilers;
 }
 
-static float kinematicYaw(Vector3D heading_dir) {
-    return norm3600((radToDegree(atan2f(heading_dir.x, heading_dir.z)) - 180.0f) * 10.0f);
+float SCPilot::YawOf(Vector3D heading_dir) {
+    return norm3600((heading_dir.Azimuth() - 180.0f) * 10.0f);
 }
 
 void SCPilot::CmdKinematic(bool engaged, Vector3D velocity, Vector3D heading_dir, float pitch_deg) {
@@ -765,7 +723,7 @@ void SCPilot::CmdKinematic(bool engaged, Vector3D velocity, Vector3D heading_dir
     event.plane = this->plane;
     event.engaged = engaged;
     event.velocity = velocity;
-    event.yaw = kinematicYaw(heading_dir);
+    event.yaw = YawOf(heading_dir);
     event.pitch = pitch_deg * 10.0f;
     MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
 }
@@ -774,7 +732,7 @@ void SCPilot::CmdPlaceAt(Vector3D position, Vector3D heading_dir, float pitch_de
     PlaneKinematicEvent event;
     event.plane = this->plane;
     event.engaged = true;
-    event.yaw = kinematicYaw(heading_dir);
+    event.yaw = YawOf(heading_dir);
     event.pitch = pitch_deg * 10.0f;
     event.set_position = true;
     event.position = position;

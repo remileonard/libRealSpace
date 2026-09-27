@@ -207,6 +207,16 @@ public:
     int operator==(const Vector3D& other) const {
         return this->x == other.x && this->y == other.y && this->z == other.z;
     };
+    inline float Azimuth() const {
+        return Vector2D(this->z, this->x).Angle();
+    };
+    inline float Elevation() const {
+        return Vector2D(sqrtf(this->x * this->x + this->z * this->z), this->y).Angle();
+    };
+    inline Vector3D RotateAzimuth(float degrees) const {
+        Vector2D rotated = Vector2D(this->z, this->x).rotateAroundPoint(Vector2D(), -degreeToRad(degrees));
+        return Vector3D(rotated.y, 0.0f, rotated.x);
+    };
     Vector3D rotateByAxis(const Vector3D &w) const;
     void rotateByAxisInPlace(const Vector3D &w) {
         *this = this->rotateByAxis(w);

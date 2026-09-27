@@ -1828,6 +1828,17 @@ void SCPlane::simulateKinematic(float dt) {
     this->syncKinematicVelocity(dt);
 }
 
+Vector3D SCPlane::worldVelocity() {
+    float rate = this->tps > 0 ? (float) this->tps : 25.0f;
+    return Vector3D(this->x - this->last_px, this->y - this->last_py, this->z - this->last_pz) * rate;
+}
+
+float SCPlane::indicatedAirspeed() {
+    float altitude = std::max(0.0f, this->y);
+    float sigma = powf(std::max(0.0f, 1.0f - 2.2558e-5f * altitude), 4.2559f);
+    return this->worldVelocity().Length() * sqrtf(sigma);
+}
+
 void SCPlane::syncKinematicVelocity(float dt) {
     Vector3D displacement = this->velocity * dt;
     this->vx = displacement.x * this->ptw.v[0][0] + displacement.y * this->ptw.v[0][1] + displacement.z * this->ptw.v[0][2];
