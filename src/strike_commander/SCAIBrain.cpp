@@ -18,9 +18,7 @@ void SCAIBrain::tick() {
             owner->follow_slot = Vector3D(nums.x, nums.z, nums.y);
         }
     }
-    if (brain_orders_enabled) {
-        this->tryActiveWingman();
-    }
+    this->tryActiveWingman();
     debug_ticks++;
     int flying = owner->profile->ai.atrb.FL;
     int retarget_mask = flying < 4 ? 15 : flying < 11 ? 7 : 3;
@@ -435,14 +433,6 @@ void SCAIBrain::navigateWithVelocity(Vector3D point, Vector3D velocity) {
     nav_requested = true;
 }
 
-void SCAIBrain::navigateToPilotWaypoint() {
-    if (!brain_orders_enabled || owner->plane->on_ground || owner->pilot->land || !owner->pilot->has_waypoint) {
-        return;
-    }
-    Vector3D point = owner->pilot->steer_waypoint;
-    point.y = (float) owner->pilot->target_climb;
-    this->navigateToPoint(point, 0.0f);
-}
 
 void SCAIBrain::stopNavigation() {
     if (nav_behavior) {
@@ -939,8 +929,7 @@ ThreatScore SCAIBrain::scoreAirCandidate(SCMissionActors *candidate, Vector3D de
  * qu'une simple exclusion mutuelle au niveau de la boucle GOAL).
  */
 bool SCAIBrain::executeGoalAction() {
-    owner->protectSelf();
-    if (brain_orders_enabled && fleeing) {
+    if (fleeing) {
         if (!this->navigateToPoint(brain_destination, 2000.0f)) {
             this->wander();
         }
@@ -948,50 +937,21 @@ bool SCAIBrain::executeGoalAction() {
     }
     switch (owner->current_command) {
         case OP_SET_OBJ_TAKE_OFF:
-            if (brain_orders_enabled) {
-                owner->current_command_executed = this->takeoffOrder();
-                break;
-            }
-            owner->current_command_executed = owner->takeOff(owner->current_command_arg);
+            owner->current_command_executed = this->takeoffOrder();
         break;
         case OP_SET_OBJ_LAND:
-            if (brain_orders_enabled) {
-                owner->current_command_executed = this->landingOrder(owner->current_command_arg, owner->current_command_arg2);
-                break;
-            }
-            owner->current_command_executed = owner->land(owner->current_command_arg);
+            owner->current_command_executed = this->landingOrder(owner->current_command_arg, owner->current_command_arg2);
         break;
         case OP_SET_OBJ_FLY_TO_WP:
-            if (brain_orders_enabled) {
-                return this->flyToWaypointOrder(owner->current_command_arg, owner->current_command_arg2);
-            }
-            owner->current_command_executed = owner->flyToWaypoint(owner->current_command_arg);
-            this->navigateToPilotWaypoint();
-        break;
+            return this->flyToWaypointOrder(owner->current_command_arg, owner->current_command_arg2);
         case OP_SET_OBJ_FOLLOW_ALLY:
-            if (brain_orders_enabled) {
-                return this->followAllyOrder(owner->current_command_arg);
-            }
-            owner->current_command_executed = owner->followAlly(owner->current_command_arg);
-        break;
+            return this->followAllyOrder(owner->current_command_arg);
         case OP_SET_OBJ_DESTROY_TARGET:
-            if (brain_orders_enabled) {
-                return this->destroyTargetOrder(owner->current_command_arg);
-            }
-            owner->current_command_executed = owner->destroyTarget(owner->current_command_arg);
-            return false;
+            return this->destroyTargetOrder(owner->current_command_arg);
         case OP_SET_OBJ_DEFEND_TARGET:
-            if (brain_orders_enabled) {
-                return this->defendTargetOrder(owner->current_command_arg);
-            }
-            owner->current_command_executed = owner->defendTarget(owner->current_command_arg);
-            return false;
+            return this->defendTargetOrder(owner->current_command_arg);
         case OP_SET_OBJ_DEFEND_AREA:
-            if (brain_orders_enabled) {
-                return this->defendAreaOrder(owner->current_command_arg);
-            }
-            owner->current_command_executed = owner->defendArea(owner->current_command_arg);
-            return false;
+            return this->defendAreaOrder(owner->current_command_arg);
         default:
             return false;
     }
@@ -1075,22 +1035,14 @@ bool SCAIBrain::runGoalSelectors() {
                 }
                 continue;
             case GOAL_BEHAVIOR_STATE_MACHINE:
-                if (brain_orders_enabled && this->combatStep(false)) {
+                if (this->combatStep(false)) {
                     return true;
                 }
                 continue;
             case GOAL_ACTIVE_WINGMAN:
-                if (brain_orders_enabled) {
-                    if (this->moraleReaction()) {
-                        return true;
-                    }
-                    continue;
+                if (this->moraleReaction()) {
+                    return true;
                 }
-                // Ne gagne jamais le tick : pose seulement current_command
-                // depuis l'ordre radio en cours, si il y en a un — c'est
-                // GOAL_EXECUTE_ACTION, plus loin dans le fichier, qui
-                // l'execute reellement (voir tryActiveWingman()).
-                this->tryActiveWingman();
                 continue;
             default:
                 continue;

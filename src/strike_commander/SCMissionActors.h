@@ -30,7 +30,6 @@ public:
     SCMissionActors *attacker{nullptr};
     SCSimulatedObject *weapon_shooted_at_me{nullptr};
     prog_op current_objective;
-    Vector3D formation_pos_offset{150.0f, 0.0f, 0.0f};
     Vector3D attack_pos_offset{0.0f, 0.0f, -1000.0f};
     bool is_active{false};
     bool is_hidden{true};
@@ -43,7 +42,6 @@ public:
     int current_target{NO_TARGET};
     bool current_command_executed{false};
     prog_op current_command{prog_op::OP_NOOP};
-    prog_op override_command{prog_op::OP_NOOP};
     uint8_t current_command_arg;
     uint8_t current_command_arg2{0xFF};
     Vector3D follow_slot{0.0f, 0.0f, 0.0f};   // poste en formation (cote, avant, haut), entite+0x14A
@@ -51,21 +49,10 @@ public:
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
     int retarget_cooldown{0};
-    int timer{0};
     float wait_timer{0.0f};   // objet de mission +0x3A (opcode WAIT)
-    virtual bool execute();
-    virtual bool takeOff(uint8_t arg); 
-    virtual bool land(uint8_t arg);
-    virtual bool flyToWaypoint(uint8_t arg);
-    virtual bool flyToArea(uint8_t arg);
-    virtual bool destroyTarget(uint8_t arg);
-    virtual bool defendTarget(uint8_t arg);
-    virtual bool defendArea(uint8_t arg);
+    bool destroyTarget(uint8_t arg);
     virtual bool deactivate(uint8_t arg);
     virtual bool setMessage(uint8_t arg);
-    virtual bool followAlly(uint8_t arg);
-    bool followAllyFormation(uint8_t arg);
-    virtual bool protectSelf();
     virtual bool ifTargetInSameArea(uint8_t arg);
     virtual bool respondToRadioMessage(int message_id, SCMission *mission, SCMissionActors *sender=nullptr);
     virtual bool activateTarget(uint8_t arg);
@@ -115,12 +102,10 @@ private:
 
 class SCMissionActorsPlayer : public SCMissionActors {
 public:
-    bool takeOff(uint8_t arg) override;
-    bool land(uint8_t arg) override;
-    bool flyToWaypoint(uint8_t arg) override;
-    bool flyToArea(uint8_t arg) override;
-    bool destroyTarget(uint8_t arg) override;
-    bool defendTarget(uint8_t arg) override;
+    bool takeOff(uint8_t arg);
+    bool land(uint8_t arg);
+    bool flyToWaypoint(uint8_t arg);
+    bool flyToArea(uint8_t arg);
     bool setMessage(uint8_t arg) override;
     void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) override;
     void setObjective(prog_op command, uint8_t arg) override;

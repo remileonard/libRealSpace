@@ -60,7 +60,6 @@ public:
     bool evasion_active{false};
     bool ground_attack_enabled{true};
     bool ground_attack_active{false};
-    bool brain_orders_enabled{true};
     uint8_t reaction_level{REACT_NONE};
     bool just_hit{false};
     SCMissionActors *last_attacker{nullptr};
@@ -173,7 +172,6 @@ private:
     uint8_t leader_state{0};
     bool navigateToPoint(Vector3D point, float radius);
     void stopNavigation();
-    void navigateToPilotWaypoint();
     void wander();
     bool nav_active{false};
     bool nav_requested{false};
