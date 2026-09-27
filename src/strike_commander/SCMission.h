@@ -85,6 +85,7 @@ public:
     uint8_t getAreaID(Vector3D position);
     RSEntity * LoadEntity(std::string name);
     uint32_t tps{0};
+    float scene_wait_timer{0.0f};   // dword_706B0 : minuteur WAIT des scripts de scene
 };
 
 

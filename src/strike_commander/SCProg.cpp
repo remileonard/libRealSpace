@@ -1,4 +1,5 @@
 #include "precomp.h"
+#include "../engine/gametimer.h"
 
 
 /**
@@ -128,7 +129,7 @@ void SCProg::execute() {
                     work_register = prog.arg;
                 break;
                 case OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS:
-                    if (!this->actor->current_command_executed) {
+                    if (this->task_state != 0) {
                         jump_to = prog.arg;
                         exec = false;
                     }
@@ -161,11 +162,24 @@ void SCProg::execute() {
                         }
                     }
                 break;
-                case OP_SET_WAIT_FOR_SECONDS:
-                    this->actor->setObjective(OP_SET_WAIT_FOR_SECONDS, prog.arg);
+                case OP_SET_WAIT_FOR_SECONDS: {
+                    // Expr_VM_Interpreter_51106 cas 0xA0 : minuteur de l'objet de mission (+0x3A), global pour une scene
+                    float &timer = this->scene_script ? this->mission->scene_wait_timer : this->actor->wait_timer;
+                    this->task_state = 1;
+                    if (timer == 0.0f) {
+                        timer = (float) prog.arg;
+                    } else {
+                        timer -= GameTimer::getInstance().getDeltaTime();
+                        if (timer <= 0.0f) {
+                            timer = 0.0f;
+                            this->task_state = 0;
+                        }
+                    }
+                }
                 break;
                 case OP_SET_OBJ_TAKE_OFF:
                     this->actor->setObjective(OP_SET_OBJ_TAKE_OFF, prog.arg);
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_LAND:
                     this->actor->setObjective(OP_SET_OBJ_LAND, prog.arg);
@@ -174,22 +188,33 @@ void SCProg::execute() {
                         bool has_second = (size_t) i + 1 < this->prog.size() && this->prog[i + 1].opcode == OP_SPOT_DATA;
                         this->actor->current_command_arg2 = has_second ? (uint8_t) this->prog[i + 1].arg : 0xFF;
                     }
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_FLY_TO_WP:
                     this->actor->setObjective(OP_SET_OBJ_FLY_TO_WP, prog.arg);
+                    if (this->actor->current_command == OP_SET_OBJ_FLY_TO_WP && this->actor->current_command_arg == prog.arg) {
+                        // 2e operande (opcode 9) : vitesse voulue a l'arrivee (Goal_SetObjective_A307 -> +0x12B)
+                        bool has_second = (size_t) i + 1 < this->prog.size() && this->prog[i + 1].opcode == OP_SPOT_DATA;
+                        this->actor->current_command_arg2 = has_second ? (uint8_t) this->prog[i + 1].arg : 0xFF;
+                    }
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_FLY_TO_AREA:
+                    // Expr_VM_Interpreter_51106 : 0xA6 -> cas par defaut, pas d'appel natif ; seul le joueur l'exploite
                     this->actor->setObjective(OP_SET_OBJ_FLY_TO_AREA, prog.arg);
                 break;
                 case OP_SET_OBJ_DESTROY_TARGET:
                     this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, prog.arg);
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_DEFEND_TARGET:
                     this->actor->current_target = SCMissionActors::NO_TARGET;
                     this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, prog.arg);
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_DEFEND_AREA:
                     this->actor->setObjective(OP_SET_OBJ_DEFEND_AREA, prog.arg);
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_MESSAGE:
                     this->actor->setMessage(prog.arg);
@@ -208,6 +233,7 @@ void SCProg::execute() {
                         this->actor->follow_slot = Vector3D((float) (int16_t) (b[5] | (b[6] << 8)), (float) (int16_t) (b[7] | (b[8] << 8)), (float) (int16_t) (b[9] | (b[10] << 8)));
                         this->actor->follow_slot_set = true;
                     }
+                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 }
                 break;
                 case OP_DEACTIVATE_OBJ:
@@ -234,7 +260,10 @@ void SCProg::execute() {
                     if (prog.arg < this->mission->mission->mission_data.prog.size()) {
                         std::vector<PROG> *sub_prog = this->mission->mission->mission_data.prog[prog.arg];
                         SCProg *sub_prog_obj = new SCProg(this->actor, *sub_prog, this->mission, prog.arg);
+                        sub_prog_obj->task_state = this->task_state;
+                        sub_prog_obj->scene_script = this->scene_script;
                         sub_prog_obj->execute();
+                        this->task_state = sub_prog_obj->task_state;
                         delete sub_prog_obj;
                     } else {
                         // Invalid sub-program index; no operation performed.

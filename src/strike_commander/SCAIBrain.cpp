@@ -408,7 +408,9 @@ bool SCAIBrain::navigateToPoint(Vector3D point, float radius) {
     static const float CRUISE_SPEED = 250.0f;
     Vector3D delta = point - owner->plane->position;
     if (delta.Length() <= radius) {
-        this->stopNavigation();
+        if (!nav_behavior) {
+            this->stopNavigation();
+        }
         return false;
     }
     Vector3D velocity = delta;
@@ -418,6 +420,7 @@ bool SCAIBrain::navigateToPoint(Vector3D point, float radius) {
 }
 
 void SCAIBrain::navigateWithVelocity(Vector3D point, Vector3D velocity) {
+    nav_behavior = false;
     if (owner->pilot->autopilotActive()) {
         owner->pilot->setAutopilotTarget(point, velocity);
     } else {
@@ -442,28 +445,140 @@ void SCAIBrain::navigateToPilotWaypoint() {
 }
 
 void SCAIBrain::stopNavigation() {
+    if (nav_behavior) {
+        // NotifiableRef_DetachTarget_75661 : l'identifiant du comportement abandonne passe en entite+0x19
+        last_finished_behavior = 21;
+        nav_behavior = false;
+    }
     if (nav_active) {
         owner->pilot->disengageAutopilot();
         nav_active = false;
     }
 }
 
-void SCAIBrain::wander() {
-    Vector3D own_position = owner->plane->position;
-    Vector3D delta = wander_point - own_position;
-    delta.y = 0.0f;
-    if (!wander_point_set || delta.Length() < 2000.0f) {
-        float angle = degreeToRad((float) (std::rand() % 360));
-        wander_point = own_position + Vector3D(sinf(angle) * 30000.0f, 0.0f, cosf(angle) * 30000.0f);
-        wander_point_set = true;
+// MVRS_ID21_ApplyAutopilotNav_11AC4 : bloc de commandes (point, vitesse voulue), minuteur = scalaire du contexte
+void SCAIBrain::applyNavigation(Vector3D point, Vector3D velocity, float duration) {
+    nav_point = point;
+    nav_velocity = velocity;
+    nav_timer = duration;
+    nav_reached = false;
+    nav_behavior = true;
+    owner->pilot->target_waypoint = point;
+    if (owner->pilot->autopilotActive()) {
+        owner->pilot->setAutopilotTarget(point, velocity);
     }
-    Vector3D direction = wander_point - own_position;
-    direction.y = 0.0f;
-    owner->pilot->SetGuidanceDirection(direction);
+    this->tickNavigation();
+}
+
+// MVRS_ID21_TickAutopilotNav_11B16
+void SCAIBrain::tickNavigation() {
+    nav_timer -= TICK_DURATION;
+    nav_active = true;
+    nav_requested = true;
+    owner->pilot->target_waypoint = nav_point;
+    if (!owner->pilot->autopilotActive()) {
+        if (std::fabs(owner->pilot->NosePitch()) < 15.0f) {
+            owner->pilot->engageAutopilot(nav_point, nav_velocity);
+        } else {
+            owner->pilot->SetPitchCommand(0.0f, 5.0f);
+        }
+    }
+    nav_reached = owner->pilot->autopilotReached();
+    if (nav_timer < 0.0f || nav_reached) {
+        // JDYN+0x68 = 0xFF puis Behavior_PopFinished_75612
+        owner->pilot->disengageAutopilot();
+        nav_behavior = false;
+        nav_active = false;
+        last_finished_behavior = 21;
+    }
+}
+
+// entite+0x0D non nul : un comportement est en cours
+bool SCAIBrain::behaviorRunning() {
+    return nav_behavior || maneuver_id != 0 || ground_op != GROUND_OP_NONE;
+}
+
+// methode +0xC du comportement en cours
+void SCAIBrain::tickBehavior() {
+    if (nav_behavior) {
+        this->tickNavigation();
+    } else if (maneuver_id != 0) {
+        combat_step_called = true;
+        this->tickManeuver();
+    } else if (ground_op == GROUND_OP_TAKEOFF) {
+        this->takeoffOrder();
+    } else if (ground_op == GROUND_OP_LANDING) {
+        this->landingOrder(owner->current_command_arg, owner->current_command_arg2);
+    }
+}
+
+// AI_NavSolutionToPoint : vers +0x10F (objet) ou +0x111, a +0x13D au-dessus du terrain SOUS MOI
+bool SCAIBrain::navSolutionToPoint() {
+    if (this->behaviorRunning()) {
+        return false;
+    }
+    SCPlane *plane = owner->plane;
+    Vector3D point = nav_center;
+    if (nav_reference != nullptr) {
+        point = nav_reference->plane != nullptr ? nav_reference->plane->position : nav_reference->object->position;
+    }
+    point.y = plane->area->getY(plane->position.x, plane->position.z) + nav_altitude;
+    Vector3D delta = point - plane->position;
+    if (nav_radius >= delta.Length()) {
+        return false;
+    }
+    delta.Normalize();
+    this->applyNavigation(point, delta * nav_speed, 2.0f);
+    return true;
+}
+
+// Goal_WanderRandom (gestionnaire GOAL 3)
+void SCAIBrain::wander() {
+    if (this->behaviorRunning()) {
+        this->tickBehavior();
+        return;
+    }
+    if (!nav_reached && last_finished_behavior == 21) {
+        this->applyNavigation(nav_point, nav_velocity, 30.0f);
+        return;
+    }
+    // CRT_Rand % 20000 - 10000 sur les deux axes horizontaux (asm c0 = x, c1 = -z)
+    float rx = (float) (std::rand() % 20000 - 10000);
+    float ry = (float) (std::rand() % 20000 - 10000);
+    Vector3D direction(rx, 0.0f, -ry);
+    direction.Normalize();
+    SCPlane *plane = owner->plane;
+    float climb = plane->area->getY(plane->position.x, plane->position.z) + nav_altitude - plane->position.y;
+    climb = std::clamp(climb, -1000.0f, 1000.0f);
+    Vector3D point = plane->position + direction * 30000.0f + Vector3D(0.0f, climb, 0.0f);
+    this->applyNavigation(point, direction * nav_speed, 30.0f);
+}
+
+// Goal_IsComplete 0xA8/0xA9 : camp 1 -> word_706A7 - word_706A9, sinon word_706A3 - word_706A5
+int SCAIBrain::opposingCampAlive() {
+    int camp = owner->team_id == 1 ? 0xFF : 1;
+    int alive = 0;
+    for (auto actor : owner->mission->actors) {
+        if (actor->team_id == camp && !actor->is_destroyed && (actor->is_active || actor->actor_name == "PLAYER")) {
+            alive++;
+        }
+    }
+    return alive;
+}
+
+// Goal_ExecuteAction_A8AC, cas 0xA8/0xA9 (loc_A9DB)
+bool SCAIBrain::defendExec() {
+    if (this->navSolutionToPoint()) {
+        return true;
+    }
+    if (this->combatStep(false)) {
+        return true;
+    }
+    this->wander();
+    return true;
 }
 
 bool SCAIBrain::defendTargetOrder(uint8_t arg) {
-    owner->current_command_executed = false;
     SCMissionActors *defended = nullptr;
     for (auto actor : owner->mission->actors) {
         if (actor->actor_id == arg) {
@@ -471,30 +586,57 @@ bool SCAIBrain::defendTargetOrder(uint8_t arg) {
             break;
         }
     }
+    // Goal_IsComplete 0xA8 : actif tant que la reference +0x137 existe
     if (defended == nullptr || defended->is_destroyed || (defended->plane != nullptr && defended->plane->object->alive == 0)) {
-        this->stopNavigation();
         owner->current_command_executed = true;
+        objective_locked = false;
         return false;
     }
+    owner->current_command_executed = false;
     owner->current_objective = OP_SET_OBJ_DEFEND_TARGET;
-    Vector3D point = defended->plane != nullptr ? defended->plane->position : defended->object->position;
-    int state = 2;
-    bool acted = true;
-    if (this->navigateToPoint(point, 30000.0f)) {
-        state = 0;
-    } else if (this->combatStep(false)) {
-        state = 1;
-    } else {
-        this->wander();
+    // Goal_SetObjective_A307 0xA8 : +0x10F = +0x137 = objet defendu
+    nav_reference = defended;
+    return this->defendExec();
+}
+
+bool SCAIBrain::defendAreaOrder(uint8_t arg) {
+    // Goal_SetObjective_A307 0xA9 : +0x10F = nul, +0x111 = spot[param1]
+    std::vector<SPOT *> &spots = owner->mission->mission->mission_data.spots;
+    nav_reference = nullptr;
+    nav_center = arg < spots.size() ? spots[arg]->position : Vector3D(0.0f, 0.0f, 0.0f);
+    owner->current_objective = OP_SET_OBJ_DEFEND_AREA;
+    // Goal_IsComplete 0xA9 : actif seulement si le camp adverse n'a plus d'unite vivante
+    if (this->opposingCampAlive() != 0) {
+        owner->current_command_executed = true;
+        objective_locked = false;
+        return false;
     }
-    if (state != 1) {
-        owner->current_target = SCMissionActors::NO_TARGET;
+    owner->current_command_executed = false;
+    return this->defendExec();
+}
+
+bool SCAIBrain::flyToWaypointOrder(uint8_t point_spot, uint8_t velocity_spot) {
+    // Goal_SetObjective_A307 0xA5 : +0x11F = spot[param1], +0x12B = spot[param2] (absent -> (0, 0, 0))
+    std::vector<SPOT *> &spots = owner->mission->mission->mission_data.spots;
+    Vector3D point = point_spot < spots.size() ? spots[point_spot]->position : Vector3D(0.0f, 0.0f, 0.0f);
+    Vector3D velocity = velocity_spot < spots.size() ? spots[velocity_spot]->position : Vector3D(0.0f, 0.0f, 0.0f);
+    owner->current_objective = OP_SET_OBJ_FLY_TO_WP;
+    // Goal_IsComplete 0xA5 : distance horizontale <= 500 m
+    Vector3D delta = point - owner->plane->position;
+    delta.y = 0.0f;
+    if (delta.Length() <= 500.0f) {
+        owner->current_command_executed = true;
+        objective_locked = false;
+        return false;
     }
-    if (state != defend_state) {
-        printf("AI %s#%d defend target=%s state=%s d=%.0f\n", owner->actor_name.c_str(), owner->actor_id, defended->actor_name.c_str(), state == 0 ? "navigate" : state == 1 ? "combat" : "wander", (point - owner->plane->position).Length());
-        defend_state = state;
+    owner->current_command_executed = false;
+    // Goal_ReturnToBase
+    if (this->behaviorRunning()) {
+        this->tickBehavior();
+        return true;
     }
-    return acted;
+    this->applyNavigation(point, velocity, 2.0f);
+    return true;
 }
 
 bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
@@ -805,9 +947,6 @@ bool SCAIBrain::executeGoalAction() {
         return true;
     }
     switch (owner->current_command) {
-        case OP_SET_WAIT_FOR_SECONDS:
-            owner->current_command_executed = owner->wait(owner->current_command_arg);
-        break;
         case OP_SET_OBJ_TAKE_OFF:
             if (brain_orders_enabled) {
                 owner->current_command_executed = this->takeoffOrder();
@@ -823,11 +962,10 @@ bool SCAIBrain::executeGoalAction() {
             owner->current_command_executed = owner->land(owner->current_command_arg);
         break;
         case OP_SET_OBJ_FLY_TO_WP:
+            if (brain_orders_enabled) {
+                return this->flyToWaypointOrder(owner->current_command_arg, owner->current_command_arg2);
+            }
             owner->current_command_executed = owner->flyToWaypoint(owner->current_command_arg);
-            this->navigateToPilotWaypoint();
-        break;
-        case OP_SET_OBJ_FLY_TO_AREA:
-            owner->current_command_executed = owner->flyToArea(owner->current_command_arg);
             this->navigateToPilotWaypoint();
         break;
         case OP_SET_OBJ_FOLLOW_ALLY:
@@ -849,6 +987,9 @@ bool SCAIBrain::executeGoalAction() {
             owner->current_command_executed = owner->defendTarget(owner->current_command_arg);
             return false;
         case OP_SET_OBJ_DEFEND_AREA:
+            if (brain_orders_enabled) {
+                return this->defendAreaOrder(owner->current_command_arg);
+            }
             owner->current_command_executed = owner->defendArea(owner->current_command_arg);
             return false;
         default:
@@ -870,20 +1011,8 @@ bool SCAIBrain::executeGoalAction() {
  * s'applique pas (une cible est deja engagee).
  */
 bool SCAIBrain::tryWanderRandom() {
-    if (owner->current_target != SCMissionActors::NO_TARGET) {
-        return false;
-    }
-    size_t spot_count = owner->mission->mission->mission_data.spots.size();
-    if (spot_count == 0) {
-        return false;
-    }
-    owner->current_command = prog_op::OP_SET_OBJ_FLY_TO_WP;
-    bool arrived = owner->flyToWaypoint(owner->current_command_arg);
-    this->navigateToPilotWaypoint();
-    if (arrived) {
-        owner->current_command_arg = (uint8_t)(std::rand() % spot_count);
-    }
-    owner->current_command_executed = arrived;
+    // Goal_WanderRandom renvoie toujours 1
+    this->wander();
     return true;
 }
 /**
@@ -2064,9 +2193,8 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
 
 void SCAIBrain::followWaypoints(SCMissionActors *leader) {
     // Goal_FollowWaypoints
-    if (maneuver_id != 0) {
-        combat_step_called = true;
-        this->tickManeuver();
+    if (this->behaviorRunning()) {
+        this->tickBehavior();
         return;
     }
     if (leader == nullptr || leader->plane == nullptr) {
@@ -2088,5 +2216,5 @@ void SCAIBrain::followWaypoints(SCMissionActors *leader) {
     // noeud entite+0xD1 = ID21 : 1000 m au-dessus du leader, vitesse = nez * 200 + vitesse du leader
     Vector3D point = lead->position + Vector3D(0.0f, 1000.0f, 0.0f);
     Vector3D velocity = lead->forward * 200.0f + lead->velocity;
-    this->navigateWithVelocity(point, velocity);
+    this->applyNavigation(point, velocity, 2.0f);
 }

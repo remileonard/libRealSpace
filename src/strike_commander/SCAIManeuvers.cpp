@@ -448,6 +448,8 @@ void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
     maneuver_start_heading = mvCompass(owner->plane->forward);
     maneuver_uses[id]++;
     owner->pilot->disengageAutopilot();
+    nav_behavior = false;
+    nav_active = false;
     this->buildCombatContext(target);
     switch (id) {
         case 1: {
@@ -506,6 +508,7 @@ void SCAIBrain::endManeuver() {
     if (maneuver_id == 19) {
         this->resetGroundAttack();
     }
+    last_finished_behavior = maneuver_id;
     maneuver_id = 0;
     maneuver_target = nullptr;
     maneuver_level = REACT_NONE;

@@ -405,6 +405,8 @@ void SCPilot::engageAutopilot(Vector3D target_point, Vector3D desired_velocity) 
 void SCPilot::setAutopilotTarget(Vector3D target_point, Vector3D desired_velocity) {
     this->autopilot_point = target_point;
     this->autopilot_velocity = desired_velocity;
+    this->autopilot_reached = false;
+    this->target_waypoint = target_point;
 }
 
 void SCPilot::disengageAutopilot() {

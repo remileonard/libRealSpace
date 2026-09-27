@@ -179,9 +179,6 @@ private:
     void wander();
     bool nav_active{false};
     bool nav_requested{false};
-    Vector3D wander_point{0.0f, 0.0f, 0.0f};
-    bool wander_point_set{false};
-    int defend_state{-1};
     bool ground_attack_seen{false};
     void resetGroundAttack();
     RSEntity *selectGroundWeapon();
@@ -228,4 +225,24 @@ private:
     Vector3D formationSlot(SCMissionActors *leader);
     void followWaypoints(SCMissionActors *leader);
     void navigateWithVelocity(Vector3D point, Vector3D velocity);
+    SCMissionActors *nav_reference{nullptr};           // entite+0x10F
+    Vector3D nav_center{0.0f, 1000.0f, 0.0f};          // entite+0x111
+    float nav_radius{30000.0f};                        // entite+0x139
+    float nav_altitude{2000.0f};                       // entite+0x13D
+    float nav_speed{250.0f};                           // entite+0x141
+    bool nav_behavior{false};
+    Vector3D nav_point{0.0f, 0.0f, 0.0f};
+    Vector3D nav_velocity{0.0f, 0.0f, 0.0f};
+    float nav_timer{0.0f};
+    bool nav_reached{false};
+    int last_finished_behavior{0};
+    void applyNavigation(Vector3D point, Vector3D velocity, float duration);
+    void tickNavigation();
+    bool behaviorRunning();
+    void tickBehavior();
+    bool navSolutionToPoint();
+    bool flyToWaypointOrder(uint8_t point_spot, uint8_t velocity_spot);
+    bool defendAreaOrder(uint8_t arg);
+    bool defendExec();
+    int opposingCampAlive();
 };

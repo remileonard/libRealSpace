@@ -52,8 +52,7 @@ public:
     std::vector<uint8_t> executed_opcodes;
     int retarget_cooldown{0};
     int timer{0};
-    int wait_timer{0};
-    virtual bool wait(int seconds);
+    float wait_timer{0.0f};   // objet de mission +0x3A (opcode WAIT)
     virtual bool execute();
     virtual bool takeOff(uint8_t arg); 
     virtual bool land(uint8_t arg);

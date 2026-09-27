@@ -4,27 +4,6 @@
 #include <cstdlib>
 #include <ctime>
 
-bool SCMissionActors::wait(int seconds) {
-    if (this->current_command != prog_op::OP_SET_WAIT_FOR_SECONDS) {
-        if (this->wait_timer == 0) {
-            if (this->plane != nullptr && this->plane->tps > 0) {
-                this->wait_timer = seconds * this->plane->tps;
-            } else {
-                this->wait_timer = seconds * 60;
-            }
-                
-        }
-    }
-    if (this->wait_timer > 0) {
-        this->wait_timer--;
-    }
-    if (this->wait_timer <= 0) {
-        this->wait_timer = -1;
-        return true;
-    }
-    return false;
-}
-
 bool SCMissionActors::execute() { return true; }
 /**
  * SCMissionActors::takeOff
@@ -865,6 +844,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             } else {
                 this->mission->enemies.push_back(actor);
             }
+            actor->wait_timer = 0.0f;
             if (actor->on_is_activated.size() > 0) {
                 SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);
                 p->execute();
@@ -918,6 +898,9 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
  */
 void SCMissionActors::setObjective(prog_op command, uint8_t arg) {
     if (this->brain != nullptr && this->brain->objective_locked) {
+        return;
+    }
+    if (command == OP_SET_OBJ_FLY_TO_AREA) {
         return;
     }
     if (this->current_command != command || this->current_command_arg != arg) {
@@ -1515,9 +1498,6 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
  */
 void SCMissionActorsPlayer::setObjective(prog_op command, uint8_t arg) {
     switch (command) {
-        case OP_SET_WAIT_FOR_SECONDS:
-            this->current_command_executed = this->wait(arg);
-        break;
         case OP_SET_OBJ_TAKE_OFF:
             this->current_command_executed = this->takeOff(arg);
         break;
