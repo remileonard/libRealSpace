@@ -532,16 +532,6 @@ void SCJetpPlane::processInput() {
     float pitchCommandDeg = 0.0f;
     if (!this->on_ground && !this->wing_stall) {
         pitchCommandDeg = this->alpha_deg;
-        if (pitchCommandDeg < 0.0f) {
-            // Matrix_RollAngle_57C67 : roulis = 0 si la verticale de la normale vaut 0 en 24.8
-            // (|c2| < 1/256, ~0,22 deg). Marge elargie volontairement a KNIFE_EDGE_MARGIN_DEG.
-            const float KNIFE_EDGE_MARGIN_DEG = 3.0f;
-            float normalUp = this->ptw.v[1][1];
-            bool knifeEdge = fabsf(normalUp) < sinf(degreeToRad(KNIFE_EDGE_MARGIN_DEG));
-            if (!knifeEdge) {
-                pitchCommandDeg *= fabsf(cosf(tenthOfDegreeToRad(this->roll)));
-            }
-        }
     }
     // Clamp loc_48B42 : ramene var_1A vers boundA SAUF si var_1A est deja dans l'intervalle
     // [0..boundB] (borne = boundA sinon boundB selon les tests jle/jg/jge exacts).
