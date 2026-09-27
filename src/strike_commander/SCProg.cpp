@@ -194,8 +194,21 @@ void SCProg::execute() {
                 case OP_SET_MESSAGE:
                     this->actor->setMessage(prog.arg);
                 break;
-                case OP_SET_OBJ_FOLLOW_ALLY:
-                    this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, prog.arg);
+                case OP_SET_OBJ_FOLLOW_ALLY: {
+                    // MissionScript_CallNativeHandler_52513 cas 0xAA : 0xFF = allie par defaut (PART octet 46),
+                    // poste = mots PART 48/50/52 (cote, avant, haut)
+                    uint8_t leader_arg = (uint8_t) prog.arg;
+                    MISN_PART *part = this->actor->object;
+                    if (leader_arg == 0xFF && part != nullptr) {
+                        leader_arg = part->unknown_bytes[3];
+                    }
+                    this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, leader_arg);
+                    if (part != nullptr && this->actor->current_command == OP_SET_OBJ_FOLLOW_ALLY && this->actor->current_command_arg == leader_arg) {
+                        std::vector<uint8_t> &b = part->unknown_bytes;
+                        this->actor->follow_slot = Vector3D((float) (int16_t) (b[5] | (b[6] << 8)), (float) (int16_t) (b[7] | (b[8] << 8)), (float) (int16_t) (b[9] | (b[10] << 8)));
+                        this->actor->follow_slot_set = true;
+                    }
+                }
                 break;
                 case OP_DEACTIVATE_OBJ:
                     this->actor->deactivate(prog.arg);

@@ -46,6 +46,8 @@ public:
     prog_op override_command{prog_op::OP_NOOP};
     uint8_t current_command_arg;
     uint8_t current_command_arg2{0xFF};
+    Vector3D follow_slot{0.0f, 0.0f, 0.0f};   // poste en formation (cote, avant, haut), entite+0x14A
+    bool follow_slot_set{false};
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
     int retarget_cooldown{0};

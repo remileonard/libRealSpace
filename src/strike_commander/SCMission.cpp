@@ -414,6 +414,9 @@ void SCMission::update() {
     }
     while (this->ai_refresh_accumulator >= AI_REFRESH_INTERVAL) {
         this->ai_refresh_accumulator -= AI_REFRESH_INTERVAL;
+        // RadioFlags_ShiftHistory
+        this->player_tail_threat = this->player_tail_seen;
+        this->player_tail_seen = nullptr;
         AIRefreshEvent ai_refresh_event;
         ai_refresh_event.mission = this;
         this->messageBus.publish(std::make_unique<AIRefreshEvent>(ai_refresh_event));

@@ -478,7 +478,7 @@ void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
             break;
         case 7:
             maneuver_timer = (maneuver_bits & 1) ? 1.0f : 2.0f;
-            if ((maneuver_bits & 0x0A) == 0 && !this->tooLow()) {
+            if ((maneuver_bits & 0x0A) != 0 && !this->tooLow()) {
                 maneuver_timer = 4.0f;
             }
             maneuver_bits &= ~0x14;

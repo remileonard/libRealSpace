@@ -12,6 +12,11 @@ void SCAIBrain::tick() {
     if (!home_set) {
         home_position = owner->plane->position;
         home_set = true;
+        if (!owner->follow_slot_set) {
+            // PilotProfile_LoadNUMSCompanionFile_73FB4 : entite+0x14A = NUMS (RSIntel range {x, z, y})
+            Vector3D nums = owner->mission->intel.formation_offset;
+            owner->follow_slot = Vector3D(nums.x, nums.z, nums.y);
+        }
     }
     if (brain_orders_enabled) {
         this->tryActiveWingman();
@@ -62,7 +67,8 @@ void SCAIBrain::tick() {
     combat_step_called = false;
     // AI_TopLevelThink : menaces sautees en 0xA1/0xA2 ; reflexes et esquive seulement sans comportement en cours
     bool ground_order = owner->current_command == OP_SET_OBJ_TAKE_OFF || owner->current_command == OP_SET_OBJ_LAND;
-    bool behavior_running = ground_op != GROUND_OP_NONE;
+    // la formation garde un comportement en cours (Goal_FollowWaypoints : ID7/ID21 pousses)
+    bool behavior_running = ground_op != GROUND_OP_NONE || formation_active;
     if (owner->pilot != nullptr && !owner->plane->on_ground) {
         if (!ground_order) {
             this->incomingThreatWarning();
@@ -147,15 +153,20 @@ bool SCAIBrain::engageAttackerReaction() {
 }
 
 bool SCAIBrain::followAllyOrder(uint8_t arg) {
+    // Goal_SelectTransition
+    bool formed = this->followAllyExec(this->followLeader());
+    SCMissionActors *leader = follow_leader;
+    if (!formed && leader == nullptr) {
+        owner->current_command_executed = true;
+        return false;
+    }
+    owner->current_command_executed = false;
     if (leader_state == 2) {
         objective_locked = true;
         if (!this->navigateToPoint(brain_destination, 2000.0f)) {
             this->wander();
         }
         return true;
-    }
-    if (leader_state == 0) {
-        objective_locked = false;
     }
     if (leader_state == 3) {
         SCMissionActors *engaged = owner->target;
@@ -165,7 +176,24 @@ bool SCAIBrain::followAllyOrder(uint8_t arg) {
             owner->current_target = SCMissionActors::NO_TARGET;
         }
     }
-    owner->current_command_executed = owner->followAllyFormation(arg);
+    if (leader_state == 0) {
+        objective_locked = false;
+        SCMissionActors *threat = owner->mission->player_tail_threat;
+        if (threat != nullptr && leader == this->playerActor() && disciplined) {
+            this->endManeuver();
+            leader_state = 3;
+            owner->target = threat;
+            air_target = threat;
+            objective_locked = true;
+            owner->setMessage(0x10);
+        } else if (!formation_active) {
+            if (maneuver_id == 0 && reaction_level == REACT_MISSILE) {
+                this->combatStep(false);
+            } else {
+                this->followWaypoints(leader);
+            }
+        }
+    }
     if (leader_state == 3) {
         this->combatStep(false);
     } else if (leader_state == 1) {
@@ -385,7 +413,11 @@ bool SCAIBrain::navigateToPoint(Vector3D point, float radius) {
     }
     Vector3D velocity = delta;
     velocity.Normalize();
-    velocity = velocity * CRUISE_SPEED;
+    this->navigateWithVelocity(point, velocity * CRUISE_SPEED);
+    return true;
+}
+
+void SCAIBrain::navigateWithVelocity(Vector3D point, Vector3D velocity) {
     if (owner->pilot->autopilotActive()) {
         owner->pilot->setAutopilotTarget(point, velocity);
     } else {
@@ -398,7 +430,6 @@ bool SCAIBrain::navigateToPoint(Vector3D point, float radius) {
     }
     nav_active = true;
     nav_requested = true;
-    return true;
 }
 
 void SCAIBrain::navigateToPilotWaypoint() {
@@ -1009,6 +1040,10 @@ uint16_t SCAIBrain::selectWeaponMask() {
     int tail_aspect = (int) air_target->plane->forward.AngleBetween(delta);
     bool crossing = tail_aspect > 40 && tail_aspect < 140;
     RSIntel &intel = owner->mission->intel;
+    // AI_SelectWeaponMask_9665 : ennemi dans les six heures du joueur -> word_722EA
+    if (air_target == this->playerActor() && ahead < 30 && tail_aspect < 30 && distance < (float) intel.range_long) {
+        owner->mission->player_tail_seen = owner;
+    }
     uint16_t loaded = this->loadedWeaponMask();
     bool has_gun = (loaded & 0x800) != 0;
     bool has_short_missile = false;
@@ -1833,4 +1868,225 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
         }
     }
     return false;
+}
+
+SCMissionActors *SCAIBrain::followLeader() {
+    if (owner->current_command != OP_SET_OBJ_FOLLOW_ALLY) {
+        follow_leader = nullptr;
+        follow_leader_arg = 0xFF;
+        return nullptr;
+    }
+    if (owner->current_command_arg != follow_leader_arg) {
+        follow_leader_arg = owner->current_command_arg;
+        follow_leader = this->leaderActor();
+    }
+    return follow_leader;
+}
+
+int SCAIBrain::escortQueryLeader(SCMissionActors *leader, SCMissionActors *&engage) {
+    // Escort_QueryLeaderValid : d'apres la reaction en cours du leader
+    SCAIBrain *lead = leader->brain;
+    if (lead->reaction_level == REACT_ENGAGED && lead->air_target != nullptr) {
+        engage = lead->air_target;
+        return 3;
+    }
+    if (lead->reaction_level == REACT_MISSILE && lead->missile_threat != nullptr) {
+        SCMissionActors *shooter = lead->missile_threat->shooter;
+        if (shooter != nullptr && shooter->plane != nullptr) {
+            engage = shooter;
+            return 3;
+        }
+    }
+    return 0;
+}
+
+bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
+    // Goal_FollowAllyExec
+    bool held_elsewhere = ground_op != GROUND_OP_NONE || landing_done;
+    bool may_hold = formation_active || !held_elsewhere;
+    if (leader != nullptr && leader->plane != nullptr && leader->plane->ejected) {
+        follow_leader = nullptr;
+        leader = nullptr;
+    }
+    bool result = false;
+    if (leader != nullptr && leader->plane != nullptr && owner->current_command == OP_SET_OBJ_FOLLOW_ALLY && may_hold &&
+        leader_state == 0 && !owner->plane->ejected && !leader->plane->on_ground && reaction_level == REACT_NONE) {
+        if (leader->brain != nullptr) {
+            SCMissionActors *engage = nullptr;
+            leader_state = (uint8_t) this->escortQueryLeader(leader, engage);
+            if (leader_state == 3) {
+                owner->target = engage;
+                air_target = engage;
+            } else {
+                result = this->formationGuidance(leader);
+            }
+        } else {
+            result = this->formationGuidance(leader);
+        }
+    }
+    if (formation_active && !result) {
+        formation_history_ready = false;
+        owner->pilot->EndGroundOps();
+        owner->pilot->CmdKinematic(false, owner->plane->velocity, owner->plane->forward, radToDegree(asinf(std::clamp(owner->plane->forward.y, -1.0f, 1.0f))));
+    }
+    formation_active = result;
+    return result;
+}
+
+Vector3D SCAIBrain::formationSlot(SCMissionActors *leader) {
+    // Goal_FollowAllyFormation : poste = cote * S + avant * N + haut * U dans le repere du leader
+    SCPlane *lead = leader->plane;
+    Vector3D nose = lead->forward;
+    Vector3D slot = owner->follow_slot;
+    SCMissionActors *player = this->playerActor();
+    bool player_side = player != nullptr && owner->team_id == player->team_id;
+    if (owner->profile->radi.spch != 9 && player_side && !enemies_active) {
+        slot = Vector3D(300.0f, -200.0f, 50.0f);
+    }
+    Vector3D side(nose.z, 0.0f, -nose.x);
+    side.Normalize();
+    Vector3D up = side.CrossProduct(&nose);
+    if (up.y < 0.0f) {
+        up = up * -1.0f;
+    }
+    Vector3D rel = owner->plane->position - lead->position;
+    float lateral = fabsf(slot.x);
+    if (rel.x * side.x + rel.z * side.z < 0.0f) {
+        lateral = -lateral;
+    }
+    Vector3D offset = side * lateral + nose * slot.y + up * slot.z;
+    float leader_height = lead->y - lead->groundlevel;
+    if (leader_height + offset.y < 500.0f) {
+        offset.y = 500.0f;
+    }
+    return offset;
+}
+
+bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
+    // Formation_GuidanceSolution : l'ailier est deplace en cinematique (physique suspendue, objet +0x59)
+    SCPlane *plane = owner->plane;
+    SCPlane *lead = leader->plane;
+    const float dt = TICK_DURATION;
+    bool active = formation_active;
+    Vector3D lead_nose = lead->forward;
+    Vector3D own_nose = plane->forward;
+    Vector3D lead_span(lead->ptw.v[0][0], lead->ptw.v[0][1], lead->ptw.v[0][2]);
+    Vector3D own_span(plane->ptw.v[0][0], plane->ptw.v[0][1], plane->ptw.v[0][2]);
+    float step = lead->velocity.Length() * dt;
+    Vector3D offset = this->formationSlot(leader);
+    float offset_length = offset.Length();
+    Vector3D to_slot = lead->position + offset - plane->position;
+    float slot_distance = to_slot.Length();
+    bool far = slot_distance > 4.0f * offset_length;
+    Vector3D own_flat(own_nose.x, 0.0f, own_nose.z);
+    Vector3D slot_flat(to_slot.x, 0.0f, to_slot.z);
+    bool behind = own_flat.AngleBetween(slot_flat) > 160.0f;
+    if (far) {
+        active = false;
+    } else if (!active) {
+        Vector3D lead_flat(lead_nose.x, 0.0f, lead_nose.z);
+        if ((int) lead_flat.AngleBetween(own_flat) < 15) {
+            active = true;
+        }
+    }
+    if (!active) {
+        return false;
+    }
+    if (!formation_active || !formation_history_ready) {
+        for (int i = 0; i < 32; i++) {
+            formation_nose[i] = own_nose;
+            formation_span[i] = own_span;
+        }
+        formation_index = 0;
+        formation_clock = 0.0f;
+        formation_history_ready = true;
+    }
+    if (step < slot_distance) {
+        float extra = slot_distance - step;
+        float cap = (slot_distance > 3000.0f && behind ? 50.0f : 20.0f) * dt;
+        step += std::min(extra, cap);
+    } else {
+        step = slot_distance;
+    }
+    float lead_stick = fabsf(lead->elevator) * 16.0f;
+    owner->pilot->BeginGroundOps();
+    owner->pilot->CmdGroundControls(0.0f, lead->GetThrottle() / 10, plane->GetFlaps(), 0, 0);
+    float correction = step * (behind ? 76.0f / 256.0f : 25.0f / 256.0f);
+    step -= correction;
+    while (formation_clock >= 0.125f) {
+        formation_nose[formation_index] = lead_nose;
+        if (lead_stick > 2.0f) {
+            formation_span[formation_index] = (formation_span[formation_index] + lead_span) * 0.5f;
+        } else {
+            Matrix level;
+            level.Identity();
+            level.rotateM(atan2f(-own_nose.x, -own_nose.z), 0, 1, 0);
+            formation_span[formation_index] = Vector3D(level.v[0][0], level.v[0][1], level.v[0][2]);
+        }
+        formation_index = (formation_index + 1) & 31;
+        formation_clock -= 0.125f;
+    }
+    formation_clock += dt;
+    Vector3D mean_nose(0.0f, 0.0f, 0.0f);
+    Vector3D mean_span(0.0f, 0.0f, 0.0f);
+    for (int i = 0; i < 32; i++) {
+        mean_nose = mean_nose + formation_nose[i];
+        mean_span = mean_span + formation_span[i];
+    }
+    mean_nose = mean_nose * (1.0f / 32.0f);
+    mean_span = mean_span * (1.0f / 32.0f);
+    Vector3D motion = mean_nose * step;
+    Vector3D toward = to_slot - motion;
+    toward.Normalize();
+    motion = motion + toward * correction;
+    // orientation : nez du leader, envergure moyenne (Matrix_OrthonormalizeKeepRow1_57660)
+    Vector3D span = mean_span - lead_nose * (mean_span.x * lead_nose.x + mean_span.y * lead_nose.y + mean_span.z * lead_nose.z);
+    span.Normalize();
+    float yaw = atan2f(-lead_nose.x, -lead_nose.z);
+    float pitch = asinf(std::clamp(lead_nose.y, -1.0f, 1.0f));
+    Matrix zero_roll;
+    zero_roll.Identity();
+    zero_roll.rotateM(yaw, 0, 1, 0);
+    zero_roll.rotateM(pitch, 1, 0, 0);
+    Vector3D right0(zero_roll.v[0][0], zero_roll.v[0][1], zero_roll.v[0][2]);
+    Vector3D up0(zero_roll.v[1][0], zero_roll.v[1][1], zero_roll.v[1][2]);
+    float roll = atan2f(span.x * up0.x + span.y * up0.y + span.z * up0.z, span.x * right0.x + span.y * right0.y + span.z * right0.z);
+    PlaneKinematicEvent event;
+    event.plane = plane;
+    event.engaged = true;
+    event.velocity = motion * (1.0f / dt);
+    event.yaw = norm3600(radToDegree(yaw) * 10.0f);
+    event.pitch = radToDegree(pitch) * 10.0f;
+    event.roll = norm3600(radToDegree(roll) * 10.0f);
+    MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
+    return true;
+}
+
+void SCAIBrain::followWaypoints(SCMissionActors *leader) {
+    // Goal_FollowWaypoints
+    if (maneuver_id != 0) {
+        combat_step_called = true;
+        this->tickManeuver();
+        return;
+    }
+    if (leader == nullptr || leader->plane == nullptr) {
+        return;
+    }
+    if (leader->plane->ejected) {
+        follow_leader = nullptr;
+        return;
+    }
+    SCPlane *lead = leader->plane;
+    if (lead->y - lead->groundlevel > 333.0f) {
+        // noeud entite+0xD5 = ID7 (poursuite du leader)
+        this->scoreManeuver(7, leader);
+        this->applyManeuver(7, leader, REACT_NONE);
+        combat_step_called = true;
+        this->tickManeuver();
+        return;
+    }
+    // noeud entite+0xD1 = ID21 : 1000 m au-dessus du leader, vitesse = nez * 200 + vitesse du leader
+    Vector3D point = lead->position + Vector3D(0.0f, 1000.0f, 0.0f);
+    Vector3D velocity = lead->forward * 200.0f + lead->velocity;
+    this->navigateWithVelocity(point, velocity);
 }
