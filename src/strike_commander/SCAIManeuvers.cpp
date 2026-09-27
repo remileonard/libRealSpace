@@ -587,6 +587,9 @@ bool SCAIBrain::tickManeuver() {
     SCMissionActors *target = maneuver_target;
     bool has_target = target != nullptr && target->plane != nullptr && !target->is_destroyed;
     this->buildCombatContext(has_target ? target : nullptr);
+    if (has_target) {
+        pilot->target_waypoint = target->plane->position;
+    }
     float cruise = (float) owner->object->entity->jdyn->ai_speed_cruise;
     float flying = (float) owner->profile->ai.atrb.FL;
     float climb = 40.0f * flying * flying / 256.0f + 5.0f;

@@ -118,7 +118,8 @@ private:
     float maxRollRate(float dt);
     float clampPitch(float stick);
 public:
-    Vector3D target_waypoint{0.0f, 0.0f, 0.0f};
+    Vector3D target_waypoint{0.0f, 0.0f, 0.0f};   // lecture exterieure seulement (DebugStrike)
+    Vector3D steer_waypoint{0.0f, 0.0f, 0.0f};
     bool has_waypoint{false};
     bool turning{false};
     int target_speed{0};

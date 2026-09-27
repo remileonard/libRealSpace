@@ -439,7 +439,7 @@ void SCAIBrain::navigateToPilotWaypoint() {
     if (!brain_orders_enabled || owner->plane->on_ground || owner->pilot->land || !owner->pilot->has_waypoint) {
         return;
     }
-    Vector3D point = owner->pilot->target_waypoint;
+    Vector3D point = owner->pilot->steer_waypoint;
     point.y = (float) owner->pilot->target_climb;
     this->navigateToPoint(point, 0.0f);
 }
@@ -1934,6 +1934,7 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
         pilot->BeginGroundOps();
         pilot->CmdGroundControls(0.0f, plane->GetThrottle() / 10, plane->GetFlaps(), 1, 0);
         pilot->CmdPlaceAt(ground_op_origin, ground_op_axis, 0.0f);
+        pilot->target_waypoint = landing_target;
         printf("AI %s#%d landing approach=%d touchdown=%d speed=%d aim=%d steps=%d\n", owner->actor_name.c_str(), owner->actor_id, approach_spot, touchdown_spot, entity->landing_speed, entity->landing_aim_height, entity->landing_pitch_steps);
         return false;
     }
@@ -2121,6 +2122,7 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     if (!active) {
         return false;
     }
+    owner->pilot->target_waypoint = lead->position + offset;
     if (!formation_active || !formation_history_ready) {
         for (int i = 0; i < 32; i++) {
             formation_nose[i] = own_nose;

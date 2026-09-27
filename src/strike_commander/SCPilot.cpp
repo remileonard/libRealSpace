@@ -51,6 +51,7 @@ void SCPilot::SetTargetWaypoint(Vector3D waypoint) {
     this->target_waypoint = {
         waypoint.x, waypoint.y, waypoint.z
     };
+    this->steer_waypoint = waypoint;
     Vector2D weapoint_direction = {
         waypoint.x - plane->x,
         waypoint.z - plane->z
@@ -249,7 +250,7 @@ void SCPilot::FlyTo() {
     if (!this->attitude_mode && !this->land && !this->plane->on_ground) {
         Vector3D direction;
         if (this->has_waypoint) {
-            direction = Vector3D(this->target_waypoint.x - this->plane->x, (float) this->target_climb - this->plane->y, this->target_waypoint.z - this->plane->z);
+            direction = Vector3D(this->steer_waypoint.x - this->plane->x, (float) this->target_climb - this->plane->y, this->steer_waypoint.z - this->plane->z);
         } else {
             float heading_yaw = tenthOfDegreeToRad(norm3600(3600.0f - this->target_azimut));
             direction = Vector3D(-sinf(heading_yaw) * 5000.0f, (float) this->target_climb - this->plane->y, -cosf(heading_yaw) * 5000.0f);
