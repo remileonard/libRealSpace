@@ -523,6 +523,16 @@ void DebugStrike::radar() {
                 draw_list->AddRect(pilot_top_left, pilot_bottom_right, IM_COL32(255, 0, 255, 255));
                 draw_list->AddLine(ImVec2(actor_canvas_pos.x, actor_canvas_pos.y),
                                    ImVec2(pilot_waypoin.x, pilot_waypoin.y), IM_COL32(255, 0, 255, 255));
+                if (actor->target != nullptr) {
+                    ImVec2 actor_target = ImVec2(
+                        canvas_center.x + actor->target->object->position.x * scale_x,
+                        canvas_center.y + actor->target->object->position.z * scale_z);
+                    draw_list->AddLine(
+                        ImVec2(actor_canvas_pos.x, actor_canvas_pos.y),
+                        ImVec2(actor_target.x, actor_target.y), IM_COL32(255, 0, 0, 255)
+                    );
+                }
+                
             }
             if (actor->is_active || actor->plane == this->player_plane) {
                 ImVec2 plane_direction =
