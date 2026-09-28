@@ -747,7 +747,6 @@ void SCJetpPlane::Simulate() {
         this->updateVelocity();
     }
     this->updatePlaneStatus();
-    printf("ctr_x: %d, ctr_y: %d, th: %d, roll: %f, yaw: %f, pitch: %f alpha : %f, g: %f, fps: %d\n", this->control_stick_x, this->control_stick_y, this->thrust, this->roll, this->yaw, this->pitch, this->alpha_deg, this->g_load, this->tps);
     // Consommation carburant : facteur MIL/PC x SFC x cran x dt (PhysicsTicks, DATA_MODEL.md §6.2).
     float notch = this->thrust / 10.0f;
     if (this->fuel_kg <= 0.0f) {
