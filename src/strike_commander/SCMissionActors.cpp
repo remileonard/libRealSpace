@@ -648,11 +648,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         return;
     }
 
-    // override_progs (ordre radio accepte) est traite exclusivement par
-    // tryActiveWingman(), sous le selecteur GOAL_ACTIVE_WINGMAN — voir
-    // onAIRefresh()/runGoalSelectors(). Ce test reste ici : tant qu'un
-    // ordre est en cours, le script de mission normal ne doit pas reprendre
-    // la main.
+    // tant qu'un ordre radio est en cours (onAIRefresh), le script de mission ne reprend pas la main
     if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
         mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
         SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
@@ -722,6 +718,16 @@ void SCMissionActors::onAIRefresh(const AIRefreshEvent &event) {
     }
     if (this->plane == nullptr || this->pilot == nullptr) {
         return;
+    }
+    // ordre radio accepte : pose l'objectif comme le script (Goal_SetObjective_A307)
+    if (!this->override_progs.empty()) {
+        SCProg *p = new SCProg(this, this->override_progs, this->mission, 255);
+        p->execute();
+        delete p;
+        if (this->current_command_executed) {
+            this->override_progs.clear();
+            this->override_progs.shrink_to_fit();
+        }
     }
     this->brain->tick();
 }

@@ -63,7 +63,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
     RSIntel &intel = owner->mission->intel;
     float range = intel.range_gun;
     int flying = owner->profile->ai.atrb.FL;
-    int uses = maneuver_uses[id];
+    int uses = maneuver.uses[id];
     bool has_target = target != nullptr && target->plane != nullptr;
     int score = 0;
     switch (id) {
@@ -119,7 +119,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
             break;
         }
         case 3: {
-            maneuver_phase_hint = 0;
+            maneuver.phase_hint = 0;
             if (!has_target || ctx.aspect > 20.0f) {
                 return 0;
             }
@@ -170,7 +170,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
         }
         case 5:
         case 6: {
-            maneuver_phase_hint = 3;
+            maneuver.phase_hint = 3;
             if (!has_target || !ctx.aircraft) {
                 return 0;
             }
@@ -221,12 +221,12 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
                     score += 4;
                 } else if (owner->plane->y > (float) intel.unknown_range) {
                     score -= 6;
-                    maneuver_phase_hint = 1;
+                    maneuver.phase_hint = 1;
                 }
             } else {
                 if (ctx.ias > ctx.cruise) {
                     score -= 4;
-                    maneuver_phase_hint = 2;
+                    maneuver.phase_hint = 2;
                 } else if (this->tooSlow()) {
                     score += 6;
                 }
@@ -241,17 +241,17 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
             break;
         }
         case 7: {
-            maneuver_bits = 0;
+            maneuver.bits = 0;
             if (owner->plane->wing_stall > 0 || !has_target) {
                 return 0;
             }
             score = 5;
             if (flying > 13 || this->skillCheck(flying, -7)) {
                 if (ctx.aspect < 90.0f) {
-                    maneuver_bits |= 1;
+                    maneuver.bits |= 1;
                 }
                 if (ctx.nose_angle > 110.0f) {
-                    maneuver_bits |= 1;
+                    maneuver.bits |= 1;
                     score -= 3;
                 } else if (ctx.nose_angle < 50.0f) {
                     score += 3;
@@ -269,12 +269,12 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
                     score += 4;
                 }
                 if (ctx.aircraft && ctx.behind) {
-                    maneuver_point = ctx.future_rel;
-                    maneuver_bits |= 2;
+                    maneuver.point = ctx.future_rel;
+                    maneuver.bits |= 2;
                     score += 10;
                 } else if (ctx.aircraft && ctx.head_on) {
-                    maneuver_point = ctx.future_rel;
-                    maneuver_bits |= 8;
+                    maneuver.point = ctx.future_rel;
+                    maneuver.bits |= 8;
                     score += 10;
                 }
             } else if ((ctx.nose_angle < 60.0f && ctx.target_vel_angle < 60.0f) || ctx.dist > range) {
@@ -336,8 +336,8 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
         case 16:
             return flying < 12 ? 1 : 0;
         case 19: {
-            SCMissionActors *ground = ground_target != nullptr ? ground_target : owner->target;
-            bool ground_ok = ground != nullptr && !ground->is_destroyed && ground->object != nullptr && ground->object->entity != nullptr && ground->object->entity->target_type == 2;
+            SCMissionActors *candidate = ground_target != nullptr ? ground_target : owner->target;
+            bool ground_ok = candidate != nullptr && !candidate->is_destroyed && candidate->object != nullptr && candidate->object->entity != nullptr && candidate->object->entity->target_type == 2;
             return (ground_ok && (this->loadedWeaponMask() & 0xFC) != 0) ? 5 : 0;
         }
         default:
@@ -375,8 +375,8 @@ bool SCAIBrain::runTournament() {
     uint8_t best_bits = 0;
     Vector3D best_point = {0.0f, 0.0f, 0.0f};
     for (int i = 0; i < count; i++) {
-        maneuver_phase_hint = 0;
-        maneuver_bits = 0;
+        maneuver.phase_hint = 0;
+        maneuver.bits = 0;
         int score = this->scoreManeuver(ids[i], air_target);
         if (score == 0) {
             continue;
@@ -385,75 +385,74 @@ bool SCAIBrain::runTournament() {
         if (total > best) {
             best = total;
             best_id = ids[i];
-            best_hint = maneuver_phase_hint;
-            best_bits = maneuver_bits;
-            best_point = maneuver_point;
+            best_hint = maneuver.phase_hint;
+            best_bits = maneuver.bits;
+            best_point = maneuver.point;
         }
     }
     if (best_id == 0) {
         return false;
     }
-    maneuver_phase_hint = best_hint;
-    maneuver_bits = best_bits;
-    maneuver_point = best_point;
+    maneuver.phase_hint = best_hint;
+    maneuver.bits = best_bits;
+    maneuver.point = best_point;
     this->applyManeuver(best_id, air_target, REACT_NONE);
     printf("AI %s#%d maneuver %d wins (score %d)\n", owner->actor_name.c_str(), owner->actor_id, best_id, best);
     return this->tickManeuver();
 }
 
 void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
-    maneuver_id = id;
-    maneuver_target = target;
-    maneuver_level = level;
-    maneuver_timer = 2.0f;
-    maneuver_phase = 0;
-    maneuver_legs = 0;
-    maneuver_start_heading = owner->plane->forward.Azimuth();
-    maneuver_uses[id]++;
+    maneuver.id = id;
+    maneuver.target = target;
+    maneuver.level = level;
+    maneuver.timer = 2.0f;
+    maneuver.phase = 0;
+    maneuver.legs = 0;
+    maneuver.start_heading = owner->plane->forward.Azimuth();
+    maneuver.uses[id]++;
     owner->pilot->disengageAutopilot();
-    nav_behavior = false;
-    nav_active = false;
+    this->pushBehavior(BEHAVIOR_MANEUVER);
     this->buildCombatContext(target);
     switch (id) {
         case 1: {
             float side = ctx.side >= 0.0f ? 1.0f : -1.0f;
-            maneuver_leg = owner->plane->forward.RotateAzimuth(30.0f * side);
-            maneuver_leg_timer = 1.0f;
-            maneuver_legs = 4;
+            maneuver.leg = owner->plane->forward.RotateAzimuth(30.0f * side);
+            maneuver.leg_timer = 1.0f;
+            maneuver.legs = 4;
             break;
         }
         case 2: {
             float stick = owner->pilot->RollStickValue();
-            maneuver_side = stick > 3.0f ? 1 : stick < -3.0f ? 0 : (std::rand() & 1);
+            maneuver.side = stick > 3.0f ? 1 : stick < -3.0f ? 0 : (std::rand() & 1);
             break;
         }
         case 3:
-            maneuver_timer = 4.0f;
+            maneuver.timer = 4.0f;
             break;
         case 4:
-            maneuver_side = ctx.side >= 0.0f ? 1 : 0;
+            maneuver.side = ctx.side >= 0.0f ? 1 : 0;
             break;
         case 5:
-            maneuver_timer = 5.0f;
-            maneuver_phase = maneuver_phase_hint;
+            maneuver.timer = 5.0f;
+            maneuver.phase = maneuver.phase_hint;
             break;
         case 6:
-            maneuver_timer = 5.0f;
-            maneuver_phase = maneuver_phase_hint;
+            maneuver.timer = 5.0f;
+            maneuver.phase = maneuver.phase_hint;
             break;
         case 7:
-            maneuver_timer = (maneuver_bits & 1) ? 1.0f : 2.0f;
-            if ((maneuver_bits & 0x0A) != 0 && !this->tooLow()) {
-                maneuver_timer = 4.0f;
+            maneuver.timer = (maneuver.bits & 1) ? 1.0f : 2.0f;
+            if ((maneuver.bits & 0x0A) != 0 && !this->tooLow()) {
+                maneuver.timer = 4.0f;
             }
-            maneuver_bits &= ~0x14;
+            maneuver.bits &= ~0x14;
             break;
         case 13:
-            maneuver_timer = 4.0f;
-            maneuver_phase = 1;
+            maneuver.timer = 4.0f;
+            maneuver.phase = 1;
             break;
         case 16:
-            maneuver_timer = 1.5f;
+            maneuver.timer = 1.5f;
             break;
         default:
             break;
@@ -461,26 +460,26 @@ void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
 }
 
 void SCAIBrain::endManeuver(bool finished) {
-    if (maneuver_id == 0) {
+    if (maneuver.id == 0) {
         return;
     }
-    printf("AI %s#%d maneuver %d ends\n", owner->actor_name.c_str(), owner->actor_id, maneuver_id);
-    if (maneuver_level != REACT_NONE && reaction_level == maneuver_level) {
+    printf("AI %s#%d maneuver %d ends\n", owner->actor_name.c_str(), owner->actor_id, maneuver.id);
+    if (maneuver.level != REACT_NONE && reaction_level == maneuver.level) {
         reaction_level = REACT_NONE;
     }
-    if (maneuver_id == 19) {
+    if (maneuver.id == 19) {
         this->resetGroundAttack(finished);
     }
-    last_finished_behavior = maneuver_id;
-    maneuver_id = 0;
-    maneuver_target = nullptr;
-    maneuver_level = REACT_NONE;
-    this->onBehaviorEnded(finished);
+    last_finished_behavior = maneuver.id;
+    maneuver.id = 0;
+    maneuver.target = nullptr;
+    maneuver.level = REACT_NONE;
+    this->endBehavior(BEHAVIOR_MANEUVER, finished);
 }
 
 void SCAIBrain::maneuverSpeed(float wanted) {
     float speed = owner->plane->worldVelocity().Length();
-    if (maneuver_target != nullptr && maneuver_target->plane != nullptr) {
+    if (maneuver.target != nullptr && maneuver.target->plane != nullptr) {
         if (ctx.dist < 1800.0f) {
             wanted = wanted * (3600.0f - ctx.dist) / 1800.0f;
         }
@@ -536,19 +535,19 @@ bool SCAIBrain::ejectDecision(int mode) {
 
 bool SCAIBrain::tickLeg() {
     owner->pilot->CmdThrottle(10);
-    owner->pilot->CmdGuidance(maneuver_leg);
-    maneuver_leg_timer -= TICK_DURATION;
-    return maneuver_leg_timer > 0.0f;
+    owner->pilot->CmdGuidance(maneuver.leg);
+    maneuver.leg_timer -= TICK_DURATION;
+    return maneuver.leg_timer > 0.0f;
 }
 
 bool SCAIBrain::tickManeuver() {
-    if (maneuver_id == 0) {
+    if (maneuver.id == 0) {
         return false;
     }
     SCPilot *pilot = owner->pilot;
     pilot->BeginManual();
-    maneuver_timer -= TICK_DURATION;
-    SCMissionActors *target = maneuver_target;
+    maneuver.timer -= TICK_DURATION;
+    SCMissionActors *target = maneuver.target;
     bool has_target = target != nullptr && target->plane != nullptr && !target->is_destroyed;
     this->buildCombatContext(has_target ? target : nullptr);
     if (has_target) {
@@ -558,21 +557,21 @@ bool SCAIBrain::tickManeuver() {
     float flying = (float) owner->profile->ai.atrb.FL;
     float climb = 40.0f * flying * flying / 256.0f + 5.0f;
     bool running = true;
-    switch (maneuver_id) {
+    switch (maneuver.id) {
         case 1:
-            if (!has_target || ctx.nose_angle < 60.0f || maneuver_legs <= 0) {
+            if (!has_target || ctx.nose_angle < 60.0f || maneuver.legs <= 0) {
                 running = false;
                 break;
             }
             if (!this->tickLeg()) {
-                maneuver_legs--;
-                maneuver_leg = owner->plane->forward.RotateAzimuth(-60.0f);
-                maneuver_leg_timer = 1.0f;
+                maneuver.legs--;
+                maneuver.leg = owner->plane->forward.RotateAzimuth(-60.0f);
+                maneuver.leg_timer = 1.0f;
             }
             this->maneuverSpeed(cruise);
             break;
         case 2: {
-            if (maneuver_timer <= 0.0f) {
+            if (maneuver.timer <= 0.0f) {
                 running = false;
                 break;
             }
@@ -590,39 +589,39 @@ bool SCAIBrain::tickManeuver() {
             }
             bool same = (up[axis] >= 0.0f) == (d[axis] >= 0.0f);
             pilot->CmdPitchStick(same ? 16.0f : -8.0f);
-            pilot->CmdRollStick(maneuver_side == 1 ? 16.0f : -16.0f);
+            pilot->CmdRollStick(maneuver.side == 1 ? 16.0f : -16.0f);
             this->maneuverSpeed(cruise);
             break;
         }
         case 3:
-            if (maneuver_timer <= 0.0f && maneuver_phase != 6) {
-                maneuver_phase = 6;
+            if (maneuver.timer <= 0.0f && maneuver.phase != 6) {
+                maneuver.phase = 6;
             }
-            switch (maneuver_phase) {
+            switch (maneuver.phase) {
                 case 0: {
                     bool slow = this->tooSlow();
                     bool low = this->tooLow();
                     if (slow && !low) {
-                        maneuver_phase = 2;
+                        maneuver.phase = 2;
                     } else if (slow && low) {
-                        maneuver_phase = 1;
+                        maneuver.phase = 1;
                     } else if (!slow && low) {
-                        maneuver_phase = 4;
+                        maneuver.phase = 4;
                     } else {
                         int pick = std::rand() & 3;
-                        maneuver_phase = pick == 1 ? 2 : pick == 2 ? 4 : 1;
+                        maneuver.phase = pick == 1 ? 2 : pick == 2 ? 4 : 1;
                     }
-                    if (maneuver_phase == 1) {
-                        maneuver_legs++;
-                        float magnitude = (maneuver_legs & 1) ? 32.0f : 64.0f;
-                        maneuver_leg = owner->plane->forward.RotateAzimuth((maneuver_legs & 2) ? -magnitude : magnitude);
-                        maneuver_leg_timer = 1.0f;
+                    if (maneuver.phase == 1) {
+                        maneuver.legs++;
+                        float magnitude = (maneuver.legs & 1) ? 32.0f : 64.0f;
+                        maneuver.leg = owner->plane->forward.RotateAzimuth((maneuver.legs & 2) ? -magnitude : magnitude);
+                        maneuver.leg_timer = 1.0f;
                     }
                     break;
                 }
                 case 1:
                     if (!this->tickLeg()) {
-                        maneuver_phase = 0;
+                        maneuver.phase = 0;
                     }
                     break;
                 case 2:
@@ -631,13 +630,13 @@ bool SCAIBrain::tickManeuver() {
                         pilot->CmdPitchStick(16.0f);
                     }
                     if (pilot->NosePitch() >= -30.0f) {
-                        maneuver_phase = 3;
+                        maneuver.phase = 3;
                     }
                     break;
                 case 3:
                     if (this->tooLow() || owner->plane->worldVelocity().Length() >= cruise) {
                         if (pilot->CmdPitchTo(5.0f, 5.0f)) {
-                            maneuver_phase = 0;
+                            maneuver.phase = 0;
                         }
                     } else {
                         pilot->CmdPitchTo(-climb, 5.0f);
@@ -648,13 +647,13 @@ bool SCAIBrain::tickManeuver() {
                         pilot->CmdPitchStick(16.0f);
                     }
                     if (pilot->NosePitch() >= 30.0f) {
-                        maneuver_phase = 5;
+                        maneuver.phase = 5;
                     }
                     break;
                 case 5:
                     if (owner->plane->y > this->floorAltitude() + 3.0f * 200.0f || this->tooSlow()) {
                         if (pilot->CmdPitchTo(-5.0f, 5.0f)) {
-                            maneuver_phase = 0;
+                            maneuver.phase = 0;
                         }
                     } else {
                         pilot->CmdPitchTo(climb, 5.0f);
@@ -669,12 +668,12 @@ bool SCAIBrain::tickManeuver() {
             }
             break;
         case 4: {
-            float turned = std::fabs(signed180(owner->plane->forward.Azimuth() - maneuver_start_heading));
-            if (maneuver_timer < -2.0f) {
+            float turned = std::fabs(signed180(owner->plane->forward.Azimuth() - maneuver.start_heading));
+            if (maneuver.timer < -2.0f) {
                 running = false;
                 break;
             }
-            if (turned >= 90.0f || maneuver_timer <= 0.0f) {
+            if (turned >= 90.0f || maneuver.timer <= 0.0f) {
                 if (pilot->CmdPitchTo(10.0f, 5.0f)) {
                     running = false;
                 }
@@ -682,82 +681,82 @@ bool SCAIBrain::tickManeuver() {
             }
             pilot->CmdThrottle(10);
             float bank = this->tooLow() ? 60.0f : 90.0f;
-            if (pilot->CmdRollTo(maneuver_side == 1 ? bank : -bank, maneuver_phase == 0 ? 30.0f : 5.0f)) {
-                maneuver_phase = 1;
+            if (pilot->CmdRollTo(maneuver.side == 1 ? bank : -bank, maneuver.phase == 0 ? 30.0f : 5.0f)) {
+                maneuver.phase = 1;
                 pilot->CmdPitchStick(16.0f);
             }
             break;
         }
         case 5:
         case 6: {
-            if (maneuver_timer <= 0.0f) {
+            if (maneuver.timer <= 0.0f) {
                 running = false;
                 break;
             }
             this->speedThrottle(cruise);
             Vector3D direction = has_target ? ctx.D : owner->plane->forward;
-            switch (maneuver_phase) {
+            switch (maneuver.phase) {
                 case 1:
-                    if (maneuver_id == 5) {
+                    if (maneuver.id == 5) {
                         if (owner->plane->y > (float) owner->mission->intel.unknown_range) {
                             pilot->CmdPitchTo(-30.0f, 5.0f);
                         } else {
-                            maneuver_phase = 2;
+                            maneuver.phase = 2;
                         }
                     } else {
                         if (pilot->CmdPitchTo(30.0f, 5.0f) && owner->plane->y > this->floorAltitude() + 2000.0f) {
-                            maneuver_phase = 2;
+                            maneuver.phase = 2;
                         } else if (owner->plane->y > this->floorAltitude() + 2000.0f) {
-                            maneuver_phase = 2;
+                            maneuver.phase = 2;
                         }
                     }
                     break;
                 case 2:
-                    if (maneuver_id == 5) {
+                    if (maneuver.id == 5) {
                         pilot->CmdThrottle(10);
                         pilot->CmdPitchTo(this->tooLow() ? 5.0f : -30.0f, 5.0f);
                         if (owner->plane->worldVelocity().Length() >= cruise) {
-                            maneuver_phase = 3;
+                            maneuver.phase = 3;
                         }
                     } else {
                         this->speedThrottle((float) owner->object->entity->jdyn->ai_speed_min);
                         pilot->CmdPitchTo(20.0f, 5.0f);
                         if (owner->plane->worldVelocity().Length() < cruise) {
-                            maneuver_phase = 3;
+                            maneuver.phase = 3;
                         }
                     }
                     break;
                 case 3:
-                    if (maneuver_id == 5) {
+                    if (maneuver.id == 5) {
                         if (pilot->CmdPitchTo(0.0f, 5.0f)) {
-                            maneuver_phase = 4;
+                            maneuver.phase = 4;
                         }
                     } else if (pilot->CmdPitchTo(0.0f, 5.0f) && pilot->CmdRollTo(180.0f, 5.0f)) {
-                        maneuver_phase = 4;
+                        maneuver.phase = 4;
                     }
                     break;
                 case 4:
-                    if (pilot->CmdPitchTo(maneuver_id == 5 ? 90.0f : -90.0f, 5.0f)) {
-                        maneuver_phase = 5;
+                    if (pilot->CmdPitchTo(maneuver.id == 5 ? 90.0f : -90.0f, 5.0f)) {
+                        maneuver.phase = 5;
                     }
                     break;
                 case 5: {
                     float r = pilot->BearingToRef(direction);
                     pilot->CmdRollTo(pilot->BankAngle() + r, 5.0f);
                     if (std::fabs(r) < 5.0f || this->tooSlow()) {
-                        maneuver_phase = 6;
+                        maneuver.phase = 6;
                     }
                     break;
                 }
                 case 6:
                     pilot->CmdPitchStick(16.0f);
-                    if (maneuver_id == 5 ? pilot->NosePitch() <= 45.0f : pilot->NosePitch() >= -45.0f) {
-                        maneuver_phase = 7;
+                    if (maneuver.id == 5 ? pilot->NosePitch() <= 45.0f : pilot->NosePitch() >= -45.0f) {
+                        maneuver.phase = 7;
                     }
                     break;
                 case 7:
                     if (pilot->CmdPitchTo(has_target ? direction.Elevation() : 0.0f, 5.0f)) {
-                        maneuver_phase = 8;
+                        maneuver.phase = 8;
                     }
                     break;
                 default:
@@ -769,15 +768,15 @@ bool SCAIBrain::tickManeuver() {
             break;
         }
         case 7: {
-            if (!has_target || maneuver_timer <= 0.0f) {
+            if (!has_target || maneuver.timer <= 0.0f) {
                 running = false;
                 break;
             }
-            if ((maneuver_bits & 2) && ctx.aspect >= 80.0f) {
-                maneuver_bits |= 4;
+            if ((maneuver.bits & 2) && ctx.aspect >= 80.0f) {
+                maneuver.bits |= 4;
             }
-            if (maneuver_bits & 4) {
-                Vector3D point = owner->plane->position + maneuver_point;
+            if (maneuver.bits & 4) {
+                Vector3D point = owner->plane->position + maneuver.point;
                 Vector3D direction = point - owner->plane->position;
                 if (!this->tooSlow()) {
                     float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
@@ -785,23 +784,23 @@ bool SCAIBrain::tickManeuver() {
                 }
                 pilot->CmdGuidance(direction);
                 this->speedThrottle((float) owner->object->entity->jdyn->ai_speed_min);
-            } else if (maneuver_bits & 0x10) {
-                Vector3D direction = maneuver_point - owner->plane->position;
+            } else if (maneuver.bits & 0x10) {
+                Vector3D direction = maneuver.point - owner->plane->position;
                 if (ctx.nose_angle < 45.0f) {
                     direction = ctx.D;
                 }
                 pilot->CmdGuidance(direction);
                 this->maneuverSpeed((float) owner->object->entity->jdyn->ai_speed_max);
             } else {
-                if (maneuver_bits & 8) {
+                if (maneuver.bits & 8) {
                     float threshold = 2.0f * ctx.target_speed * ctx.target_speed / 9.0f;
                     if (ctx.dist <= threshold) {
-                        maneuver_timer = 4.0f;
-                        maneuver_bits |= 0x10;
-                        maneuver_point = target->plane->position + target->plane->worldVelocity() * 4.0f;
+                        maneuver.timer = 4.0f;
+                        maneuver.bits |= 0x10;
+                        maneuver.point = target->plane->position + target->plane->worldVelocity() * 4.0f;
                     }
                 } else if (ctx.nose_angle <= 60.0f && ctx.aspect < 60.0f) {
-                    maneuver_bits |= 8;
+                    maneuver.bits |= 8;
                 }
                 pilot->CmdGuidance(ctx.D);
                 this->maneuverSpeed((float) owner->object->entity->jdyn->ai_speed_max);
@@ -814,7 +813,7 @@ bool SCAIBrain::tickManeuver() {
                 break;
             }
             float horizontal = sqrtf(ctx.D.x * ctx.D.x + ctx.D.z * ctx.D.z);
-            if (maneuver_phase == 1) {
+            if (maneuver.phase == 1) {
                 if (horizontal < (float) owner->mission->intel.range_long) {
                     running = false;
                     break;
@@ -824,24 +823,24 @@ bool SCAIBrain::tickManeuver() {
                 pilot->CmdGuidance(direction);
                 pilot->CmdThrottle(10);
                 if (std::fabs(ctx.side) < 5.0f) {
-                    maneuver_phase = 2;
+                    maneuver.phase = 2;
                 }
-            } else if (maneuver_phase == 2) {
+            } else if (maneuver.phase == 2) {
                 if (this->tooSlow()) {
                     if (pilot->CmdPitchTo(0.0f, 5.0f)) {
                         pilot->CmdRollTo(0.0f, 5.0f);
                     }
                 } else {
-                    maneuver_phase = 3;
+                    maneuver.phase = 3;
                 }
-            } else if (maneuver_phase == 3) {
-                maneuver_timer -= TICK_DURATION;
+            } else if (maneuver.phase == 3) {
+                maneuver.timer -= TICK_DURATION;
                 float min_speed = (float) owner->object->entity->jdyn->ai_speed_min;
                 float angle = std::min(60.0f, 30.0f + 30.0f * (ctx.ias - cruise) / min_speed);
                 pilot->CmdPitchTo(angle, 5.0f);
                 pilot->CmdThrottle(10);
-                if (maneuver_timer < 0.0f || this->tooSlow() || horizontal < (float) owner->mission->intel.range_long) {
-                    maneuver_phase = 4;
+                if (maneuver.timer < 0.0f || this->tooSlow() || horizontal < (float) owner->mission->intel.range_long) {
+                    maneuver.phase = 4;
                 }
             } else {
                 this->speedThrottle(cruise);
@@ -852,7 +851,7 @@ bool SCAIBrain::tickManeuver() {
             break;
         }
         case 14: {
-            if (this->ejectDecision(2) || maneuver_timer < 0.0f) {
+            if (this->ejectDecision(2) || maneuver.timer < 0.0f) {
                 running = false;
                 break;
             }
@@ -869,7 +868,7 @@ bool SCAIBrain::tickManeuver() {
             break;
         }
         case 15: {
-            if (maneuver_timer < 0.0f || this->ejectDecision(1)) {
+            if (maneuver.timer < 0.0f || this->ejectDecision(1)) {
                 running = false;
                 break;
             }
@@ -890,7 +889,7 @@ bool SCAIBrain::tickManeuver() {
         }
         case 16: {
             float min_speed = (float) owner->object->entity->jdyn->ai_speed_min;
-            if (maneuver_timer <= 0.0f || ctx.ias > (cruise + min_speed) / 2.0f) {
+            if (maneuver.timer <= 0.0f || ctx.ias > (cruise + min_speed) / 2.0f) {
                 running = false;
                 break;
             }
@@ -915,13 +914,13 @@ bool SCAIBrain::tickManeuver() {
         this->endManeuver(true);
         owner->pilot->ClearGuidance();
     } else if (debug_ticks % 25 == 0) {
-        printf("AI %s#%d maneuver %d phase=%d timer=%.1f bank=%.0f pitch=%.0f\n", owner->actor_name.c_str(), owner->actor_id, maneuver_id, maneuver_phase, maneuver_timer, pilot->BankAngle(), pilot->NosePitch());
+        printf("AI %s#%d maneuver %d phase=%d timer=%.1f bank=%.0f pitch=%.0f\n", owner->actor_name.c_str(), owner->actor_id, maneuver.id, maneuver.phase, maneuver.timer, pilot->BankAngle(), pilot->NosePitch());
     }
     return running;
 }
 
 void SCAIBrain::runReflexes() {
-    if (maneuver_id != 0 || owner->plane->on_ground || owner->pilot->autopilotActive()) {
+    if (maneuver.id != 0 || owner->plane->on_ground || owner->pilot->autopilotActive()) {
         return;
     }
     if (reaction_level <= REACT_STALL_RECOVERY && this->scoreManeuver(15, nullptr) > 0) {
@@ -938,8 +937,8 @@ void SCAIBrain::runReflexes() {
 }
 
 void SCAIBrain::incomingThreatWarning() {
-    if (owner->plane->on_ground || reaction_level > REACT_ENGAGED || maneuver_id == 4 || threat_alerted) {
-        if (maneuver_id != 4) {
+    if (owner->plane->on_ground || reaction_level > REACT_ENGAGED || maneuver.id == 4 || threat_alerted) {
+        if (maneuver.id != 4) {
             threat_alerted = false;
         }
         return;

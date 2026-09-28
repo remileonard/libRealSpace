@@ -1,55 +1,59 @@
 #include "precomp.h"
 #include "SCAIBrain.h"
 
+// Goal_MoraleReaction_878F : vitesse voulue de la fuite, (250, 100, 0) en axes asm
+static const Vector3D FLEE_VELOCITY(250.0f, 0.0f, -100.0f);
+
 SCAIBrain::SCAIBrain(SCMissionActors *owner) {
     this->owner = owner;
     // AIEntity_CreateByType_12B4E : horloge decalee de 0x19 (24.8) par entite creee
     owner->mission->ai_clock_stagger += 25.0f / 256.0f;
-    retarget_clock = owner->mission->ai_clock_stagger;
+    retarget.clock = owner->mission->ai_clock_stagger;
     // PilotProfile_LoadNUMSCompanionFile_73FB4 : masque +0x179 selon FL
     int flying = owner->profile->ai.atrb.FL;
-    retarget_mask = flying < 4 ? 15 : flying < 11 ? 7 : 3;
+    retarget.mask = flying < 4 ? 15 : flying < 11 ? 7 : 3;
 }
 
+// AIEntity_MasterTick_5ACC
 void SCAIBrain::tick() {
-    if (owner->pilot != nullptr) {
-        owner->pilot->ClearGuidance();
+    owner->pilot->ClearGuidance();
+    this->updateTimers();
+    if (!owner->plane->ejected) {
+        this->topLevelThink();
+    } else if (formation.active) {
+        // pilote ejecte (flags_75 bit 5) en mode formation (bit 3 de +0x28B)
+        this->followAllyExec(this->followLeader());
+    } else {
+        // AI_TriggerBehaviorUpdate : pilote ejecte, le comportement en cours est abandonne
+        this->abandonBehavior();
     }
-    if (!home_set) {
-        home_position = owner->plane->position;
-        home_set = true;
+    just_hit = false;
+}
+
+void SCAIBrain::updateTimers() {
+    if (!mood.home_set) {
+        mood.home = owner->plane->position;
+        mood.home_set = true;
         if (!owner->follow_slot_set) {
             // PilotProfile_LoadNUMSCompanionFile_73FB4 : entite+0x14A = NUMS (RSIntel range {x, z, y})
             Vector3D nums = owner->mission->intel.formation_offset;
             owner->follow_slot = Vector3D(nums.x, nums.z, nums.y);
         }
     }
-    this->tryActiveWingman();
     debug_ticks++;
-    // AIEntity_MasterTick_5ACC : horloge +0x175, fenetres rearmees a leur fermeture
-    retarget_clock += TICK_DURATION;
-    int retarget_second = (int) floorf(retarget_clock);
-    if (retarget_slow_fired && (retarget_second & retarget_mask) != 0) {
-        retarget_slow_fired = false;
-    }
-    if (retarget_fast_fired && (retarget_second & (retarget_mask >> 1)) != 0) {
-        retarget_fast_fired = false;
-    }
-    // AI_TopLevelThink : missile air-air tire au cycle precedent (byte_6E4D7) et FL >= 12
-    if (owner->mission->aa_missile_launched_last && owner->profile->ai.atrb.FL >= 12) {
-        this->acquireBestThreat(false);
-    }
-    if (mutiny) {
+    // horloge +0x175, fenetres de ciblage rearmees a leur fermeture
+    retarget.advance(TICK_DURATION);
+    if (mood.mutiny) {
         air_target = this->playerActor();
     }
     morale = this->computeMorale();
-    discipline_timer -= TICK_DURATION;
-    if (discipline_timer <= 0.0f) {
+    mood.discipline_timer -= TICK_DURATION;
+    if (mood.discipline_timer <= 0.0f) {
         static const int adjust[4] = {7, 4, -3, -5};
-        disciplined = owner->profile->ai.atrb.LY + adjust[morale - 2] > 7;
-        discipline_timer = 3.0f;
+        mood.disciplined = owner->profile->ai.atrb.LY + adjust[morale - 2] > 7;
+        mood.discipline_timer = 3.0f;
     }
-    morale_timer -= TICK_DURATION;
+    mood.timer -= TICK_DURATION;
     weapon_mask = this->selectWeaponMask();
     if (weapon_mask != last_weapon_mask) {
         printf("AI %s#%d weapon_mask=0x%X\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask);
@@ -57,79 +61,49 @@ void SCAIBrain::tick() {
     }
     fire_solution_quality = this->computeFireSolutionQuality();
     fire_request = false;
-    if (weapon_mask != 0 && debug_ticks % 25 == 0) {
-        printf("AI %s#%d weapon_mask=0x%X quality=%d\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask, fire_solution_quality);
-    }
-    evasion_active = false;
     pursuit_active = false;
     ground_attack_active = false;
-    ground_attack_seen = false;
-    combat_step_called = false;
-    // AI_TopLevelThink : menaces sautees en 0xA1/0xA2 ; reflexes et esquive seulement sans comportement en cours
+}
+
+// AI_TopLevelThink (AI_TICK_CALL_GRAPH.md, "Ordre complet d'un tick")
+void SCAIBrain::topLevelThink() {
+    bool airborne = !owner->plane->on_ground;
+    // 1. missile air-air tire au cycle precedent (byte_6E4D7) et FL >= 12
+    if (owner->mission->aa_missile_launched_last && owner->profile->ai.atrb.FL >= 12) {
+        this->acquireBestThreat(false);
+    }
+    // 2. alerte de menace, sautee en decollage/atterrissage et au sol
     bool ground_order = owner->current_command == OP_SET_OBJ_TAKE_OFF || owner->current_command == OP_SET_OBJ_LAND;
-    // la formation garde un comportement en cours (Goal_FollowWaypoints : ID7/ID21 pousses)
-    bool behavior_running = ground_op != GROUND_OP_NONE || formation_active;
-    if (owner->pilot != nullptr && !owner->plane->on_ground) {
-        if (!ground_order) {
-            this->incomingThreatWarning();
-        }
-        if (!behavior_running) {
-            this->runReflexes();
-        }
+    if (airborne && !ground_order) {
+        this->incomingThreatWarning();
     }
-    if (evasion_enabled && !behavior_running && (reaction_level == REACT_NONE || reaction_level == REACT_ENGAGED || reaction_level == REACT_MISSILE)) {
-        this->reactToMissile();
+    // 3. reflexes, seulement sans comportement en cours
+    if (airborne && !this->behaviorRunning()) {
+        this->runReflexes();
     }
-    if (evasion_active) {
+    // 4. reactions prioritaires : esquive de missile, entree en combat contre un attaquant
+    if (!this->behaviorRunning() && reaction_level <= REACT_MISSILE && this->reactToMissile()) {
         reaction_level = REACT_MISSILE;
-    } else if (reaction_level == REACT_MISSILE) {
+        return;
+    }
+    if (reaction_level == REACT_MISSILE) {
         reaction_level = REACT_NONE;
     }
-    nav_requested = false;
-    bool reacted = false;
-    if (!evasion_active && reaction_level <= REACT_ENGAGED && owner->pilot != nullptr && !owner->plane->on_ground) {
-        reacted = this->engageAttackerReaction();
+    if (airborne && reaction_level <= REACT_ENGAGED && this->engageAttackerReaction()) {
+        return;
     }
-    if (!evasion_active && !reacted) {
-        if (maneuver_id != 0 && reaction_level != REACT_NONE && maneuver_level != REACT_NONE) {
-            this->tickManeuver();
-        } else {
-            this->runGoalSelectors();
-        }
+    // 5. pendant une reaction, le comportement en cours garde la main
+    if (this->behaviorRunning() && reaction_level != REACT_NONE) {
+        this->tickBehavior();
+        return;
     }
-    if (!combat_step_called && maneuver_id != 0 && maneuver_level == REACT_NONE) {
-        this->endManeuver(false);
-    }
-    if (!ground_attack_seen) {
-        this->resetGroundAttack(false);
-    }
-    if (!nav_requested) {
-        this->stopNavigation();
-    }
-    just_hit = false;
-}
-
-// AI_RetargetWindowSlow_A288 : une fois quand (t & M) == 0
-bool SCAIBrain::retargetSlowWindow() {
-    if (retarget_slow_fired || ((int) floorf(retarget_clock) & retarget_mask) != 0) {
-        return false;
-    }
-    retarget_slow_fired = true;
-    return true;
-}
-
-// AI_RetargetWindowFast_A2BD : une fois quand (t & (M >> 1)) == 0
-bool SCAIBrain::retargetFastWindow() {
-    if (retarget_fast_fired || ((int) floorf(retarget_clock) & (retarget_mask >> 1)) != 0) {
-        return false;
-    }
-    retarget_fast_fired = true;
-    return true;
+    // 6. GOAL
+    this->runGoalSelectors();
 }
 
 bool SCAIBrain::engageAttackerReaction() {
     // AI_EngageAttackerReaction_E246 (1) : touche, ou fenetre rapide
-    if (just_hit || this->retargetFastWindow()) {
+    if (just_hit || retarget.fastWindow()) {
         this->acquireBestThreat(false);
     }
     bool was_engaged = reaction_level == REACT_ENGAGED;
@@ -147,9 +121,9 @@ bool SCAIBrain::engageAttackerReaction() {
         return false;
     }
     reaction_level = REACT_ENGAGED;
-    if (!was_engaged) printf("AI %s#%d engage attacker=%s hit=%d six=%d command=%d leader_state=%d\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), just_hit ? 1 : 0, on_my_six ? 1 : 0, owner->current_command, leader_state);
+    if (!was_engaged) printf("AI %s#%d engage attacker=%s hit=%d six=%d command=%d formation.leader_state=%d\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), just_hit ? 1 : 0, on_my_six ? 1 : 0, owner->current_command, formation.leader_state);
     if (owner->current_command == OP_SET_OBJ_FOLLOW_ALLY) {
-        if (leader_state != 0) {
+        if (formation.leader_state != 0) {
             return false;
         }
         bool leader_is_player = false;
@@ -163,64 +137,67 @@ bool SCAIBrain::engageAttackerReaction() {
         if (!leader_is_player && !aims_at_me) {
             return false;
         }
-        leader_state = 3;
+        formation.leader_state = 3;
         owner->target = air_target;
         if (leader_is_player) {
             owner->setMessage(0x12);
         }
         return false;
     }
-    this->stopNavigation();
+    this->abandonNavigation();
     return this->combatStep(false);
 }
 
 bool SCAIBrain::followAllyOrder(uint8_t arg) {
     // Goal_SelectTransition
     bool formed = this->followAllyExec(this->followLeader());
-    SCMissionActors *leader = follow_leader;
+    SCMissionActors *leader = formation.leader;
     if (!formed && leader == nullptr) {
         owner->current_command_executed = true;
         return false;
     }
     owner->current_command_executed = false;
-    if (leader_state == 2) {
+    if (formation.leader_state == 2) {
+        // Goal_SelectTransition, etat 2 : comportement en cours, sinon ID21 vers le point pose par Goal_MoraleReaction_878F
         objective_locked = true;
-        if (!this->navigateToPoint(brain_destination, 2000.0f)) {
-            this->wander();
+        if (this->behaviorRunning()) {
+            this->tickBehavior();
+        } else {
+            this->applyNavigation(mood.destination, Vector3D(250.0f, 0.0f, 0.0f), 2.0f);
         }
         return true;
     }
-    if (leader_state == 3) {
+    if (formation.leader_state == 3) {
         SCMissionActors *engaged = owner->target;
         if (engaged == nullptr || engaged->is_destroyed || (engaged->plane != nullptr && engaged->plane->object->alive == 0)) {
-            leader_state = 0;
+            formation.leader_state = 0;
             owner->target = nullptr;
             owner->current_target = SCMissionActors::NO_TARGET;
         }
     }
-    if (leader_state == 0) {
+    if (formation.leader_state == 0) {
         objective_locked = false;
         SCMissionActors *threat = owner->mission->player_tail_threat;
-        if (threat != nullptr && leader == this->playerActor() && disciplined) {
+        if (threat != nullptr && leader == this->playerActor() && mood.disciplined) {
             this->endManeuver(false);
-            leader_state = 3;
+            formation.leader_state = 3;
             owner->target = threat;
             air_target = threat;
             objective_locked = true;
             owner->setMessage(0x10);
-        } else if (!formation_active) {
-            if (maneuver_id == 0 && reaction_level == REACT_MISSILE) {
+        } else if (!formation.active) {
+            if (maneuver.id == 0 && reaction_level == REACT_MISSILE) {
                 this->combatStep(false);
             } else {
                 this->followWaypoints(leader);
             }
         }
     }
-    if (leader_state == 3) {
+    if (formation.leader_state == 3) {
         this->combatStep(false);
-    } else if (leader_state == 1) {
+    } else if (formation.leader_state == 1) {
         objective_locked = true;
-        this->combatStep(!mutiny);
+        this->combatStep(!mood.mutiny);
     }
     return true;
 }
@@ -286,9 +263,9 @@ int SCAIBrain::computeMorale() {
     if (!this->canHoldOrder()) {
         score -= 50;
     }
-    enemies_alive = 0;
-    own_losses = 0;
-    enemies_active = false;
+    mood.enemies_alive = 0;
+    mood.own_losses = 0;
+    mood.enemies_active = false;
     float radar_range = (float) owner->mission->intel.range_far;
     for (auto actor : owner->mission->actors) {
         if (actor->plane == nullptr) {
@@ -296,24 +273,24 @@ int SCAIBrain::computeMorale() {
         }
         if (actor->team_id == owner->team_id) {
             if (actor->is_destroyed) {
-                own_losses++;
+                mood.own_losses++;
             }
         } else if (!actor->is_destroyed && actor->is_active) {
-            enemies_alive++;
+            mood.enemies_alive++;
             if ((actor->plane->position - owner->plane->position).Length() < radar_range) {
-                enemies_active = true;
+                mood.enemies_active = true;
             }
         }
     }
-    if (enemies_alive > 0) {
-        score += -8 * enemies_alive - 32 * own_losses;
+    if (mood.enemies_alive > 0) {
+        score += -8 * mood.enemies_alive - 32 * mood.own_losses;
     }
     if (reaction_level != REACT_NONE) {
         score -= 50;
     }
     int confidence = owner->profile->ai.atrb.CN;
     score += confidence < 3 ? 0 : confidence < 6 ? 15 : confidence < 12 ? 30 : confidence < 15 ? 50 : 75;
-    if (enemies_alive > 0 && score >= 80) {
+    if (mood.enemies_alive > 0 && score >= 80) {
         score = 79;
     }
     if (confidence > 9 && score < 25) {
@@ -327,19 +304,21 @@ int SCAIBrain::computeMorale() {
 
 void SCAIBrain::leaveFight() {
     owner->setMessage(8);
-    leader_state = 2;
+    formation.leader_state = 2;
     objective_locked = true;
-    brain_destination = home_position;
-    brain_destination.y += 1000.0f;
-    this->stopNavigation();
+    mood.destination = mood.home;
+    mood.destination.y += 1000.0f;
+    // Goal_MoraleReaction_878F (B2) : abandon, ID21 2 s, vitesse voulue (250, 0, 0)
+    this->abandonBehavior();
+    this->applyNavigation(mood.destination, Vector3D(250.0f, 0.0f, 0.0f), 2.0f);
     printf("AI %s#%d morale=%d leaves the fight\n", owner->actor_name.c_str(), owner->actor_id, morale);
 }
 
 bool SCAIBrain::moraleReaction() {
-    if (morale_timer > 0.0f) {
+    if (mood.timer > 0.0f) {
         return false;
     }
-    morale_timer = 5.0f;
+    mood.timer = 5.0f;
     SCMissionActors *player = this->playerActor();
     bool player_side = player != nullptr && owner->team_id == player->team_id;
     SCMissionActors *leader = this->leaderActor();
@@ -347,30 +326,32 @@ bool SCAIBrain::moraleReaction() {
     bool following = owner->current_command == OP_SET_OBJ_FOLLOW_ALLY;
     if (morale >= 4) {
         if (!player_side) {
-            if (fleeing) {
+            if (mood.fleeing) {
                 return false;
             }
             owner->setMessage(8);
-            fleeing = true;
+            mood.fleeing = true;
             objective_locked = true;
-            brain_destination = home_position;
-            brain_destination.y += 1000.0f;
-            this->stopNavigation();
+            mood.destination = mood.home;
+            mood.destination.y += 1000.0f;
+            // Goal_MoraleReaction_878F (A) : abandon, ID21 2 s, vitesse voulue (250, 100, 0), puis ordre 0xA5
+            this->abandonBehavior();
+            this->applyNavigation(mood.destination, FLEE_VELOCITY, 2.0f);
             printf("AI %s#%d morale=%d flees\n", owner->actor_name.c_str(), owner->actor_id, morale);
             return true;
         }
-        if (leader_is_player && !disciplined && following) {
-            if (last_attacker != nullptr && last_attacker == player && !enemies_active) {
-                mutiny = true;
+        if (leader_is_player && !mood.disciplined && following) {
+            if (last_attacker != nullptr && last_attacker == player && !mood.enemies_active) {
+                mood.mutiny = true;
                 air_target = player;
-                leader_state = 1;
+                formation.leader_state = 1;
                 objective_locked = true;
                 owner->setMessage(0x20);
                 printf("AI %s#%d morale=%d turns on the player\n", owner->actor_name.c_str(), owner->actor_id, morale);
                 this->combatStep(false);
                 return true;
             }
-            if (leader_state != 2) {
+            if (formation.leader_state != 2) {
                 this->leaveFight();
                 return true;
             }
@@ -381,9 +362,9 @@ bool SCAIBrain::moraleReaction() {
         }
         return false;
     }
-    if (player_side && leader_is_player && !disciplined && leader_state != 1 && leader_state != 2 && following && enemies_active) {
+    if (player_side && leader_is_player && !mood.disciplined && formation.leader_state != 1 && formation.leader_state != 2 && following && mood.enemies_active) {
         owner->setMessage(0x12);
-        leader_state = 1;
+        formation.leader_state = 1;
         objective_locked = true;
         printf("AI %s#%d morale=%d engages on its own\n", owner->actor_name.c_str(), owner->actor_id, morale);
         return true;
@@ -392,24 +373,21 @@ bool SCAIBrain::moraleReaction() {
 }
 
 bool SCAIBrain::combatStep(bool ground_allowed) {
-    combat_step_called = true;
     // AI_BehaviorStateMachine_WeightedOptionSelector_9D05 (2) : ciblage
     if (air_target != nullptr) {
         if (air_target->plane != nullptr && air_target->plane->ejected && !this->acquireBestThreat(ground_allowed)) {
             return false;
         }
     } else if (missile_threat != nullptr || (ground_target != nullptr && ground_allowed)) {
-        if (this->retargetSlowWindow() && !this->acquireBestThreat(ground_allowed)) {
+        if (retarget.slowWindow() && !this->acquireBestThreat(ground_allowed)) {
             return false;
         }
     } else if (!this->acquireBestThreat(ground_allowed)) {
         return false;
     }
+    // (3) sans cible aerienne : attaque au sol si autorisee, sinon le GOAL suivant prend la main
     if (air_target == nullptr) {
-        if (maneuver_id != 0 && maneuver_level == REACT_NONE) {
-            this->endManeuver(false);
-        }
-        if (ground_allowed && ground_target != nullptr && ground_attack_enabled) {
+        if (ground_allowed && ground_target != nullptr) {
             this->updateGroundAttack(ground_target);
             return ground_attack_active;
         }
@@ -418,128 +396,136 @@ bool SCAIBrain::combatStep(bool ground_allowed) {
     owner->current_target = air_target->actor_id;
     air_target->attacker = owner;
     if (reaction_level <= REACT_ENGAGED) {
-        if (fire_control_enabled) {
-            this->updateFireControl();
-        }
+        this->updateFireControl();
+        // (4) AI_BehaviorSelector agit : le comportement en cours est abandonne
         if (fire_request || fire_solution_quality > 0) {
-            if (maneuver_id != 0 && maneuver_level == REACT_NONE) {
-                this->endManeuver(false);
-            }
-            if (pursuit_enabled) {
-                this->updatePursuit();
-            }
+            this->abandonBehavior();
+            this->updatePursuit();
             return true;
         }
     }
-    if (maneuver_id != 0) {
-        this->tickManeuver();
+    // (5) comportement en cours, (6) tournoi
+    if (this->behaviorRunning()) {
+        this->tickBehavior();
         return true;
     }
     return this->runTournament();
 }
 
-bool SCAIBrain::navigateToPoint(Vector3D point, float radius) {
-    static const float CRUISE_SPEED = 250.0f;
-    Vector3D delta = point - owner->plane->position;
-    if (delta.Length() <= radius) {
-        if (!nav_behavior) {
-            this->stopNavigation();
-        }
-        return false;
-    }
-    Vector3D velocity = delta;
-    velocity.Normalize();
-    this->navigateWithVelocity(point, velocity * CRUISE_SPEED);
-    return true;
-}
-
-void SCAIBrain::navigateWithVelocity(Vector3D point, Vector3D velocity) {
-    nav_behavior = false;
-    if (owner->pilot->autopilotActive()) {
-        owner->pilot->setAutopilotTarget(point, velocity);
-    } else {
-        float nose_pitch = owner->pilot->NosePitch();
-        if (std::fabs(nose_pitch) < 15.0f) {
-            owner->pilot->engageAutopilot(point, velocity);
-        } else {
-            owner->pilot->SetPitchCommand(0.0f, 5.0f);
-        }
-    }
-    nav_active = true;
-    nav_requested = true;
-}
-
-
-void SCAIBrain::stopNavigation() {
-    bool abandoned = nav_behavior;
-    if (nav_behavior) {
-        // NotifiableRef_DetachTarget_75661 : l'identifiant du comportement abandonne passe en entite+0x19
-        last_finished_behavior = 21;
-        nav_behavior = false;
-    }
-    if (nav_active) {
+void SCAIBrain::abandonNavigation() {
+    if (this->isRunning(BEHAVIOR_NAVIGATION)) {
         owner->pilot->disengageAutopilot();
-        nav_active = false;
-    }
-    if (abandoned) {
-        this->onBehaviorEnded(false);
+        this->endBehavior(BEHAVIOR_NAVIGATION, false);
     }
 }
 
 // MVRS_ID21_ApplyAutopilotNav_11AC4 : bloc de commandes (point, vitesse voulue), minuteur = scalaire du contexte
 void SCAIBrain::applyNavigation(Vector3D point, Vector3D velocity, float duration) {
-    nav_point = point;
-    nav_velocity = velocity;
-    nav_timer = duration;
-    nav_reached = false;
-    nav_behavior = true;
+    nav.point = point;
+    nav.velocity = velocity;
+    nav.timer = duration;
+    nav.reached = false;
     owner->pilot->target_waypoint = point;
     if (owner->pilot->autopilotActive()) {
         owner->pilot->setAutopilotTarget(point, velocity);
     }
+    this->pushBehavior(BEHAVIOR_NAVIGATION);
     this->tickNavigation();
 }
 
 // MVRS_ID21_TickAutopilotNav_11B16
 void SCAIBrain::tickNavigation() {
-    nav_timer -= TICK_DURATION;
-    nav_active = true;
-    nav_requested = true;
-    owner->pilot->target_waypoint = nav_point;
+    nav.timer -= TICK_DURATION;
+    owner->pilot->target_waypoint = nav.point;
     if (!owner->pilot->autopilotActive()) {
         if (std::fabs(owner->pilot->NosePitch()) < 15.0f) {
-            owner->pilot->engageAutopilot(nav_point, nav_velocity);
+            owner->pilot->engageAutopilot(nav.point, nav.velocity);
         } else {
             owner->pilot->SetPitchCommand(0.0f, 5.0f);
         }
     }
-    nav_reached = owner->pilot->autopilotReached();
-    if (nav_timer < 0.0f || nav_reached) {
+    nav.reached = owner->pilot->autopilotReached();
+    if (nav.timer < 0.0f || nav.reached) {
         // JDYN+0x68 = 0xFF puis Behavior_PopFinished_75612
         owner->pilot->disengageAutopilot();
-        nav_behavior = false;
-        nav_active = false;
-        last_finished_behavior = 21;
-        this->onBehaviorEnded(true);
+        this->endBehavior(BEHAVIOR_NAVIGATION, true);
     }
+}
+
+// Behavior_PushRunning_756A4
+void SCAIBrain::pushBehavior(BehaviorKind kind) {
+    if (behaviors.empty() || behaviors.back() != kind) {
+        behaviors.push_back(kind);
+    }
+}
+
+// Behavior_PopFinished_75612 (fin normale : le precedent reprend) / NotifiableRef_DetachTarget_75661 (abandon : pile videe)
+void SCAIBrain::endBehavior(BehaviorKind kind, bool finished) {
+    auto it = std::find(behaviors.begin(), behaviors.end(), kind);
+    if (it == behaviors.end()) {
+        return;
+    }
+    static const int ids[] = {0, 21, 19, 0x11, 0x12};
+    if (kind != BEHAVIOR_MANEUVER) {
+        last_finished_behavior = ids[kind];
+    }
+    if (finished) {
+        behaviors.erase(it);
+    } else {
+        behaviors.clear();
+    }
+    if (!finished || behaviors.empty()) {
+        this->onBehaviorEnded(finished);
+    }
+}
+
+void SCAIBrain::abandonBehavior() {
+    if (behaviors.empty()) {
+        return;
+    }
+    switch (behaviors.back()) {
+        case BEHAVIOR_MANEUVER:
+            this->endManeuver(false);
+        break;
+        case BEHAVIOR_NAVIGATION:
+            this->abandonNavigation();
+        break;
+        case BEHAVIOR_GROUND_ATTACK:
+            this->resetGroundAttack(false);
+        break;
+        default:
+            this->endBehavior(behaviors.back(), false);
+        break;
+    }
+}
+
+bool SCAIBrain::isRunning(BehaviorKind kind) {
+    return std::find(behaviors.begin(), behaviors.end(), kind) != behaviors.end();
 }
 
 // entite+0x0D non nul : un comportement est en cours
 bool SCAIBrain::behaviorRunning() {
-    return nav_behavior || maneuver_id != 0 || ground_op != GROUND_OP_NONE;
+    return !behaviors.empty();
 }
 
-// methode +0xC du comportement en cours
+// methode +0xC du comportement en cours (sommet de la pile)
 void SCAIBrain::tickBehavior() {
-    if (nav_behavior) {
-        this->tickNavigation();
-    } else if (maneuver_id != 0) {
-        combat_step_called = true;
-        this->tickManeuver();
-    } else if (ground_op == GROUND_OP_TAKEOFF) {
-        this->takeoffOrder();
-    } else if (ground_op == GROUND_OP_LANDING) {
-        this->landingOrder(owner->current_command_arg, owner->current_command_arg2);
+    switch (behaviors.back()) {
+        case BEHAVIOR_MANEUVER:
+            this->tickManeuver();
+        break;
+        case BEHAVIOR_NAVIGATION:
+            this->tickNavigation();
+        break;
+        case BEHAVIOR_GROUND_ATTACK:
+            this->updateGroundAttack(ground.target);
+        break;
+        case BEHAVIOR_TAKEOFF:
+            this->takeoffOrder();
+        break;
+        case BEHAVIOR_LANDING:
+            this->landingOrder(owner->current_command_arg, owner->current_command_arg2);
+        break;
     }
 }
 
@@ -549,17 +535,17 @@ bool SCAIBrain::navSolutionToPoint() {
         return false;
     }
     SCPlane *plane = owner->plane;
-    Vector3D point = nav_center;
-    if (nav_reference != nullptr) {
-        point = nav_reference->plane != nullptr ? nav_reference->plane->position : nav_reference->object->position;
+    Vector3D point = nav.center;
+    if (nav.reference != nullptr) {
+        point = nav.reference->plane != nullptr ? nav.reference->plane->position : nav.reference->object->position;
     }
-    point.y = plane->groundlevel + nav_altitude;
+    point.y = plane->groundlevel + nav.altitude;
     Vector3D delta = point - plane->position;
-    if (nav_radius >= delta.Length()) {
+    if (nav.radius >= delta.Length()) {
         return false;
     }
     delta.Normalize();
-    this->applyNavigation(point, delta * nav_speed, 2.0f);
+    this->applyNavigation(point, delta * nav.speed, 2.0f);
     return true;
 }
 
@@ -569,8 +555,8 @@ void SCAIBrain::wander() {
         this->tickBehavior();
         return;
     }
-    if (!nav_reached && last_finished_behavior == 21) {
-        this->applyNavigation(nav_point, nav_velocity, 30.0f);
+    if (!nav.reached && last_finished_behavior == 21) {
+        this->applyNavigation(nav.point, nav.velocity, 30.0f);
         return;
     }
     // CRT_Rand % 20000 - 10000 sur les deux axes horizontaux (asm c0 = x, c1 = -z)
@@ -579,10 +565,10 @@ void SCAIBrain::wander() {
     Vector3D direction(rx, 0.0f, -ry);
     direction.Normalize();
     SCPlane *plane = owner->plane;
-    float climb = plane->groundlevel + nav_altitude - plane->position.y;
+    float climb = plane->groundlevel + nav.altitude - plane->position.y;
     climb = std::clamp(climb, -1000.0f, 1000.0f);
     Vector3D point = plane->position + direction * 30000.0f + Vector3D(0.0f, climb, 0.0f);
-    this->applyNavigation(point, direction * nav_speed, 30.0f);
+    this->applyNavigation(point, direction * nav.speed, 30.0f);
 }
 
 // Goal_IsComplete 0xA8/0xA9 : camp 1 -> word_706A7 - word_706A9, sinon word_706A3 - word_706A5
@@ -626,15 +612,15 @@ bool SCAIBrain::defendTargetOrder(uint8_t arg) {
     owner->current_command_executed = false;
     owner->current_objective = OP_SET_OBJ_DEFEND_TARGET;
     // Goal_SetObjective_A307 0xA8 : +0x10F = +0x137 = objet defendu
-    nav_reference = defended;
+    nav.reference = defended;
     return this->defendExec();
 }
 
 bool SCAIBrain::defendAreaOrder(uint8_t arg) {
     // Goal_SetObjective_A307 0xA9 : +0x10F = nul, +0x111 = spot[param1]
     std::vector<SPOT *> &spots = owner->mission->mission->mission_data.spots;
-    nav_reference = nullptr;
-    nav_center = arg < spots.size() ? spots[arg]->position : Vector3D(0.0f, 0.0f, 0.0f);
+    nav.reference = nullptr;
+    nav.center = arg < spots.size() ? spots[arg]->position : Vector3D(0.0f, 0.0f, 0.0f);
     owner->current_objective = OP_SET_OBJ_DEFEND_AREA;
     // Goal_IsComplete 0xA9 : actif seulement si le camp adverse n'a plus d'unite vivante
     if (this->opposingCampAlive() != 0) {
@@ -652,7 +638,11 @@ bool SCAIBrain::flyToWaypointOrder(uint8_t point_spot, uint8_t velocity_spot) {
     Vector3D point = point_spot < spots.size() ? spots[point_spot]->position : Vector3D(0.0f, 0.0f, 0.0f);
     Vector3D velocity = velocity_spot < spots.size() ? spots[velocity_spot]->position : Vector3D(0.0f, 0.0f, 0.0f);
     owner->current_objective = OP_SET_OBJ_FLY_TO_WP;
-    // Goal_IsComplete 0xA5 : distance horizontale <= 500 m
+    return this->returnToBase(point, velocity);
+}
+
+// Goal_IsComplete 0xA4/0xA5 (distance horizontale <= 500 m) puis Goal_ReturnToBase
+bool SCAIBrain::returnToBase(Vector3D point, Vector3D velocity) {
     Vector3D delta = point - owner->plane->position;
     delta.y = 0.0f;
     if (delta.Length() <= 500.0f) {
@@ -661,7 +651,6 @@ bool SCAIBrain::flyToWaypointOrder(uint8_t point_spot, uint8_t velocity_spot) {
         return false;
     }
     owner->current_command_executed = false;
-    // Goal_ReturnToBase
     if (this->behaviorRunning()) {
         this->tickBehavior();
         return true;
@@ -706,6 +695,11 @@ bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
     }
     owner->current_objective = OP_SET_OBJ_DESTROY_TARGET;
     owner->current_target = arg;
+    // Goal_ExecuteAction_A8AC 0xA7 : un comportement en cours passe avant tout
+    if (this->behaviorRunning()) {
+        this->tickBehavior();
+        return true;
+    }
     if (target->plane == nullptr) {
         // Goal_ExecuteAction_A8AC 0xA7 : noeud d'attaque au sol, ou GOAL suivant sans arme sol
         this->updateGroundAttack(target);
@@ -933,42 +927,10 @@ ThreatScore SCAIBrain::scoreAirCandidate(SCMissionActors *candidate, Vector3D de
     }
     return score;
 }
-/**
- * SCAIBrain::executeGoalAction
- *
- * Implementation du selecteur GOAL_EXECUTE_ACTION (Goal_ExecuteAction,
- * cf. analysis/AI_SYSTEM.md §4.3) : retraduit l'etat persistant
- * current_command (pose par le script PROG dans onMissionUpdate, ou par un
- * ordre radio via override_progs) en appel de la methode de comportement
- * correspondante. Le script ne fait que POSER current_command ; c'est ici,
- * uniquement, qu'il est EXECUTE — voir onAIRefresh()/runGoalSelectors().
- * Extrait tel quel de l'ancien onMissionUpdate, seule sa cadence d'appel
- * change (25Hz via AIRefreshEvent au lieu de chaque frame).
- *
- * @return true si un objectif de navigation pure etait actif et a ete
- * execute ce tick (le selecteur "prend la main" — cf. Goal_ExecuteAction,
- * AI_SYSTEM.md §4.3) ; false si current_command est vide (OP_NOOP) OU si
- * c'est un objectif de combat (DESTROY_TARGET/DEFEND_TARGET/DEFEND_AREA).
- *
- * Le cas combat est deliberement traite a part : ces objectifs peuvent
- * rester actifs tres longtemps (tant que la cible n'est pas detruite), et
- * comme 2 precede 4 dans tous les fichiers PROF echantillons, un simple
- * "true tant que current_command != OP_NOOP" empecherait le tournoi MVRS
- * (selecteur 4) de jamais tourner en combat — exactement le moment ou il
- * doit prendre la main pour la maneuvre. On execute quand meme l'objectif
- * ici (pour garder l'avion en route vers/apres la cible), mais on rend la
- * main a runGoalSelectors() pour que 4 (une fois cable) ait sa chance dans
- * le meme passage. A revoir/confirmer une fois l'articulation reelle
- * Goal_ExecuteAction/AI_BehaviorStateMachine tranchee en ASM (AI_SYSTEM.md
- * §4.4 suggere que certains selecteurs delegue a MVRS en interne plutot
- * qu'une simple exclusion mutuelle au niveau de la boucle GOAL).
- */
+// Goal_ExecuteAction_A8AC (gestionnaire GOAL 2)
 bool SCAIBrain::executeGoalAction() {
-    if (fleeing) {
-        if (!this->navigateToPoint(brain_destination, 2000.0f)) {
-            this->wander();
-        }
-        return true;
+    if (mood.fleeing) {
+        return this->returnToBase(mood.destination, FLEE_VELOCITY);
     }
     switch (owner->current_command) {
         case OP_SET_OBJ_TAKE_OFF:
@@ -992,65 +954,12 @@ bool SCAIBrain::executeGoalAction() {
     }
     return true;
 }
-/**
- * SCAIBrain::tryWanderRandom
- *
- * Implementation du selecteur GOAL_WANDER_RANDOM (Goal_WanderRandom,
- * cf. analysis/AI_SYSTEM.md §4, analysis/AI_TACTICAL_GLOSSARY.md §2) :
- * fait naviguer l'acteur vers un SPOT de la mission tire au hasard.
- * Autonome comme tout selecteur GOAL — verifie lui-meme si l'objectif
- * courant est atteint (via le booleen de retour de flyToWaypoint) avant
- * d'en tirer un nouveau, sans dependre du sort de GOAL_EXECUTE_ACTION.
- *
- * @return true si le selecteur a pris la main ce tick, false s'il ne
- * s'applique pas (une cible est deja engagee).
- */
 bool SCAIBrain::tryWanderRandom() {
     // Goal_WanderRandom renvoie toujours 1
     this->wander();
     return true;
 }
-/**
- * SCAIBrain::tryActiveWingman
- *
- * Implementation du selecteur GOAL_ACTIVE_WINGMAN (Goal_ActiveWingmanEngagement,
- * cf. analysis/AI_SYSTEM.md §4.4) : execute le script d'ordre radio accepte
- * (override_progs) s'il y en a un en cours. Ne "gagne" jamais le tick — le
- * script ne fait que POSER current_command (setObjective, cf. SCProg.cpp),
- * c'est toujours GOAL_EXECUTE_ACTION (executeGoalAction) qui l'execute
- * reellement ; runGoalSelectors() doit donc toujours continuer vers le
- * selecteur suivant du fichier apres cet appel.
- */
-void SCAIBrain::tryActiveWingman() {
-    if (owner->override_progs.empty() || owner->is_destroyed) {
-        return;
-    }
-    SCProg *p = new SCProg(owner, owner->override_progs, owner->mission, 255);
-    p->execute();
-    delete p;
-    if (owner->current_command_executed) {
-        owner->override_progs.clear();
-        owner->override_progs.shrink_to_fit();
-    }
-}
-/**
- * SCAIBrain::runGoalSelectors
- *
- * Parcourt profile->ai.goal dans l'ordre du fichier et s'arrete au premier
- * selecteur qui "prend la main" ce tick (cf. AI_TopLevelThink,
- * analysis/AI_SYSTEM.md §4.2). Chaque selecteur est autonome : il gere son
- * propre etat et signale lui-meme s'il a agi ou non ce tick, ce qui permet
- * de passer au suivant du fichier quand il n'a rien a faire (ex. GOAL_EXECUTE_ACTION
- * sans commande active laisse la main a GOAL_WANDER_RANDOM s'il suit dans
- * le fichier). Sélecteurs cables : 2 (GOAL_EXECUTE_ACTION, executeGoalAction),
- * 3 (GOAL_WANDER_RANDOM, tryWanderRandom) et 5 (GOAL_ACTIVE_WINGMAN,
- * tryActiveWingman — ne gagne jamais le tick, voir sa doc). 4 reste un point
- * d'extension explicite pour une prochaine session (tournoi MVRS — voir
- * analysis/AI_IMPLEMENTATION_GUIDE.md §3) et ne "prend" jamais la main pour
- * l'instant.
- *
- * @return true si un selecteur a agi ce tick, false sinon.
- */
+// AI_TopLevelThink, etape 6 : au sol Goal_ExecuteAction_A8AC, en vol les gestionnaires GOAL du profil (2, 3, 4, 5)
 bool SCAIBrain::runGoalSelectors() {
     if (owner->plane->on_ground) {
         return this->executeGoalAction();
@@ -1409,18 +1318,18 @@ void SCAIBrain::updateFireControl() {
 }
 
 void SCAIBrain::resetGroundAttack(bool finished) {
-    bool running = ground_attack_target != nullptr;
-    if (ground_phase == 3) {
+    bool running = ground.target != nullptr;
+    if (ground.phase == 3) {
         owner->pilot->disengageAutopilot();
     }
-    ground_phase = 0;
-    ground_weapon = nullptr;
-    ground_released = nullptr;
-    ground_attack_target = nullptr;
+    ground.phase = 0;
+    ground.weapon = nullptr;
+    ground.released = nullptr;
+    ground.target = nullptr;
     ground_attack_active = false;
     // le noeud ID19 lance par le tournoi se termine par endManeuver
-    if (running && maneuver_id != 19) {
-        this->onBehaviorEnded(finished);
+    if (running && maneuver.id != 19) {
+        this->endBehavior(BEHAVIOR_GROUND_ATTACK, finished);
     }
 }
 
@@ -1432,7 +1341,7 @@ void SCAIBrain::onBehaviorEnded(bool finished) {
     if (finished) {
         this->acquireBestThreat(false);
     }
-    if (formation_active && reaction_level != REACT_NONE) {
+    if (formation.active && reaction_level != REACT_NONE) {
         this->followAllyExec(this->followLeader());
     }
     // objet +0x59 = 0 : la physique reprend
@@ -1495,28 +1404,31 @@ Vector3D SCAIBrain::predictBombImpact(RSEntity *bomb) {
 }
 
 void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
-    ground_attack_seen = true;
-    bool ground = target != nullptr && !target->is_destroyed && target->object != nullptr && target->object->entity != nullptr && target->object->entity->target_type == 2;
-    if (!ground || threat_state > 1 || owner->plane->on_ground) {
+    bool is_ground = target != nullptr && !target->is_destroyed && target->object != nullptr && target->object->entity != nullptr && target->object->entity->target_type == 2;
+    if (!is_ground || threat_state > 1 || owner->plane->on_ground) {
         this->resetGroundAttack(false);
         return;
     }
-    if (ground_attack_target != target) {
+    if (ground.target != target) {
         this->resetGroundAttack(false);
         // GroundAttack_CanEngage_77000 : une arme sol chargee (id 3 a 8), sinon GOAL suivant
         if (this->selectGroundWeapon() == nullptr) {
             return;
         }
-        ground_attack_target = target;
+        ground.target = target;
+        // GroundAttack_Start_7709A ; lance par le tournoi, c'est la manoeuvre 19 qui est empilee
+        if (maneuver.id != 19) {
+            this->pushBehavior(BEHAVIOR_GROUND_ATTACK);
+        }
     }
     Vector3D own_position = owner->plane->position;
-    if (debug_ticks != ground_last_tick + 1) {
-        ground_last_position = own_position;
+    if (debug_ticks != ground.last_tick + 1) {
+        ground.last_position = own_position;
     }
-    ground_last_tick = debug_ticks;
-    Vector3D own_velocity = (own_position - ground_last_position) * (1.0f / TICK_DURATION);
+    ground.last_tick = debug_ticks;
+    Vector3D own_velocity = (own_position - ground.last_position) * (1.0f / TICK_DURATION);
     float own_speed = own_velocity.Length();
-    ground_last_position = own_position;
+    ground.last_position = own_position;
     Vector3D target_position = target->object->position;
     owner->current_target = target->actor_id;
     owner->pilot->target_waypoint = target_position;
@@ -1525,30 +1437,30 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     Vector3D away = own_position - aim_point;
     float horizontal_distance = sqrtf(away.x * away.x + away.z * away.z);
     float angle = this->headingDelta(away);
-    int previous_phase = ground_phase;
+    int previous_phase = ground.phase;
     float heading_error = 0.0f;
     float pitch_error = 0.0f;
     float ground_y = owner->plane->groundlevel;
     float nose_elevation = owner->pilot->NosePitch();
 
-    if (ground_phase != 3) {
+    if (ground.phase != 3) {
         owner->pilot->disengageAutopilot();
     }
-    if (ground_phase == 4) {
-        if (ground_released == nullptr) {
+    if (ground.phase == 4) {
+        if (ground.released == nullptr) {
             for (auto weapon : owner->plane->weaps_object) {
-                if ((weapon->obj == ground_weapon || ground_weapon->wdat->weapon_id == ID_LAU3) && std::find(ground_known_objects.begin(), ground_known_objects.end(), weapon) == ground_known_objects.end()) {
-                    ground_released = weapon;
-                    printf("AI %s#%d bomb released weapon=%d\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id);
+                if ((weapon->obj == ground.weapon || ground.weapon->wdat->weapon_id == ID_LAU3) && std::find(ground.known_objects.begin(), ground.known_objects.end(), weapon) == ground.known_objects.end()) {
+                    ground.released = weapon;
+                    printf("AI %s#%d bomb released weapon=%d\n", owner->actor_name.c_str(), owner->actor_id, ground.weapon->wdat->weapon_id);
                     break;
                 }
             }
-            if (ground_released == nullptr && --ground_release_wait <= 0) {
+            if (ground.released == nullptr && --ground.release_wait <= 0) {
                 printf("AI %s#%d bomb release not seen, attack restarts\n", owner->actor_name.c_str(), owner->actor_id);
                 this->resetGroundAttack(false);
                 return;
             }
-        } else if (std::find(owner->plane->weaps_object.begin(), owner->plane->weaps_object.end(), ground_released) == owner->plane->weaps_object.end()) {
+        } else if (std::find(owner->plane->weaps_object.begin(), owner->plane->weaps_object.end(), ground.released) == owner->plane->weaps_object.end()) {
             this->resetGroundAttack(true);
             return;
         }
@@ -1559,47 +1471,47 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     }
 
     bool wings_level = false;
-    if (ground_phase <= 1) {
+    if (ground.phase <= 1) {
         bool aligned = angle > 170.0f;
         bool close = horizontal_distance < 5000.0f;
         if (!aligned && close) {
-            ground_phase = 0;
+            ground.phase = 0;
         } else if (aligned && close) {
             wings_level = true;
             owner->pilot->BeginManual();
             owner->pilot->CmdThrottle(5);
             if (owner->pilot->CmdRollTo(0.0f, 5.0f)) {
                 owner->pilot->CmdThrottle(3);
-                ground_phase = 2;
+                ground.phase = 2;
             }
         } else if (horizontal_distance > 8000.0f || aligned) {
-            ground_phase = 1;
+            ground.phase = 1;
         }
     }
 
-    if (ground_phase == 2) {
+    if (ground.phase == 2) {
         Vector3D autopilot_velocity = aim_point - own_position;
         autopilot_velocity.Normalize();
         owner->pilot->engageAutopilot(aim_point, autopilot_velocity * 100.0f);
-        ground_autopilot_target = target_position;
-        ground_phase3_time = 0.0f;
-        ground_phase = 3;
-    } else if (ground_phase == 3) {
-        if (target_position.x != ground_autopilot_target.x || target_position.y != ground_autopilot_target.y || target_position.z != ground_autopilot_target.z) {
+        ground.autopilot_target = target_position;
+        ground.phase3_time = 0.0f;
+        ground.phase = 3;
+    } else if (ground.phase == 3) {
+        if (target_position.x != ground.autopilot_target.x || target_position.y != ground.autopilot_target.y || target_position.z != ground.autopilot_target.z) {
             Vector3D autopilot_velocity = aim_point - own_position;
             autopilot_velocity.Normalize();
             owner->pilot->setAutopilotTarget(aim_point, autopilot_velocity * 100.0f);
-            ground_autopilot_target = target_position;
+            ground.autopilot_target = target_position;
         }
     } else if (!wings_level) {
-        Vector3D direction = ground_phase == 0 ? away : -away;
-        if (ground_phase == 0) {
+        Vector3D direction = ground.phase == 0 ? away : -away;
+        if (ground.phase == 0) {
             direction.y = 0.0f;
         }
         this->computeAttitudeError(direction, heading_error, pitch_error);
         if (angle > 169.0f && horizontal_distance > 9000.0f) {
             owner->pilot->SetPitchCommand(0.0f, 5.0f);
-        } else if (ground_phase == 1 && angle > 169.0f && own_position.y - aim_point.y > 2000.0f) {
+        } else if (ground.phase == 1 && angle > 169.0f && own_position.y - aim_point.y > 2000.0f) {
             owner->pilot->SetPitchCommand(-40.0f, 5.0f);
         } else {
             owner->pilot->SetGuidanceDirection(direction);
@@ -1608,14 +1520,14 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     owner->pilot->target_speed_ms = (float) owner->object->entity->jdyn->ai_speed_cruise;
     ground_attack_active = true;
 
-    if (ground_phase == 3) {
-        if (ground_weapon == nullptr) {
-            ground_weapon = this->selectGroundWeapon();
+    if (ground.phase == 3) {
+        if (ground.weapon == nullptr) {
+            ground.weapon = this->selectGroundWeapon();
         }
         // WeaponStation_FindLoadedCompatible : plus d'arme -> phase 6, fin de l'attaque
         bool loaded = false;
         for (auto weap : owner->plane->weaps_load) {
-            if (weap != nullptr && weap->nb_weap > 0 && weap->objct == ground_weapon) {
+            if (weap != nullptr && weap->nb_weap > 0 && weap->objct == ground.weapon) {
                 loaded = true;
             }
         }
@@ -1623,46 +1535,46 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
             this->resetGroundAttack(true);
             return;
         }
-        if (ground_weapon->wdat->weapon_id == ID_AGM65D || ground_weapon->wdat->weapon_id == ID_GBU15) {
-            if (this->guidedWeaponLock(ground_weapon, target)) {
-                ground_known_objects = owner->plane->weaps_object;
-                owner->pilot->Fire(1 << (ground_weapon->wdat->weapon_id - 1), target);
+        if (ground.weapon->wdat->weapon_id == ID_AGM65D || ground.weapon->wdat->weapon_id == ID_GBU15) {
+            if (this->guidedWeaponLock(ground.weapon, target)) {
+                ground.known_objects = owner->plane->weaps_object;
+                owner->pilot->Fire(1 << (ground.weapon->wdat->weapon_id - 1), target);
                 owner->pilot->disengageAutopilot();
-                ground_released = nullptr;
-                ground_release_wait = 25;
-                ground_phase = 4;
-                printf("AI %s#%d guided weapon=%d fired d=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id, (target_position - own_position).Length());
+                ground.released = nullptr;
+                ground.release_wait = 25;
+                ground.phase = 4;
+                printf("AI %s#%d guided weapon=%d fired d=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground.weapon->wdat->weapon_id, (target_position - own_position).Length());
             } else if (owner->pilot->autopilotReached()) {
                 owner->pilot->disengageAutopilot();
-                ground_phase = 0;
+                ground.phase = 0;
             }
             return;
         }
-        if (ground_weapon->wdat->weapon_id == ID_LAU3) {
-            ground_phase3_time += TICK_DURATION;
-            if (ground_phase3_time >= 3.0f) {
-                ground_known_objects = owner->plane->weaps_object;
-                owner->pilot->Fire(1 << (ground_weapon->wdat->weapon_id - 1), target);
+        if (ground.weapon->wdat->weapon_id == ID_LAU3) {
+            ground.phase3_time += TICK_DURATION;
+            if (ground.phase3_time >= 3.0f) {
+                ground.known_objects = owner->plane->weaps_object;
+                owner->pilot->Fire(1 << (ground.weapon->wdat->weapon_id - 1), target);
                 owner->pilot->disengageAutopilot();
-                ground_released = nullptr;
-                ground_release_wait = 25;
-                ground_phase = 4;
+                ground.released = nullptr;
+                ground.release_wait = 25;
+                ground.phase = 4;
                 printf("AI %s#%d rockets fired d=%.0f own_y=%.0f\n", owner->actor_name.c_str(), owner->actor_id, horizontal_distance, own_position.y);
             } else if (owner->pilot->autopilotReached()) {
                 owner->pilot->disengageAutopilot();
-                ground_phase = 0;
+                ground.phase = 0;
             }
             return;
         }
         Vector3D impact;
-        if (ground_weapon->wdat->weapon_id == ID_DURANDAL) {
+        if (ground.weapon->wdat->weapon_id == ID_DURANDAL) {
             // BombModel_PredictImpact_41311, n = 5 : 2500 m devant, direction horizontale de la vitesse
             Vector3D ahead = own_velocity;
             ahead.y = 0.0f;
             ahead.Normalize();
             impact = own_position + ahead * 2500.0f;
         } else {
-            impact = this->predictBombImpact(ground_weapon);
+            impact = this->predictBombImpact(ground.weapon);
         }
         float drop_height = own_position.y - target_position.y;
         float descent_speed = -own_velocity.y;
@@ -1674,25 +1586,25 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
             tolerance += 150.0f;
         }
         if (miss <= tolerance) {
-            ground_known_objects = owner->plane->weaps_object;
-            owner->pilot->Fire(1 << (ground_weapon->wdat->weapon_id - 1), target);
+            ground.known_objects = owner->plane->weaps_object;
+            owner->pilot->Fire(1 << (ground.weapon->wdat->weapon_id - 1), target);
             owner->pilot->disengageAutopilot();
-            ground_released = nullptr;
-            ground_release_wait = 25;
-            ground_phase = 4;
-            printf("AI %s#%d bomb release requested weapon=%d miss=%.0f tolerance=%.0f d=%.0f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_weapon->wdat->weapon_id, miss, tolerance, horizontal_distance, own_position.y, own_speed);
+            ground.released = nullptr;
+            ground.release_wait = 25;
+            ground.phase = 4;
+            printf("AI %s#%d bomb release requested weapon=%d miss=%.0f tolerance=%.0f d=%.0f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground.weapon->wdat->weapon_id, miss, tolerance, horizontal_distance, own_position.y, own_speed);
         } else if (owner->pilot->autopilotReached()) {
             owner->pilot->disengageAutopilot();
-            ground_phase = 0;
+            ground.phase = 0;
         }
         if (debug_ticks % 25 == 0) {
-            printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f miss=%.0f tolerance=%.0f impact=(%.0f,%.0f) impact_y=%.0f target_y=%.0f range=%.0f ballistic_range=%.0f own_y=%.0f speed=%.0f autopilot=%d reached=%d\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, miss, tolerance, impact.x, impact.z, impact.y, target_position.y, sqrtf((impact.x - own_position.x) * (impact.x - own_position.x) + (impact.z - own_position.z) * (impact.z - own_position.z)), ballistic_range, own_position.y, own_speed, owner->pilot->autopilotActive() ? 1 : 0, owner->pilot->autopilotReached() ? 1 : 0);
+            printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f miss=%.0f tolerance=%.0f impact=(%.0f,%.0f) impact_y=%.0f target_y=%.0f range=%.0f ballistic_range=%.0f own_y=%.0f speed=%.0f autopilot=%d reached=%d\n", owner->actor_name.c_str(), owner->actor_id, ground.phase, target->actor_name.c_str(), horizontal_distance, angle, miss, tolerance, impact.x, impact.z, impact.y, target_position.y, sqrtf((impact.x - own_position.x) * (impact.x - own_position.x) + (impact.z - own_position.z) * (impact.z - own_position.z)), ballistic_range, own_position.y, own_speed, owner->pilot->autopilotActive() ? 1 : 0, owner->pilot->autopilotReached() ? 1 : 0);
         }
     } else if (debug_ticks % 25 == 0) {
-        printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f heading_err=%.1f pitch_err=%.1f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground_phase, target->actor_name.c_str(), horizontal_distance, angle, heading_error, pitch_error, own_position.y, own_speed);
+        printf("AI %s#%d ground attack phase=%d target=%s d=%.0f angle=%.0f heading_err=%.1f pitch_err=%.1f own_y=%.0f speed=%.0f\n", owner->actor_name.c_str(), owner->actor_id, ground.phase, target->actor_name.c_str(), horizontal_distance, angle, heading_error, pitch_error, own_position.y, own_speed);
     }
-    if (ground_phase != previous_phase) {
-        printf("AI %s#%d ground attack phase %d -> %d\n", owner->actor_name.c_str(), owner->actor_id, previous_phase, ground_phase);
+    if (ground.phase != previous_phase) {
+        printf("AI %s#%d ground attack phase %d -> %d\n", owner->actor_name.c_str(), owner->actor_id, previous_phase, ground.phase);
     }
 }
 
@@ -1743,17 +1655,9 @@ void SCAIBrain::updatePursuit() {
 
     float heading_error = 0.0f;
     float pitch_error = 0.0f;
-    if (attitude_control_enabled) {
-        this->computeAttitudeError(lead - own_position, heading_error, pitch_error);
-        owner->pilot->SetGuidanceDirection(lead - own_position);
-        owner->pilot->target_waypoint = lead;
-    } else {
-        owner->pilot->SetTargetWaypoint(waypoint);
-        if (waypoint.y < owner->plane->y) {
-            float ground_y = owner->plane->area->getY(waypoint.x, waypoint.z);
-            owner->pilot->target_climb = (int) std::max(waypoint.y, ground_y + 1000.0f);
-        }
-    }
+    this->computeAttitudeError(lead - own_position, heading_error, pitch_error);
+    owner->pilot->SetGuidanceDirection(lead - own_position);
+    owner->pilot->target_waypoint = lead;
     float target_forward_speed = air_target->plane->forwardSpeedPerTick();
     if (distance > intel.range_medium) {
         owner->pilot->target_speed = -60;
@@ -1788,23 +1692,23 @@ int SCAIBrain::missileDistanceBand() {
     return 0;
 }
 
-void SCAIBrain::reactToMissile() {
+bool SCAIBrain::reactToMissile() {
     if (missile_threat != nullptr && (!missile_threat->alive || missile_threat->target != owner)) {
         missile_threat = nullptr;
         threat_state = 0;
         evasion_hold = 0;
-        return;
+        return false;
     }
     if (threat_state == 2) {
         evasion_hold = 25;
     }
     if (missile_threat == nullptr || evasion_hold <= 0) {
-        return;
+        return false;
     }
     evasion_hold--;
     int band = this->missileDistanceBand();
     if (band == 0) {
-        return;
+        return false;
     }
     Vector3D own_position = owner->plane->position;
     Vector3D missile_position = {missile_threat->x, missile_threat->y, missile_threat->z};
@@ -1827,10 +1731,10 @@ void SCAIBrain::reactToMissile() {
         owner->setMessage(0x0E);
         complained_missile = missile_threat;
     }
-    evasion_active = true;
     if (debug_ticks % 25 == 0) {
         printf("AI %s#%d evade band=%d missile_d=%.0f hold=%d\n", owner->actor_name.c_str(), owner->actor_id, band, to_missile.Length(), evasion_hold);
     }
+    return true;
 }
 
 void SCAIBrain::computeAttitudeError(Vector3D direction, float &heading_error, float &pitch_error) {
@@ -1854,66 +1758,68 @@ Vector3D SCAIBrain::runwayAxis(Vector3D direction) {
 
 void SCAIBrain::endGroundOp() {
     owner->pilot->EndGroundOps();
-    ground_op = GROUND_OP_NONE;
-    this->onBehaviorEnded(true);
+    BehaviorKind kind = ground_ops.kind == GROUND_OP_TAKEOFF ? BEHAVIOR_TAKEOFF : BEHAVIOR_LANDING;
+    ground_ops.kind = GROUND_OP_NONE;
+    this->endBehavior(kind, true);
 }
 
 bool SCAIBrain::takeoffOrder() {
     SCPlane *plane = owner->plane;
     SCPilot *pilot = owner->pilot;
     RSEntity *entity = plane->object->entity;
-    if (ground_op != GROUND_OP_TAKEOFF) {
+    if (ground_ops.kind != GROUND_OP_TAKEOFF) {
         if (owner->taken_off || plane->worldVelocity().Length() > 10.0f) {
             owner->taken_off = true;
             return true;
         }
-        ground_op = GROUND_OP_TAKEOFF;
-        ground_op_phase = 0;
-        ground_op_time = 0.0f;
-        ground_op_stick = 0.0f;
-        landing_done = false;
-        ground_op_axis = this->runwayAxis(plane->forward);
+        ground_ops.kind = GROUND_OP_TAKEOFF;
+        this->pushBehavior(BEHAVIOR_TAKEOFF);
+        ground_ops.phase = 0;
+        ground_ops.time = 0.0f;
+        ground_ops.stick = 0.0f;
+        ground_ops.landing_done = false;
+        ground_ops.axis = this->runwayAxis(plane->forward);
         pilot->BeginGroundOps();
         printf("AI %s#%d takeoff accel=%d rotate=%d pitch=%d gain=%d\n", owner->actor_name.c_str(), owner->actor_id, entity->takeoff_roll_accel, entity->takeoff_rotate_speed, entity->takeoff_climb_pitch, entity->takeoff_pitch_gain);
     }
-    switch (ground_op_phase) {
+    switch (ground_ops.phase) {
         case 0: {
             pilot->CmdGroundControls(0.0f, 10, plane->GetFlaps(), 1, 0);
-            ground_op_time += TICK_DURATION;
-            float speed = entity->takeoff_roll_accel * ground_op_time;
+            ground_ops.time += TICK_DURATION;
+            float speed = entity->takeoff_roll_accel * ground_ops.time;
             if (speed > entity->takeoff_rotate_speed) {
-                pilot->CmdKinematic(false, ground_op_axis * speed, ground_op_axis, 0.0f);
-                ground_op_phase = 1;
+                pilot->CmdKinematic(false, ground_ops.axis * speed, ground_ops.axis, 0.0f);
+                ground_ops.phase = 1;
             } else {
-                pilot->CmdKinematic(true, ground_op_axis * speed, ground_op_axis, 0.0f);
+                pilot->CmdKinematic(true, ground_ops.axis * speed, ground_ops.axis, 0.0f);
             }
             break;
         }
         case 1: {
             if (plane->y - plane->groundlevel > 300.0f) {
-                pilot->CmdGroundControls(ground_op_stick, 5, 1, 1, 0);
-                ground_op_phase = 2;
+                pilot->CmdGroundControls(ground_ops.stick, 5, 1, 1, 0);
+                ground_ops.phase = 2;
                 break;
             }
             // AI_PitchAttitudeHold_126CC
             float gain = (float) entity->takeoff_pitch_gain;
             float error = (float) entity->takeoff_climb_pitch - pilot->NosePitch();
-            ground_op_stick = floorf(std::clamp(error * gain / 8.0f, -gain, gain));
-            pilot->CmdGroundControls(ground_op_stick, 10, 1, 1, 0);
+            ground_ops.stick = floorf(std::clamp(error * gain / 8.0f, -gain, gain));
+            pilot->CmdGroundControls(ground_ops.stick, 10, 1, 1, 0);
             break;
         }
         case 2:
-            pilot->CmdGroundControls(ground_op_stick, 5, 0, 0, 0);
-            ground_op_phase = 3;
+            pilot->CmdGroundControls(ground_ops.stick, 5, 0, 0, 0);
+            ground_ops.phase = 3;
             break;
         case 3:
             if (pilot->NosePitch() > 17.0f) {
-                ground_op_stick = -16.0f;
+                ground_ops.stick = -16.0f;
             } else {
-                ground_op_stick = 8.0f;
-                ground_op_phase = 4;
+                ground_ops.stick = 8.0f;
+                ground_ops.phase = 4;
             }
-            pilot->CmdGroundControls(ground_op_stick, 5, 0, 0, 0);
+            pilot->CmdGroundControls(ground_ops.stick, 5, 0, 0, 0);
             break;
         default:
             this->endGroundOp();
@@ -1925,14 +1831,14 @@ bool SCAIBrain::takeoffOrder() {
 }
 
 bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
-    if (landing_done) {
+    if (ground_ops.landing_done) {
         return true;
     }
     SCPlane *plane = owner->plane;
     SCPilot *pilot = owner->pilot;
     RSEntity *entity = plane->object->entity;
     std::vector<SPOT *> &spots = owner->mission->mission->mission_data.spots;
-    if (ground_op != GROUND_OP_LANDING) {
+    if (ground_ops.kind != GROUND_OP_LANDING) {
         // Player_ResolveAttachPointN_5305A : index hors table -> (0, 0, 0)
         Vector3D approach(0.0f, 0.0f, 0.0f);
         Vector3D touchdown(0.0f, 0.0f, 0.0f);
@@ -1947,73 +1853,74 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
             owner->mission->friendlies.erase(it);
         }
         // LandingBehavior_Start_75746 : l'IA est teleportee au point d'approche
-        ground_op_origin = approach;
+        ground_ops.origin = approach;
         // Landing_Phase1_SetupApproach_75D51
-        landing_target = touchdown + Vector3D(0.0f, (float) entity->landing_aim_height, 0.0f);
-        Vector3D delta = landing_target - ground_op_origin;
-        ground_op_axis = this->runwayAxis(delta);
-        landing_speed = (float) entity->landing_speed;
-        landing_duration = delta.Length() / landing_speed;
-        landing_dir = delta;
-        landing_dir.Normalize();
-        landing_counter = 0;
-        landing_pitch = 0.0f;
-        landing_leveled = false;
-        ground_op_time = 0.0f;
-        ground_op = GROUND_OP_LANDING;
-        ground_op_phase = 2;
+        ground_ops.landing_target = touchdown + Vector3D(0.0f, (float) entity->landing_aim_height, 0.0f);
+        Vector3D delta = ground_ops.landing_target - ground_ops.origin;
+        ground_ops.axis = this->runwayAxis(delta);
+        ground_ops.landing_speed = (float) entity->landing_speed;
+        ground_ops.landing_duration = delta.Length() / ground_ops.landing_speed;
+        ground_ops.landing_dir = delta;
+        ground_ops.landing_dir.Normalize();
+        ground_ops.landing_counter = 0;
+        ground_ops.landing_pitch = 0.0f;
+        ground_ops.landing_leveled = false;
+        ground_ops.time = 0.0f;
+        ground_ops.kind = GROUND_OP_LANDING;
+        this->pushBehavior(BEHAVIOR_LANDING);
+        ground_ops.phase = 2;
         pilot->BeginGroundOps();
         pilot->CmdGroundControls(0.0f, plane->GetThrottle() / 10, plane->GetFlaps(), 1, 0);
-        pilot->CmdPlaceAt(ground_op_origin, ground_op_axis, 0.0f);
-        pilot->target_waypoint = landing_target;
+        pilot->CmdPlaceAt(ground_ops.origin, ground_ops.axis, 0.0f);
+        pilot->target_waypoint = ground_ops.landing_target;
         printf("AI %s#%d landing approach=%d touchdown=%d speed=%d aim=%d steps=%d\n", owner->actor_name.c_str(), owner->actor_id, approach_spot, touchdown_spot, entity->landing_speed, entity->landing_aim_height, entity->landing_pitch_steps);
         return false;
     }
-    switch (ground_op_phase) {
+    switch (ground_ops.phase) {
         case 2: {
             // Landing_Phase2_Approach_76325
-            ground_op_time += TICK_DURATION;
-            landing_counter -= 1;
-            if (landing_counter < entity->landing_pitch_steps) {
-                landing_counter = entity->landing_pitch_steps;
+            ground_ops.time += TICK_DURATION;
+            ground_ops.landing_counter -= 1;
+            if (ground_ops.landing_counter < entity->landing_pitch_steps) {
+                ground_ops.landing_counter = entity->landing_pitch_steps;
             } else {
-                landing_pitch += 1.0f;
+                ground_ops.landing_pitch += 1.0f;
             }
-            pilot->CmdKinematic(true, landing_dir * landing_speed, ground_op_axis, landing_pitch);
-            if (ground_op_time >= landing_duration) {
-                ground_op_time = 0.0f;
-                ground_op_phase = 3;
+            pilot->CmdKinematic(true, ground_ops.landing_dir * ground_ops.landing_speed, ground_ops.axis, ground_ops.landing_pitch);
+            if (ground_ops.time >= ground_ops.landing_duration) {
+                ground_ops.time = 0.0f;
+                ground_ops.phase = 3;
             }
             break;
         }
         case 3: {
             // Landing_Phase3_TouchdownRoll_765B2
-            if (ground_op_time == 0.0f) {
-                pilot->CmdPlaceAt(landing_target, ground_op_axis, landing_pitch);
+            if (ground_ops.time == 0.0f) {
+                pilot->CmdPlaceAt(ground_ops.landing_target, ground_ops.axis, ground_ops.landing_pitch);
             }
-            landing_counter += 1;
-            if (landing_counter >= entity->landing_pitch_steps / 6) {
-                landing_counter = 0;
+            ground_ops.landing_counter += 1;
+            if (ground_ops.landing_counter >= entity->landing_pitch_steps / 6) {
+                ground_ops.landing_counter = 0;
             } else {
-                landing_pitch -= 1.0f;
+                ground_ops.landing_pitch -= 1.0f;
             }
-            ground_op_time += TICK_DURATION;
-            if (landing_counter == 0 && !landing_leveled) {
-                landing_pitch = 0.0f;
-                landing_leveled = true;
-                ground_op_time = 0.0f;
-                ground_op_phase = 4;
+            ground_ops.time += TICK_DURATION;
+            if (ground_ops.landing_counter == 0 && !ground_ops.landing_leveled) {
+                ground_ops.landing_pitch = 0.0f;
+                ground_ops.landing_leveled = true;
+                ground_ops.time = 0.0f;
+                ground_ops.phase = 4;
             }
-            pilot->CmdKinematic(true, ground_op_axis * landing_speed, ground_op_axis, landing_pitch);
+            pilot->CmdKinematic(true, ground_ops.axis * ground_ops.landing_speed, ground_ops.axis, ground_ops.landing_pitch);
             break;
         }
         case 4: {
             // Landing_Phase4_Braking_76C09 : la vitesse baisse par secondes entieres
-            ground_op_time += TICK_DURATION;
-            int speed = (int) landing_speed - 2 * (int) ground_op_time;
-            pilot->CmdKinematic(true, ground_op_axis * (float) speed, ground_op_axis, 0.0f);
+            ground_ops.time += TICK_DURATION;
+            int speed = (int) ground_ops.landing_speed - 2 * (int) ground_ops.time;
+            pilot->CmdKinematic(true, ground_ops.axis * (float) speed, ground_ops.axis, 0.0f);
             if (speed <= 0) {
-                ground_op_phase = 5;
+                ground_ops.phase = 5;
             }
             break;
         }
@@ -2021,8 +1928,8 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
             // Landing_Phase5_Stop_76E67
             Vector3D parked(plane->x, plane->groundlevel, plane->z);
             pilot->CmdGroundControls(0.0f, -1, 0, 1, 0);
-            pilot->CmdPlaceAt(parked, ground_op_axis, 0.0f);
-            landing_done = true;
+            pilot->CmdPlaceAt(parked, ground_ops.axis, 0.0f);
+            ground_ops.landing_done = true;
             this->endGroundOp();
             printf("AI %s#%d landed\n", owner->actor_name.c_str(), owner->actor_id);
             return true;
@@ -2033,15 +1940,15 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
 
 SCMissionActors *SCAIBrain::followLeader() {
     if (owner->current_command != OP_SET_OBJ_FOLLOW_ALLY) {
-        follow_leader = nullptr;
-        follow_leader_arg = 0xFF;
+        formation.leader = nullptr;
+        formation.leader_arg = 0xFF;
         return nullptr;
     }
-    if (owner->current_command_arg != follow_leader_arg) {
-        follow_leader_arg = owner->current_command_arg;
-        follow_leader = this->leaderActor();
+    if (owner->current_command_arg != formation.leader_arg) {
+        formation.leader_arg = owner->current_command_arg;
+        formation.leader = this->leaderActor();
     }
-    return follow_leader;
+    return formation.leader;
 }
 
 int SCAIBrain::escortQueryLeader(SCMissionActors *leader, SCMissionActors *&engage) {
@@ -2063,19 +1970,19 @@ int SCAIBrain::escortQueryLeader(SCMissionActors *leader, SCMissionActors *&enga
 
 bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
     // Goal_FollowAllyExec
-    bool held_elsewhere = ground_op != GROUND_OP_NONE || landing_done;
-    bool may_hold = formation_active || !held_elsewhere;
+    bool held_elsewhere = ground_ops.kind != GROUND_OP_NONE || ground_ops.landing_done;
+    bool may_hold = formation.active || !held_elsewhere;
     if (leader != nullptr && leader->plane != nullptr && leader->plane->ejected) {
-        follow_leader = nullptr;
+        formation.leader = nullptr;
         leader = nullptr;
     }
     bool result = false;
     if (leader != nullptr && leader->plane != nullptr && owner->current_command == OP_SET_OBJ_FOLLOW_ALLY && may_hold &&
-        leader_state == 0 && !owner->plane->ejected && !leader->plane->on_ground && reaction_level == REACT_NONE) {
+        formation.leader_state == 0 && !owner->plane->ejected && !leader->plane->on_ground && reaction_level == REACT_NONE) {
         if (leader->brain != nullptr) {
             SCMissionActors *engage = nullptr;
-            leader_state = (uint8_t) this->escortQueryLeader(leader, engage);
-            if (leader_state == 3) {
+            formation.leader_state = (uint8_t) this->escortQueryLeader(leader, engage);
+            if (formation.leader_state == 3) {
                 owner->target = engage;
                 air_target = engage;
             } else {
@@ -2085,12 +1992,12 @@ bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
             result = this->formationGuidance(leader);
         }
     }
-    if (formation_active && !result) {
-        formation_history_ready = false;
+    if (formation.active && !result) {
+        formation.history_ready = false;
         owner->pilot->EndGroundOps();
         owner->pilot->CmdKinematic(false, owner->plane->worldVelocity(), owner->plane->forward, owner->pilot->NosePitch());
     }
-    formation_active = result;
+    formation.active = result;
     return result;
 }
 
@@ -2101,7 +2008,7 @@ Vector3D SCAIBrain::formationSlot(SCMissionActors *leader) {
     Vector3D slot = owner->follow_slot;
     SCMissionActors *player = this->playerActor();
     bool player_side = player != nullptr && owner->team_id == player->team_id;
-    if (owner->profile->radi.spch != 9 && player_side && !enemies_active) {
+    if (owner->profile->radi.spch != 9 && player_side && !mood.enemies_active) {
         slot = Vector3D(300.0f, -200.0f, 50.0f);
     }
     Vector3D side(nose.z, 0.0f, -nose.x);
@@ -2128,7 +2035,7 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     SCPlane *plane = owner->plane;
     SCPlane *lead = leader->plane;
     const float dt = TICK_DURATION;
-    bool active = formation_active;
+    bool active = formation.active;
     Vector3D lead_nose = lead->forward;
     Vector3D own_nose = plane->forward;
     Vector3D lead_span(lead->ptw.v[0][0], lead->ptw.v[0][1], lead->ptw.v[0][2]);
@@ -2154,14 +2061,14 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
         return false;
     }
     owner->pilot->target_waypoint = lead->position + offset;
-    if (!formation_active || !formation_history_ready) {
+    if (!formation.active || !formation.history_ready) {
         for (int i = 0; i < 32; i++) {
-            formation_nose[i] = own_nose;
-            formation_span[i] = own_span;
+            formation.nose[i] = own_nose;
+            formation.span[i] = own_span;
         }
-        formation_index = 0;
-        formation_clock = 0.0f;
-        formation_history_ready = true;
+        formation.index = 0;
+        formation.clock = 0.0f;
+        formation.history_ready = true;
     }
     if (step < slot_distance) {
         float extra = slot_distance - step;
@@ -2175,25 +2082,25 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     owner->pilot->CmdGroundControls(0.0f, lead->GetThrottle() / 10, plane->GetFlaps(), 0, 0);
     float correction = step * (behind ? 76.0f / 256.0f : 25.0f / 256.0f);
     step -= correction;
-    while (formation_clock >= 0.125f) {
-        formation_nose[formation_index] = lead_nose;
+    while (formation.clock >= 0.125f) {
+        formation.nose[formation.index] = lead_nose;
         if (lead_stick > 2.0f) {
-            formation_span[formation_index] = (formation_span[formation_index] + lead_span) * 0.5f;
+            formation.span[formation.index] = (formation.span[formation.index] + lead_span) * 0.5f;
         } else {
             Matrix level;
             level.Identity();
             level.rotateM(degreeToRad((-own_nose).Azimuth()), 0, 1, 0);
-            formation_span[formation_index] = Vector3D(level.v[0][0], level.v[0][1], level.v[0][2]);
+            formation.span[formation.index] = Vector3D(level.v[0][0], level.v[0][1], level.v[0][2]);
         }
-        formation_index = (formation_index + 1) & 31;
-        formation_clock -= 0.125f;
+        formation.index = (formation.index + 1) & 31;
+        formation.clock -= 0.125f;
     }
-    formation_clock += dt;
+    formation.clock += dt;
     Vector3D mean_nose(0.0f, 0.0f, 0.0f);
     Vector3D mean_span(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < 32; i++) {
-        mean_nose = mean_nose + formation_nose[i];
-        mean_span = mean_span + formation_span[i];
+        mean_nose = mean_nose + formation.nose[i];
+        mean_span = mean_span + formation.span[i];
     }
     mean_nose = mean_nose * (1.0f / 32.0f);
     mean_span = mean_span * (1.0f / 32.0f);
@@ -2234,7 +2141,7 @@ void SCAIBrain::followWaypoints(SCMissionActors *leader) {
         return;
     }
     if (leader->plane->ejected) {
-        follow_leader = nullptr;
+        formation.leader = nullptr;
         return;
     }
     SCPlane *lead = leader->plane;
@@ -2242,7 +2149,6 @@ void SCAIBrain::followWaypoints(SCMissionActors *leader) {
         // noeud entite+0xD5 = ID7 (poursuite du leader)
         this->scoreManeuver(7, leader);
         this->applyManeuver(7, leader, REACT_NONE);
-        combat_step_called = true;
         this->tickManeuver();
         return;
     }

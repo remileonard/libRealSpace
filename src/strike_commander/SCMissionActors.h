@@ -81,16 +81,7 @@ private:
     void onEvent(const EventMessage &event);
     void onGettingHit(const MissionEventActorHit &event);
     void onMissionUpdate(const MissionUpdateEvent &event);
-    // Point d'entree de la decision IA (AI_TopLevelThink), a la cadence fixe
-    // ~25fps d'AIRefreshEvent — voir analysis/AI_SYSTEM.md §4 et
-    // AI_IMPLEMENTATION_GUIDE.md §2. Ne concerne que les acteurs porteurs
-    // d'un profil GOAL (ai.isAI && !ai.goal.empty()). L'execution du script
-    // de mission (on_update) reste dans onMissionUpdate, a chaque frame,
-    // pour tous les acteurs : elle POSE current_command, elle ne l'execute
-    // pas — c'est le role de SCAIBrain::executeGoalAction(). override_progs
-    // (les ordres radio acceptes, expression du selecteur GOAL_ACTIVE_WINGMAN)
-    // est en revanche traite par SCAIBrain::tryActiveWingman() — uniquement pour
-    // les acteurs qui ont 5 dans leur GOAL.
+    // cadence IA fixe (AIRefreshEvent) : ordre radio accepte puis SCAIBrain::tick (AIEntity_MasterTick_5ACC)
     void onAIRefresh(const AIRefreshEvent &event);
     MessageBus::SubscriptionId subscription_id{-1};
 };

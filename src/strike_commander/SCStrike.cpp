@@ -925,6 +925,9 @@ void SCStrike::autopilotCompute() {
                 team->plane->roll=0;
                 team->plane->ptw.Identity();
                 team->plane->ptw.translateM(team->plane->x, team->plane->y, team->plane->z);
+                team->plane->ptw.rotateM(0, 0, 1, 0);
+                team->plane->ptw.rotateM(0, 1, 0, 0);
+                team->plane->ptw.rotateM(0, 0, 0, 1);
                 team->plane->Simulate();
                 team_number++;
             }
