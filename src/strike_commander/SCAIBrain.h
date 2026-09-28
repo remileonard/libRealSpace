@@ -67,7 +67,7 @@ public:
     int morale{2};
     int fire_solution_quality{0};
 
-    SCMissionActors *acquireBestThreat(bool allow_new_target);
+    bool acquireBestThreat(bool allow_new_target);
 
 private:
     SCMissionActors *owner{nullptr};
@@ -132,7 +132,11 @@ private:
     bool threat_alerted{false};
     bool combat_step_called{false};
     float retarget_clock{0.0f};
-    bool retarget_fired{false};
+    uint8_t retarget_mask{3};
+    bool retarget_slow_fired{false};
+    bool retarget_fast_fired{false};
+    bool retargetSlowWindow();
+    bool retargetFastWindow();
     SCSimulatedObject *complained_missile{nullptr};
     float ground_phase3_time{0.0f};
     float floorAltitude();
@@ -143,7 +147,8 @@ private:
     int scoreManeuver(int id, SCMissionActors *target);
     bool runTournament();
     void applyManeuver(int id, SCMissionActors *target, uint8_t level);
-    void endManeuver();
+    void endManeuver(bool finished);
+    void onBehaviorEnded(bool finished);
     bool tickManeuver();
     bool tickLeg();
     void maneuverSpeed(float wanted);
@@ -176,9 +181,10 @@ private:
     bool nav_active{false};
     bool nav_requested{false};
     bool ground_attack_seen{false};
-    void resetGroundAttack();
+    void resetGroundAttack(bool finished);
     RSEntity *selectGroundWeapon();
     Vector3D predictBombImpact(RSEntity *bomb);
+    bool guidedWeaponLock(RSEntity *weapon, SCMissionActors *target);
     float headingDelta(Vector3D direction);
     void computeAttitudeError(Vector3D direction, float &heading_error, float &pitch_error);
     int missileDistanceBand();

@@ -2288,7 +2288,6 @@ void SCStrike::runFrame(void) {
                             }
                         }
                         Renderer.renderBBox(position, bb->min, bb->max);
-                        Renderer.renderBBox(position+actor->attack_pos_offset, bb->min, bb->max);
                     } else {
                         actor->plane->Render();
                     }

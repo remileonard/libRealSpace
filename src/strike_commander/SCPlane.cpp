@@ -282,6 +282,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     
     // Ajouter à la liste des objets simulés
     this->weaps_object.push_back(weap);
+    this->pilot->mission->onWeaponSpawned(weap);
 }
 
 void SCPlane::RenderWeaponTrajectories() {
@@ -1462,6 +1463,7 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
     weap->weight = wobj->weight_in_kg;
     
     this->weaps_object.push_back(weap);
+    this->pilot->mission->onWeaponSpawned(weap);
 }
 void SCPlane::InitLoadout() {
     // this->object->entity->weaps

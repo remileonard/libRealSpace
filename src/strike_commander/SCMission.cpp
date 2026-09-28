@@ -372,6 +372,12 @@ void SCMission::loadMission() {
         this->camera_director->init(this->world, this->player);
     }
 }
+// ajout a la liste des objets du monde (59C3h) : missile air-air (WDAT target_domain 1) -> byte_6E4C6
+void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
+    if (weapon->obj->wdat->target_domain == 1) {
+        this->aa_missile_launched = true;
+    }
+}
 RSEntity * SCMission::LoadEntity(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";
     RSEntity *objct = new RSEntity();
@@ -391,11 +397,6 @@ void SCMission::update() {
     }
     this->tick_counter++;
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
-    float yawRad = this->player->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
-    // Position the offset behind the aircraft based on current yaw
-    this->player->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
-    this->player->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
-    this->player->attack_pos_offset.y = 0.0f; // Same altitude
     if (area_id != this->current_area_id) {
         this->current_area_id = area_id;
     }
@@ -417,6 +418,8 @@ void SCMission::update() {
         // RadioFlags_ShiftHistory
         this->player_tail_threat = this->player_tail_seen;
         this->player_tail_seen = nullptr;
+        this->aa_missile_launched_last = this->aa_missile_launched;
+        this->aa_missile_launched = false;
         AIRefreshEvent ai_refresh_event;
         ai_refresh_event.mission = this;
         this->messageBus.publish(std::make_unique<AIRefreshEvent>(ai_refresh_event));

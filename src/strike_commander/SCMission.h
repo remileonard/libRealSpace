@@ -68,6 +68,10 @@ public:
     RSIntel intel;
     SCMissionActors *player_tail_seen{nullptr};    // word_722EA
     SCMissionActors *player_tail_threat{nullptr};  // word_722EE
+    bool aa_missile_launched{false};               // byte_6E4C6
+    bool aa_missile_launched_last{false};          // byte_6E4D7
+    float ai_clock_stagger{0.0f};                  // dword_6D3BE
+    void onWeaponSpawned(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
     RSSound &sound = RSSound::getInstance();

@@ -30,7 +30,6 @@ public:
     SCMissionActors *attacker{nullptr};
     SCSimulatedObject *weapon_shooted_at_me{nullptr};
     prog_op current_objective;
-    Vector3D attack_pos_offset{0.0f, 0.0f, -1000.0f};
     bool is_active{false};
     bool is_hidden{true};
     bool taken_off{false};
@@ -50,7 +49,6 @@ public:
     std::vector<uint8_t> executed_opcodes;
     int retarget_cooldown{0};
     float wait_timer{0.0f};   // objet de mission +0x3A (opcode WAIT)
-    bool destroyTarget(uint8_t arg);
     virtual bool deactivate(uint8_t arg);
     virtual bool setMessage(uint8_t arg);
     virtual bool ifTargetInSameArea(uint8_t arg);
@@ -77,9 +75,6 @@ public:
     SCMissionActors();
     ~SCMissionActors();
 private:
-    Vector3D target_position{0.0f, 0.0f, 0.0f};
-    int target_position_update{0};
-    int current_weapon_index{-1};
     
     AssetManager &Assets = AssetManager::getInstance();
     MessageBus &messageBus = MessageBus::getInstance();

@@ -460,7 +460,7 @@ void SCAIBrain::applyManeuver(int id, SCMissionActors *target, uint8_t level) {
     }
 }
 
-void SCAIBrain::endManeuver() {
+void SCAIBrain::endManeuver(bool finished) {
     if (maneuver_id == 0) {
         return;
     }
@@ -469,12 +469,13 @@ void SCAIBrain::endManeuver() {
         reaction_level = REACT_NONE;
     }
     if (maneuver_id == 19) {
-        this->resetGroundAttack();
+        this->resetGroundAttack(finished);
     }
     last_finished_behavior = maneuver_id;
     maneuver_id = 0;
     maneuver_target = nullptr;
     maneuver_level = REACT_NONE;
+    this->onBehaviorEnded(finished);
 }
 
 void SCAIBrain::maneuverSpeed(float wanted) {
@@ -911,7 +912,7 @@ bool SCAIBrain::tickManeuver() {
             break;
     }
     if (!running) {
-        this->endManeuver();
+        this->endManeuver(true);
         owner->pilot->ClearGuidance();
     } else if (debug_ticks % 25 == 0) {
         printf("AI %s#%d maneuver %d phase=%d timer=%.1f bank=%.0f pitch=%.0f\n", owner->actor_name.c_str(), owner->actor_id, maneuver_id, maneuver_phase, maneuver_timer, pilot->BankAngle(), pilot->NosePitch());
@@ -961,7 +962,7 @@ void SCAIBrain::incomingThreatWarning() {
         if (!this->skillCheck(owner->profile->ai.atrb.FL, 0)) {
             return;
         }
-        this->endManeuver();
+        this->endManeuver(false);
         this->applyManeuver(4, actor, REACT_NONE);
         threat_alerted = true;
         printf("AI %s#%d threat warning from %s: defensive turn\n", owner->actor_name.c_str(), owner->actor_id, actor->actor_name.c_str());

@@ -258,6 +258,8 @@ public:
     int16_t landing_pitch_steps{20};
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
+    uint8_t bomb_guided{0};            // chunk DATA des BOMB, modele +0x5E
+    int16_t bomb_lock_cone_rate{0};    // modele +0x61, deg/s
     uint8_t health{0};
     WDAT *wdat{nullptr};
     DYNN_MISS *dynn_miss{nullptr};
@@ -313,6 +315,7 @@ private:
     void parseREAL_OBJT_ORNT(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS(uint8_t *data, size_t size);
     void parseREAL_OBJT_BOMB(uint8_t *data, size_t size);
+    void parseREAL_OBJT_BOMB_DATA(uint8_t *data, size_t size);
     void parseREAL_OBJT_TRCR(uint8_t *data, size_t size); 
     void parseREAL_OBJT_AFTB(uint8_t *data, size_t size);
     void parseREAL_OBJT_EXPL(uint8_t *data, size_t size);

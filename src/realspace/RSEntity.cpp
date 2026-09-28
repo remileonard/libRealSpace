@@ -305,7 +305,7 @@ void RSEntity::parseREAL_OBJT_BOMB(uint8_t *data, size_t size) {
     handlers["SMOK"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SMOK, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DAMG, this, std::placeholders::_1, std::placeholders::_2);
     handlers["WDAT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_WDAT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DATA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_BOMB_DATA, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM, this, std::placeholders::_1, std::placeholders::_2);
 
 
@@ -386,6 +386,14 @@ void RSEntity::parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size){
     this->wdat = wdat;
 }
 void RSEntity::parseREAL_OBJT_MISS_DATA(uint8_t *data, size_t size){}
+void RSEntity::parseREAL_OBJT_BOMB_DATA(uint8_t *data, size_t size) {
+    // PlayerComponent_LoadFieldsWithRetry_9FAD0 lit 5 octets sans borne de chunk : le DATA de la GBU-15 n'en a que 3
+    ByteStream bs(data, 5);
+    this->bomb_guided = bs.ReadByte();
+    bs.ReadByte();
+    bs.ReadByte();
+    this->bomb_lock_cone_rate = bs.ReadShort();
+}
 void RSEntity::parseREAL_OBJT_MISS_DYNM(uint8_t *data, size_t size){
     IFFSaxLexer lexer;
 

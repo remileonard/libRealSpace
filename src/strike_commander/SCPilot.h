@@ -144,6 +144,7 @@ public:
     void CmdThrottle(int notch);
     void BeginGroundOps();
     void EndGroundOps();
+    void CmdGearUp();
     bool GroundOpsActive() const { return ground_ops; }
     void CmdGroundControls(float pitch_stick16, int throttle_notch, int flaps, int gear, int spoilers);
     void CmdKinematic(bool engaged, Vector3D velocity, Vector3D heading_dir, float pitch_deg);

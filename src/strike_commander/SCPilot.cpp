@@ -706,6 +706,10 @@ void SCPilot::EndGroundOps() {
     this->ground_ops = false;
 }
 
+void SCPilot::CmdGearUp() {
+    this->gear = 0;
+}
+
 void SCPilot::CmdGroundControls(float pitch_stick16, int throttle_notch, int flaps, int gear, int spoilers) {
     this->ground_pitch_stick = std::clamp(pitch_stick16, -16.0f, 16.0f);
     this->ground_throttle = (throttle_notch < 0 || throttle_notch > 10) ? 0 : throttle_notch * 10;
