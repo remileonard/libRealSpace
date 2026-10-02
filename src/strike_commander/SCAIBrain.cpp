@@ -145,6 +145,11 @@ bool SCAIBrain::engageAttackerReaction() {
             return false;
         }
         formation.leader_state = 3;
+        if (owner->target != air_target) {
+            printf("AI %s#%d switching engage airtarget target from %s#%d to %s#%d\n", owner->actor_name.c_str(), owner->actor_id,
+                   owner->target ? owner->target->actor_name.c_str() : "none", owner->target ? owner->target->actor_id : -1,
+                   air_target->actor_name.c_str(), air_target->actor_id);
+        }
         owner->target = air_target;
         engage_target = air_target;
         if (leader_is_player) {
@@ -194,6 +199,7 @@ bool SCAIBrain::followAllyOrder(uint8_t arg) {
             formation.leader_state = 0;
             owner->target = nullptr;
             owner->current_target = SCMissionActors::NO_TARGET;
+            printf("followAllyOrder l202 : AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, SCMissionActors::NO_TARGET);
         }
     }
     if (formation.leader_state == 0) {
@@ -202,6 +208,11 @@ bool SCAIBrain::followAllyOrder(uint8_t arg) {
         if (threat != nullptr && leader == this->playerActor() && mood.disciplined) {
             this->endManeuver(false);
             formation.leader_state = 3;
+            if (owner->target != threat) {
+                printf("AI %s#%d switching threat engage target from %s#%d to %s#%d\n", owner->actor_name.c_str(), owner->actor_id,
+                       owner->target ? owner->target->actor_name.c_str() : "none", owner->target ? owner->target->actor_id : -1,
+                       threat->actor_name.c_str(), threat->actor_id);
+            }
             owner->target = threat;
             air_target = threat;
             engage_target = threat;
@@ -414,6 +425,10 @@ bool SCAIBrain::combatStep(bool ground_allowed) {
             return ground_attack_active;
         }
         return false;
+    }
+    if (owner->current_target != air_target->actor_id) {
+        printf("combatstep l429 AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, air_target->actor_id);   
+        owner->target = air_target; 
     }
     owner->current_target = air_target->actor_id;
     air_target->attacker = owner;
@@ -703,6 +718,10 @@ bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
         }
     }
     if (target->is_destroyed || (target->plane != nullptr && target->plane->object->alive == 0)) {
+        if (owner->current_target != SCMissionActors::NO_TARGET) {
+            printf("destroytargetorder l721 : AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, SCMissionActors::NO_TARGET);
+            owner->target = nullptr;
+        }
         owner->current_target = SCMissionActors::NO_TARGET;
         target->attacker = nullptr;
         owner->target = nullptr;
@@ -713,6 +732,10 @@ bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
         return false;
     }
     owner->current_objective = OP_SET_OBJ_DESTROY_TARGET;
+    if (owner->current_target != arg) {
+        printf("destroyTargetOrder l734 : AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, arg);
+        owner->target = owner->mission->actors[arg];
+    }
     owner->current_target = arg;
     // Goal_ExecuteAction_A8AC 0xA7 : un comportement en cours passe avant tout
     if (this->behaviorRunning()) {
@@ -1494,6 +1517,10 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     float own_speed = own_velocity.Length();
     ground.last_position = own_position;
     Vector3D target_position = target->object->position;
+    if (owner->current_target != target->actor_id) {
+        printf("updateGroundAttack l1520AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, target->actor_id);
+        owner->target = target;
+    }
     owner->current_target = target->actor_id;
     owner->pilot->target_waypoint = target_position;
     Vector3D aim_point = target_position;
@@ -2048,6 +2075,11 @@ bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
             SCMissionActors *engage = nullptr;
             formation.leader_state = (uint8_t) this->escortQueryLeader(leader, engage);
             if (formation.leader_state == 3) {
+                if (engage != owner->target) {
+                    printf("AI %s#%d switching engage target from %s#%d to %s#%d\n", owner->actor_name.c_str(), owner->actor_id,
+                           owner->target ? owner->target->actor_name.c_str() : "none", owner->target ? owner->target->actor_id : -1,
+                           engage->actor_name.c_str(), engage->actor_id);
+                }
                 owner->target = engage;
                 air_target = engage;
                 engage_target = engage;

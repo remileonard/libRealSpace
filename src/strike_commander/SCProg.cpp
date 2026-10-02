@@ -208,7 +208,15 @@ void SCProg::execute() {
                     this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_DEFEND_TARGET:
-                    this->actor->current_target = SCMissionActors::NO_TARGET;
+                    
+                    if (this->actor->current_command != OP_SET_OBJ_DEFEND_TARGET) {
+                        if (this->actor->current_target != SCMissionActors::NO_TARGET) {
+                            printf("prog.execute l212 : AI %s#%d switching current target from %d to %d\n", this->actor->actor_name.c_str(), this->actor->actor_id, this->actor->current_target, SCMissionActors::NO_TARGET);
+                        }
+                        this->actor->current_target = SCMissionActors::NO_TARGET;
+                        this->actor->target = nullptr;
+                    }
+                    
                     this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, prog.arg);
                     this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
