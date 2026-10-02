@@ -327,6 +327,15 @@ void SCMissionActors::setObjective(prog_op command, uint8_t arg) {
     }
     this->current_command = command;
     this->current_command_arg = arg;
+    // Goal_SetObjective_A307 0xA7/0xA8 : la cible de mission +0x137 est posee des que l'ordre est donne
+    if ((command == OP_SET_OBJ_DESTROY_TARGET || command == OP_SET_OBJ_DEFEND_TARGET) && (this->target == nullptr || this->target->actor_id != arg)) {
+        for (auto actor : this->mission->actors) {
+            if (actor->actor_id == arg && !actor->is_destroyed) {
+                this->target = actor;
+                break;
+            }
+        }
+    }
 }
 
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
@@ -628,6 +637,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         auto weapon = *it;
         if (weapon->alive == false) {
             it = ai_actor->weapons_shooted.erase(it);
+            mission->onWeaponRemoved(weapon);
             delete weapon;
             weapon = nullptr;
         } else {

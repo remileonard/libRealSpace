@@ -520,11 +520,10 @@ void SCPilot::runGuidance(float dt) {
     this->publishControls(true);
 }
 
-void SCPilot::guidanceSolution(Vector3D direction, float dt) {
-    Vector3D reference = this->plane->worldVelocity();
-    if (reference.Length() < 1.0f) {
-        reference = this->plane->forward;
-    }
+// AI_GuidanceSolution_Major : reference = mon nez (AI_GuidanceCmd_FromOwnPos ; AI_Sensor_WeaponVelocityCache
+// renvoie aussi le nez pour le canon et les missiles, loc_42E80 donnant un vecteur nul)
+bool SCPilot::guidanceSolution(Vector3D direction, float dt) {
+    Vector3D reference = this->plane->forward;
     float h = signed180(reference.Azimuth() - direction.Azimuth());
     float p = this->nosePitch();
     float e = std::fabs(h) >= 90.0f ? 0.0f : direction.Elevation();
@@ -539,7 +538,7 @@ void SCPilot::guidanceSolution(Vector3D direction, float dt) {
         float m = 0.0f;
         float n = (float) this->plane->object->entity->jdyn->max_g;
         if (n >= 2.0f) {
-            float speed = reference.Length();
+            float speed = this->plane->worldVelocity().Length();
             float radius = speed * speed / (9.8f * n / 2.0f);
             float above = altitude - floor;
             m = (radius <= 0.0f || above >= radius) ? -90.0f : -radToDegree(acosf((radius - above) / radius));
@@ -573,10 +572,10 @@ void SCPilot::guidanceSolution(Vector3D direction, float dt) {
     this->guidance_log_h = h;
     this->guidance_log_v = v;
     this->guidance_log_r = r;
-    this->combatDecision(h, v, r, dt);
+    return this->combatDecision(h, v, r, dt);
 }
 
-void SCPilot::combatDecision(float h, float v, float r, float dt) {
+bool SCPilot::combatDecision(float h, float v, float r, float dt) {
     float speed = this->plane->worldVelocity().Length();
     bool too_slow = this->plane->wing_stall > 0 || speed <= (float) this->plane->object->entity->jdyn->ai_speed_min;
     if (too_slow) {
@@ -586,7 +585,7 @@ void SCPilot::combatDecision(float h, float v, float r, float dt) {
     }
     if (h == 0.0f && v == 0.0f) {
         this->rollToAngle(0.0f, 2.0f, dt);
-        return;
+        return true;
     }
     float a = sqrtf(h * h + v * v);
     if (a > 20.0f && v > -10.0f) {
@@ -595,7 +594,7 @@ void SCPilot::combatDecision(float h, float v, float r, float dt) {
             this->throttle = 100;
             this->pitch_stick = this->clampPitch(16.0f);
         }
-        return;
+        return false;
     }
     float w = signed180(this->bankAngle() + r);
     if (std::fabs(w) > 145.0f) {
@@ -603,7 +602,7 @@ void SCPilot::combatDecision(float h, float v, float r, float dt) {
         if (this->rollToAngle(0.0f, 5.0f, dt)) {
             this->pitch_stick = this->clampPitch(s);
         }
-        return;
+        return false;
     }
     float k = (a / 20.0f) * (a / 20.0f) * this->plane->object->entity->jdyn->max_turn_rate_dps / 270.0f;
     float s = 16.0f * k;
@@ -618,6 +617,7 @@ void SCPilot::combatDecision(float h, float v, float r, float dt) {
     if (this->bankError(t, 5.0f, dt)) {
         this->pitch_stick = this->clampPitch(s);
     }
+    return false;
 }
 
 bool SCPilot::bankError(float error, float deadzone, float dt) {
@@ -682,8 +682,26 @@ bool SCPilot::CmdPitchTo(float pitch_deg, float deadzone_deg) {
     return this->pitchToAngle(pitch_deg, deadzone_deg, 1.0f / 25.0f);
 }
 
-void SCPilot::CmdGuidance(Vector3D direction) {
-    this->guidanceSolution(direction, 1.0f / 25.0f);
+bool SCPilot::CmdGuidance(Vector3D direction) {
+    return this->guidanceSolution(direction, 1.0f / 25.0f);
+}
+
+// Matrix_OrthonormalizeKeepRow1_57660 : nez garde, envergure = ancienne envergure projetee ; attitude en dixiemes de degre
+void SCPilot::AttitudeFromAxes(Vector3D nose, Vector3D span, float &yaw, float &pitch, float &roll) {
+    span = span - nose * span.DotProduct(&nose);
+    span.Normalize();
+    float yaw_deg = (-nose).Azimuth();
+    float pitch_deg = nose.Elevation();
+    Matrix zero_roll;
+    zero_roll.Identity();
+    zero_roll.rotateM(degreeToRad(yaw_deg), 0, 1, 0);
+    zero_roll.rotateM(degreeToRad(pitch_deg), 1, 0, 0);
+    Vector3D right0(zero_roll.v[0][0], zero_roll.v[0][1], zero_roll.v[0][2]);
+    Vector3D up0(zero_roll.v[1][0], zero_roll.v[1][1], zero_roll.v[1][2]);
+    float roll_deg = Vector2D(span.DotProduct(&right0), span.DotProduct(&up0)).Angle();
+    yaw = norm3600(yaw_deg * 10.0f);
+    pitch = pitch_deg * 10.0f;
+    roll = norm3600(roll_deg * 10.0f);
 }
 
 void SCPilot::CmdPitchStick(float stick16) {

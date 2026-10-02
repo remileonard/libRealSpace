@@ -56,6 +56,13 @@ class PlaneWreckEvent: public EventMessage {
 public:
     SCPlane *plane{nullptr};
 };
+class PlaneAttitudeEvent: public EventMessage {
+public:
+    SCPlane *plane{nullptr};
+    float yaw{0.0f};
+    float pitch{0.0f};
+    float roll{0.0f};
+};
 class PlaneKinematicEvent: public EventMessage {
 public:
     SCPlane *plane{nullptr};

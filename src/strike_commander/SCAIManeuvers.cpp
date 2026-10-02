@@ -1,6 +1,80 @@
 #include "precomp.h"
 #include "SCAIBrain.h"
 
+// dword_72039 (AIEntity_MasterTick_5ACC) : vitesse IA minimale, + sin(tangage) * (croisiere - minimale) / 2 nez haut
+float SCAIBrain::referenceSpeed() {
+    JDYN *jdyn = owner->object->entity->jdyn;
+    float speed = (float) jdyn->ai_speed_min;
+    float pitch = owner->pilot->NosePitch();
+    if (pitch > 0.0f) {
+        speed += sinf(degreeToRad(pitch)) * (float) (jdyn->ai_speed_cruise - jdyn->ai_speed_min) / 2.0f;
+    }
+    return speed;
+}
+
+// AI_InterceptSpeedControlLaw_5F9B : vitesse de la cible le long de mon nez (au moins la minimale) ; au-dela du seuil,
+// vers la maximale selon la distance le long du nez (pleine a seuil + 3000 m) ; en deca, vers dword_72039
+void SCAIBrain::interceptSpeed(SCMissionActors *target, float threshold) {
+    JDYN *jdyn = owner->object->entity->jdyn;
+    Vector3D nose = owner->plane->forward;
+    Vector3D target_velocity = target->plane->worldVelocity();
+    float closing = std::max(target_velocity.DotProduct(&nose), (float) jdyn->ai_speed_min);
+    Vector3D delta = target->plane->position - owner->plane->position;
+    float along = std::fabs(delta.DotProduct(&nose));
+    float wanted;
+    if (along > threshold) {
+        float maximum = (float) jdyn->ai_speed_max;
+        wanted = maximum > closing ? closing + std::min((along - threshold) / 3000.0f, 1.0f) * (maximum - closing) : maximum;
+    } else {
+        float reference = this->referenceSpeed();
+        wanted = (closing - reference) * along / threshold + reference;
+    }
+    this->speedThrottle(wanted);
+}
+
+// AI_ManeuverSolution_Major : recalage de visee au canon ; W (direction de tir) = mon nez
+bool SCAIBrain::gunSnap(SCMissionActors *target) {
+    SCPilot *pilot = owner->pilot;
+    Vector3D nose = owner->plane->forward;
+    Vector3D direction = target->plane->position - owner->plane->position;
+    float distance = direction.Length();
+    direction.Normalize();
+    float e = direction.Elevation() - nose.Elevation();
+    float h = nose.Azimuth() - direction.Azimuth();
+    float error = sqrtf(e * e + h * h);
+    int roll_draw = 1 + std::rand() % 6 + std::rand() % 6 + std::rand() % 6;
+    bool skilled = owner->profile->ai.atrb.AA >= roll_draw;
+    float bearing = pilot->BearingToRef(direction);
+    float window = std::max(7.0f * cosf(degreeToRad(std::fabs(bearing) / 4.0f)), 1.0f);
+    if (!(std::fabs(h) < window && std::fabs(e) < window && distance < owner->mission->intel.range_gun && skilled)) {
+        return error == 0.0f;
+    }
+    // nez <- nez + D - W (= D), Matrix_OrthonormalizeKeepRow1_57660
+    Vector3D span(owner->plane->ptw.v[0][0], owner->plane->ptw.v[0][1], owner->plane->ptw.v[0][2]);
+    PlaneAttitudeEvent event;
+    event.plane = owner->plane;
+    SCPilot::AttitudeFromAxes(direction, span, event.yaw, event.pitch, event.roll);
+    MessageBus::getInstance().publish(std::make_unique<PlaneAttitudeEvent>(event));
+    // roulis : vers la cible si |h| > fenetre / 2, sinon ailes a plat ; pas borne a JDYN+0x71 / 4 * dt
+    float bank = std::fabs(h) > window / 2.0f ? bearing : -pilot->BankAngle();
+    float step = (float) owner->object->entity->jdyn->max_turn_rate_dps / 4.0f * TICK_DURATION;
+    if (std::fabs(bank) >= step) {
+        bank = bank > 0.0f ? bank - step : bank + step;
+    }
+    pilot->CmdRollTo(bank, 5.0f);
+    pilot->CmdPitchStick(0.0f);
+    return true;
+}
+
+// AI_InterceptDispatcher_6F5C
+bool SCAIBrain::interceptDispatcher(SCMissionActors *target) {
+    this->interceptSpeed(target, owner->mission->intel.range_gun / 4.0f);
+    if (this->gunSnap(target)) {
+        return true;
+    }
+    return owner->pilot->CmdGuidance(target->plane->position - owner->plane->position);
+}
+
 float SCAIBrain::floorAltitude() {
     return owner->plane->groundlevel + 200.0f;
 }
@@ -492,15 +566,13 @@ void SCAIBrain::maneuverSpeed(float wanted) {
     this->speedThrottle(wanted);
 }
 
+// AI_ThrottleController_6250 : e = (vitesse voulue - ma vitesse) / 5 ; e >= 5 -> cran 10, e <= -5 -> cran -1,
+// sinon cran = arrondi(e + 5)
 void SCAIBrain::speedThrottle(float wanted) {
-    float speed = owner->plane->worldVelocity().Length();
-    if (speed < wanted * 0.98f) {
-        owner->pilot->CmdThrottle(10);
-    } else if (speed > wanted * 1.02f) {
-        owner->pilot->CmdThrottle(2);
-    } else {
-        owner->pilot->CmdThrottle(5);
-    }
+    float error = (wanted - owner->plane->worldVelocity().Length()) / 5.0f;
+    float notch = error >= 5.0f ? 10.0f : error > -5.0f ? error + 5.0f : -1.0f;
+    int command = (int) (notch < 0.0f ? floorf(notch - 0.5f) : floorf(notch + 0.5f));
+    owner->pilot->CmdThrottle(std::clamp(command, -1, 10));
 }
 
 bool SCAIBrain::ejectDecision(int mode) {
@@ -768,42 +840,59 @@ bool SCAIBrain::tickManeuver() {
             break;
         }
         case 7: {
-            if (!has_target || maneuver.timer <= 0.0f) {
+            // MVRS_ID7_TickPursuit_10BD9
+            if (!has_target) {
                 running = false;
                 break;
             }
-            if ((maneuver.bits & 2) && ctx.aspect >= 80.0f) {
-                maneuver.bits |= 4;
+            // minuteur ecoule : Behavior_PopFinished_75612, le tick va quand meme au bout
+            bool expired = maneuver.timer < 0.0f;
+            if (maneuver.bits & 2) {
+                maneuver.pursuit_aspect = ctx.target_vel_angle;
             }
-            if (maneuver.bits & 4) {
-                Vector3D point = owner->plane->position + maneuver.point;
-                Vector3D direction = point - owner->plane->position;
+            if ((maneuver.bits & 4) || ((maneuver.bits & 2) && maneuver.pursuit_aspect >= 80.0f)) {
+                if (maneuver.bits & 2) {
+                    maneuver.bits = (maneuver.bits & ~2) | 4;
+                } else if (maneuver.pursuit_aspect < 80.0f) {
+                    maneuver.bits &= ~4;
+                }
+                // point decale memorise (horizontal), montee a 45 deg si pas trop lent
+                Vector3D direction(maneuver.point.x, 0.0f, maneuver.point.z);
                 if (!this->tooSlow()) {
-                    float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
-                    direction.y = horizontal;
+                    direction.y = sqrtf(direction.x * direction.x + direction.z * direction.z);
                 }
                 pilot->CmdGuidance(direction);
-                this->speedThrottle((float) owner->object->entity->jdyn->ai_speed_min);
+                this->speedThrottle(this->referenceSpeed());
             } else if (maneuver.bits & 0x10) {
-                Vector3D direction = maneuver.point - owner->plane->position;
-                if (ctx.nose_angle < 45.0f) {
-                    direction = ctx.D;
+                if (ctx.nose_angle <= 45.0f) {
+                    this->interceptDispatcher(target);
+                    maneuver.bits &= ~0x10;
+                } else if (pilot->CmdGuidance(maneuver.point)) {
+                    // l'original passe la position absolue memorisee comme direction (AI_GuidanceCmd_FromOwnPos)
+                    maneuver.bits &= ~0x10;
                 }
-                pilot->CmdGuidance(direction);
-                this->maneuverSpeed((float) owner->object->entity->jdyn->ai_speed_max);
+            } else if (this->collisionCourse(target)) {
+                running = false;
+            } else if (maneuver.bits & 8) {
+                float threshold = 2.0f * ctx.target_speed * ctx.target_speed / 9.0f;
+                if (ctx.dist <= threshold) {
+                    maneuver.timer = 4.0f;
+                    expired = false;
+                    maneuver.bits = (maneuver.bits | 0x10) & ~8;
+                    maneuver.point = target->plane->position + target->plane->worldVelocity() * 4.0f;
+                } else {
+                    this->interceptDispatcher(target);
+                }
             } else {
-                if (maneuver.bits & 8) {
-                    float threshold = 2.0f * ctx.target_speed * ctx.target_speed / 9.0f;
-                    if (ctx.dist <= threshold) {
-                        maneuver.timer = 4.0f;
-                        maneuver.bits |= 0x10;
-                        maneuver.point = target->plane->position + target->plane->worldVelocity() * 4.0f;
-                    }
-                } else if (ctx.nose_angle <= 60.0f && ctx.aspect < 60.0f) {
+                if (ctx.nose_angle <= 60.0f && ctx.aspect < 60.0f) {
                     maneuver.bits |= 8;
+                    this->interceptDispatcher(target);
+                } else if (this->interceptDispatcher(target)) {
+                    running = false;
                 }
-                pilot->CmdGuidance(ctx.D);
-                this->maneuverSpeed((float) owner->object->entity->jdyn->ai_speed_max);
+            }
+            if (expired) {
+                running = false;
             }
             break;
         }
@@ -906,6 +995,10 @@ bool SCAIBrain::tickManeuver() {
             this->updateGroundAttack(ground_target);
             running = ground_attack_active;
             break;
+        case 20:
+            // MVRS_ID20_TickApplyGuidance_11A04 : direction memorisee, plein gaz, pendant le minuteur
+            running = this->tickLeg();
+            break;
         default:
             running = false;
             break;
@@ -919,21 +1012,83 @@ bool SCAIBrain::tickManeuver() {
     return running;
 }
 
-void SCAIBrain::runReflexes() {
+bool SCAIBrain::runReflexes() {
     if (maneuver.id != 0 || owner->plane->on_ground || owner->pilot->autopilotActive()) {
-        return;
+        return false;
     }
     if (reaction_level <= REACT_STALL_RECOVERY && this->scoreManeuver(15, nullptr) > 0) {
         this->applyManeuver(15, nullptr, REACT_STALL_RECOVERY);
         reaction_level = REACT_STALL_RECOVERY;
         printf("AI %s#%d stall recovery reflex\n", owner->actor_name.c_str(), owner->actor_id);
-        return;
+        this->tickManeuver();
+        return true;
     }
     if (reaction_level <= REACT_GROUND_AVOID && this->scoreManeuver(14, nullptr) > 0) {
         this->applyManeuver(14, nullptr, REACT_GROUND_AVOID);
         reaction_level = REACT_GROUND_AVOID;
         printf("AI %s#%d ground avoid reflex\n", owner->actor_name.c_str(), owner->actor_id);
+        this->tickManeuver();
+        return true;
     }
+    return false;
+}
+
+// AI_ScanCollisionThreats_DF99 : evitement de collision avec tous les avions, amis compris (niveau 3)
+bool SCAIBrain::scanCollisionThreats() {
+    if (this->behaviorRunning()) {
+        if (reaction_level == REACT_COLLISION) {
+            this->tickBehavior();
+            return true;
+        }
+        return false;
+    }
+    if (reaction_level == REACT_COLLISION) {
+        reaction_level = REACT_NONE;
+    }
+    for (auto actor : owner->mission->actors) {
+        if (actor == owner || actor->plane == nullptr || actor->is_destroyed || actor->object->entity->target_type != 1) {
+            continue;
+        }
+        if (this->collisionCourse(actor)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// AI_CollisionCourseTest_DD21 : a moins de 80 m, ou passage a moins de 80 m dans les 4 s
+bool SCAIBrain::collisionCourse(SCMissionActors *other) {
+    Vector3D away = owner->plane->position - other->plane->position;
+    float distance = away.Length();
+    Vector3D other_velocity = other->plane->worldVelocity();
+    Vector3D closing = other_velocity - owner->plane->worldVelocity();
+    float closing_speed = closing.Length();
+    bool collision = distance < 80.0f;
+    if (!collision && closing_speed > 0.0f) {
+        float angle = closing.AngleBetween(away);
+        if (angle < 90.0f) {
+            float miss = distance * sinf(degreeToRad(angle));
+            float along = distance * cosf(degreeToRad(angle));
+            collision = miss < 80.0f && along <= 4.0f * closing_speed;
+        }
+    }
+    if (!collision) {
+        return false;
+    }
+    // AI_ProximityGeometricWarning_315B : ecart perpendiculaire a la visee et a sa trajectoire a 4 s,
+    // score ID20 nul (< 5) -> vecteur inverse ; quasi nul -> Utility_Helper_55DB4 (5, 5, 1000) en axes asm
+    Vector3D side = -Vector3D::Cross(away, other_velocity * 4.0f);
+    if (side.Length() < 1.0f) {
+        side = Vector3D(5.0f, 1000.0f, -5.0f);
+    }
+    this->abandonBehavior();
+    this->applyManeuver(20, nullptr, REACT_COLLISION);
+    maneuver.leg = side;
+    maneuver.leg_timer = 2.0f;
+    reaction_level = REACT_COLLISION;
+    printf("AI %s#%d collision avoidance with %s d=%.0f\n", owner->actor_name.c_str(), owner->actor_id, other->actor_name.c_str(), distance);
+    this->tickManeuver();
+    return true;
 }
 
 void SCAIBrain::incomingThreatWarning() {

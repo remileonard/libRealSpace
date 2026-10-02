@@ -8,7 +8,7 @@ enum ReactionLevel : uint8_t {
     REACT_NONE = 0,
     REACT_ENGAGED = 1,
     REACT_MISSILE = 2,
-    REACT_NEW_TARGET = 3,
+    REACT_COLLISION = 3,
     REACT_GROUND_AVOID = 4,
     REACT_STALL_RECOVERY = 5
 };
@@ -89,6 +89,7 @@ struct ManeuverState {
     float leg_timer{0.0f};
     float start_heading{0.0f};
     int uses[32]{};
+    float pursuit_aspect{0.0f};     // word_72097, angle (D, vitesse de la cible) memorise par ID7
 };
 
 // entite+0x10F/+0x111/+0x139/+0x13D/+0x141 et bloc de commandes du noeud ID21
@@ -214,7 +215,9 @@ private:
     int evasion_hold{0};
     Vector3D target_last_position{0.0f, 0.0f, 0.0f};
     Vector3D own_last_position{0.0f, 0.0f, 0.0f};
-    bool fire_control_active{false};
+    bool escort_leader_free{false};              // bit 1 de +0x28B : pose par l'ailier, leader non engage
+    SCMissionActors *engage_target{nullptr};     // entite+0x285
+    SCMissionActors *announced_target{nullptr};
     bool skillCheck(uint8_t stat, int modifier);
     uint16_t loadedWeaponMask();
     uint16_t selectWeaponMask();
@@ -252,7 +255,13 @@ private:
     void maneuverSpeed(float wanted);
     void speedThrottle(float wanted);
     bool ejectDecision(int mode);
-    void runReflexes();
+    bool runReflexes();
+    bool scanCollisionThreats();
+    bool collisionCourse(SCMissionActors *other);
+    float referenceSpeed();
+    void interceptSpeed(SCMissionActors *target, float threshold);
+    bool gunSnap(SCMissionActors *target);
+    bool interceptDispatcher(SCMissionActors *target);
     void incomingThreatWarning();
     int computeMorale();
     bool canHoldOrder();

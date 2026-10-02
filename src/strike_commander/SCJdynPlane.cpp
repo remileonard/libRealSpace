@@ -166,6 +166,11 @@ void SCJdynPlane::Simulate() {
         sim_obj->Simulate(this->tps);
     }
     // remove dead objects
+    for (auto sim_obj: this->weaps_object) {
+        if (!sim_obj->alive) {
+            this->pilot->mission->onWeaponRemoved(sim_obj);
+        }
+    }
     this->weaps_object.erase(std::remove_if(this->weaps_object.begin(), this->weaps_object.end(), [](SCSimulatedObject *obj) {
         return obj->alive == false;
     }), this->weaps_object.end());

@@ -536,6 +536,11 @@ void SCPlane::Simulate() {
         sim_obj->Simulate(this->tps);
     }
     // remove dead objects
+    for (auto sim_obj: this->weaps_object) {
+        if (!sim_obj->alive) {
+            this->pilot->mission->onWeaponRemoved(sim_obj);
+        }
+    }
     this->weaps_object.erase(std::remove_if(this->weaps_object.begin(), this->weaps_object.end(), [](SCSimulatedObject *obj) {
         return obj->alive == false;
     }), this->weaps_object.end());
@@ -1292,6 +1297,14 @@ void SCPlane::onEvent(const EventMessage &event) {
     }
     if (auto eventData = dynamic_cast<const PlaneWreckEvent*>(&event)) {
         this->onPlaneWreck(*eventData);
+        return;
+    }
+    if (auto eventData = dynamic_cast<const PlaneAttitudeEvent*>(&event)) {
+        if (eventData->plane == this) {
+            this->yaw = eventData->yaw;
+            this->pitch = eventData->pitch;
+            this->roll = eventData->roll;
+        }
         return;
     }
 }

@@ -378,6 +378,14 @@ void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
         this->aa_missile_launched = true;
     }
 }
+// retrait de la liste des objets du monde : les references SetReference sur l'arme se vident (+0x281)
+void SCMission::onWeaponRemoved(SCSimulatedObject *weapon) {
+    for (auto actor : this->actors) {
+        if (actor->brain != nullptr && actor->brain->missile_threat == weapon) {
+            actor->brain->missile_threat = nullptr;
+        }
+    }
+}
 RSEntity * SCMission::LoadEntity(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";
     RSEntity *objct = new RSEntity();

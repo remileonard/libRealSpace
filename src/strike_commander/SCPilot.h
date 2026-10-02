@@ -106,8 +106,8 @@ private:
     void runGuidance(float dt);
     float bankAngle();
     float nosePitch();
-    void guidanceSolution(Vector3D direction, float dt);
-    void combatDecision(float h, float v, float r, float dt);
+    bool guidanceSolution(Vector3D direction, float dt);
+    bool combatDecision(float h, float v, float r, float dt);
     bool bankError(float error, float deadzone, float dt);
     bool rollToAngle(float bank, float deadzone, float dt);
     bool pitchToAngle(float pitch, float deadzone, float dt);
@@ -138,7 +138,8 @@ public:
     void BeginManual();
     bool CmdRollTo(float bank_deg, float deadzone_deg);
     bool CmdPitchTo(float pitch_deg, float deadzone_deg);
-    void CmdGuidance(Vector3D direction);
+    bool CmdGuidance(Vector3D direction);
+    static void AttitudeFromAxes(Vector3D nose, Vector3D span, float &yaw, float &pitch, float &roll);
     void CmdPitchStick(float stick16);
     void CmdRollStick(float stick16);
     void CmdThrottle(int notch);

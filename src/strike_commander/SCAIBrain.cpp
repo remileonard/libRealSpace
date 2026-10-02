@@ -28,6 +28,7 @@ void SCAIBrain::tick() {
         this->abandonBehavior();
     }
     just_hit = false;
+    escort_leader_free = false;
 }
 
 void SCAIBrain::updateTimers() {
@@ -77,9 +78,15 @@ void SCAIBrain::topLevelThink() {
     if (airborne && !ground_order) {
         this->incomingThreatWarning();
     }
-    // 3. reflexes, seulement sans comportement en cours
-    if (airborne && !this->behaviorRunning()) {
-        this->runReflexes();
+    // 3. reflexes : decrochage (niveau <= 5), sol (<= 4), collision entre avions (<= 3) ; si l'un reagit, fin
+    if (airborne) {
+        bool reacted = !this->behaviorRunning() && this->runReflexes();
+        if (!reacted && reaction_level <= REACT_COLLISION) {
+            reacted = this->scanCollisionThreats();
+        }
+        if (reacted) {
+            return;
+        }
     }
     // 4. reactions prioritaires : esquive de missile, entree en combat contre un attaquant
     if (!this->behaviorRunning() && reaction_level <= REACT_MISSILE && this->reactToMissile()) {
@@ -139,13 +146,27 @@ bool SCAIBrain::engageAttackerReaction() {
         }
         formation.leader_state = 3;
         owner->target = air_target;
+        engage_target = air_target;
         if (leader_is_player) {
             owner->setMessage(0x12);
         }
         return false;
     }
-    this->abandonNavigation();
-    return this->combatStep(false);
+    // (4b) chasseur (JINF +0x52 >= 9) : abandon d'une navigation ID21 en cours, combat, renvoie 1
+    if (owner->object->entity->combat_class >= 9) {
+        if (!behaviors.empty() && behaviors.back() == BEHAVIOR_NAVIGATION) {
+            this->abandonNavigation();
+        }
+        this->combatStep(false);
+        return true;
+    }
+    // (4c) rien en cours, sans ordre ou ordre de vol : errance, ordre verrouille
+    if (!this->behaviorRunning() && (owner->current_command == OP_NOOP || owner->current_command == OP_SET_OBJ_FLY_TO_WP)) {
+        nav.reached = true;
+        objective_locked = true;
+        this->wander();
+    }
+    return false;
 }
 
 bool SCAIBrain::followAllyOrder(uint8_t arg) {
@@ -183,6 +204,7 @@ bool SCAIBrain::followAllyOrder(uint8_t arg) {
             formation.leader_state = 3;
             owner->target = threat;
             air_target = threat;
+            engage_target = threat;
             objective_locked = true;
             owner->setMessage(0x10);
         } else if (!formation.active) {
@@ -665,23 +687,20 @@ bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
         owner->current_command_executed = true;
         return false;
     }
-    bool is_new_target = owner->target == nullptr || owner->target->actor_id != arg;
-    if (is_new_target) {
-        owner->target = nullptr;
-        for (auto actor : owner->mission->actors) {
-            if (actor->actor_id == arg) {
-                owner->target = actor;
-                actor->attacker = owner;
-                if (std::rand() % 16 >= owner->profile->ai.atrb.VB) {
-                    owner->setMessage(actor->plane == nullptr ? 11 : 12);
-                }
-                break;
-            }
-        }
-    }
+    // +0x137 est pose par SCMissionActors::setObjective (Goal_SetObjective_A307) ; nul -> Goal_IsComplete 0xA7 : termine
     SCMissionActors *target = owner->target;
     if (target == nullptr) {
+        owner->current_command_executed = true;
+        objective_locked = false;
         return false;
+    }
+    bool is_new_target = announced_target != target;
+    if (is_new_target) {
+        announced_target = target;
+        target->attacker = owner;
+        if (std::rand() % 16 >= owner->profile->ai.atrb.VB) {
+            owner->setMessage(target->plane == nullptr ? 11 : 12);
+        }
     }
     if (target->is_destroyed || (target->plane != nullptr && target->plane->object->alive == 0)) {
         owner->current_target = SCMissionActors::NO_TARGET;
@@ -705,7 +724,9 @@ bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
         this->updateGroundAttack(target);
         return ground_attack_active;
     }
-    return this->combatStep(false);
+    // Goal_ExecuteAction_A8AC 0xA7 : renvoie 1 (Goal_IsComplete), quel que soit le resultat du combat
+    this->combatStep(false);
+    return true;
 }
 
 bool SCAIBrain::acquireBestThreat(bool allow_new_target) {
@@ -749,7 +770,8 @@ bool SCAIBrain::acquireBestThreat(bool allow_new_target) {
         char geometry[192];
         if (actor->object->entity->entity_type == EntityType::jet) {
             air_candidates++;
-            if (actor->plane != nullptr) {
+            // loc_3623 : avion candidat seulement si ma classe >= 6 et son pilote non ejecte
+            if (actor->plane != nullptr && owner->object->entity->combat_class >= 6 && !actor->plane->ejected) {
                 ThreatScore score = this->scoreAirCandidate(actor, delta);
                 bool accepted = this->skillCheck(owner->profile->ai.atrb.FL, score.aptitude);
                 int total = weight_a * score.a + weight_b * score.b;
@@ -850,13 +872,13 @@ ThreatScore SCAIBrain::scoreAirCandidate(SCMissionActors *candidate, Vector3D de
     int heading = (int) owner->plane->forward.AngleBetween(candidate->plane->forward);
 
     if (ahead > 135) {
-        if (!fire_control_active) {
+        if (!escort_leader_free) {
             score.aptitude -= 4;
         }
         score.a -= 4;
         score.b += (aims < 45) ? 8 : 2;
     } else if (ahead > 90) {
-        if (!fire_control_active) {
+        if (!escort_leader_free) {
             score.aptitude -= 1;
         }
         score.a -= 2;
@@ -880,6 +902,13 @@ ThreatScore SCAIBrain::scoreAirCandidate(SCMissionActors *candidate, Vector3D de
         }
     }
 
+    // cible nettement sous moi : dot(D, mon axe haut) < -0,70 (0FFFFFF4Ch)
+    Vector3D down_check = delta;
+    down_check.Normalize();
+    Vector3D own_up(owner->plane->ptw.v[1][0], owner->plane->ptw.v[1][1], owner->plane->ptw.v[1][2]);
+    if (down_check.DotProduct(&own_up) < -180.0f / 256.0f && !escort_leader_free) {
+        score.aptitude -= 4;
+    }
     if (heading > 80 && heading < 100) {
         score.a -= 5;
     } else if (heading > 60 && heading < 120) {
@@ -918,12 +947,33 @@ ThreatScore SCAIBrain::scoreAirCandidate(SCMissionActors *candidate, Vector3D de
         score.a += 2;
         score.aptitude += 4;
     }
+    // entite+0x289 : le dernier qui m'a touche
+    if (candidate == last_attacker) {
+        score.aptitude += 3;
+        score.b += 5;
+    }
     if (candidate->target == owner) {
         score.aptitude += 2;
         score.b += 1;
     }
-    if (fire_control_active) {
+    // loc_3CCF : classe du candidat c, la mienne m, reference byte_72038 = 6 (PilotProfile_LoadNUMSCompanionFile_73FB4)
+    static const int CLASS_REFERENCE = 6;
+    int candidate_class = candidate->object->entity->combat_class;
+    int own_class = owner->object->entity->combat_class;
+    if (candidate_class <= CLASS_REFERENCE) {
+        score.b = 0;
+    } else {
+        int bonus = candidate_class - 2 <= own_class ? candidate_class - CLASS_REFERENCE : own_class - candidate_class;
+        score.a += bonus;
+        score.aptitude += bonus;
+    }
+    if (escort_leader_free) {
         score.aptitude += 4;
+    }
+    // entite+0x285 : cible designee
+    if (candidate == engage_target) {
+        score.a += 10;
+        score.aptitude += 5;
     }
     return score;
 }
@@ -1021,8 +1071,12 @@ ThreatScore SCAIBrain::scoreGroundCandidate(SCMissionActors *candidate, Vector3D
         score.aptitude += 3;
         score.a += 3;
     }
-    if (fire_control_active) {
+    if (escort_leader_free) {
         score.aptitude += 4;
+    }
+    if (candidate == engage_target) {
+        score.a += 10;
+        score.aptitude += 5;
     }
     return score;
 }
@@ -1044,12 +1098,22 @@ ThreatScore SCAIBrain::scoreMissile(SCSimulatedObject *missile) {
             float range = long_range ? (float) intel.range_far : (float) intel.range_long;
             score.b += (int) (16.0f * (1.0f - distance / range)) + 24;
             score.aptitude += (trigger_happy * trigger_happy) / 16 - 8;
-            if (ahead > 135 && !fire_control_active) {
+            // le tireur est ma cible aerienne ou ma cible au sol
+            if (missile->shooter != nullptr && (missile->shooter == air_target || missile->shooter == ground_target)) {
+                score.aptitude += 4;
+            }
+            if (ahead > 135 && !escort_leader_free) {
+                score.aptitude -= 4;
+            }
+            Vector3D down_check = delta;
+            down_check.Normalize();
+            Vector3D own_up(owner->plane->ptw.v[1][0], owner->plane->ptw.v[1][1], owner->plane->ptw.v[1][2]);
+            if (down_check.DotProduct(&own_up) < -180.0f / 256.0f && !escort_leader_free) {
                 score.aptitude -= 4;
             }
         }
     }
-    if (fire_control_active) {
+    if (escort_leader_free) {
         score.aptitude += 4;
     }
     return score;
@@ -1954,18 +2018,19 @@ SCMissionActors *SCAIBrain::followLeader() {
 int SCAIBrain::escortQueryLeader(SCMissionActors *leader, SCMissionActors *&engage) {
     // Escort_QueryLeaderValid : d'apres la reaction en cours du leader
     SCAIBrain *lead = leader->brain;
+    int result = 0;
     if (lead->reaction_level == REACT_ENGAGED && lead->air_target != nullptr) {
         engage = lead->air_target;
-        return 3;
-    }
-    if (lead->reaction_level == REACT_MISSILE && lead->missile_threat != nullptr) {
+        result = 3;
+    } else if (lead->reaction_level == REACT_MISSILE && lead->missile_threat != nullptr) {
         SCMissionActors *shooter = lead->missile_threat->shooter;
         if (shooter != nullptr && shooter->plane != nullptr) {
             engage = shooter;
-            return 3;
+            result = 3;
         }
     }
-    return 0;
+    lead->escort_leader_free = result == 0;
+    return result;
 }
 
 bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
@@ -1985,6 +2050,7 @@ bool SCAIBrain::followAllyExec(SCMissionActors *leader) {
             if (formation.leader_state == 3) {
                 owner->target = engage;
                 air_target = engage;
+                engage_target = engage;
             } else {
                 result = this->formationGuidance(leader);
             }
@@ -2108,25 +2174,12 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     Vector3D toward = to_slot - motion;
     toward.Normalize();
     motion = motion + toward * correction;
-    // orientation : nez du leader, envergure moyenne (Matrix_OrthonormalizeKeepRow1_57660)
-    Vector3D span = mean_span - lead_nose * mean_span.DotProduct(&lead_nose);
-    span.Normalize();
-    float yaw = (-lead_nose).Azimuth();
-    float pitch = lead_nose.Elevation();
-    Matrix zero_roll;
-    zero_roll.Identity();
-    zero_roll.rotateM(degreeToRad(yaw), 0, 1, 0);
-    zero_roll.rotateM(degreeToRad(pitch), 1, 0, 0);
-    Vector3D right0(zero_roll.v[0][0], zero_roll.v[0][1], zero_roll.v[0][2]);
-    Vector3D up0(zero_roll.v[1][0], zero_roll.v[1][1], zero_roll.v[1][2]);
-    float roll = Vector2D(span.DotProduct(&right0), span.DotProduct(&up0)).Angle();
+    // orientation : nez du leader, envergure moyenne
     PlaneKinematicEvent event;
     event.plane = plane;
     event.engaged = true;
     event.velocity = motion * (1.0f / dt);
-    event.yaw = norm3600(yaw * 10.0f);
-    event.pitch = pitch * 10.0f;
-    event.roll = norm3600(roll * 10.0f);
+    SCPilot::AttitudeFromAxes(lead_nose, mean_span, event.yaw, event.pitch, event.roll);
     MessageBus::getInstance().publish(std::make_unique<PlaneKinematicEvent>(event));
     return true;
 }

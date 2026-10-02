@@ -793,6 +793,8 @@ void SCJetpPlane::Simulate() {
         if (this->weaps_object[readIndex]->alive) {
             this->weaps_object[writeIndex] = this->weaps_object[readIndex];
             ++writeIndex;
+        } else {
+            this->pilot->mission->onWeaponRemoved(this->weaps_object[readIndex]);
         }
     }
     this->weaps_object.resize(writeIndex);

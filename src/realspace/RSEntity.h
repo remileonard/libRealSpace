@@ -258,6 +258,7 @@ public:
     int16_t landing_pitch_steps{20};
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
+    uint8_t combat_class{2};           // chunk JINF, modele +0x52 (9 et plus : chasseur)
     uint8_t bomb_guided{0};            // chunk DATA des BOMB, modele +0x5E
     int16_t bomb_lock_cone_rate{0};    // modele +0x61, deg/s
     uint8_t health{0};

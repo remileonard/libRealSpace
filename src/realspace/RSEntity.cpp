@@ -619,7 +619,14 @@ void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
         }
     }
 }
-void RSEntity::parseREAL_OBJT_JETP_JINF(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_JINF(uint8_t *data, size_t size) {
+    // MissionRecord_LoadStringFields_9D4F0 : octet +0x53, mot +0x54, mot +0x56, octet +0x52
+    ByteStream bs(data, size);
+    bs.ReadByte();
+    bs.ReadShort();
+    bs.ReadShort();
+    this->combat_class = bs.ReadByte();
+}
 void RSEntity::parseREAL_OBJT_JETP_DAMG(uint8_t *data, size_t size) {
     if (size > 2) {
         IFFSaxLexer lexer;

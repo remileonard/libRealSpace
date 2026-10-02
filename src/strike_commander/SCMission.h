@@ -72,6 +72,7 @@ public:
     bool aa_missile_launched_last{false};          // byte_6E4D7
     float ai_clock_stagger{0.0f};                  // dword_6D3BE
     void onWeaponSpawned(SCSimulatedObject *weapon);
+    void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
     RSSound &sound = RSSound::getInstance();
