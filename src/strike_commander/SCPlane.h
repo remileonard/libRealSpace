@@ -195,6 +195,8 @@ public:
     static int SeekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity);
     bool seekerSees(RSEntity *weapon, SCMissionActors *candidate);
     SCMissionActors *seekerSelect(RSEntity *weapon, SCMissionActors *desired, SCMission *mission);
+    bool seekerAspectAllows(RSEntity *weapon, SCMissionActors *target);
+    bool seekerLocks(RSEntity *weapon, SCMissionActors *target);
     void updateWeaponTimers(float dt);
     float mach{0.0f};
     float mcc{0.0f};

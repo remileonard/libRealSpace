@@ -1046,7 +1046,13 @@ void SCStrike::checkKeyboard(void) {
     this->cockpit->is_shooting = false;
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
         if (target != nullptr) {
-            this->player_plane->Shoot(this->player_plane->selected_weapon, target, this->current_mission);
+            // WeaponSystem_FrameUpdate_3F8C0 : le missile ne recoit la cible que si le point d'emport est accroche (+0x0B)
+            SCMissionActors *weapon_target = target;
+            SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
+            if (station != nullptr && station->objct->wdat->weapon_aspec != 0 && !this->player_plane->seekerLocks(station->objct, target)) {
+                weapon_target = nullptr;
+            }
+            this->player_plane->Shoot(this->player_plane->selected_weapon, weapon_target, this->current_mission);
             this->cockpit->is_shooting = true;
         }
     }

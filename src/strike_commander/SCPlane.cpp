@@ -243,7 +243,7 @@ SCMissionActors *SCPlane::seekerSelect(RSEntity *weapon, SCMissionActors *desire
     int aspec = weapon->wdat->weapon_aspec;
     Vector3D reference_velocity = this->worldVelocity();
     if (aspec == 5 || aspec == 6) {
-        return (desired != nullptr && this->seekerSees(weapon, desired)) ? desired : nullptr;
+        return (desired != nullptr && this->seekerLocks(weapon, desired)) ? desired : nullptr;
     }
     SCMissionActors *best = nullptr;
     int best_signature = 0;
@@ -282,16 +282,25 @@ SCMissionActors *SCPlane::seekerSelect(RSEntity *weapon, SCMissionActors *desire
             return best;
         }
     }
-    if (result == nullptr) {
+    if (result == nullptr || !this->seekerAspectAllows(weapon, result)) {
         return nullptr;
     }
-    if (aspec == 1) {
-        Vector3D target_velocity = result->plane->worldVelocity();
-        if (reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z < 0.0f) {
-            return nullptr;
-        }
-    }
     return result;
+}
+
+// aspec 1 (AIM-9J) : aspect arriere obligatoire, vitesses a moins de 90 deg (dot >= cos 90)
+bool SCPlane::seekerAspectAllows(RSEntity *weapon, SCMissionActors *target) {
+    if (weapon->wdat->weapon_aspec != 1 || target->plane == nullptr) {
+        return true;
+    }
+    Vector3D own_velocity = this->worldVelocity();
+    Vector3D target_velocity = target->plane->worldVelocity();
+    return own_velocity.DotProduct(&target_velocity) >= 0.0f;
+}
+
+// verrou du chercheur sur une cible donnee : portee, cone et aspect, sans balayage des autres contacts
+bool SCPlane::seekerLocks(RSEntity *weapon, SCMissionActors *target) {
+    return this->seekerSees(weapon, target) && this->seekerAspectAllows(weapon, target);
 }
 
 void SCPlane::updateWeaponTimers(float dt) {

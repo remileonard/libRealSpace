@@ -2117,7 +2117,7 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
     if (this->current_target != nullptr && this->current_target_actor != nullptr) {
         SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
         if (station != nullptr) {
-            locked = this->player_plane->seekerSelect(station->objct, this->current_target_actor, this->current_mission) == this->current_target_actor;
+            locked = this->player_plane->seekerLocks(station->objct, this->current_target_actor);
         }
     }
     if (!locked) {
