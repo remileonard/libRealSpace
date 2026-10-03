@@ -67,7 +67,7 @@ public:
     // (script d'initialisation, pas un etat re-evalue en continu comme pour
     // l'IA) — sa surcharge execute donc directement la commande ici, au
     // moment ou elle est posee.
-    virtual void setObjective(prog_op command, uint8_t arg);
+    virtual bool setObjective(prog_op command, uint8_t arg);
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);
     virtual void shootWeapon(SCMissionActors *target);
@@ -94,7 +94,7 @@ public:
     bool flyToArea(uint8_t arg);
     bool setMessage(uint8_t arg) override;
     void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) override;
-    void setObjective(prog_op command, uint8_t arg) override;
+    bool setObjective(prog_op command, uint8_t arg) override;
 };
 
 class SCMissionActorsStrikeBase : public SCMissionActors {

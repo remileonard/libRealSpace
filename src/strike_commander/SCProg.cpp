@@ -178,51 +178,36 @@ void SCProg::execute() {
                 }
                 break;
                 case OP_SET_OBJ_TAKE_OFF:
-                    this->actor->setObjective(OP_SET_OBJ_TAKE_OFF, prog.arg);
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_TAKE_OFF, prog.arg) ? 1 : 0;
                 break;
                 case OP_SET_OBJ_LAND:
-                    this->actor->setObjective(OP_SET_OBJ_LAND, prog.arg);
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_LAND, prog.arg) ? 1 : 0;
                     if (this->actor->current_command == OP_SET_OBJ_LAND && this->actor->current_command_arg == prog.arg) {
                         // Expr_VM_ReadNextToken_50F85 : un opcode 9 qui suit fournit le 2e operande (spot de toucher)
                         bool has_second = (size_t) i + 1 < this->prog.size() && this->prog[i + 1].opcode == OP_SPOT_DATA;
                         this->actor->current_command_arg2 = has_second ? (uint8_t) this->prog[i + 1].arg : 0xFF;
                     }
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_FLY_TO_WP:
-                    this->actor->setObjective(OP_SET_OBJ_FLY_TO_WP, prog.arg);
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_FLY_TO_WP, prog.arg) ? 1 : 0;
                     if (this->actor->current_command == OP_SET_OBJ_FLY_TO_WP && this->actor->current_command_arg == prog.arg) {
                         // 2e operande (opcode 9) : vitesse voulue a l'arrivee (Goal_SetObjective_A307 -> +0x12B)
                         bool has_second = (size_t) i + 1 < this->prog.size() && this->prog[i + 1].opcode == OP_SPOT_DATA;
                         this->actor->current_command_arg2 = has_second ? (uint8_t) this->prog[i + 1].arg : 0xFF;
                     }
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 break;
                 case OP_SET_OBJ_FLY_TO_AREA:
                     // Expr_VM_Interpreter_51106 : 0xA6 -> cas par defaut, pas d'appel natif ; seul le joueur l'exploite
                     this->actor->setObjective(OP_SET_OBJ_FLY_TO_AREA, prog.arg);
                 break;
                 case OP_SET_OBJ_DESTROY_TARGET:
-                    this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, prog.arg);
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, prog.arg) ? 1 : 0;
                 break;
                 case OP_SET_OBJ_DEFEND_TARGET:
-                    
-                    if (this->actor->current_command != OP_SET_OBJ_DEFEND_TARGET) {
-                        if (this->actor->current_target != SCMissionActors::NO_TARGET) {
-                            printf("prog.execute l212 : AI %s#%d switching current target from %d to %d\n", this->actor->actor_name.c_str(), this->actor->actor_id, this->actor->current_target, SCMissionActors::NO_TARGET);
-                        }
-                        this->actor->current_target = SCMissionActors::NO_TARGET;
-                        this->actor->target = nullptr;
-                    }
-                    
-                    this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, prog.arg);
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, prog.arg) ? 1 : 0;
                 break;
                 case OP_SET_OBJ_DEFEND_AREA:
-                    this->actor->setObjective(OP_SET_OBJ_DEFEND_AREA, prog.arg);
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_DEFEND_AREA, prog.arg) ? 1 : 0;
                 break;
                 case OP_SET_MESSAGE:
                     this->actor->setMessage(prog.arg);
@@ -235,13 +220,12 @@ void SCProg::execute() {
                     if (leader_arg == 0xFF && part != nullptr) {
                         leader_arg = part->unknown_bytes[3];
                     }
-                    this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, leader_arg);
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, leader_arg) ? 1 : 0;
                     if (part != nullptr && this->actor->current_command == OP_SET_OBJ_FOLLOW_ALLY && this->actor->current_command_arg == leader_arg) {
                         std::vector<uint8_t> &b = part->unknown_bytes;
                         this->actor->follow_slot = Vector3D((float) (int16_t) (b[5] | (b[6] << 8)), (float) (int16_t) (b[7] | (b[8] << 8)), (float) (int16_t) (b[9] | (b[10] << 8)));
                         this->actor->follow_slot_set = true;
                     }
-                    this->task_state = this->actor->current_command_executed ? 0 : 1;
                 }
                 break;
                 case OP_DEACTIVATE_OBJ:

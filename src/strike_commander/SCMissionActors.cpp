@@ -315,12 +315,14 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
  * dernier passage du GOAL loop (sinon OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS
  * ne verrait jamais l'objectif comme termine).
  */
-void SCMissionActors::setObjective(prog_op command, uint8_t arg) {
+bool SCMissionActors::setObjective(prog_op command, uint8_t arg) {
+    // Goal_SetObjective_A307 : bit 5 de +0x28B (ordre verrouille) -> rien n'est pose, renvoie 1 (en cours)
     if (this->brain != nullptr && this->brain->objective_locked) {
-        return;
+        this->brain->onObjectiveSet(false);
+        return true;
     }
     if (command == OP_SET_OBJ_FLY_TO_AREA) {
-        return;
+        return false;
     }
     if (this->current_command != command || this->current_command_arg != arg) {
         this->current_command_executed = false;
@@ -336,6 +338,11 @@ void SCMissionActors::setObjective(prog_op command, uint8_t arg) {
             }
         }
     }
+    if (this->brain != nullptr) {
+        this->brain->onObjectiveSet(true);
+    }
+    // Goal_IsComplete_A6D3 du nouvel etat : 1 = en cours
+    return !this->current_command_executed;
 }
 
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
@@ -895,7 +902,7 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
  * creer le SCMissionWaypoint correspondant (takeOff/land/flyToWaypoint/...
  * sont surcharges cote joueur pour ca, pas pour piloter).
  */
-void SCMissionActorsPlayer::setObjective(prog_op command, uint8_t arg) {
+bool SCMissionActorsPlayer::setObjective(prog_op command, uint8_t arg) {
     switch (command) {
         case OP_SET_OBJ_TAKE_OFF:
             this->current_command_executed = this->takeOff(arg);
@@ -914,6 +921,7 @@ void SCMissionActorsPlayer::setObjective(prog_op command, uint8_t arg) {
     }
     this->current_command = command;
     this->current_command_arg = arg;
+    return !this->current_command_executed;
 }
 
 bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {

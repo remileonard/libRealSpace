@@ -227,6 +227,8 @@ bool SCAIBrain::followAllyOrder(uint8_t arg) {
         }
     }
     if (formation.leader_state == 3) {
+        // Goal_SelectTransition etat 3 (loc_BC7E) : ordre verrouille
+        objective_locked = true;
         this->combatStep(false);
     } else if (formation.leader_state == 1) {
         objective_locked = true;
@@ -426,10 +428,7 @@ bool SCAIBrain::combatStep(bool ground_allowed) {
         }
         return false;
     }
-    if (owner->current_target != air_target->actor_id) {
-        printf("combatstep l429 AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, air_target->actor_id);   
-        owner->target = air_target; 
-    }
+    // la cible aerienne (+0x287) ne remplace pas la cible de mission (+0x137)
     owner->current_target = air_target->actor_id;
     air_target->attacker = owner;
     if (reaction_level <= REACT_ENGAGED) {
@@ -732,11 +731,6 @@ bool SCAIBrain::destroyTargetOrder(uint8_t arg) {
         return false;
     }
     owner->current_objective = OP_SET_OBJ_DESTROY_TARGET;
-    if (owner->current_target != arg) {
-        printf("destroyTargetOrder l734 : AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, arg);
-        owner->target = owner->mission->actors[arg];
-    }
-    owner->current_target = arg;
     // Goal_ExecuteAction_A8AC 0xA7 : un comportement en cours passe avant tout
     if (this->behaviorRunning()) {
         this->tickBehavior();
@@ -1517,10 +1511,7 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     float own_speed = own_velocity.Length();
     ground.last_position = own_position;
     Vector3D target_position = target->object->position;
-    if (owner->current_target != target->actor_id) {
-        printf("updateGroundAttack l1520AI %s#%d switching current target from %d to %d\n", owner->actor_name.c_str(), owner->actor_id, owner->current_target, target->actor_id);
-        owner->target = target;
-    }
+    // la cible au sol (+0x283) ne remplace pas la cible de mission (+0x137)
     owner->current_target = target->actor_id;
     owner->pilot->target_waypoint = target_position;
     Vector3D aim_point = target_position;
@@ -2027,6 +2018,17 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
         }
     }
     return false;
+}
+
+// Goal_SetObjective_A307 : cas 0xAA (etat d'ailier +0x149 = 0) si l'ordre a ete pose, puis queue commune :
+// ordre autre que 0xAA et formation tenue -> Goal_FollowAllyExec (sortie de formation)
+void SCAIBrain::onObjectiveSet(bool assigned) {
+    if (assigned && owner->current_command == OP_SET_OBJ_FOLLOW_ALLY) {
+        formation.leader_state = 0;
+    }
+    if (owner->current_command != OP_SET_OBJ_FOLLOW_ALLY && formation.active) {
+        this->followAllyExec(this->followLeader());
+    }
 }
 
 SCMissionActors *SCAIBrain::followLeader() {

@@ -192,6 +192,7 @@ public:
     int fire_solution_quality{0};
 
     bool acquireBestThreat(bool allow_new_target);
+    void onObjectiveSet(bool assigned);
 
 private:
     SCMissionActors *owner{nullptr};
