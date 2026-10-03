@@ -181,8 +181,6 @@ public:
     SCSimulatedObject *missile_threat{nullptr};
     uint8_t threat_state{0};
     uint16_t weapon_mask{0};
-    bool fire_request{false};
-    bool pursuit_active{false};
     bool ground_attack_active{false};
     uint8_t reaction_level{REACT_NONE};
     bool just_hit{false};
@@ -208,14 +206,12 @@ private:
     int last_missile_candidates{-1};
     int debug_ticks{0};
     int last_weapon_mask{-1};
-    int burst_remaining{0};
-    uint16_t burst_weapon{0};
-    SCMissionActors *lock_target{nullptr};
-    SCMissionActors *pursuit_last_target{nullptr};
-    float aim_trim{0.0f};
+    int burst_remaining{0};                      // entite+0x280
+    uint16_t last_fired_weapon{0};               // entite+0x10D
+    int last_fire_second{0};                     // entite+0x109
+    SCMissionActors *station_tracked{nullptr};   // point d'emport engage +0x0D : objet suivi
+    bool selector_ran{false};                    // bit 2 de +0x28B
     int evasion_hold{0};
-    Vector3D target_last_position{0.0f, 0.0f, 0.0f};
-    Vector3D own_last_position{0.0f, 0.0f, 0.0f};
     bool escort_leader_free{false};              // bit 1 de +0x28B : pose par l'ailier, leader non engage
     SCMissionActors *engage_target{nullptr};     // entite+0x285
     SCMissionActors *announced_target{nullptr};
@@ -229,8 +225,8 @@ private:
     bool seekerSees(RSEntity *weapon, SCMissionActors *candidate);
     SCMissionActors *seekerSelect(RSEntity *weapon, SCMissionActors *desired);
     bool reactionThreshold(int quality);
-    void updateFireControl();
-    void updatePursuit();
+    bool weaponRecoveryBusy();
+    bool behaviorSelector();
     void updateGroundAttack(SCMissionActors *target);
     bool combatStep(bool ground_allowed);
     bool destroyTargetOrder(uint8_t arg);

@@ -17,6 +17,7 @@ SCAIBrain::SCAIBrain(SCMissionActors *owner) {
 // AIEntity_MasterTick_5ACC
 void SCAIBrain::tick() {
     owner->pilot->ClearGuidance();
+    selector_ran = false;
     this->updateTimers();
     if (!owner->plane->ejected) {
         this->topLevelThink();
@@ -55,14 +56,6 @@ void SCAIBrain::updateTimers() {
         mood.discipline_timer = 3.0f;
     }
     mood.timer -= TICK_DURATION;
-    weapon_mask = this->selectWeaponMask();
-    if (weapon_mask != last_weapon_mask) {
-        printf("AI %s#%d weapon_mask=0x%X\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask);
-        last_weapon_mask = weapon_mask;
-    }
-    fire_solution_quality = this->computeFireSolutionQuality();
-    fire_request = false;
-    pursuit_active = false;
     ground_attack_active = false;
 }
 
@@ -106,6 +99,11 @@ void SCAIBrain::topLevelThink() {
     }
     // 6. GOAL
     this->runGoalSelectors();
+    // loc_850B : rafale de canon en cours, selecteur pas passe ce tick
+    if (burst_remaining > 0 && last_fired_weapon == 0x800 && !selector_ran) {
+        burst_remaining--;
+        owner->pilot->Fire(0x800, air_target);
+    }
 }
 
 bool SCAIBrain::engageAttackerReaction() {
@@ -431,14 +429,10 @@ bool SCAIBrain::combatStep(bool ground_allowed) {
     // la cible aerienne (+0x287) ne remplace pas la cible de mission (+0x137)
     owner->current_target = air_target->actor_id;
     air_target->attacker = owner;
-    if (reaction_level <= REACT_ENGAGED) {
-        this->updateFireControl();
-        // (4) AI_BehaviorSelector agit : le comportement en cours est abandonne
-        if (fire_request || fire_solution_quality > 0) {
-            this->abandonBehavior();
-            this->updatePursuit();
-            return true;
-        }
+    // (4) AI_BehaviorSelector agit : le comportement en cours est abandonne
+    if (reaction_level <= REACT_ENGAGED && this->behaviorSelector()) {
+        this->abandonBehavior();
+        return true;
     }
     // (5) comportement en cours, (6) tournoi
     if (this->behaviorRunning()) {
@@ -1194,9 +1188,13 @@ int SCAIBrain::computeFireSolutionQuality() {
         if (distance >= intel.range_gun) {
             return 0;
         }
-        float error = owner->plane->forward.AngleBetween(delta);
-        float target_speed_per_tick = std::fabs(air_target->plane->forwardSpeedPerTick()) * air_target->plane->tps * TICK_DURATION;
-        float tolerance = radToDegree(atanf(target_speed_per_tick / distance));
+        // erreur de visee : caps et elevations monde de D et de W (= le nez), ecart de cap non ramene a +/-180
+        Vector3D nose = owner->plane->forward;
+        float d_elevation = delta.Elevation() - nose.Elevation();
+        float d_heading = delta.Azimuth() - nose.Azimuth();
+        float error = sqrtf(d_heading * d_heading + d_elevation * d_elevation);
+        // tolerance = arctan(vitesse de la cible / d), 90 deg si d <= 0
+        float tolerance = distance > 0.0f ? radToDegree(atanf(air_target->plane->worldVelocity().Length() / distance)) : 90.0f;
         if (tolerance <= 0.0f) {
             return 0;
         }
@@ -1352,50 +1350,124 @@ SCMissionActors *SCAIBrain::seekerSelect(RSEntity *weapon, SCMissionActors *desi
 bool SCAIBrain::testMissileLock(RSEntity *missile) {
     SCMissionActors *locked = this->seekerSelect(missile, air_target);
     if (locked != air_target && debug_ticks % 25 == 0) {
-        printf("AI %s#%d seeker aspec=%d no lock on %s (seeker holds %s)\n", owner->actor_name.c_str(), owner->actor_id, missile->wdat->weapon_aspec, air_target->actor_name.c_str(), locked != nullptr ? locked->actor_name.c_str() : "nothing");
+        Vector3D delta = air_target->plane->position - owner->plane->position;
+        Vector3D target_velocity = air_target->plane->worldVelocity();
+        float same_direction = owner->plane->worldVelocity().DotProduct(&target_velocity);
+        printf("AI %s#%d seeker aspec=%d no lock on %s (seeker holds %s) d=%.0f range=%u angle=%.0f cone=%d signature=%d sees=%d same_direction=%d\n",
+               owner->actor_name.c_str(), owner->actor_id, missile->wdat->weapon_aspec, air_target->actor_name.c_str(), locked != nullptr ? locked->actor_name.c_str() : "nothing",
+               delta.Length(), missile->wdat->target_range, owner->plane->forward.AngleBetween(delta), missile->wdat->tracking_cone,
+               this->seekerSignature(missile, air_target, owner->plane->worldVelocity()), this->seekerSees(missile, air_target) ? 1 : 0, same_direction >= 0.0f ? 1 : 0);
     }
     return locked == air_target;
 }
 
-void SCAIBrain::updateFireControl() {
-    fire_request = false;
-    if (air_target == nullptr || threat_state > 1 || evasion_hold > 0) {
-        burst_remaining = 0;
-        burst_weapon = 0;
-        lock_target = nullptr;
-        return;
+// AI_WeaponRecoveryBusy_9027 : delai apres un tir, t = secondes depuis le dernier tir (horloge +0x175 - +0x109)
+bool SCAIBrain::weaponRecoveryBusy() {
+    float elapsed = retarget.clock - (float) last_fire_second;
+    int flying = owner->profile->ai.atrb.FL;
+    if (elapsed < (float) (flying - 13) && last_fired_weapon != 0x800 && last_fired_weapon != 0) {
+        // missile encore en vol (categorie 8, lance par moi) ; Pilot_SkillCheck_B1 : un seul tolere
+        bool tolerate = this->skillCheck(owner->profile->ai.atrb.TH, 0);
+        bool tolerated = false;
+        for (auto weapon : owner->weapons_shooted) {
+            if (weapon == nullptr || !weapon->alive || weapon->obj->entity_type != EntityType::missiles) {
+                continue;
+            }
+            if (!tolerated && tolerate) {
+                tolerated = true;
+                continue;
+            }
+            return true;
+        }
+        return false;
     }
-    uint16_t requested_weapon = 0;
-    if (burst_remaining > 0 && burst_weapon == 0x800) {
+    if (last_fired_weapon == 0x800) {
+        return elapsed < (float) (16 - owner->profile->ai.atrb.TH) / 8.0f;
+    }
+    if (last_fired_weapon == 0) {
+        return elapsed < (float) (16 - flying) / 8.0f + 0.5f;
+    }
+    return false;
+}
+
+// AI_BehaviorSelector : tir puis poursuite pure de la cible aerienne ; vrai = agit (le comportement en cours est abandonne)
+bool SCAIBrain::behaviorSelector() {
+    if (air_target == nullptr || air_target->plane == nullptr) {
+        return false;
+    }
+    SCPilot *pilot = owner->pilot;
+    Vector3D direction = air_target->plane->position - owner->plane->position;
+    selector_ran = true;
+    pilot->BeginManual();
+    bool busy = this->weaponRecoveryBusy();
+    bool trigger = false;
+    bool snapped = false;
+    // registre si non calcule pendant le delai apres tir : pointeur vers l'avion de la cible, positif en pratique
+    int quality = 1;
+    if (burst_remaining > 0 && last_fired_weapon == 0x800) {
+        // rafale en cours : gachette sans remettre +0x109 a l'heure
         burst_remaining--;
-        fire_request = true;
-        requested_weapon = 0x800;
-    } else if (weapon_mask == 0x800) {
-        if (fire_solution_quality >= 2 && this->reactionThreshold(fire_solution_quality)) {
-            burst_remaining = ((std::rand() & 3) + 4) * fire_solution_quality / 10;
-            if (burst_remaining > 1) {
-                burst_weapon = 0x800;
-                fire_request = true;
-                requested_weapon = 0x800;
-            }
+        pilot->Fire(0x800, air_target);
+        pilot->CmdGuidance(direction);
+        return true;
+    }
+    if (!busy) {
+        weapon_mask = this->selectWeaponMask();
+        if (weapon_mask != last_weapon_mask) {
+            printf("AI %s#%d weapon_mask=0x%X\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask);
+            last_weapon_mask = weapon_mask;
         }
-    } else if (weapon_mask != 0) {
-        RSEntity *missile = this->loadedMissile(weapon_mask);
-        if (missile != nullptr) {
-            if (lock_target != air_target) {
-                lock_target = air_target;
-                printf("AI %s#%d seeker tracking target=%s weapon_id=%d aspec=%d cone=%d range=%u\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), missile->wdat->weapon_id, missile->wdat->weapon_aspec, missile->wdat->tracking_cone, missile->wdat->target_range);
-            } else if (this->testMissileLock(missile)) {
-                fire_request = true;
-                requested_weapon = weapon_mask;
-                lock_target = nullptr;
+        snapped = this->gunSnap(air_target);
+        quality = this->computeFireSolutionQuality();
+        fire_solution_quality = quality;
+        if (weapon_mask == 0x800) {
+            if (snapped && quality > 5) {
+                quality = 10;
+            }
+            if (quality >= 2 && this->reactionThreshold(quality)) {
+                burst_remaining = (uint8_t) (((std::rand() & 3) + 4) * quality) / 10;
+                if (burst_remaining > 1) {
+                    trigger = true;
+                } else {
+                    burst_remaining = 0;
+                }
+            }
+        } else if (quality > 0) {
+            // AI_FireWeaponTrigger : point d'emport compatible engage
+            RSEntity *missile = this->loadedMissile(weapon_mask);
+            if (missile != nullptr) {
+                if (station_tracked == air_target) {
+                    trigger = this->testMissileLock(missile);
+                } else {
+                    // bit 6 de +0x1B : demande de suivi, pas de tir ce tick
+                    station_tracked = air_target;
+                    printf("AI %s#%d seeker tracking target=%s weapon_id=%d aspec=%d cone=%d range=%u\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), missile->wdat->weapon_id, missile->wdat->weapon_aspec, missile->wdat->tracking_cone, missile->wdat->target_range);
+                }
             }
         }
     }
-    if (fire_request) {
-        owner->pilot->Fire(requested_weapon, air_target);
-        printf("AI %s#%d fire weapon=0x%X quality=%d burst=%d\n", owner->actor_name.c_str(), owner->actor_id, requested_weapon, fire_solution_quality, burst_remaining);
+    if (debug_ticks % 25 == 0) {
+        RSIntel &intel = owner->mission->intel;
+        printf("AI %s#%d selector target=%s d=%.0f ahead=%.0f busy=%d elapsed=%.1f last_fired=0x%X loaded=0x%X missiles_allowed=%d mask=0x%X quality=%d snapped=%d tracked=%s trigger=%d (gun<%.0f long>%.0f short<%.0f)\n",
+               owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), direction.Length(), owner->plane->forward.AngleBetween(direction),
+               busy ? 1 : 0, retarget.clock - (float) last_fire_second, last_fired_weapon, this->loadedWeaponMask(), intel.status_flag ? 1 : 0,
+               busy ? 0 : weapon_mask, quality, snapped ? 1 : 0, station_tracked != nullptr ? station_tracked->actor_name.c_str() : "none", trigger ? 1 : 0,
+               (float) intel.range_gun, (float) intel.range_medium, (float) intel.range_long);
     }
+    if (trigger) {
+        last_fired_weapon = weapon_mask;
+        last_fire_second = (int) floorf(retarget.clock);
+        pilot->Fire(weapon_mask, air_target);
+        printf("AI %s#%d fire weapon=0x%X quality=%d burst=%d\n", owner->actor_name.c_str(), owner->actor_id, weapon_mask, quality, burst_remaining);
+    }
+    if (!trigger && quality <= 0) {
+        return false;
+    }
+    // AI_GuidanceSolution_Major(D, W = AI_Sensor_WeaponVelocityCache = le nez) : poursuite pure
+    if (!snapped) {
+        pilot->CmdGuidance(direction);
+    }
+    return true;
 }
 
 void SCAIBrain::resetGroundAttack(bool finished) {
@@ -1687,69 +1759,6 @@ void SCAIBrain::updateGroundAttack(SCMissionActors *target) {
     }
     if (ground.phase != previous_phase) {
         printf("AI %s#%d ground attack phase %d -> %d\n", owner->actor_name.c_str(), owner->actor_id, previous_phase, ground.phase);
-    }
-}
-
-void SCAIBrain::updatePursuit() {
-    pursuit_active = false;
-    Vector3D own_position = owner->plane->position;
-    Vector3D own_velocity = (own_position - own_last_position) * (1.0f / TICK_DURATION);
-    own_last_position = own_position;
-    if (air_target == nullptr || air_target->plane == nullptr || threat_state > 1 || owner->plane->on_ground) {
-        pursuit_last_target = nullptr;
-        aim_trim = 0.0f;
-        owner->pilot->attitude_mode = false;
-        return;
-    }
-    if (pursuit_last_target != air_target) {
-        aim_trim = 0.0f;
-    }
-    Vector3D target_position = air_target->plane->position;
-    Vector3D target_velocity = {0.0f, 0.0f, 0.0f};
-    if (pursuit_last_target == air_target) {
-        target_velocity = (target_position - target_last_position) * (1.0f / TICK_DURATION);
-    }
-    pursuit_last_target = air_target;
-    target_last_position = target_position;
-
-    RSIntel &intel = owner->mission->intel;
-    Vector3D delta = target_position - own_position;
-    float distance = delta.Length();
-    float own_speed = own_velocity.Length();
-    float time_to_go = own_speed > 1.0f ? distance / own_speed : 0.0f;
-    time_to_go = std::min(time_to_go, 3.0f);
-    Vector3D lead = target_position + target_velocity * time_to_go;
-    Vector3D direction = lead - own_position;
-    float horizontal = sqrtf(direction.x * direction.x + direction.z * direction.z);
-    direction.y = std::max(-horizontal, std::min(horizontal, direction.y));
-    float delta_horizontal = sqrtf(delta.x * delta.x + delta.z * delta.z);
-    float nose_elevation = owner->pilot->NosePitch();
-    float los_elevation = delta.Elevation();
-    float aim_error = los_elevation - nose_elevation;
-    if (distance < intel.range_medium && std::fabs(aim_error) < 10.0f) {
-        aim_trim += tanf(degreeToRad(aim_error)) * delta_horizontal * 0.05f;
-        aim_trim = std::max(-300.0f, std::min(300.0f, aim_trim));
-    } else if (distance >= intel.range_medium) {
-        aim_trim = 0.0f;
-    }
-    Vector3D waypoint = own_position + direction;
-    waypoint.y = own_position.y + std::max(-400.0f, std::min(400.0f, direction.y + aim_trim));
-
-    float heading_error = 0.0f;
-    float pitch_error = 0.0f;
-    this->computeAttitudeError(lead - own_position, heading_error, pitch_error);
-    owner->pilot->SetGuidanceDirection(lead - own_position);
-    owner->pilot->target_waypoint = lead;
-    float target_forward_speed = air_target->plane->forwardSpeedPerTick();
-    if (distance > intel.range_medium) {
-        owner->pilot->target_speed = -60;
-    } else {
-        float faster = distance > intel.range_gun * 0.6f ? 10.0f : 0.0f;
-        owner->pilot->target_speed = (int) std::max(-60.0f, target_forward_speed - faster);
-    }
-    pursuit_active = true;
-    if (debug_ticks % 25 == 0) {
-        printf("AI %s#%d pursuit target=%s mission_target=%s d=%.0f own_speed=%.0f time_to_go=%.1f lead_dy=%.0f own_y=%.0f target_y=%.0f dy=%.0f waypoint_y=%.0f climb_cmd=%d speed_cmd=%d vz=%.0f target_vz=%.0f nose_elev=%.1f los_elev=%.1f aim_trim=%.0f heading_err=%.1f pitch_err=%.1f\n", owner->actor_name.c_str(), owner->actor_id, air_target->actor_name.c_str(), owner->target != nullptr ? owner->target->actor_name.c_str() : "none", distance, own_speed, time_to_go, lead.y - target_position.y, own_position.y, target_position.y, target_position.y - own_position.y, waypoint.y, owner->pilot->target_climb, owner->pilot->target_speed, owner->plane->vz, air_target->plane->vz, nose_elevation, los_elevation, aim_trim, heading_error, pitch_error);
     }
 }
 
