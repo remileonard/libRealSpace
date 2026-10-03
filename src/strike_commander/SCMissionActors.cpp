@@ -258,11 +258,6 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                     actor->object->position.y = ground_y+2.0f;
                 }
             }
-            if (actor->team_id == this->mission->player->team_id) {
-                this->mission->friendlies.push_back(actor);
-            } else {
-                this->mission->enemies.push_back(actor);
-            }
             actor->wait_timer = 0.0f;
             if (actor->on_is_activated.size() > 0) {
                 SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);

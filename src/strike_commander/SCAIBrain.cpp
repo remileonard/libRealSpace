@@ -1010,6 +1010,13 @@ bool SCAIBrain::executeGoalAction() {
             return this->defendTargetOrder(owner->current_command_arg);
         case OP_SET_OBJ_DEFEND_AREA:
             return this->defendAreaOrder(owner->current_command_arg);
+        case OP_SET_OBJ_BE:
+            // Goal_ExecuteAction_A8AC 0xBF (loc_A9B7) : AI_NavSolutionToPoint, sinon Goal_WanderRandom ; toujours en cours
+            owner->current_command_executed = false;
+            if (!this->navSolutionToPoint()) {
+                this->wander();
+            }
+            return true;
         default:
             return false;
     }
@@ -1939,10 +1946,6 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
         if (touchdown_spot < spots.size()) {
             touchdown = spots[touchdown_spot]->position;
         }
-        auto it = std::find(owner->mission->friendlies.begin(), owner->mission->friendlies.end(), owner);
-        if (it != owner->mission->friendlies.end()) {
-            owner->mission->friendlies.erase(it);
-        }
         // LandingBehavior_Start_75746 : l'IA est teleportee au point d'approche
         ground_ops.origin = approach;
         // Landing_Phase1_SetupApproach_75D51
@@ -2034,6 +2037,11 @@ bool SCAIBrain::landingOrder(uint8_t approach_spot, uint8_t touchdown_spot) {
 void SCAIBrain::onObjectiveSet(bool assigned) {
     if (assigned && owner->current_command == OP_SET_OBJ_FOLLOW_ALLY) {
         formation.leader_state = 0;
+    }
+    // cas par defaut (0xBE) : +0x10F vide, +0x111 = ma position, objectif 0xBF
+    if (assigned && owner->current_command == OP_SET_OBJ_BE) {
+        nav.reference = nullptr;
+        nav.center = owner->plane->position;
     }
     if (owner->current_command != OP_SET_OBJ_FOLLOW_ALLY && formation.active) {
         this->followAllyExec(this->followLeader());

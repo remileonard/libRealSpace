@@ -229,7 +229,57 @@ void SCProg::execute() {
                 }
                 break;
                 case OP_DEACTIVATE_OBJ:
+                    // Expr_VM_Interpreter_51106 cas 0x91 : Expr_Node_ClearDirtyAndNotify_5242A (inverse de 0x90)
                     this->actor->deactivate(prog.arg);
+                break;
+                case OP_SHOW_ON_NAV_MAP:
+                case OP_HIDE_FROM_NAV_MAP: {
+                    // Expr_VM_Interpreter_51106 cas 0xB6 / 0xB7 : bit 4 de +0x39, lu par NavMap_DrawMissionObjects_7EDCA ; 255 = soi
+                    SCMissionActors *shown = nullptr;
+                    if (prog.arg == 255) {
+                        shown = this->actor;
+                    } else {
+                        for (auto candidate : this->mission->actors) {
+                            if (candidate->actor_id == prog.arg) {
+                                shown = candidate;
+                                break;
+                            }
+                        }
+                    }
+                    if (shown != nullptr) {
+                        shown->on_nav_map = prog.opcode == OP_SHOW_ON_NAV_MAP;
+                    }
+                }
+                break;
+                case OP_JOIN_PLAYER_TEAM:
+                case OP_LEAVE_PLAYER_TEAM: {
+                    // Expr_VM_Interpreter_51106 cas 0xB8 / 0xB9 : bit 5 de +0x39 (suit le joueur au pilote automatique,
+                    // lu par MissionScenario_QueryFieldWrapper_A7FF0 depuis UIScript_ParseAndEvaluate_7A054) ; 255 = soi
+                    SCMissionActors *member = nullptr;
+                    if (prog.arg == 255) {
+                        member = this->actor;
+                    } else {
+                        for (auto candidate : this->mission->actors) {
+                            if (candidate->actor_id == prog.arg) {
+                                member = candidate;
+                                break;
+                            }
+                        }
+                    }
+                    if (member != nullptr) {
+                        std::vector<SCMissionActors *> &team = this->mission->friendlies;
+                        auto it = std::find(team.begin(), team.end(), member);
+                        if (prog.opcode == OP_JOIN_PLAYER_TEAM && it == team.end()) {
+                            team.push_back(member);
+                        } else if (prog.opcode == OP_LEAVE_PLAYER_TEAM && it != team.end()) {
+                            team.erase(it);
+                        }
+                    }
+                }
+                break;
+                case OP_SET_OBJ_BE:
+                    // MissionScript_CallNativeHandler_52513 -> Goal_SetObjective_A307, cas par defaut (objectif 0xBF)
+                    this->task_state = this->actor->setObjective(OP_SET_OBJ_BE, prog.arg) ? 1 : 0;
                 break;
                 case OP_ACTIVATE_OBJ:
                     this->actor->activateTarget(prog.arg);

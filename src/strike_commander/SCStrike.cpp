@@ -915,6 +915,12 @@ void SCStrike::autopilotCompute() {
     for (auto team: this->current_mission->friendlies) {
         if (team->is_active) {
             if (team->plane != nullptr && team->plane != this->player_plane) {
+                // ailier en mode cinematique (formation, pilote automatique) : simulateKinematic ecraserait l'attitude
+                if (team->pilot != nullptr) {
+                    team->pilot->disengageAutopilot();
+                    team->pilot->CmdKinematic(false, team->plane->worldVelocity(), team->plane->forward, team->pilot->NosePitch());
+                    MessageBus::getInstance().processEvents();
+                }
                 prev += formation_pos_offset;
                 team->taken_off = true;
                 team->plane->x = prev.x;

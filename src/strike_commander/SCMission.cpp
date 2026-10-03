@@ -267,6 +267,8 @@ void SCMission::loadMission() {
                     actor->plane->pilot = actor;
                     this->actors.push_back(actor);
                     this->player = actor;
+                    // MissionScenario_LoadMainRecord_A8331 : bits 4 et 5 de +0x39 poses sur l'objet du joueur
+                    actor->on_nav_map = true;
                 } else {
                     this->actors.push_back(actor);
                 }

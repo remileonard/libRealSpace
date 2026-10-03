@@ -32,6 +32,7 @@ public:
     prog_op current_objective;
     bool is_active{false};
     bool is_hidden{true};
+    bool on_nav_map{false};   // bit 4 de +0x39 (opcodes 0xB6 / 0xB7) : trace sur la carte de navigation
     bool taken_off{false};
     bool is_destroyed{false};
     bool prog_executed{false};
