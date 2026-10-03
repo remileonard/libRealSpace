@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
     bool fx_fxaa         = config.getBool("Video", "fx_fxaa", true);
     bool widescreen_ambilight = config.getBool("Video", "widescreen_ambilight", true);
     int ambilight_sample_width = config.getInt("Video", "ambilight_sample_width", 1);
-
+    int difficulty = config.getInt("Gameplay", "difficulty", 0);
     DebugControlMapping controlMapping;
     GameEngine::setInstance(std::make_unique<GameEngine>());
     GameEngine *game = &GameEngine::instance();
@@ -146,6 +146,9 @@ int main(int argc, char* argv[]) {
                     ImGui::Checkbox(_labelPrefix("Show Texture").c_str(), &show_texture);
                     ImGui::Checkbox(_labelPrefix("Show Fog").c_str(), &show_fog);
                     ImGui::Checkbox(_labelPrefix("Clouds Enabled").c_str(), &clouds_enabled);
+                }
+                if (ImGui::CollapsingHeader("Gameplay", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::SliderInt(_labelPrefix("Difficulty").c_str(), &difficulty, 0, 2);
                 }
                 if (ImGui::CollapsingHeader("Video", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::Checkbox(_labelPrefix("CPC Palette").c_str(),   &fx_cpc_palette);

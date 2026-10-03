@@ -198,6 +198,14 @@ int SCPlane::weaponTimerSlot(RSEntity *weapon) {
     }
 }
 
+// orientation imposee de l'exterieur : la vitesse monde suit le nouveau nez, rotations arretees
+void SCPlane::alignVelocityToNose() {
+    this->velocity = this->forward * this->velocity.Length();
+    this->pitch_speed = 0.0f;
+    this->yaw_speed = 0.0f;
+    this->roll_speed = 0.0f;
+}
+
 void SCPlane::updateWeaponTimers(float dt) {
     for (float &timer : this->weapon_timers) {
         timer = std::max(timer - dt, 0.0f);

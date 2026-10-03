@@ -909,6 +909,7 @@ void SCStrike::autopilotCompute() {
     this->player_plane->ptw.rotateM(0, 1, 0, 0);
     this->player_plane->ptw.rotateM(0, 0, 0, 1);
     this->player_plane->Simulate();
+    this->player_plane->alignVelocityToNose();
     Vector3D formation_pos_offset{80.0f, 0.0f, 40.0f};
     int team_number = 1;
     Vector3D prev={this->player_plane->x, this->player_plane->y, this->player_plane->z};
@@ -935,6 +936,7 @@ void SCStrike::autopilotCompute() {
                 team->plane->ptw.rotateM(0, 1, 0, 0);
                 team->plane->ptw.rotateM(0, 0, 0, 1);
                 team->plane->Simulate();
+                team->plane->alignVelocityToNose();
                 team_number++;
             }
         }
@@ -2041,11 +2043,14 @@ void SCStrike::runFrame(void) {
             this->player_plane->ptw.rotateM(degreeToRad(this->autopilot_target_azimuth), 0, 1, 0);
             this->player_plane->yaw = this->autopilot_target_azimuth * 10.0f;
             this->player_plane->Simulate();
+            this->player_plane->alignVelocityToNose();
             this->camera_mode = View::FRONT;
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
                     if (team->plane != nullptr && team->plane != this->player_plane) {                       
                         team->plane->yaw=this->autopilot_target_azimuth * 10.0f;
+                        team->plane->Simulate();
+                        team->plane->alignVelocityToNose();
                     }
                 }
             }

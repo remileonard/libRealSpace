@@ -54,6 +54,20 @@ void SCMission::cleanup() {
     this->waypoints.shrink_to_fit();
     this->messageBus.reset();
 }
+// Cockpit_ReadControlsFrame_8F720 : avions du camp ennemi (+0x50 == 0xFF) -> PilotProfile_RescaleSkillByDifficulty_12FC9,
+// FL, AG, AA du fichier decales a droite de word_7235F (0 = intacts, 1 = moitie, 2 = quart)
+void SCMission::applyDifficulty() {
+    int shift = std::clamp(this->difficulty, 0, 2);
+    for (auto actor : this->actors) {
+        if (actor->plane == nullptr || actor->profile == nullptr || actor->team_id != 255) {
+            continue;
+        }
+        AI_ATTR &file = actor->profile->ai.atrb_file;
+        actor->profile->ai.atrb.FL = file.FL >> shift;
+        actor->profile->ai.atrb.AG = file.AG >> shift;
+        actor->profile->ai.atrb.AA = file.AA >> shift;
+    }
+}
 RSProf *SCMission::LoadProfile(std::string name) {
     RSProf *profile = new RSProf();
     std::string filename = Assets.intel_root_path+ name + ".IFF";
@@ -74,6 +88,7 @@ void SCMission::onEvent(const EventMessage &event) {
 }
 void SCMission::loadMission() {
     
+    this->difficulty = Config::getInstance().getInt("Gameplay", "difficulty", 0);
     std::string miss_file_name = Assets.mission_root_path + this->mission_name; 
     std::transform(miss_file_name.begin(), miss_file_name.end(), miss_file_name.begin(), ::toupper);
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
@@ -353,6 +368,7 @@ void SCMission::loadMission() {
             this->enemies.push_back(enemis);
         }
     }
+    this->applyDifficulty();
     if (this->player->on_is_activated.size() > 0) {
         SCProg *p = new SCProg(this->player, this->player->on_is_activated, this, this->player->object->on_is_activated);
         p->execute();

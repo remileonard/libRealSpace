@@ -191,6 +191,7 @@ public:
     // WeaponSystem_FrameUpdate_3F8C0 : minuteurs +0x24 missiles, +0x28 bombes, +0x30 paniers, +0x2C canons
     float weapon_timers[4]{0.0f, 0.0f, 0.0f, 0.0f};
     int weaponTimerSlot(RSEntity *weapon);
+    void alignVelocityToNose();
     void updateWeaponTimers(float dt);
     float mach{0.0f};
     float mcc{0.0f};
