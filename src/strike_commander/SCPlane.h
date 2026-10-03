@@ -192,6 +192,9 @@ public:
     float weapon_timers[4]{0.0f, 0.0f, 0.0f, 0.0f};
     int weaponTimerSlot(RSEntity *weapon);
     void alignVelocityToNose();
+    static int SeekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity);
+    bool seekerSees(RSEntity *weapon, SCMissionActors *candidate);
+    SCMissionActors *seekerSelect(RSEntity *weapon, SCMissionActors *desired, SCMission *mission);
     void updateWeaponTimers(float dt);
     float mach{0.0f};
     float mcc{0.0f};

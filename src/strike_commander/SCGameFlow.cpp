@@ -449,15 +449,26 @@ void SCGameFlow::runEffect() {
                 }
                 if (chng->weap != nullptr) {
                     for (auto weapon : *chng->weap) {
+                        const std::vector<int> weapon_ids_mapping = {
+                            ID_AIM9J,
+                            ID_AIM9M,
+                            ID_AGM65D,
+                            ID_LAU3,
+                            ID_MK20,
+                            ID_MK82,
+                            ID_DURANDAL,
+                            ID_GBU15,
+                            ID_AIM120
+                        };
                         switch (weapon->op) {
                         case 2:
-                            GameState.weapon_inventory[weapon->weap_id+1] = weapon->value;
+                            GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] = weapon->value;
                             break;
                         case 1:
-                            GameState.weapon_inventory[weapon->weap_id+1] -= weapon->value;
+                            GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] -= weapon->value;
                             break;
                         case 0:
-                            GameState.weapon_inventory[weapon->weap_id+1] += weapon->value;
+                            GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] += weapon->value;
                             break;
                         }
                     }

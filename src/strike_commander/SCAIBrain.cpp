@@ -1267,95 +1267,8 @@ RSEntity *SCAIBrain::loadedMissile(uint16_t mask) {
     return nullptr;
 }
 
-int SCAIBrain::seekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity) {
-    RSEntity *entity = candidate->object->entity;
-    int aspec = weapon->wdat->weapon_aspec;
-    if (aspec == 3 || aspec == 4) {
-        if (entity->radar_signature == nullptr) {
-            return 0;
-        }
-        return aspec == 3 ? entity->radar_signature->unknown3 : entity->radar_signature->unknown2;
-    }
-    if (candidate->plane == nullptr) {
-        return entity->radar_signature != nullptr ? entity->radar_signature->unknown1 : 0;
-    }
-    Vector3D target_velocity = candidate->plane->worldVelocity();
-    bool behind = reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z > 0.0f;
-    float factor = behind ? 100.0f : 50.0f;
-    float signature = 10.0f + target_velocity.Length() / 602.0f * factor;
-    if (candidate->plane->GetThrottle() > 50) {
-        signature += factor;
-    }
-    return ((int) signature) & 0xFF;
-}
-
-bool SCAIBrain::seekerSees(RSEntity *weapon, SCMissionActors *candidate) {
-    Vector3D position = candidate->plane != nullptr ? candidate->plane->position : candidate->object->position;
-    Vector3D delta = position - owner->plane->position;
-    float distance = delta.Length();
-    if (distance <= 0.0f || distance > (float) weapon->wdat->target_range) {
-        return false;
-    }
-    return owner->plane->forward.AngleBetween(delta) <= (float) weapon->wdat->tracking_cone;
-}
-
-SCMissionActors *SCAIBrain::seekerSelect(RSEntity *weapon, SCMissionActors *desired) {
-    int aspec = weapon->wdat->weapon_aspec;
-    Vector3D reference_velocity = owner->plane->worldVelocity();
-    if (aspec == 5 || aspec == 6) {
-        return (desired != nullptr && this->seekerSees(weapon, desired)) ? desired : nullptr;
-    }
-    SCMissionActors *best = nullptr;
-    int best_signature = 0;
-    for (auto actor : owner->mission->actors) {
-        if (actor->is_destroyed || actor->object == nullptr || actor->object->entity == nullptr) {
-            continue;
-        }
-        if (actor->plane != nullptr && !actor->plane->object->alive) {
-            continue;
-        }
-        uint8_t type = actor->object->entity->target_type;
-        if (type != 1 && type != 4) {
-            continue;
-        }
-        int signature = this->seekerSignature(weapon, actor, reference_velocity);
-        if (signature > best_signature && this->seekerSees(weapon, actor)) {
-            best_signature = signature;
-            best = actor;
-        }
-    }
-    if (best == nullptr) {
-        return nullptr;
-    }
-    SCMissionActors *result = desired;
-    if (best != desired) {
-        SCMissionActors *player = this->playerActor();
-        int weight = best == player ? 5 : 3;
-        int signature = this->seekerSignature(weapon, best, reference_velocity);
-        bool steal = false;
-        if (aspec == 1) {
-            steal = (signature > 210 && (std::rand() % 10) < weight) || signature == 210;
-        } else if (aspec == 2 || aspec == 4) {
-            steal = signature >= 245 && (std::rand() % 10) < weight;
-        }
-        if (steal) {
-            return best;
-        }
-    }
-    if (result == nullptr) {
-        return nullptr;
-    }
-    if (aspec == 1) {
-        Vector3D target_velocity = result->plane->worldVelocity();
-        if (reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z < 0.0f) {
-            return nullptr;
-        }
-    }
-    return result;
-}
-
 bool SCAIBrain::testMissileLock(RSEntity *missile) {
-    SCMissionActors *locked = this->seekerSelect(missile, air_target);
+    SCMissionActors *locked = owner->plane->seekerSelect(missile, air_target, owner->mission);
     if (locked != air_target && debug_ticks % 25 == 0) {
         Vector3D delta = air_target->plane->position - owner->plane->position;
         Vector3D target_velocity = air_target->plane->worldVelocity();
@@ -1363,7 +1276,7 @@ bool SCAIBrain::testMissileLock(RSEntity *missile) {
         printf("AI %s#%d seeker aspec=%d no lock on %s (seeker holds %s) d=%.0f range=%u angle=%.0f cone=%d signature=%d sees=%d same_direction=%d\n",
                owner->actor_name.c_str(), owner->actor_id, missile->wdat->weapon_aspec, air_target->actor_name.c_str(), locked != nullptr ? locked->actor_name.c_str() : "nothing",
                delta.Length(), missile->wdat->target_range, owner->plane->forward.AngleBetween(delta), missile->wdat->tracking_cone,
-               this->seekerSignature(missile, air_target, owner->plane->worldVelocity()), this->seekerSees(missile, air_target) ? 1 : 0, same_direction >= 0.0f ? 1 : 0);
+               SCPlane::SeekerSignature(missile, air_target, owner->plane->worldVelocity()), owner->plane->seekerSees(missile, air_target) ? 1 : 0, same_direction >= 0.0f ? 1 : 0);
     }
     return locked == air_target;
 }

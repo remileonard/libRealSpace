@@ -206,6 +206,94 @@ void SCPlane::alignVelocityToNose() {
     this->roll_speed = 0.0f;
 }
 
+// WeaponStation_TestTargetLock / Targeting_SelectAndPrioritize : modele de chercheur du point d'emport (joueur et IA)
+int SCPlane::SeekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity) {
+    RSEntity *entity = candidate->object->entity;
+    int aspec = weapon->wdat->weapon_aspec;
+    if (aspec == 3 || aspec == 4) {
+        if (entity->radar_signature == nullptr) {
+            return 0;
+        }
+        return aspec == 3 ? entity->radar_signature->unknown3 : entity->radar_signature->unknown2;
+    }
+    if (candidate->plane == nullptr) {
+        return entity->radar_signature != nullptr ? entity->radar_signature->unknown1 : 0;
+    }
+    Vector3D target_velocity = candidate->plane->worldVelocity();
+    bool behind = reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z > 0.0f;
+    float factor = behind ? 100.0f : 50.0f;
+    float signature = 10.0f + target_velocity.Length() / 602.0f * factor;
+    if (candidate->plane->GetThrottle() > 50) {
+        signature += factor;
+    }
+    return ((int) signature) & 0xFF;
+}
+
+bool SCPlane::seekerSees(RSEntity *weapon, SCMissionActors *candidate) {
+    Vector3D position = candidate->plane != nullptr ? candidate->plane->position : candidate->object->position;
+    Vector3D delta = position - this->position;
+    float distance = delta.Length();
+    if (distance <= 0.0f || distance > (float) weapon->wdat->target_range) {
+        return false;
+    }
+    return this->forward.AngleBetween(delta) <= (float) weapon->wdat->tracking_cone;
+}
+
+SCMissionActors *SCPlane::seekerSelect(RSEntity *weapon, SCMissionActors *desired, SCMission *mission) {
+    int aspec = weapon->wdat->weapon_aspec;
+    Vector3D reference_velocity = this->worldVelocity();
+    if (aspec == 5 || aspec == 6) {
+        return (desired != nullptr && this->seekerSees(weapon, desired)) ? desired : nullptr;
+    }
+    SCMissionActors *best = nullptr;
+    int best_signature = 0;
+    for (auto actor : mission->actors) {
+        if (actor->is_destroyed || actor->object == nullptr || actor->object->entity == nullptr) {
+            continue;
+        }
+        if (actor->plane != nullptr && !actor->plane->object->alive) {
+            continue;
+        }
+        uint8_t type = actor->object->entity->target_type;
+        if (type != 1 && type != 4) {
+            continue;
+        }
+        int signature = SCPlane::SeekerSignature(weapon, actor, reference_velocity);
+        if (signature > best_signature && this->seekerSees(weapon, actor)) {
+            best_signature = signature;
+            best = actor;
+        }
+    }
+    if (best == nullptr) {
+        return nullptr;
+    }
+    SCMissionActors *result = desired;
+    if (best != desired) {
+        SCMissionActors *player = mission->player;
+        int weight = best == player ? 5 : 3;
+        int signature = SCPlane::SeekerSignature(weapon, best, reference_velocity);
+        bool steal = false;
+        if (aspec == 1) {
+            steal = (signature > 210 && (std::rand() % 10) < weight) || signature == 210;
+        } else if (aspec == 2 || aspec == 4) {
+            steal = signature >= 245 && (std::rand() % 10) < weight;
+        }
+        if (steal) {
+            return best;
+        }
+    }
+    if (result == nullptr) {
+        return nullptr;
+    }
+    if (aspec == 1) {
+        Vector3D target_velocity = result->plane->worldVelocity();
+        if (reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z < 0.0f) {
+            return nullptr;
+        }
+    }
+    return result;
+}
+
 void SCPlane::updateWeaponTimers(float dt) {
     for (float &timer : this->weapon_timers) {
         timer = std::max(timer - dt, 0.0f);

@@ -33,8 +33,8 @@ static std::unordered_map<Hud_weapon_mode, std::string> hud_weapon_mode_names = 
     {WM_HUD_NONE, ""}
 };
 enum weapon_ids {
-    ID_AIM9J = 1,
-    ID_AIM9M = 2,
+    ID_AIM9M = 1,
+    ID_AIM9J = 2,
     ID_AGM65D = 3,
     ID_LAU3 = 4,
     ID_MK20 = 5,
