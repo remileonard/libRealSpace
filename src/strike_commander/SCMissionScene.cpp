@@ -22,6 +22,7 @@ void SCMissionScene::onMissionUpdate(const MissionUpdateEvent &event) {
                         prog.push_back(prg);
                     }
                     SCProg *p = new SCProg(this->mission->player, prog, this->mission, scene->on_mission_update);
+                    p->scene_script = true;
                     p->execute();
                     delete p;
                     prog.clear();
@@ -35,6 +36,7 @@ void SCMissionScene::onMissionUpdate(const MissionUpdateEvent &event) {
                         prog.push_back(prg);
                     }
                     SCProg *p = new SCProg(this->mission->player, prog, this->mission, scene->on_leaving);
+                    p->scene_script = true;
                     p->execute();
                     delete p;
                     prog.clear();
@@ -99,6 +101,8 @@ void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
                             }
                         }
                         
+                        // Shared_TriggerExprInstruction_5247D : minuteur WAIT (+0x3A) remis a zero a l'activation
+                        actor->wait_timer = 0.0f;
                         if (actor->on_is_activated.size() > 0) {
                             SCProg *p = new SCProg(actor, actor->on_is_activated, sc_mission, actor->object->on_is_activated);
                             p->execute();
@@ -150,6 +154,7 @@ void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
                 prog.push_back(prg);
             }
             SCProg *p = new SCProg(sc_mission->player, prog, sc_mission, scene->on_is_activated);
+            p->scene_script = true;
             p->execute();
             scene->has_been_activated = 1;
             delete p;

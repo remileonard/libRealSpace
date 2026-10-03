@@ -909,12 +909,19 @@ void SCStrike::autopilotCompute() {
     this->player_plane->ptw.rotateM(0, 1, 0, 0);
     this->player_plane->ptw.rotateM(0, 0, 0, 1);
     this->player_plane->Simulate();
+    this->player_plane->alignVelocityToNose();
     Vector3D formation_pos_offset{80.0f, 0.0f, 40.0f};
     int team_number = 1;
     Vector3D prev={this->player_plane->x, this->player_plane->y, this->player_plane->z};
     for (auto team: this->current_mission->friendlies) {
         if (team->is_active) {
             if (team->plane != nullptr && team->plane != this->player_plane) {
+                // ailier en mode cinematique (formation, pilote automatique) : simulateKinematic ecraserait l'attitude
+                if (team->pilot != nullptr) {
+                    team->pilot->disengageAutopilot();
+                    team->pilot->CmdKinematic(false, team->plane->worldVelocity(), team->plane->forward, team->pilot->NosePitch());
+                    MessageBus::getInstance().processEvents();
+                }
                 prev += formation_pos_offset;
                 team->taken_off = true;
                 team->plane->x = prev.x;
@@ -925,7 +932,11 @@ void SCStrike::autopilotCompute() {
                 team->plane->roll=0;
                 team->plane->ptw.Identity();
                 team->plane->ptw.translateM(team->plane->x, team->plane->y, team->plane->z);
+                team->plane->ptw.rotateM(0, 0, 1, 0);
+                team->plane->ptw.rotateM(0, 1, 0, 0);
+                team->plane->ptw.rotateM(0, 0, 0, 1);
                 team->plane->Simulate();
+                team->plane->alignVelocityToNose();
                 team_number++;
             }
         }
@@ -1035,7 +1046,13 @@ void SCStrike::checkKeyboard(void) {
     this->cockpit->is_shooting = false;
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
         if (target != nullptr) {
-            this->player_plane->Shoot(this->player_plane->selected_weapon, target, this->current_mission);
+            // WeaponSystem_FrameUpdate_3F8C0 : le missile ne recoit la cible que si le point d'emport est accroche (+0x0B)
+            SCMissionActors *weapon_target = target;
+            SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
+            if (station != nullptr && station->objct->wdat->weapon_aspec != 0 && !this->player_plane->seekerLocks(station->objct, target)) {
+                weapon_target = nullptr;
+            }
+            this->player_plane->Shoot(this->player_plane->selected_weapon, weapon_target, this->current_mission);
             this->cockpit->is_shooting = true;
         }
     }
@@ -1125,12 +1142,10 @@ void SCStrike::checkKeyboard(void) {
             }
             
             
-            this->player_plane->wp_cooldown = 0;
             this->mfd_timeout = 400;
         } else {
             this->cockpit->show_weapons = !this->cockpit->show_weapons;
             this->mfd_timeout = 400;
-            this->player_plane->wp_cooldown = 0;
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP))) {
@@ -1725,7 +1740,7 @@ void SCStrike::setMission(char const *missionName) {
 
     // Déclencheur : plan d'ouverture STARTCAM. camera_mode suit le directeur : on
     // le pose direct sur CAM_DIRECTOR et on synchronise last_director_view.
-    SCCameraSequence::s_debug = true;   // trace stdout pour le debug caméra
+    SCCameraSequence::s_debug = false;   // trace stdout pour le debug caméra
     this->camera_mode = View::CAM_DIRECTOR;
     this->last_director_view = View::CAM_DIRECTOR;
     CameraViewRequest startcam;
@@ -2034,11 +2049,14 @@ void SCStrike::runFrame(void) {
             this->player_plane->ptw.rotateM(degreeToRad(this->autopilot_target_azimuth), 0, 1, 0);
             this->player_plane->yaw = this->autopilot_target_azimuth * 10.0f;
             this->player_plane->Simulate();
+            this->player_plane->alignVelocityToNose();
             this->camera_mode = View::FRONT;
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
                     if (team->plane != nullptr && team->plane != this->player_plane) {                       
                         team->plane->yaw=this->autopilot_target_azimuth * 10.0f;
+                        team->plane->Simulate();
+                        team->plane->alignVelocityToNose();
                     }
                 }
             }
@@ -2288,8 +2306,6 @@ void SCStrike::runFrame(void) {
                             }
                         }
                         Renderer.renderBBox(position, bb->min, bb->max);
-                        Renderer.renderBBox(position+actor->formation_pos_offset, bb->min, bb->max);
-                        Renderer.renderBBox(position+actor->attack_pos_offset, bb->min, bb->max);
                     } else {
                         actor->plane->Render();
                     }

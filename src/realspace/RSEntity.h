@@ -144,7 +144,7 @@ typedef struct JDYN {
     uint8_t max_bank_deg;           // #14 [+0x56]  inclinaison max (deg) -- a confirmer
     uint8_t pitch_rate_limit_dps;   // #15 [+0x57]  limite du taux de tangage (deg/s)
     uint8_t pitch_margin_deg;       // #16 [+0x58]  marge de tangage (deg) -- a confirmer
-    float ground_effect_ceiling_m;  // #17 [+0x59]  plafond d'effet de sol (m)
+    float control_speed_ms;         // #17 [+0x59]  vitesse d'efficacite des gouvernes (m/s)
     float induced_drag_k;           // #18 [+0x5D]  1/(pi*e*AR)
     float lift_gain;                // #19 [+0x61]  gain de portance (~ Cl_alpha * S)
     uint8_t pitch_stick_gain;       // #20 [+0x65]  borne finale de la consigne de tangage
@@ -177,17 +177,15 @@ class RSEntity {
     struct WDAT {
         uint16_t damage{0};
         uint16_t radius{0};
-        uint8_t unknown1{0};
+        uint8_t launch_class{0};     // +0x4A : 8 missile, 9 bombe, 10 panier, 13 canon (WeaponSystem_LaunchFromStation_3E744)
         uint8_t weapon_id{0};
         uint8_t weapon_category{0};
-        uint8_t radar_type{0};
+        uint8_t target_domain{0};
         uint8_t weapon_aspec{0};
         uint32_t target_range{0};
         uint8_t tracking_cone{0};
         uint32_t effective_range{0};  
-        uint8_t unknown6{0};
-        uint8_t unknown7{0};
-        uint8_t unknown8{0};
+        float fire_interval{0.0f};   // +0x5A : secondes entre deux tirs de la famille
     };
     struct SWPN_DATA {
         std::string weapon_name;
@@ -245,8 +243,22 @@ public:
     // Chunk STBL (jamais lu jusqu'ici) : coefficient d'autorite de tangage/lacet
     // utilise par l'asservissement d'attitude (q' = q * stability_gain / 100).
     float stability_gain{0.0f};
+    float parasite_drag{1.0f};  // chunk ATMO (u32 24.8) : multiplie la trainee parasite
+    // Chunk TOFF (TakeoffBehavior_Start_11D03), valeurs par defaut de l'original
+    int16_t takeoff_roll_accel{20};     // m/s2
+    int16_t takeoff_rotate_speed{150};  // m/s
+    int16_t takeoff_climb_pitch{30};    // deg
+    int16_t takeoff_pitch_gain{8};
+    // Chunk LAND (LandingBehavior_Start_75746)
+    int16_t landing_speed{200};         // m/s
+    int32_t landing_unused{0x64};
+    int16_t landing_aim_height{6};      // m
+    int16_t landing_pitch_steps{20};
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
+    uint8_t combat_class{2};           // chunk JINF, modele +0x52 (9 et plus : chasseur)
+    uint8_t bomb_guided{0};            // chunk DATA des BOMB, modele +0x5E
+    int16_t bomb_lock_cone_rate{0};    // modele +0x61, deg/s
     uint8_t health{0};
     WDAT *wdat{nullptr};
     DYNN_MISS *dynn_miss{nullptr};
@@ -302,6 +314,7 @@ private:
     void parseREAL_OBJT_ORNT(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS(uint8_t *data, size_t size);
     void parseREAL_OBJT_BOMB(uint8_t *data, size_t size);
+    void parseREAL_OBJT_BOMB_DATA(uint8_t *data, size_t size);
     void parseREAL_OBJT_TRCR(uint8_t *data, size_t size); 
     void parseREAL_OBJT_AFTB(uint8_t *data, size_t size);
     void parseREAL_OBJT_EXPL(uint8_t *data, size_t size);

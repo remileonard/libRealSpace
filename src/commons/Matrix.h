@@ -150,6 +150,21 @@ public:
         return acc;
     };
 
+    inline float AngleBetween(const Vector3D& other) const {
+        float lengths = this->Length() * other.Length();
+        if (lengths == 0.0f) {
+            return 0.0f;
+        }
+        float cosine = (this->x * other.x + this->y * other.y + this->z * other.z) / lengths;
+        if (cosine > 1.0f) {
+            cosine = 1.0f;
+        }
+        if (cosine < -1.0f) {
+            cosine = -1.0f;
+        }
+        return radToDegree(acosf(cosine));
+    };
+
     inline Vector3D limit(float max_value) {
         if (this->Length() > max_value) {
             this->Scale(max_value / this->Length());
@@ -191,6 +206,16 @@ public:
     };
     int operator==(const Vector3D& other) const {
         return this->x == other.x && this->y == other.y && this->z == other.z;
+    };
+    inline float Azimuth() const {
+        return Vector2D(this->z, this->x).Angle();
+    };
+    inline float Elevation() const {
+        return Vector2D(sqrtf(this->x * this->x + this->z * this->z), this->y).Angle();
+    };
+    inline Vector3D RotateAzimuth(float degrees) const {
+        Vector2D rotated = Vector2D(this->z, this->x).rotateAroundPoint(Vector2D(), -degreeToRad(degrees));
+        return Vector3D(rotated.y, 0.0f, rotated.x);
     };
     Vector3D rotateByAxis(const Vector3D &w) const;
     void rotateByAxisInPlace(const Vector3D &w) {

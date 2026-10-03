@@ -1,6 +1,7 @@
 #include "precomp.h"
 #include <limits>
 #include "SCMission.h"
+#include "SCAIBrain.h"
 #include "../engine/gametimer.h"
 
 SCMission::SCMission() {
@@ -53,6 +54,20 @@ void SCMission::cleanup() {
     this->waypoints.shrink_to_fit();
     this->messageBus.reset();
 }
+// Cockpit_ReadControlsFrame_8F720 : avions du camp ennemi (+0x50 == 0xFF) -> PilotProfile_RescaleSkillByDifficulty_12FC9,
+// FL, AG, AA du fichier decales a droite de word_7235F (0 = intacts, 1 = moitie, 2 = quart)
+void SCMission::applyDifficulty() {
+    int shift = std::clamp(this->difficulty, 0, 2);
+    for (auto actor : this->actors) {
+        if (actor->plane == nullptr || actor->profile == nullptr || actor->team_id != 255) {
+            continue;
+        }
+        AI_ATTR &file = actor->profile->ai.atrb_file;
+        actor->profile->ai.atrb.FL = file.FL >> shift;
+        actor->profile->ai.atrb.AG = file.AG >> shift;
+        actor->profile->ai.atrb.AA = file.AA >> shift;
+    }
+}
 RSProf *SCMission::LoadProfile(std::string name) {
     RSProf *profile = new RSProf();
     std::string filename = Assets.intel_root_path+ name + ".IFF";
@@ -73,11 +88,17 @@ void SCMission::onEvent(const EventMessage &event) {
 }
 void SCMission::loadMission() {
     
+    this->difficulty = Config::getInstance().getInt("Gameplay", "difficulty", 0);
     std::string miss_file_name = Assets.mission_root_path + this->mission_name; 
     std::transform(miss_file_name.begin(), miss_file_name.end(), miss_file_name.begin(), ::toupper);
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
     this->mission = new RSMission();
     this->mission->InitFromRAM(mission_tre->data, mission_tre->size);
+
+    TreEntry *intel_tre = Assets.GetEntryByName(Assets.intel_root_path + "INTEL.IFF");
+    if (intel_tre != nullptr) {
+        this->intel.InitFromRAM(intel_tre->data, intel_tre->size);
+    }
 
 
     std::string area_filename = Assets.mission_root_path+this->mission->mission_data.world_filename + ".IFF";
@@ -154,12 +175,13 @@ void SCMission::loadMission() {
                 }
                 
                 if (actor->profile != nullptr && actor->profile->ai.isAI) {
+                    actor->brain = new SCAIBrain(actor);
                     if (actor->profile->ai.goal.size() > 0) {
                         actor->pilot = new SCPilot();
                         actor->pilot->actor = actor;
                         BoudingBox *bb = actor->object->entity->GetBoudingBpx();
                         
-                        actor->plane = new SCJdynPlane(
+                        actor->plane = new SCJetpPlane(
                             actor->object->entity->jdyn->max_g,
                             -(float) actor->object->entity->jdyn->max_g/2.0f,
                             40.0f,
@@ -209,6 +231,9 @@ void SCMission::loadMission() {
                             actor->plane->SetThrottle(100);
                             actor->pilot->target_climb = (int) (part->position.y);
                             actor->plane->vz = -20;
+                            float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
+                            float spawn_speed = (float) actor->object->entity->jdyn->ai_speed_cruise;
+                            actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
                             actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
                             actor->pilot->target_speed = -20;
                         } else {
@@ -226,7 +251,7 @@ void SCMission::loadMission() {
                                                 23000.0f, 32.0f, .93f, 120, this->area, part->position.x,
                                                 part->position.y, part->position.z);*/
                     BoudingBox *bb = actor->object->entity->GetBoudingBpx();
-                    actor->plane = new SCJdynPlane(
+                    actor->plane = new SCJetpPlane(
                         actor->object->entity->jdyn->max_g,
                         -actor->object->entity->jdyn->max_g/2.0f,
                         40.0f,
@@ -257,6 +282,8 @@ void SCMission::loadMission() {
                     actor->plane->pilot = actor;
                     this->actors.push_back(actor);
                     this->player = actor;
+                    // MissionScenario_LoadMainRecord_A8331 : bits 4 et 5 de +0x39 poses sur l'objet du joueur
+                    actor->on_nav_map = true;
                 } else {
                     this->actors.push_back(actor);
                 }
@@ -341,6 +368,7 @@ void SCMission::loadMission() {
             this->enemies.push_back(enemis);
         }
     }
+    this->applyDifficulty();
     if (this->player->on_is_activated.size() > 0) {
         SCProg *p = new SCProg(this->player, this->player->on_is_activated, this, this->player->object->on_is_activated);
         p->execute();
@@ -362,6 +390,20 @@ void SCMission::loadMission() {
         this->camera_director->init(this->world, this->player);
     }
 }
+// ajout a la liste des objets du monde (59C3h) : missile air-air (WDAT target_domain 1) -> byte_6E4C6
+void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
+    if (weapon->obj->wdat->target_domain == 1) {
+        this->aa_missile_launched = true;
+    }
+}
+// retrait de la liste des objets du monde : les references SetReference sur l'arme se vident (+0x281)
+void SCMission::onWeaponRemoved(SCSimulatedObject *weapon) {
+    for (auto actor : this->actors) {
+        if (actor->brain != nullptr && actor->brain->missile_threat == weapon) {
+            actor->brain->missile_threat = nullptr;
+        }
+    }
+}
 RSEntity * SCMission::LoadEntity(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";
     RSEntity *objct = new RSEntity();
@@ -381,11 +423,6 @@ void SCMission::update() {
     }
     this->tick_counter++;
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
-    float yawRad = this->player->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
-    // Position the offset behind the aircraft based on current yaw
-    this->player->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
-    this->player->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
-    this->player->attack_pos_offset.y = 0.0f; // Same altitude
     if (area_id != this->current_area_id) {
         this->current_area_id = area_id;
     }
@@ -395,6 +432,24 @@ void SCMission::update() {
     mission_update_event.area_id = area_id;
     mission_update_event.mission = this;
     this->messageBus.publish(std::make_unique<MissionUpdateEvent>(mission_update_event));
+
+    // Cadence IA fixe (~25 fps d'origine) : eviter un rattrapage explosif
+    // apres un hoquet en plafonnant l'accumulateur avant de vider le retard.
+    this->ai_refresh_accumulator += mission_update_event.delta_time;
+    if (this->ai_refresh_accumulator > 1.0f) {
+        this->ai_refresh_accumulator = 1.0f;
+    }
+    while (this->ai_refresh_accumulator >= AI_REFRESH_INTERVAL) {
+        this->ai_refresh_accumulator -= AI_REFRESH_INTERVAL;
+        // RadioFlags_ShiftHistory
+        this->player_tail_threat = this->player_tail_seen;
+        this->player_tail_seen = nullptr;
+        this->aa_missile_launched_last = this->aa_missile_launched;
+        this->aa_missile_launched = false;
+        AIRefreshEvent ai_refresh_event;
+        ai_refresh_event.mission = this;
+        this->messageBus.publish(std::make_unique<AIRefreshEvent>(ai_refresh_event));
+    }
 
     for (auto scene: this->mission->mission_data.scenes) {
         if (scene->area_id == area_id - 1 || scene->area_id == -1) {

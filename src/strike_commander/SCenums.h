@@ -33,8 +33,8 @@ static std::unordered_map<Hud_weapon_mode, std::string> hud_weapon_mode_names = 
     {WM_HUD_NONE, ""}
 };
 enum weapon_ids {
-    ID_AIM9J = 1,
-    ID_AIM9M = 2,
+    ID_AIM9M = 1,
+    ID_AIM9J = 2,
     ID_AGM65D = 3,
     ID_LAU3 = 4,
     ID_MK20 = 5,
@@ -102,12 +102,10 @@ static std::unordered_map<weapon_ids, std::string> weapon_names = {
     {weapon_ids::ID_GBU15, "GBU-15"},
     {weapon_ids::ID_AIM120, "AIM-120"}
 };
-enum weapon_category {
-    WCAT_GUN = 0,
+enum weapon_radar_type {
+    WCAT_NONE = 0,
     WCAT_IR = 1,
-    WCAT_RD = 2,
-    WCAT_BOMB = 3,
-    WCAT_POD = 4,
+    WCAT_RD = 2
 };
 enum prog_compare_return_values {
     PROG_CMP_EQUAL = 1,          // 000001
@@ -147,6 +145,7 @@ enum prog_op {
     OP_ACTIVATE_SCENE = 128,
     OP_DEACTIVATE_SCENE = 129,
     OP_ACTIVATE_OBJ = 144,
+    OP_DEACTIVATE_OBJ = 145,
     OP_IF_TARGET_IN_AREA = 146,
     OP_IS_TARGET_ALIVE = 147,
     OP_INSTANT_DESTROY_TARGET = 148,
@@ -163,7 +162,11 @@ enum prog_op {
     OP_SET_OBJ_DEFEND_AREA = 169,
     OP_SET_OBJ_FOLLOW_ALLY = 170,
     OP_SET_MESSAGE = 171,
-    OP_DEACTIVATE_OBJ = 190,
+    OP_SHOW_ON_NAV_MAP = 182,
+    OP_HIDE_FROM_NAV_MAP = 183,
+    OP_JOIN_PLAYER_TEAM = 184,
+    OP_LEAVE_PLAYER_TEAM = 185,
+    OP_SET_OBJ_BE = 190,
     OP_SELECT_FLAG_208 = 208,
 };
 
@@ -211,7 +214,24 @@ static std::unordered_map<prog_op, std::string> prog_op_names = {
     {OP_SET_OBJ_FOLLOW_ALLY, "OP_SET_OBJ_FOLLOW_ALLY"},
     {OP_SET_MESSAGE, "OP_SET_MESSAGE"},
     {OP_DEACTIVATE_OBJ, "OP_DEACTIVATE_OBJ"},
+    {OP_SET_OBJ_BE, "OP_SET_OBJ_BE"},
+    {OP_SHOW_ON_NAV_MAP, "OP_SHOW_ON_NAV_MAP"},
+    {OP_HIDE_FROM_NAV_MAP, "OP_HIDE_FROM_NAV_MAP"},
+    {OP_JOIN_PLAYER_TEAM, "OP_JOIN_PLAYER_TEAM"},
+    {OP_LEAVE_PLAYER_TEAM, "OP_LEAVE_PLAYER_TEAM"},
     {OP_SELECT_FLAG_208, "OP_SELECT_FLAG_208"}
+};
+
+// Valeurs du chunk PROF/_AI_/GOAL (RSProf::ai.goal). Espace de valeurs
+// distinct de prog_op malgre le chevauchement numerique (GOAL=2 n'est pas
+// OP_EXEC_SUB_PROG) : chaque octet selectionne un des 4 gestionnaires de
+// AI_TopLevelThink, cf. analysis/AI_SYSTEM.md §4 et AI_IMPLEMENTATION_GUIDE.md §2.3.
+enum GoalSelector : uint8_t {
+    GOAL_EMPTY = 1,
+    GOAL_EXECUTE_ACTION = 2,          // Goal_ExecuteAction : machine a etats du script PROG (current_command)
+    GOAL_WANDER_RANDOM = 3,           // Goal_WanderRandom : patrouille/vagabondage
+    GOAL_BEHAVIOR_STATE_MACHINE = 4,  // AI_BehaviorStateMachine : tournoi MVRS
+    GOAL_ACTIVE_WINGMAN = 5,          // Goal_ActiveWingmanEngagement : escorte active du joueur
 };
 
 enum KillBoardType {

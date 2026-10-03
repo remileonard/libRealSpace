@@ -1,7 +1,7 @@
 #include "precomp.h"
 #include "SCRotaCamera.h"
 
-bool SCRotaCamera::s_debug = true;
+bool SCRotaCamera::s_debug = false;
 
 void SCRotaCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3D &out_up) {
     // TODO(entrée joueur) : tourner `this->orbit` selon la souris/joystick

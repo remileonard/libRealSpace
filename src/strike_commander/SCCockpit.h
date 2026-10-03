@@ -25,6 +25,17 @@ private:
     RSVGA &VGA = RSVGA::getInstance();
     SCMouse &Mouse = SCMouse::getInstance();
     std::vector<HudLine> horizon;
+    RSFont *font;
+    RSFont *big_font;
+    int radio_mission_timer{0};
+    std::unordered_map<uint32_t, uint8_t> palette_lut;
+    std::unordered_map<std::string, std::string> hud_text_tags;
+    bool palette_lut_dirty = true;
+    int current_weapon_id{-1};
+    Camera cockpit_camera;
+    MISN_PART *current_target{nullptr};
+    SCMissionActors *current_target_actor{nullptr};
+
     bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
     void IdentifyRAWSContact(SCMissionActors *actor, FrameBuffer *fb, float headingRad, Point2D pmfd_left, Point2D raws_size, bool is_zoomed, int rsize);
     void RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter);
@@ -37,16 +48,7 @@ private:
     void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
     void BuildPaletteLUT();
     void printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font);
-    RSFont *font;
-    RSFont *big_font;
-    int radio_mission_timer{0};
-    std::unordered_map<uint32_t, uint8_t> palette_lut;
-    std::unordered_map<std::string, std::string> hud_text_tags;
-    bool palette_lut_dirty = true;
-    int current_weapon_id{-1};
-    Camera cockpit_camera;
-    MISN_PART *current_target{nullptr};
-    SCMissionActors *current_target_actor{nullptr};
+    
 public:
     VGAPalette palette;
     RSCockpit* cockpit{nullptr};
@@ -102,7 +104,7 @@ public:
     SCPlane *player_plane;
     SCMission *current_mission;
     uint8_t *nav_point_id{nullptr};
-    Hud_weapon_mode weapon_mode{Hud_weapon_mode::WM_HUD_NONE};
+    Hud_weapon_mode weapon_mode{Hud_weapon_mode::WM_HUD_LCOS};
     Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
     bool has_hud_eye_world = false;
     bool debug_print{false};
@@ -113,9 +115,6 @@ public:
     RSImageSet* crashed_animation_frames_p1;
     RSImageSet* crashed_animation_frames_p2;
     RSImageSet* eject_animation_frames;
-    // Offset angulaire pour le viseur cannon (en radians)
-    // x = azimut, y = élévation
-    // En 2D: {0, 0}, en 3D: ajuster selon la géométrie
     Vector2D cannonAngularOffset = {0.0f, 0.0f};
     Vector3D targetImpactPointWorld = {0.0f, 0.0f, 0.0f};
     int frame{0};

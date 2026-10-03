@@ -182,6 +182,133 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
     return adjusted_direction;
 }
 
+// WeaponSystem_LaunchFromStation_3E744 : famille de l'arme (WDAT +0x4A - 8), autre classe -> pas de tir
+int SCPlane::weaponTimerSlot(RSEntity *weapon) {
+    switch (weapon->wdat->launch_class) {
+        case 8:
+            return 0;
+        case 9:
+            return 1;
+        case 10:
+            return 2;
+        case 13:
+            return 3;
+        default:
+            return -1;
+    }
+}
+
+// orientation imposee de l'exterieur : la vitesse monde suit le nouveau nez, rotations arretees
+void SCPlane::alignVelocityToNose() {
+    this->velocity = this->forward * this->velocity.Length();
+    this->pitch_speed = 0.0f;
+    this->yaw_speed = 0.0f;
+    this->roll_speed = 0.0f;
+}
+
+// WeaponStation_TestTargetLock / Targeting_SelectAndPrioritize : modele de chercheur du point d'emport (joueur et IA)
+int SCPlane::SeekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity) {
+    RSEntity *entity = candidate->object->entity;
+    int aspec = weapon->wdat->weapon_aspec;
+    if (aspec == 3 || aspec == 4) {
+        if (entity->radar_signature == nullptr) {
+            return 0;
+        }
+        return aspec == 3 ? entity->radar_signature->unknown3 : entity->radar_signature->unknown2;
+    }
+    if (candidate->plane == nullptr) {
+        return entity->radar_signature != nullptr ? entity->radar_signature->unknown1 : 0;
+    }
+    Vector3D target_velocity = candidate->plane->worldVelocity();
+    bool behind = reference_velocity.x * target_velocity.x + reference_velocity.y * target_velocity.y + reference_velocity.z * target_velocity.z > 0.0f;
+    float factor = behind ? 100.0f : 50.0f;
+    float signature = 10.0f + target_velocity.Length() / 602.0f * factor;
+    if (candidate->plane->GetThrottle() > 50) {
+        signature += factor;
+    }
+    return ((int) signature) & 0xFF;
+}
+
+bool SCPlane::seekerSees(RSEntity *weapon, SCMissionActors *candidate) {
+    Vector3D position = candidate->plane != nullptr ? candidate->plane->position : candidate->object->position;
+    Vector3D delta = position - this->position;
+    float distance = delta.Length();
+    if (distance <= 0.0f || distance > (float) weapon->wdat->target_range) {
+        return false;
+    }
+    return this->forward.AngleBetween(delta) <= (float) weapon->wdat->tracking_cone;
+}
+
+SCMissionActors *SCPlane::seekerSelect(RSEntity *weapon, SCMissionActors *desired, SCMission *mission) {
+    int aspec = weapon->wdat->weapon_aspec;
+    Vector3D reference_velocity = this->worldVelocity();
+    if (aspec == 5 || aspec == 6) {
+        return (desired != nullptr && this->seekerLocks(weapon, desired)) ? desired : nullptr;
+    }
+    SCMissionActors *best = nullptr;
+    int best_signature = 0;
+    for (auto actor : mission->actors) {
+        if (actor->is_destroyed || actor->object == nullptr || actor->object->entity == nullptr) {
+            continue;
+        }
+        if (actor->plane != nullptr && !actor->plane->object->alive) {
+            continue;
+        }
+        uint8_t type = actor->object->entity->target_type;
+        if (type != 1 && type != 4) {
+            continue;
+        }
+        int signature = SCPlane::SeekerSignature(weapon, actor, reference_velocity);
+        if (signature > best_signature && this->seekerSees(weapon, actor)) {
+            best_signature = signature;
+            best = actor;
+        }
+    }
+    if (best == nullptr) {
+        return nullptr;
+    }
+    SCMissionActors *result = desired;
+    if (best != desired) {
+        SCMissionActors *player = mission->player;
+        int weight = best == player ? 5 : 3;
+        int signature = SCPlane::SeekerSignature(weapon, best, reference_velocity);
+        bool steal = false;
+        if (aspec == 1) {
+            steal = (signature > 210 && (std::rand() % 10) < weight) || signature == 210;
+        } else if (aspec == 2 || aspec == 4) {
+            steal = signature >= 245 && (std::rand() % 10) < weight;
+        }
+        if (steal) {
+            return best;
+        }
+    }
+    if (result == nullptr || !this->seekerAspectAllows(weapon, result)) {
+        return nullptr;
+    }
+    return result;
+}
+
+// aspec 1 (AIM-9J) : aspect arriere obligatoire, vitesses a moins de 90 deg (dot >= cos 90)
+bool SCPlane::seekerAspectAllows(RSEntity *weapon, SCMissionActors *target) {
+    if (weapon->wdat->weapon_aspec != 1 || target->plane == nullptr) {
+        return true;
+    }
+    Vector3D own_velocity = this->worldVelocity();
+    Vector3D target_velocity = target->plane->worldVelocity();
+    return own_velocity.DotProduct(&target_velocity) >= 0.0f;
+}
+
+// verrou du chercheur sur une cible donnee : portee, cone et aspect, sans balayage des autres contacts
+bool SCPlane::seekerLocks(RSEntity *weapon, SCMissionActors *target) {
+    return this->seekerSees(weapon, target) && this->seekerAspectAllows(weapon, target);
+}
+
+void SCPlane::updateWeaponTimers(float dt) {
+    for (float &timer : this->weapon_timers) {
+        timer = std::max(timer - dt, 0.0f);
+    }
+}
+
 void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     // Prédire d'abord le tir
     Vector3D adjusted_direction = this->PredictShot(weapon_hard_point_id, target);
@@ -197,12 +324,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
         }
     }
     
-    // Si en cooldown, ne pas tirer
-    if (this->wp_cooldown > 0) {
-        this->wp_cooldown--;
-        return;
-    }
-    
     // Créer l'objet réel en utilisant les paramètres ajustés
     SCSimulatedObject *weap = nullptr;
     MemSound *sound = nullptr;
@@ -210,7 +331,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case weapon_ids::ID_20MM:
             weap = new GunSimulatedObject();
-            this->wp_cooldown = 30;
             break;
         case weapon_ids::ID_MK20:
         case weapon_ids::ID_MK82:
@@ -220,7 +340,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
-            this->wp_cooldown = 120;
             break;
         default:
             if (this->pilot->mission->sound.sounds.size() > 0) {
@@ -228,7 +347,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
             weap = new SCSimulatedObject();
-            this->wp_cooldown = 160;
             break;
     }
     // Calcul de la direction et vitesse initiale avec ajustement
@@ -282,6 +400,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     
     // Ajouter à la liste des objets simulés
     this->weaps_object.push_back(weap);
+    this->pilot->mission->onWeaponSpawned(weap);
 }
 
 void SCPlane::RenderWeaponTrajectories() {
@@ -535,6 +654,11 @@ void SCPlane::Simulate() {
         sim_obj->Simulate(this->tps);
     }
     // remove dead objects
+    for (auto sim_obj: this->weaps_object) {
+        if (!sim_obj->alive) {
+            this->pilot->mission->onWeaponRemoved(sim_obj);
+        }
+    }
     this->weaps_object.erase(std::remove_if(this->weaps_object.begin(), this->weaps_object.end(), [](SCSimulatedObject *obj) {
         return obj->alive == false;
     }), this->weaps_object.end());
@@ -1281,40 +1405,143 @@ void SCPlane::onEvent(const EventMessage &event) {
         this->onPlaneControl(*eventData);
         return;
     }
+    if (auto eventData = dynamic_cast<const PlaneKinematicEvent*>(&event)) {
+        this->onPlaneKinematic(*eventData);
+        return;
+    }
+    if (auto eventData = dynamic_cast<const PlaneFireEvent*>(&event)) {
+        this->onPlaneFire(*eventData);
+        return;
+    }
+    if (auto eventData = dynamic_cast<const PlaneWreckEvent*>(&event)) {
+        this->onPlaneWreck(*eventData);
+        return;
+    }
+    if (auto eventData = dynamic_cast<const PlaneAttitudeEvent*>(&event)) {
+        if (eventData->plane == this) {
+            this->yaw = eventData->yaw;
+            this->pitch = eventData->pitch;
+            this->roll = eventData->roll;
+        }
+        return;
+    }
+}
+void SCPlane::onPlaneFire(const PlaneFireEvent &event) {
+    if (event.plane != this) {
+        return;
+    }
+    this->ShootDirect(event.hardpoint, event.target, event.mission);
+}
+void SCPlane::onPlaneWreck(const PlaneWreckEvent &event) {
+    if (event.plane != this) {
+        return;
+    }
+    this->kinematic_mode = false;
+    this->Mthrust = 0;
+    this->s = 0.001f;
+    this->b = 0.001f;
+    this->spoilers = (int) this->Smax;
+    this->vz /= 1.5f;
+    this->vy *= 1.05f;
 }
 void SCPlane::onPlaneControl(const PlaneControlEvent &event) {
     if (event.plane != this) {
         return;
     }
     this->SetThrottle(static_cast<int>(event.throttle));
-    this->control_stick_x = event.control_stick_x;
-    this->control_stick_y = event.control_stick_y;
+    this->stick_normalized = event.normalized_stick;
+    if (event.normalized_stick) {
+        this->stick_norm_x = event.control_stick_x;
+        this->stick_norm_y = event.control_stick_y;
+        this->control_stick_x = (int) (event.control_stick_x * 160.0f);
+        this->control_stick_y = (int) (event.control_stick_y * 160.0f);
+    } else {
+        this->control_stick_x = event.control_stick_x;
+        this->control_stick_y = event.control_stick_y;
+    }
     this->rudder = event.rudder;
     this->flaps = event.flaps;
     this->spoilers = event.spoilers;
     this->wheels = event.wheel;
 }
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
-    SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
-    weap_loadout = this->weaps_load[weapon_hard_point_id];
-    if (weap_loadout == nullptr) {
-        return;
+    this->fireStation(weapon_hard_point_id, target, mission, true);
+}
+void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
+    this->fireStation(weapon_hard_point_id, target, mission, false);
+}
+// PlayerComponent_MainOrchestrator_9F98D : pylone le plus charge portant cette arme
+int SCPlane::fullestHardpoint(uint8_t weapon_id) {
+    int best = -1;
+    int count = 0;
+    for (int i = 0; i < (int) this->weaps_load.size(); i++) {
+        SCWeaponLoadoutHardPoint *hardpoint = this->weaps_load[i];
+        if (hardpoint != nullptr && hardpoint->objct->wdat->weapon_id == weapon_id && hardpoint->nb_weap > count) {
+            best = i;
+            count = hardpoint->nb_weap;
+        }
     }
-    if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
+    return best;
+}
+void SCPlane::launchOne(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction) {
+    SCWeaponLoadoutHardPoint *weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (allow_prediction && this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
         int precision = std::rand() % 16;
         if (precision <= this->pilot->profile->ai.atrb.AA || weap_loadout->objct->wdat->weapon_id == ID_MK20 || weap_loadout->objct->wdat->weapon_id == ID_MK82) {
             this->ShootWithPrediction(weapon_hard_point_id, target, mission);
             return;
         }
     }
+    this->launchDirect(weapon_hard_point_id, target, mission);
+}
+// WeaponSystem_LaunchFromStation_3E744 : minuteur de la famille, panier = une roquette par panier LAU-3,
+// bombe = paire sur le pylone le plus charge (WeaponSystem_ReleaseBomb_9E289 force), sauf GBU-15
+void SCPlane::fireStation(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction) {
+    SCWeaponLoadoutHardPoint *weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (weap_loadout == nullptr) {
+        return;
+    }
+    RSEntity *launcher = weap_loadout->objct;
+    int slot = this->weaponTimerSlot(launcher);
+    if (slot < 0 || this->weapon_timers[slot] > 0.0f) {
+        return;
+    }
+    if (launcher->wdat->launch_class == 10) {
+        // compteur de roquettes du systeme (+0x1E)
+        if (launcher->weaps.empty() || launcher->weaps[0]->nb_weap <= 0) {
+            return;
+        }
+        for (int i = 0; i < (int) this->weaps_load.size(); i++) {
+            SCWeaponLoadoutHardPoint *hardpoint = this->weaps_load[i];
+            if (hardpoint == nullptr || hardpoint->objct->wdat->weapon_id != launcher->wdat->weapon_id) {
+                continue;
+            }
+            int pods = hardpoint->nb_weap;
+            for (int pod = 0; pod < pods; pod++) {
+                this->launchDirect(i, target, mission);
+            }
+        }
+    } else {
+        this->launchOne(weapon_hard_point_id, target, mission, allow_prediction);
+        if (launcher->wdat->launch_class == 9 && launcher->wdat->weapon_id != ID_GBU15) {
+            int pair = this->fullestHardpoint(launcher->wdat->weapon_id);
+            if (pair >= 0) {
+                this->launchOne(pair, target, mission, allow_prediction);
+            }
+        }
+    }
+    this->weapon_timers[slot] = launcher->wdat->fire_interval;
+}
+void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
+    SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
+    weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (weap_loadout == nullptr) {
+        return;
+    }
     SCSimulatedObject *weap{nullptr};
     Vector3D initial_trust = {0,0,0};
     
     MemSound *sound;
-    if (this->wp_cooldown > 0) {
-        this->wp_cooldown--;
-        return;
-    }
     RSEntity *wobj = nullptr;
     wobj = this->weaps_load[weapon_hard_point_id]->objct;
     switch (wobj->wdat->weapon_id) {
@@ -1322,7 +1549,6 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             weap = new GunSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1000.0f); // coefficient ajustable
             initial_trust = this->applyGunSpread(initial_trust, 0.4f); // ~0.4° de dispersion
-            this->wp_cooldown = 3; // Cooldown between two shots
 
         break;
         case ID_MK20:
@@ -1334,7 +1560,6 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
-            this->wp_cooldown = 10; // Cooldown between two shots
         break;
         case ID_LAU3:
             weap = new SCSimulatedObject();
@@ -1347,7 +1572,6 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             weap->guidance = false;
             weap->no_gravity = false;
             wobj = wobj->weaps[0]->objct;
-            this->wp_cooldown = 10;
         break;
         case ID_GBU15:
             weap = new SCSimulatedObject();
@@ -1360,7 +1584,6 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             weap->guidance = true;
             weap->no_gravity = false;
             weap->target = target;
-            this->wp_cooldown = 10;
         break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
@@ -1371,7 +1594,6 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
             }
             weap = new SCSimulatedObject();
             weap->target = target;
-            this->wp_cooldown = 10; // Cooldown between two shots
         break;
     }
     weap->mission = mission;
@@ -1413,9 +1635,10 @@ void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission
     weap->vy = initial_trust.y;
     weap->vz = initial_trust.z;
 
-    weap->weight = wobj->weight_in_kg*2.205f;
+    weap->weight = wobj->weight_in_kg;
     
     this->weaps_object.push_back(weap);
+    this->pilot->mission->onWeaponSpawned(weap);
 }
 void SCPlane::InitLoadout() {
     // this->object->entity->weaps
@@ -1734,4 +1957,68 @@ void SCPlane::renderPlaneLined() {
             this->acceleration.z * 10.0f
         }, {0.0f, 1.0f, 0.0f});*/
     }
+}
+void SCPlane::onPlaneKinematic(const PlaneKinematicEvent &event) {
+    if (event.plane != this) {
+        return;
+    }
+    this->kinematic_mode = event.engaged;
+    this->kinematic_velocity = event.velocity;
+    this->kinematic_yaw = event.yaw;
+    this->kinematic_pitch = event.pitch;
+    this->kinematic_roll = event.roll;
+    if (event.set_position) {
+        this->x = this->last_px = event.position.x;
+        this->y = this->last_py = event.position.y;
+        this->z = this->last_pz = event.position.z;
+        this->position = event.position;
+    }
+}
+
+void SCPlane::simulateKinematic(float dt) {
+    this->velocity = this->kinematic_velocity;
+    this->last_px = this->x;
+    this->last_py = this->y;
+    this->last_pz = this->z;
+    this->x += this->velocity.x * dt;
+    this->y += this->velocity.y * dt;
+    this->z += this->velocity.z * dt;
+    this->position = Vector3D(this->x, this->y, this->z);
+
+    this->m_old_pitch = this->pitch;
+    this->m_old_yaw = this->yaw;
+    this->yaw = this->kinematic_yaw;
+    this->pitch = this->kinematic_pitch;
+    this->roll = this->kinematic_roll;
+    this->pitch_speed = 0.0f;
+    this->yaw_speed = 0.0f;
+    this->roll_speed = 0.0f;
+    this->angular_velocity = Vector3D(0.0f, 0.0f, 0.0f);
+
+    this->ptw.Identity();
+    this->ptw.translateM(this->x, this->y, this->z);
+    this->ptw.rotateM(tenthOfDegreeToRad(this->yaw), 0, 1, 0);
+    this->ptw.rotateM(tenthOfDegreeToRad(this->pitch), 1, 0, 0);
+    this->ptw.rotateM(tenthOfDegreeToRad(this->roll), 0, 0, 1);
+    this->forward = Vector3D(-this->ptw.v[2][0], -this->ptw.v[2][1], -this->ptw.v[2][2]);
+    this->groundlevel = this->area->getY(this->x, this->z);
+    this->syncKinematicVelocity(dt);
+}
+
+Vector3D SCPlane::worldVelocity() {
+    float rate = this->tps > 0 ? (float) this->tps : 25.0f;
+    return Vector3D(this->x - this->last_px, this->y - this->last_py, this->z - this->last_pz) * rate;
+}
+
+float SCPlane::indicatedAirspeed() {
+    float altitude = std::max(0.0f, this->y);
+    float sigma = powf(std::max(0.0f, 1.0f - 2.2558e-5f * altitude), 4.2559f);
+    return this->worldVelocity().Length() * sqrtf(sigma);
+}
+
+void SCPlane::syncKinematicVelocity(float dt) {
+    Vector3D displacement = this->velocity * dt;
+    this->vx = displacement.x * this->ptw.v[0][0] + displacement.y * this->ptw.v[0][1] + displacement.z * this->ptw.v[0][2];
+    this->vy = displacement.x * this->ptw.v[1][0] + displacement.y * this->ptw.v[1][1] + displacement.z * this->ptw.v[1][2];
+    this->vz = displacement.x * this->ptw.v[2][0] + displacement.y * this->ptw.v[2][1] + displacement.z * this->ptw.v[2][2];
 }

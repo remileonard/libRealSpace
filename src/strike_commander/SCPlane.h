@@ -50,6 +50,9 @@ class SCMissionActors;
 class SCMission;
 class SCWeaponPredictor;
 class PlaneControlEvent;
+class PlaneKinematicEvent;
+class PlaneFireEvent;
+class PlaneWreckEvent;
 
 struct SCWeaponLoadoutHardPoint {
     RSEntity *objct;
@@ -151,6 +154,19 @@ protected:
     virtual void computeThrust();
     virtual void processInput();
     virtual void updatePlaneStatus();
+    bool stick_normalized{false};
+    float stick_norm_x{0.0f};
+    float stick_norm_y{0.0f};
+    bool kinematic_mode{false};
+    Vector3D kinematic_velocity{0.0f, 0.0f, 0.0f};
+    float kinematic_yaw{0.0f};
+    float kinematic_pitch{0.0f};
+    float kinematic_roll{0.0f};
+    void simulateKinematic(float dt);
+    virtual void syncKinematicVelocity(float dt);
+    void onPlaneKinematic(const PlaneKinematicEvent &event);
+    void onPlaneFire(const PlaneFireEvent &event);
+    virtual void onPlaneWreck(const PlaneWreckEvent &event);
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
      // Stocke le prédicteur de trajectoire
@@ -172,7 +188,16 @@ public:
     float chaff_timer{0.0f};
     int chaffs{30};
     int flares{30};
-    int wp_cooldown{0};
+    // WeaponSystem_FrameUpdate_3F8C0 : minuteurs +0x24 missiles, +0x28 bombes, +0x30 paniers, +0x2C canons
+    float weapon_timers[4]{0.0f, 0.0f, 0.0f, 0.0f};
+    int weaponTimerSlot(RSEntity *weapon);
+    void alignVelocityToNose();
+    static int SeekerSignature(RSEntity *weapon, SCMissionActors *candidate, Vector3D reference_velocity);
+    bool seekerSees(RSEntity *weapon, SCMissionActors *candidate);
+    SCMissionActors *seekerSelect(RSEntity *weapon, SCMissionActors *desired, SCMission *mission);
+    bool seekerAspectAllows(RSEntity *weapon, SCMissionActors *target);
+    bool seekerLocks(RSEntity *weapon, SCMissionActors *target);
+    void updateWeaponTimers(float dt);
     float mach{0.0f};
     float mcc{0.0f};
     float mratio{0.0f};
@@ -298,6 +323,8 @@ public:
             RSArea *area, float x, float y, float z);
     ~SCPlane();
     virtual void init();
+    virtual Vector3D worldVelocity();
+    float indicatedAirspeed();
     int isOnRunWay();
     void SetThrottle(int throttle);
     int GetThrottle();
@@ -315,6 +342,7 @@ public:
     virtual void RenderSimulatedObject();
     virtual void RenderSmoke(); 
     virtual void Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    virtual void ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
     virtual void InitLoadout();
     void renderPlaneLined();
     // Nouvelle méthode pour simuler un tir
@@ -322,11 +350,18 @@ public:
     
     // Méthode pour tirer avec ajustement basé sur la prédiction
     void ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    void fireStation(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction);
+    void launchOne(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction);
+    void launchDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    int fullestHardpoint(uint8_t weapon_id);
     
     // Visualisation de la trajectoire projetée
     void RenderWeaponTrajectories();
     Vector3D getWeaponIntialVector(float speedFactor);
-    
+    bool kinematicMode() const { return kinematic_mode; }
+    int GetFuel() const { return fuel; }
+    virtual float forwardSpeedPerTick() { return vz; }
+    virtual float maxRollRate() { return object->entity->jdyn->max_turn_rate_dps; }
 };
 
 #endif

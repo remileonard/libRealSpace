@@ -106,17 +106,21 @@ void SCJdynPlane::Simulate() {
     this->gravity = GRAVITY * dt * dt;
     this->fps_knots = 1.944f / dt;
     this->groundlevel = this->area->getY(this->x, this->z);
-    this->computeGravity();
-    this->processInput();
-    this->updatePosition();
-    this->updateSpeedOfSound();
-    this->checkStatus();
-    this->computeLift();
-    this->computeThrust();
-    this->computeDrag();
-    this->updateForces();
-    this->updateAcceleration();
-    this->updateVelocity();
+    if (this->kinematic_mode) {
+        this->simulateKinematic(dt);
+    } else {
+        this->computeGravity();
+        this->processInput();
+        this->updatePosition();
+        this->updateSpeedOfSound();
+        this->checkStatus();
+        this->computeLift();
+        this->computeThrust();
+        this->computeDrag();
+        this->updateForces();
+        this->updateAcceleration();
+        this->updateVelocity();
+    }
 
     // Calculer la distance parcourue depuis la dernière frame
     
@@ -162,6 +166,11 @@ void SCJdynPlane::Simulate() {
         sim_obj->Simulate(this->tps);
     }
     // remove dead objects
+    for (auto sim_obj: this->weaps_object) {
+        if (!sim_obj->alive) {
+            this->pilot->mission->onWeaponRemoved(sim_obj);
+        }
+    }
     this->weaps_object.erase(std::remove_if(this->weaps_object.begin(), this->weaps_object.end(), [](SCSimulatedObject *obj) {
         return obj->alive == false;
     }), this->weaps_object.end());

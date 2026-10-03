@@ -305,7 +305,7 @@ void RSEntity::parseREAL_OBJT_BOMB(uint8_t *data, size_t size) {
     handlers["SMOK"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_SMOK, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DAMG, this, std::placeholders::_1, std::placeholders::_2);
     handlers["WDAT"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_WDAT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DATA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_BOMB_DATA, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM, this, std::placeholders::_1, std::placeholders::_2);
 
 
@@ -371,20 +371,27 @@ void RSEntity::parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size){
     ByteStream bs(data, size);
     wdat->damage = bs.ReadShort();
     wdat->radius = bs.ReadShort();
-    wdat->unknown1 = bs.ReadByte();
+    wdat->launch_class = bs.ReadByte();
     wdat->weapon_id = bs.ReadByte();
+    
     wdat->weapon_category = bs.ReadByte();
-    wdat->radar_type = bs.ReadByte();
+    wdat->target_domain = bs.ReadByte();
     wdat->weapon_aspec = bs.ReadByte();
     wdat->target_range = bs.ReadInt32LE();
     wdat->tracking_cone = bs.ReadByte();
     wdat->effective_range = bs.ReadInt32LE();
-    wdat->unknown6 = bs.ReadByte();
-    wdat->unknown7 = bs.ReadByte();
-    wdat->unknown8 = bs.ReadByte();
+    wdat->fire_interval = (float) bs.ReadInt32LE() / 256.0f;
     this->wdat = wdat;
 }
 void RSEntity::parseREAL_OBJT_MISS_DATA(uint8_t *data, size_t size){}
+void RSEntity::parseREAL_OBJT_BOMB_DATA(uint8_t *data, size_t size) {
+    // PlayerComponent_LoadFieldsWithRetry_9FAD0 lit 5 octets sans borne de chunk : le DATA de la GBU-15 n'en a que 3
+    ByteStream bs(data, 5);
+    this->bomb_guided = bs.ReadByte();
+    bs.ReadByte();
+    bs.ReadByte();
+    this->bomb_lock_cone_rate = bs.ReadShort();
+}
 void RSEntity::parseREAL_OBJT_MISS_DYNM(uint8_t *data, size_t size){
     IFFSaxLexer lexer;
 
@@ -610,7 +617,14 @@ void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
         }
     }
 }
-void RSEntity::parseREAL_OBJT_JETP_JINF(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_JINF(uint8_t *data, size_t size) {
+    // MissionRecord_LoadStringFields_9D4F0 : octet +0x53, mot +0x54, mot +0x56, octet +0x52
+    ByteStream bs(data, size);
+    bs.ReadByte();
+    bs.ReadShort();
+    bs.ReadShort();
+    this->combat_class = bs.ReadByte();
+}
 void RSEntity::parseREAL_OBJT_JETP_DAMG(uint8_t *data, size_t size) {
     if (size > 2) {
         IFFSaxLexer lexer;
@@ -650,8 +664,26 @@ void RSEntity::parseREAL_OBJT_JETP_CKPT(uint8_t *data, size_t size) {
     std::transform(str3.begin(), str3.end(), str3.begin(), ::toupper);
     this->cockpit_name = str3;
 }
-void RSEntity::parseREAL_OBJT_JETP_TOFF(uint8_t *data, size_t size) {}
-void RSEntity::parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_TOFF(uint8_t *data, size_t size) {
+    if (size < 8) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->takeoff_roll_accel = bs.ReadShort();
+    this->takeoff_rotate_speed = bs.ReadShort();
+    this->takeoff_climb_pitch = bs.ReadShort();
+    this->takeoff_pitch_gain = bs.ReadShort();
+}
+void RSEntity::parseREAL_OBJT_JETP_LAND(uint8_t *data, size_t size) {
+    if (size < 10) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->landing_speed = bs.ReadShort();
+    this->landing_unused = (int32_t) bs.ReadUInt32LE();
+    this->landing_aim_height = bs.ReadShort();
+    this->landing_pitch_steps = bs.ReadShort();
+}
 void RSEntity::parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
@@ -692,6 +724,10 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_ATMO(uint8_t *data, size_t size) {
         return;
     ByteStream bs(data, size);
     this->drag = bs.ReadUShort();
+    if (size >= 4) {
+        ByteStream fixed(data, size);
+        this->parasite_drag = fixed.ReadFixedFloatLE();
+    }
 }
 void RSEntity::parseREAL_OBJT_JETP_DYNM_GRAV(uint8_t *data, size_t size) {
     this->gravity = true;
@@ -743,7 +779,7 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size) {
     dyn->max_bank_deg = bs.ReadByte();
     dyn->pitch_rate_limit_dps = bs.ReadByte();
     dyn->pitch_margin_deg = bs.ReadByte();
-    dyn->ground_effect_ceiling_m = bs.ReadFixedFloatLE();
+    dyn->control_speed_ms = bs.ReadFixedFloatLE();
     dyn->induced_drag_k = bs.ReadFixedFloatLE();
     dyn->lift_gain = bs.ReadFixedFloatLE();
     dyn->pitch_stick_gain = bs.ReadByte();

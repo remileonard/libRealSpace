@@ -50,7 +50,7 @@ public:
     const Vector3D    &getUp() const;
     const std::string &getHandoffView() const;
 
-    static bool s_debug;   // mettre à true pour tracer STARTCAM au stdout
+    static bool s_debug;;   // mettre à true pour tracer STARTCAM au stdout
 
     // Affiche le programme décodé d'une séquence (inventaire au chargement).
     static void dumpProgram(const RSCameraSequence &seq);

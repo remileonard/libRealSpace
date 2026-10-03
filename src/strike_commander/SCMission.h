@@ -36,6 +36,12 @@ protected:
     uint32_t last_time{0};
     uint32_t last_tick{0};
     uint32_t tick_counter{0};
+    // Cadence de decision IA d'origine (~25 fps, cf. analysis/AI_SYSTEM.md
+    // §6) : AIRefreshEvent est publie a ce rythme fixe plutot qu'a chaque
+    // frame reelle du port, pour ne pas rendre l'IA statistiquement plus
+    // forte/reactive sur un framerate superieur a l'origine.
+    float ai_refresh_accumulator{0.0f};
+    static constexpr float AI_REFRESH_INTERVAL = 1.0f / 25.0f;
     
     SCState &GameState = SCState::getInstance();
     AssetManager &Assets = AssetManager::getInstance();
@@ -59,6 +65,14 @@ public:
     SCMissionActors *player{nullptr};
     RSArea *area{nullptr};
     RSMission *mission{nullptr};
+    RSIntel intel;
+    SCMissionActors *player_tail_seen{nullptr};    // word_722EA
+    SCMissionActors *player_tail_threat{nullptr};  // word_722EE
+    bool aa_missile_launched{false};               // byte_6E4C6
+    bool aa_missile_launched_last{false};          // byte_6E4D7
+    float ai_clock_stagger{0.0f};                  // dword_6D3BE
+    void onWeaponSpawned(SCSimulatedObject *weapon);
+    void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
     RSSound &sound = RSSound::getInstance();
@@ -75,7 +89,10 @@ public:
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
     RSEntity * LoadEntity(std::string name);
+    void applyDifficulty();
     uint32_t tps{0};
+    float scene_wait_timer{0.0f};   // dword_706B0 : minuteur WAIT des scripts de scene
+    int32_t difficulty{0};
 };
 
 

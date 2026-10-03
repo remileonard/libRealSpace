@@ -26,6 +26,7 @@
     #include "RSSmokeSet.h"
     #include "RSEntity.h"
     #include "RSProf.h"
+    #include "RSIntel.h"
     #include "RSMusic.h"
     #include "RSMapTextureSet.h"
     #include "RSArea.h"

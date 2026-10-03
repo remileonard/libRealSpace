@@ -1,7 +1,7 @@
 #include "precomp.h"
 #include "SCTargetCamera.h"
 
-bool SCTargetCamera::s_debug = true;
+bool SCTargetCamera::s_debug = false;
 
 void SCTargetCamera::activate(SCMissionActors *subject, SCMissionActors *target) {
     this->aimTarget = target;

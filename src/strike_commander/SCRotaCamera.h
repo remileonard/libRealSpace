@@ -18,7 +18,7 @@
 //
 class SCRotaCamera : public SCOrbitCamera {
 public:
-    static bool s_debug;   // true = trace ROTA (activation + par frame) au stdout
+    static bool s_debug;;   // true = trace ROTA (activation + par frame) au stdout
 
     explicit SCRotaCamera(const RSCameraDef *def) : SCOrbitCamera(def) {}
 

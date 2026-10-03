@@ -41,6 +41,7 @@ struct AI {
     std::vector <AI_STATE> mvrs;
     std::vector <uint8_t> goal;
     AI_ATTR atrb;
+    AI_ATTR atrb_file;   // profil +0xA0..+0xA2 : FL/AG/AA du fichier, base de la difficulte
     bool isAI{false};
 };
 

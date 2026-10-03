@@ -9,7 +9,7 @@
 //
 class SCChaseCamera : public SCOrbitCamera {
 public:
-    static bool s_debug;   // true = trace CHASE (activation + par frame) au stdout
+    static bool s_debug;;   // true = trace CHASE (activation + par frame) au stdout
 
     explicit SCChaseCamera(const RSCameraDef *def) : SCOrbitCamera(def) {}
 

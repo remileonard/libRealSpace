@@ -72,6 +72,7 @@ public:
             this->y /= len;
         }
     };
+    float Angle() const;
     Vector2D rotateAroundPoint(Vector2D center, float angle) {
         float x = this->x - center.x;
         float y = this->y - center.y;
@@ -89,4 +90,5 @@ float radToDegree(float angle);
 
 float norm3600(float angle);
 float signed1800(float angle);
+float signed180(float angle);
 float signedRoll(float roll);

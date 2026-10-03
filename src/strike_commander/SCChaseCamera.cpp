@@ -1,7 +1,7 @@
 #include "precomp.h"
 #include "SCChaseCamera.h"
 
-bool SCChaseCamera::s_debug = true;
+bool SCChaseCamera::s_debug = false;
 
 const char *SCChaseCamera::debugLabel() const {
     return "[CHASE]";

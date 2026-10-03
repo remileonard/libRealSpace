@@ -1,531 +1,9 @@
 #include "precomp.h"
+#include "SCAIBrain.h"
 #include "SCMissionActors.h"
 #include <cstdlib>
 #include <ctime>
 
-bool SCMissionActors::wait(int seconds) {
-    if (this->current_command != prog_op::OP_SET_WAIT_FOR_SECONDS) {
-        if (this->wait_timer == 0) {
-            if (this->plane != nullptr && this->plane->tps > 0) {
-                this->wait_timer = seconds * this->plane->tps;
-            } else {
-                this->wait_timer = seconds * 60;
-            }
-                
-        }
-    }
-    if (this->wait_timer > 0) {
-        this->wait_timer--;
-    }
-    if (this->wait_timer <= 0) {
-        this->wait_timer = -1;
-        return true;
-    }
-    return false;
-}
-
-bool SCMissionActors::execute() { return true; }
-/**
- * SCMissionActors::takeOff
- *
- * Called when the "take off" mission objective is triggered.
- *
- * If the actor has already taken off, this function does nothing and
- * returns true.
- *
- * Otherwise, this function sets the actor's current objective to
- * OP_SET_OBJ_TAKE_OFF and sets the pilot's target climb to 300 units above
- * the current height.  If the actor is close enough to the target height,
- * the actor is marked as having taken off and the function returns true.
- *
- * @param arg Unused argument.
- *
- * @return True if the actor has taken off, false otherwise.
- */
-bool SCMissionActors::takeOff(uint8_t arg) {
-    if (taken_off) {
-        return true;
-    }
-    this->current_objective = OP_SET_OBJ_TAKE_OFF;
-    if (this->pilot->target_climb == 0) {
-        this->pilot->target_speed = -15;
-        this->pilot->target_climb = (int) (this->plane->y + 1000.0f);
-        this->pilot->target_azimut = this->plane->yaw;
-    }
-    if (std::abs(this->plane->y-this->pilot->target_climb) < 10.0f) {
-        this->taken_off = true;
-    }
-    return this->taken_off;
-}
-bool SCMissionActors::land(uint8_t arg) {
-    this->current_objective = OP_SET_OBJ_LAND;
-    auto it = std::find(this->mission->friendlies.begin(), this->mission->friendlies.end(), this);
-    if (it != this->mission->friendlies.end()) {
-        this->mission->friendlies.erase(it);
-    }
-    if (arg < this->mission->mission->mission_data.spots.size()) {
-        SPOT *wp = this->mission->mission->mission_data.spots[arg];
-        this->pilot->SetTargetWaypoint(wp->position);
-        this->pilot->target_speed = -10;
-        Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-        Vector3D diff = wp->position - position;
-        float dist = diff.Length();
-        const float landing_dist = 3000.0f;
-        if (dist < landing_dist) {
-            this->pilot->turning = false;
-            this->pilot->land = true;
-            this->pilot->target_speed = (int) (-10.0f * (dist/landing_dist));
-        }
-        if (dist < 2000.0f) {
-            return true;
-        }
-    }
-    return false;
-}
-bool SCMissionActors::flyToWaypoint(uint8_t arg) {
-    this->current_objective = OP_SET_OBJ_FLY_TO_WP;
-    if (arg < this->mission->mission->mission_data.spots.size()) {
-        SPOT *wp = this->mission->mission->mission_data.spots[arg];
-        if (wp->position.y < this->plane->y) {
-            wp->position.y = this->plane->y;
-        }
-        if (this->pilot != nullptr) {
-            this->pilot->SetTargetWaypoint(wp->position);
-            this->pilot->target_speed = -10;
-            Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-            Vector3D diff = wp->position - position;
-            float dist = diff.Length();
-            if (dist < 5000.0f) {
-                return true;
-            }
-        }
-    }
-    
-    return false;
-}
-bool SCMissionActors::flyToArea(uint8_t arg) {
-    this->current_objective = OP_SET_OBJ_FLY_TO_AREA;
-    SPOT *wp = nullptr;
-    for (auto spot: this->mission->mission->mission_data.spots) {
-        if (spot->id == arg) {
-            wp = spot;
-            break;
-        }
-    }
-    
-    if (wp != nullptr) {
-        int area_id = this->mission->getAreaID({wp->position.x, wp->position.y, wp->position.z});
-
-        AREA *area = nullptr;
-        for (auto area_test: this->mission->mission->mission_data.areas) {
-            if (area_test->id == area_id) {
-                area = area_test;
-                break;
-            }
-        }
-        this->pilot->SetTargetWaypoint(area->position);
-        this->pilot->target_speed = -10;
-        Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-        Vector3D diff = area->position - position;
-        float dist = diff.Length();
-        if (dist < 3000.0f) {
-            return true;
-        }
-    }
-    return false;
-}
-/**
- * SCMissionActors::destroyTarget
- *
- * Called when the "destroy target" mission objective is triggered.
- *
- * This function sets the actor's current objective to
- * OP_SET_OBJ_DESTROY_TARGET and sets the pilot's target waypoint to the
- * position of the target actor.  If the target actor is not on the ground,
- * the pilot's target climb is set to the target actor's current height and
- * the target speed is set to either -60 or the target actor's current
- * vertical speed, depending on how far away the actor is.
- *
- * If the target actor is already destroyed, this function returns true.
- *
- * @param arg The ID of the target actor to destroy.
- *
- * @return True if the target actor is already destroyed, false otherwise.
- */
-bool SCMissionActors::destroyTarget(uint8_t arg) {
-    Vector3D wp;
-    bool should_talk = false;
-    bool is_new_target = false;
-    bool is_ground_target = false;
-    if (this->is_destroyed) {
-        return true;
-    }
-    if (this->plane != nullptr && this->plane->alive == 0) {
-        return true;
-    }
-    if (this->plane != nullptr && this->plane->object->alive == 0) {
-        return true;
-    }
-    if (this->pilot == nullptr) {
-        return true;
-    }
-    if (this->target == nullptr) {
-        should_talk = true;
-    }
-    if (this->current_target == 0) {
-        this->current_target = arg;
-        is_new_target = true;
-    }
-    Vector3D position;
-    if (this->plane == nullptr) {
-        position = {this->object->position.x, this->object->position.y, this->object->position.z};
-    } else {
-        position = {this->plane->x, this->plane->y, this->plane->z};
-    }
-    if (this->target == nullptr) {
-        for (auto actor: this->mission->actors) {
-            if (actor->actor_id == this->current_target) {
-                this->target = actor;
-                actor->attacker = this;
-                break;
-            }
-        }
-    }
-    if (this->current_target != 0 && this->target != nullptr && this->target->plane != nullptr && this->target->plane->object->alive == 0) {
-        this->current_target = 0;
-        this->target->attacker = nullptr;
-        this->target = nullptr;
-        this->target_position.Clear();
-        if (!is_new_target && this->current_objective == OP_SET_OBJ_DESTROY_TARGET) {
-            std::srand(static_cast<unsigned int>(std::time(nullptr)));
-            int talking = std::rand() % 16;
-            if (talking >= this->profile->ai.atrb.VB) {
-                this->setMessage(13);
-            }
-        }
-        return true;
-    }
-    this->current_objective = OP_SET_OBJ_DESTROY_TARGET;
-    uint8_t area_id = this->mission->getAreaID(position);
-    if (this->target != nullptr) {
-        SCMissionActors *actor = this->target;
-        if (actor->plane != nullptr) {
-            wp.x = actor->plane->x;
-            wp.y = actor->plane->y;
-            wp.z = actor->plane->z;
-            wp = wp + actor->attack_pos_offset;
-            if (target_position.Length() == 0.0f) {
-                target_position = wp;
-                target_position_update = 2000;
-            }
-            Vector3D target_position_diff = target_position - wp;
-            if (target_position_diff.Length() > 0.0f && target_position_update == 0) {
-                target_position = wp;
-                target_position_update = 2000;
-            } else if (target_position_diff.Length() > 0.0f) {
-                target_position_update -= 1;
-            }
-            this->pilot->SetTargetWaypoint(wp);
-            Vector3D diff = wp - position;
-            float dist = diff.Length();
-            if (!actor->plane->on_ground) {
-                Vector3D real_pos = {actor->plane->x, actor->plane->y, actor->plane->z};
-                Vector3D real_dist = real_pos - position;
-                float real_distance = real_dist.Length();
-                int hpt_id = 0;
-                int attack_range = 0;
-                int max_weap = 1;
-                for (auto weap : this->plane->weaps_load) {
-                    if (weap == nullptr) {
-                        hpt_id++;
-                        continue;
-                    }
-                    int effective_range = weap->objct->wdat->effective_range + 500 * (this->profile->ai.atrb.AA / 16);
-                    if (effective_range >= real_distance) {
-                        if (weap->nb_weap > 0) {
-                            attack_range = weap->objct->wdat->target_range;
-                            if (current_weapon_index != weap->objct->wdat->weapon_category) {
-                                current_weapon_index = weap->objct->wdat->weapon_category;
-                                this->plane->wp_cooldown = 0;
-                            }
-                            if (weap->objct->wdat->weapon_category==0) {
-                                max_weap = 40;
-                            }
-                            break;
-                        }
-                    }
-                    hpt_id++;
-                }
-                this->pilot->target_climb = (int) wp.y;
-                if (dist > attack_range - 1000.0f) {
-                    this->pilot->target_speed = -60;
-                } else if (dist < attack_range - 300.0f) {
-                    this->pilot->target_speed = (int) actor->plane->vz;
-                    // Calculate azimuth between plane and target
-                    float target_azimuth = 0.0f;
-                    if (actor->plane != nullptr) {
-                        Vector3D target_dir = {actor->plane->x - this->plane->x,
-                                              0.0f,  // Ignore Y for horizontal azimuth
-                                              actor->plane->z - this->plane->z};
-                        // Calculate the angle in radians and convert to degrees
-                        target_azimuth = atan2f(target_dir.z, target_dir.x) * 180.0f / M_PI;
-                        target_azimuth -= 360.0f;
-                        target_azimuth += 90.0f;
-                        if (target_azimuth > 360.0f) {
-                            target_azimuth -= 360.0f;
-                        }
-                        while (target_azimuth < 0.0f) {
-                            target_azimuth += 360.0f;
-                        }
-                        target_azimuth = 360.0f - target_azimuth;;
-                        float target_diff = target_azimuth - (this->plane->yaw/10.0f);
-                        while (target_diff > 180.0f) target_diff -= 360.0f;
-                        while (target_diff < -180.0f) target_diff += 360.0f;
-     
-                        // Only shoot if target is within firing arc
-                        if (std::abs(target_diff) < 30.0f) {
-                            if (this->plane->weaps_object.size() < max_weap) {
-                                int should_shoot = std::rand() % 16;
-                                if (should_shoot <= this->profile->ai.atrb.TH) {
-                                    this->plane->Shoot(hpt_id, actor, this->mission);
-                                }
-                                
-                            }
-                        }    
-                    }
-                }
-            }
-        } else {
-            is_ground_target = true;
-            wp.x = actor->object->position.x;
-            wp.y = this->plane->y; // Garder l'altitude actuelle
-            wp.z = actor->object->position.z;
-            
-            this->pilot->SetTargetWaypoint(wp);
-            Vector3D diff = wp - position;
-            float dist = diff.Length();
-            
-            // Trouver l'arme appropriée pour attaquer la cible au sol
-            int hpt_id = 0;
-            int attack_range = 0;
-            int max_weap = 1;
-            bool can_attack = false;
-            
-            for (auto weap : this->plane->weaps_load) {
-                if (weap == nullptr) {
-                    hpt_id++;
-                    continue;
-                }
-                
-                // Les armes efficaces contre les cibles au sol (catégories 0=guns, 1=rockets, 2=missiles)
-                int effective_range = weap->objct->wdat->effective_range + 500 * (this->profile->ai.atrb.AG / 16);
-                bool is_bomb = false;
-                const float desired_drop_height = this->plane->y;
-                if (weap->objct->wdat->weapon_id == ID_MK82 || weap->objct->wdat->weapon_id == ID_MK20) {
-                    is_bomb = true;
-                    // Calculer la vitesse horizontale de l'avion (en m/s)
-                    float horizontal_speed = std::sqrt(this->plane->vx * this->plane->vx + this->plane->vz * this->plane->vz);
-                    const float gravity = 9.81f;
-                    if (horizontal_speed > 0.1f) {
-                        // Temps de chute depuis l'altitude de largage prévue
-                        float fall_time = std::sqrt(2.0f * desired_drop_height / gravity);
-                        
-                        // Distance horizontale parcourue pendant la chute
-                        attack_range = (int)(horizontal_speed * fall_time);
-                        
-                        // Ajouter une marge de sécurité
-                        attack_range += (int)(desired_drop_height * 0.1f);
-                        
-                        effective_range = attack_range + 3000; // Zone d'approche large
-                    }
-                }
-                if (effective_range >= dist) {
-                    if (weap->nb_weap > 0) {
-                        if (attack_range == 0 && !is_bomb) {
-                            attack_range = weap->objct->wdat->target_range;
-                        }
-                        can_attack = true;
-
-                        if (current_weapon_index != weap->objct->wdat->weapon_category) {
-                            current_weapon_index = weap->objct->wdat->weapon_category;
-                            this->plane->wp_cooldown = 0;
-                        }
-                        
-                        if (weap->objct->wdat->weapon_category == 0) {
-                            max_weap = 40;
-                        }
-                        break;
-                    }
-                }
-                hpt_id++;
-            }
-            
-            // Ajuster la vitesse et l'altitude en fonction de la distance
-            if (dist > attack_range) {
-                this->pilot->target_climb = (int) wp.y;
-                this->pilot->target_speed = -60;
-            } else if (dist < attack_range && can_attack) {
-                this->pilot->target_speed = -20;
-                this->pilot->target_climb = (int) actor->object->position.y + 500.0f;
-                
-                // Calculer l'azimut vers la cible
-                Vector3D target_dir = {actor->object->position.x - this->plane->x,
-                                      0.0f,
-                                      actor->object->position.z - this->plane->z};
-                
-                float target_azimuth = atan2f(target_dir.z, target_dir.x) * 180.0f / M_PI;
-                target_azimuth -= 360.0f;
-                target_azimuth += 90.0f;
-                if (target_azimuth > 360.0f) {
-                    target_azimuth -= 360.0f;
-                }
-                while (target_azimuth < 0.0f) {
-                    target_azimuth += 360.0f;
-                }
-                target_azimuth = 360.0f - target_azimuth;
-                
-                float target_diff = target_azimuth - (this->plane->yaw / 10.0f);
-                while (target_diff > 180.0f) target_diff -= 360.0f;
-                while (target_diff < -180.0f) target_diff += 360.0f;
-                
-                // Tirer si la cible est dans l'arc de tir (arc plus large pour les cibles au sol)
-                if (std::abs(target_diff) < 45.0f) {
-                    if (this->plane->weaps_object.size() < max_weap) {
-                        int should_shoot = std::rand() % 16;
-                        if (should_shoot <= this->profile->ai.atrb.AG) { // Utiliser AG au lieu de TH
-                            this->plane->Shoot(hpt_id, actor, this->mission);
-                        }
-                    }
-                }
-            }
-        }
-        if (should_talk) {
-            std::srand(static_cast<unsigned int>(std::time(nullptr)));
-            int talking = std::rand() % 16;
-            if (talking >= this->profile->ai.atrb.VB) {
-                if (is_ground_target) {
-                    this->setMessage(11);
-                } else {
-                    this->setMessage(12);
-                }
-            }
-        }
-    }
-    return false;
-}
-/**
- * SCMissionActors::defendTarget
- *
- * Called when the "defend target" mission objective is triggered.
- *
- * This function sets the actor's current objective to OP_SET_OBJ_DEFEND_TARGET.
- * It first checks if there is an existing goal to destroy a target. If so,
- * it attempts to destroy that target and resets the goal if successful.
- *
- * If no current goal exists, the function determines the area in which the actor is located
- * and checks for any enemies within the same area. If an enemy is found, it sets the goal
- * to destroy that enemy and attempts to do so.
- *
- * @param arg Unused argument.
- *
- * @return True if no action is taken or if the current goal is successfully completed,
- *         false otherwise.
- */
-
-bool SCMissionActors::defendTarget(uint8_t arg) {
-    if (this->current_target != 0) {
-        bool ret = this->destroyTarget(this->current_target);
-        if (ret) {
-            this->current_target = 0;
-        }
-        return ret;
-    }
-    this->current_objective = OP_SET_OBJ_DEFEND_TARGET;
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    for (auto actor: this->mission->actors) {
-        if (actor->team_id == this->team_id) {
-            continue;
-        }
-        if (actor->plane != nullptr) {
-            if (actor->is_active && actor->target != nullptr && actor->target->actor_id == arg) {
-                if (actor->plane != nullptr && actor->plane->object->alive == 0) {
-                    continue;
-                }
-                this->current_target = actor->actor_id;
-                this->target = actor;
-                bool ret = this->destroyTarget(actor->actor_id);
-                if (ret) {
-                    this->current_target = 0;
-                }
-                return ret;
-            }
-        }
-    }
-    for (auto actor: this->mission->actors) {
-        if (actor->team_id == this->team_id) {
-            continue;
-        }
-        if (actor->plane != nullptr) {
-            if (actor->is_active && actor->target != nullptr && actor->target->actor_id == this->actor_id) {
-                if (actor->plane != nullptr && actor->plane->object->alive == 0) {
-                    continue;
-                }
-                this->current_target = actor->actor_id;
-                bool ret = this->destroyTarget(actor->actor_id);
-                if (ret) {
-                    this->current_target = 0;
-                }
-                return ret;
-            }
-        }
-    }
-    return this->followAlly(arg);
-}
-bool SCMissionActors::defendArea(uint8_t arg) { 
-    this->current_objective = OP_SET_OBJ_DEFEND_AREA;
-    if (this->current_target != 0) {
-        bool ret = this->destroyTarget(this->current_target);
-        if (ret) {
-            this->current_target = 0;
-        }
-        return ret;
-    }
-    Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-    SPOT *wp = nullptr;
-    for (auto spot: this->mission->mission->mission_data.spots) {
-        if (spot->id == arg) {
-            wp = spot;
-            break;
-        }
-    }
-    
-    if (wp != nullptr) {
-        int area_id = this->mission->getAreaID({wp->position.x, wp->position.y, wp->position.z});
-        Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-        int test_area_id = this->mission->getAreaID(position);
-        if (area_id != test_area_id) {
-            this->current_target = 0;
-            return this->flyToArea(arg);
-        }
-        if (this->current_target == 0) {
-            for (auto actor: this->mission->actors) {
-                if (actor->team_id == this->team_id) {
-                    continue;
-                }
-                if (actor->plane != nullptr) {
-                    if (actor->team_id != this->team_id) {
-                        uint8_t actor_area_id = this->mission->getAreaID({actor->plane->x, actor->plane->y, actor->plane->z});
-                        if (actor_area_id == area_id) {
-                            this->current_target = actor->actor_id;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return true;
-}
 /**
  * @brief Deactivates an actor in the mission based on the provided actor ID.
  *
@@ -579,54 +57,6 @@ bool SCMissionActors::setMessage(uint8_t arg) {
         }
     }
     return false;    
-}
-/**
- * @brief Sets the current objective to follow an ally and adjusts the pilot's target waypoint, speed, and climb.
- * 
- * This function iterates through the mission's actors to find the actor with the specified ID.
- * If the actor is found, it sets the waypoint to the actor's position plus the formation position offset,
- * and adjusts the pilot's target waypoint, speed, and climb based on the distance to the waypoint and whether
- * the actor's plane is on the ground.
- * 
- * @param arg The ID of the ally actor to follow.
- * @return true if the ally actor with the specified ID is found and the objective is set, false otherwise.
- */
-bool SCMissionActors::followAlly(uint8_t arg) {
-    Vector3D wp;
-    this->current_objective = OP_SET_OBJ_FOLLOW_ALLY;
-    if (this->attacker != nullptr) {
-        this->destroyTarget(this->attacker->actor_id);
-    }
-    for (auto actor: this->mission->actors) {
-        if (actor->actor_id == arg) {
-            if (actor->is_destroyed || (!actor->is_active && (actor->actor_name != "PLAYER"))) {
-                return false; // Actor not found or plane not alive
-            }
-            if (actor->plane == nullptr) {
-                return false;
-            }
-            wp.x = actor->plane->x;
-            wp.y = actor->plane->y;
-            wp.z = actor->plane->z;
-            wp = wp + actor->formation_pos_offset;
-            this->pilot->SetTargetWaypoint(wp);
-            Vector3D position = {this->plane->x, this->plane->y, this->plane->z};
-            Vector3D diff = wp - position;
-            float dist = diff.Length();
-            if (!actor->plane->on_ground) {
-                this->pilot->target_climb = (int) wp.y;
-                if (dist > 1000.0f) {
-                    this->pilot->target_speed = -60;
-                } else if (dist < 400.0f) {
-                    this->pilot->target_speed = (int) actor->plane->vz;
-                    this->pilot->turning = false;
-                }
-            }
-            
-            return true;
-        }
-    }
-    return false;
 }
 /**
  * SCMissionActors::ifTargetInSameArea
@@ -763,34 +193,6 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
     }
     return false;
 }
-bool SCMissionActors::protectSelf() {
-    if (this->attacker != nullptr) {
-        if (this->attacker->actor_name == "PLAYER") {
-            return false;
-        }
-        if (this->attacker->plane != nullptr) {
-            for (auto weap: this->attacker->plane->weaps_object) {
-                if (weap->target == this) {
-                    // Check if this actor is in the friendlies list
-                    bool is_friendly = false;
-                    for (auto friendly : this->mission->friendlies) {
-                        if (friendly == this) {
-                            is_friendly = true;
-                            break;
-                        }
-                    }
-
-                    // If this is a friendly actor, attempt to evade the incoming weapon
-                    if (is_friendly) {
-                        weap->target = nullptr; // Disengage the weapon from this actor
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return false;
-}
 /**
  * @brief Activates the target actor with the specified ID.
  *
@@ -856,11 +258,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                     actor->object->position.y = ground_y+2.0f;
                 }
             }
-            if (actor->team_id == this->mission->player->team_id) {
-                this->mission->friendlies.push_back(actor);
-            } else {
-                this->mission->enemies.push_back(actor);
-            }
+            actor->wait_timer = 0.0f;
             if (actor->on_is_activated.size() > 0) {
                 SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);
                 p->execute();
@@ -900,6 +298,46 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
         }
     }
     return false;
+}
+/**
+ * SCMissionActors::setObjective
+ *
+ * Pose l'objectif courant sans l'executer — voir la note dans
+ * SCMissionActors.h. Ne reinitialise current_command_executed que lors
+ * d'une vraie transition (commande ou argument different de l'actuel) :
+ * le script PROG repasse par cet appel a chaque frame tant que l'objectif
+ * reste le meme, et ne doit donc pas ecraser le resultat calcule par le
+ * dernier passage du GOAL loop (sinon OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS
+ * ne verrait jamais l'objectif comme termine).
+ */
+bool SCMissionActors::setObjective(prog_op command, uint8_t arg) {
+    // Goal_SetObjective_A307 : bit 5 de +0x28B (ordre verrouille) -> rien n'est pose, renvoie 1 (en cours)
+    if (this->brain != nullptr && this->brain->objective_locked) {
+        this->brain->onObjectiveSet(false);
+        return true;
+    }
+    if (command == OP_SET_OBJ_FLY_TO_AREA) {
+        return false;
+    }
+    if (this->current_command != command || this->current_command_arg != arg) {
+        this->current_command_executed = false;
+    }
+    this->current_command = command;
+    this->current_command_arg = arg;
+    // Goal_SetObjective_A307 0xA7/0xA8 : la cible de mission +0x137 est posee des que l'ordre est donne
+    if ((command == OP_SET_OBJ_DESTROY_TARGET || command == OP_SET_OBJ_DEFEND_TARGET) && (this->target == nullptr || this->target->actor_id != arg)) {
+        for (auto actor : this->mission->actors) {
+            if (actor->actor_id == arg && !actor->is_destroyed) {
+                this->target = actor;
+                break;
+            }
+        }
+    }
+    if (this->brain != nullptr) {
+        this->brain->onObjectiveSet(true);
+    }
+    // Goal_IsComplete_A6D3 du nouvel etat : 1 = en cours
+    return !this->current_command_executed;
 }
 
 int SCMissionActors::getDistanceToTarget(uint8_t arg) {
@@ -1019,8 +457,13 @@ void SCMissionActors::shootWeapon(SCMissionActors *target) {
     weapon->shooter = this;
     this->object->entity->swpn_data->weapons_round--;
     this->weapons_shooted.push_back(weapon);
+    this->mission->onWeaponSpawned(weapon);
 }
 void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
+    if (this->brain != nullptr) {
+        this->brain->just_hit = true;
+        this->brain->last_attacker = attacker;
+    }
     int damage = weapon->obj->wdat->damage;
     if (this->plane != nullptr) {
         int nb_systems = this->plane->system_health.size();
@@ -1038,12 +481,10 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         i = 0;
         for (auto &sub_system: this->plane->system_health[system_name]) {
             if (i == sub_system_to_hit) {
-                sub_system.second -= damage;
-                if (sub_system.second < 0) {
-                    sub_system.second = 0;
-                }
+                sub_system.second = sub_system.second > damage ? sub_system.second - damage : 0;
                 break;
             }
+            i++;
         }
     }
     this->health -= damage;
@@ -1086,6 +527,7 @@ SCMissionActors::SCMissionActors() {
     subscription_id = MessageBus::getInstance().subscribeEvent(std::bind(&SCMissionActors::onEvent, this, std::placeholders::_1));
 }
 SCMissionActors::~SCMissionActors() {
+    delete this->brain;
     if (subscription_id != -1) {
         MessageBus::getInstance().unsubscribe(subscription_id);
     }
@@ -1099,13 +541,18 @@ void SCMissionActors::onEvent(const EventMessage &event) {
         this->onMissionUpdate(*eventData);
         return;
     }
+    if (auto eventData = dynamic_cast<const AIRefreshEvent*>(&event)) {
+        this->onAIRefresh(*eventData);
+        return;
+    }
 }
 void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     if (event.attacker != nullptr && event.target != nullptr && event.target == this) {
         event.weapon->alive = false;
         this->hasBeenHit(event.weapon, event.attacker);
-        this->target->weapon_shooted_at_me = nullptr;
-        if (this->target->object->alive == true) {
+        
+        event.target->weapon_shooted_at_me = nullptr;
+        if (event.target->object->alive == true) {
             this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
             if (this->mission->sound.sounds.size() > 0) {
                 RSMixer &Mixer = RSMixer::getInstance();
@@ -1117,10 +564,13 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     }
 }
 void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
-    if (this->is_active == false) {
+    /*if (this->is_active == false) {
+        return;
+    }*/
+    if (this->is_destroyed == true && this->is_active == false) {
         return;
     }
-    if (this->is_destroyed == true) {
+    if (this->object == nullptr) {
         return;
     }
     SCMissionActors *ai_actor = this;
@@ -1189,6 +639,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         auto weapon = *it;
         if (weapon->alive == false) {
             it = ai_actor->weapons_shooted.erase(it);
+            mission->onWeaponRemoved(weapon);
             delete weapon;
             weapon = nullptr;
         } else {
@@ -1208,55 +659,15 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     if (ai_actor->is_active == false) {
         return;
     }
-    
+
+    // tant qu'un ordre radio est en cours (onAIRefresh), le script de mission ne reprend pas la main
     if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
         mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
         SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
         p->execute();
         delete p;
-    } else if (ai_actor->override_progs.size() > 0 && ai_actor->is_destroyed == false) {
-        SCProg *p = new SCProg(ai_actor, ai_actor->override_progs, mission, 255);
-        p->execute();
-        delete p;
-        if (ai_actor->current_command_executed) {
-            ai_actor->override_progs.clear();
-            ai_actor->override_progs.shrink_to_fit();
-        }
     }
-    
-    ai_actor->protectSelf();
-    switch (ai_actor->current_command) {
-        case OP_SET_WAIT_FOR_SECONDS:
-            ai_actor->current_command_executed = ai_actor->wait(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_TAKE_OFF:
-            ai_actor->current_command_executed = ai_actor->takeOff(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_LAND:
-            ai_actor->current_command_executed = ai_actor->land(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_FLY_TO_WP:
-            ai_actor->current_command_executed = ai_actor->flyToWaypoint(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_FLY_TO_AREA:
-            ai_actor->current_command_executed = ai_actor->flyToArea(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_DESTROY_TARGET:
-            ai_actor->current_command_executed = ai_actor->destroyTarget(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_DEFEND_TARGET:
-            ai_actor->current_command_executed = ai_actor->defendTarget(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_DEFEND_AREA:
-            ai_actor->current_command_executed = ai_actor->defendArea(ai_actor->current_command_arg);
-        break;
-        case OP_SET_OBJ_FOLLOW_ALLY:
-            ai_actor->current_command_executed = ai_actor->followAlly(ai_actor->current_command_arg);
-        break;
-        default:
-        break;
-    }
-    
+
     if (ai_actor->pilot == nullptr) {
         return;
     }
@@ -1267,11 +678,6 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     ai_actor->plane->Simulate();
     // Update attack position offset based on plane's yaw to keep it behind the plane
     
-    float yawRad = ai_actor->plane->yaw * (float)M_PI / 1800.0f; // Convert from 0.1 degrees to radians
-    // Position the offset behind the aircraft based on current yaw
-    ai_actor->attack_pos_offset.x = -std::sin(yawRad) * -300.0f; // 200 units behind
-    ai_actor->attack_pos_offset.z = -std::cos(yawRad) * -300.0f;
-    ai_actor->attack_pos_offset.y = 0.0f; // Same altitude
 
     ai_actor->pilot->FlyTo();
     
@@ -1302,6 +708,40 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
             ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
         }
     }
+}
+/**
+ * SCMissionActors::onAIRefresh
+ *
+ * Point d'entree de la decision IA (equivalent AIEntity_MasterTick /
+ * AI_TopLevelThink, cf. analysis/AI_SYSTEM.md §4/§6), declenche par
+ * SCMission a cadence fixe ~25fps (AIRefreshEvent) plutot qu'a chaque
+ * frame reelle du port. Ne s'applique qu'aux acteurs actifs porteurs d'un
+ * profil GOAL complet (plane + pilot deja assignes, cf. SCMission.cpp).
+ */
+void SCMissionActors::onAIRefresh(const AIRefreshEvent &event) {
+    if (!this->is_active || this->is_destroyed) {
+        return;
+    }
+    if (this->profile == nullptr || !this->profile->ai.isAI) {
+        return;
+    }
+    if (this->profile->ai.goal.empty()) {
+        return;
+    }
+    if (this->plane == nullptr || this->pilot == nullptr) {
+        return;
+    }
+    // ordre radio accepte : pose l'objectif comme le script (Goal_SetObjective_A307)
+    if (!this->override_progs.empty()) {
+        SCProg *p = new SCProg(this, this->override_progs, this->mission, 255);
+        p->execute();
+        delete p;
+        if (this->current_command_executed) {
+            this->override_progs.clear();
+            this->override_progs.shrink_to_fit();
+        }
+    }
+    this->brain->tick();
 }
 /**
  * SCMissionActorsPlayer::takeOff
@@ -1372,38 +812,6 @@ bool SCMissionActorsPlayer::flyToArea(uint8_t arg) {
     this->mission->waypoints.push_back(waypoint);
     return true;
 }
-/**
- * Sets the current objective to a destroy-target objective with the given
- * argument as the target object ID.
- *
- * @param arg The ID of the target object to destroy.
- *
- * @return True if the objective was set successfully, false otherwise.
- */
-bool SCMissionActorsPlayer::destroyTarget(uint8_t arg) {
-    SCMissionWaypoint *waypoint = new SCMissionWaypoint();
-    waypoint->spot = this->mission->mission->mission_data.spots[arg];
-    waypoint->objective = new std::string("Destroy\nTarget");
-    this->mission->waypoints.push_back(waypoint);
-    return true;
-}
-/**
- * SCMissionActorsPlayer::defendTarget
- *
- * Sets the current objective to a defend-target objective with the given
- * argument as the target object ID.
- *
- * @param arg The ID of the target object to defend.
- *
- * @return True if the objective was set successfully, false otherwise.
- */
-bool SCMissionActorsPlayer::defendTarget(uint8_t arg) {
-    SCMissionWaypoint *waypoint = new SCMissionWaypoint();
-    waypoint->spot = this->mission->mission->mission_data.spots[arg];
-    waypoint->objective = new std::string("Defend\nAlly");
-    this->mission->waypoints.push_back(waypoint);
-    return true;
-}
 
 /**
  * SCMissionActorsPlayer::setMessage
@@ -1447,12 +855,10 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
         i = 0;
         for (auto &sub_system: this->plane->system_health[system_name]) {
             if (i == sub_system_to_hit) {
-                sub_system.second -= damage;
-                if (sub_system.second < 0) {
-                    sub_system.second = 0;
-                }
+                sub_system.second = sub_system.second > damage ? sub_system.second - damage : 0;
                 break;
             }
+            i++;
         }
     }
     this->health -= damage;
@@ -1479,6 +885,38 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
             attacker->ground_down += 1;
         }
     }
+}
+/**
+ * SCMissionActorsPlayer::setObjective
+ *
+ * Le script de mission du joueur est une liste continue d'objectifs
+ * executee UNE SEULE FOIS au chargement de la mission (script
+ * d'initialisation) — pas un etat re-evalue en continu comme pour l'IA
+ * (GOAL/AIRefresh, cf. SCMissionActors::executeGoalAction). Chaque objectif
+ * doit donc etre execute immediatement ici, au moment ou il est pose, pour
+ * creer le SCMissionWaypoint correspondant (takeOff/land/flyToWaypoint/...
+ * sont surcharges cote joueur pour ca, pas pour piloter).
+ */
+bool SCMissionActorsPlayer::setObjective(prog_op command, uint8_t arg) {
+    switch (command) {
+        case OP_SET_OBJ_TAKE_OFF:
+            this->current_command_executed = this->takeOff(arg);
+        break;
+        case OP_SET_OBJ_LAND:
+            this->current_command_executed = this->land(arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_WP:
+            this->current_command_executed = this->flyToWaypoint(arg);
+        break;
+        case OP_SET_OBJ_FLY_TO_AREA:
+            this->current_command_executed = this->flyToArea(arg);
+        break;
+        default:
+        break;
+    }
+    this->current_command = command;
+    this->current_command_arg = arg;
+    return !this->current_command_executed;
 }
 
 bool SCMissionActorsStrikeBase::setMessage(uint8_t arg) {

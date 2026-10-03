@@ -10,6 +10,8 @@ public:
     SCMission *mission{nullptr};
     uint8_t prog_id{0};
     std::unordered_map<uint8_t, size_t> labels;
+    int task_state{0};
+    bool scene_script{false};
 
     SCProg(SCMissionActors *profile, std::vector<PROG> prog, SCMission *mission, uint8_t prog_id = 0) {
         this->actor = profile;

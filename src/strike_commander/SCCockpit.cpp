@@ -1706,13 +1706,9 @@ void SCCockpit::Update() {
                 } 
             }
             if (this->current_target != nullptr) {
-                uint32_t weap_range =
-                    this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->effective_range;
+                RSEntity *weapon = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
                 Vector3D dist_to_target = this->current_target->position - this->player_plane->object->position;
-                float distance = dist_to_target.Length();
-                if (distance <= weap_range) {
-                    this->target_in_range = true;
-                }
+                this->target_in_range = dist_to_target.Length() <= (float) weapon->wdat->effective_range;
             } else {
                 this->target_in_range = false;
             }
@@ -2116,7 +2112,15 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
     fb->circle_slow(position.x, position.y, circle_size, 223);
     static float x_sign = 0.5f;
     static float y_sign = 0.1f;
-    if (this->current_target == nullptr) {
+    // WeaponSystem_FrameUpdate_3F8C0 : point d'emport accroche (+0x0B) quand WeaponStation_TestTargetLock rend la cible suivie
+    bool locked = false;
+    if (this->current_target != nullptr && this->current_target_actor != nullptr) {
+        SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
+        if (station != nullptr) {
+            locked = this->player_plane->seekerLocks(station->objct, this->current_target_actor);
+        }
+    }
+    if (!locked) {
         msd_x += x_sign;
         if (x_sign == 0.5f && msd_x > circle_size+position.x) {
             x_sign = -0.5f;
@@ -2132,7 +2136,8 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
         Point2D msd_pos = {(int)msd_x, (int)msd_y};
         hud->MISD->SHAP->SetPosition(&msd_pos);
         fb->drawShape(hud->MISD->SHAP);
-    } else {
+    }
+    if (this->current_target != nullptr) {
         int target_screen_x, target_screen_y;
         int hud_width = hudBottomRight.x - hudTopLeft.x;
         int hud_height = hudBottomRight.y - hudTopLeft.y;
@@ -2179,11 +2184,12 @@ void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, P
             target_pos.y -= shape_height / 2;
             tg->SetPosition(&target_pos);
             fb->drawShapeWithBox(tg, 0,fb->width,0, fb->height);
-            if (this->target_in_range) {
+            if (locked) {
                 Point2D tmsd_pos = {target_screen_x, target_screen_y};
                 tmsd_pos.x -= hud->MISD->SHAP->GetWidth() / 2;
                 tmsd_pos.y -= hud->MISD->SHAP->GetHeight() / 2;
                 hud->MISD->SHAP->SetPosition(&tmsd_pos);
+                
                 fb->drawShapeWithBox(hud->MISD->SHAP, 0,fb->width,0, fb->height);
             }
         }

@@ -404,7 +404,9 @@ void SCNavMap::runFrame(void) {
             }
         }
         if (show_obj) {
-            for (auto friends : this->mission->friendlies) {
+            // NavMap_DrawMissionObjects_7EDCA : objets marques (bit 4 de +0x39), couleur selon le camp
+            for (auto friends : this->mission->actors) {
+                if (!friends->on_nav_map) continue;
                 if (friends->is_active == 0 && friends->actor_name != "PLAYER") continue;
                 int newx = (int) (((friends->object->position.x+center)/map_width)*w)+l;
                 int newy = (int) (((friends->object->position.z+center)/map_width)*h)+t;
@@ -428,8 +430,9 @@ void SCNavMap::runFrame(void) {
                         0,
                         (int32_t)name.size(),1,glyphW,true,false
                     );
-                    VGA.getFrameBuffer()->plot_pixel(newx, newy, 10);
-                    VGA.getFrameBuffer()->circle_slow(newx, newy, 2, 1);
+                    uint8_t color = friends == this->mission->player ? 0xC7 : friends->team_id == 255 ? 0xE6 : 0x1F;
+                    VGA.getFrameBuffer()->plot_pixel(newx, newy, color);
+                    VGA.getFrameBuffer()->circle_slow(newx, newy, 2, color);
                 }
             }
         }
