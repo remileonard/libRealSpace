@@ -1128,12 +1128,10 @@ void SCStrike::checkKeyboard(void) {
             }
             
             
-            this->player_plane->wp_cooldown = 0;
             this->mfd_timeout = 400;
         } else {
             this->cockpit->show_weapons = !this->cockpit->show_weapons;
             this->mfd_timeout = 400;
-            this->player_plane->wp_cooldown = 0;
         }
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP))) {

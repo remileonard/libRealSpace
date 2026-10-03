@@ -371,7 +371,7 @@ void RSEntity::parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size){
     ByteStream bs(data, size);
     wdat->damage = bs.ReadShort();
     wdat->radius = bs.ReadShort();
-    wdat->unknown1 = bs.ReadByte();
+    wdat->launch_class = bs.ReadByte();
     wdat->weapon_id = bs.ReadByte();
     
     wdat->weapon_category = bs.ReadByte();
@@ -380,9 +380,7 @@ void RSEntity::parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size){
     wdat->target_range = bs.ReadInt32LE();
     wdat->tracking_cone = bs.ReadByte();
     wdat->effective_range = bs.ReadInt32LE();
-    wdat->unknown6 = bs.ReadByte();
-    wdat->unknown7 = bs.ReadByte();
-    wdat->unknown8 = bs.ReadByte();
+    wdat->fire_interval = (float) bs.ReadInt32LE() / 256.0f;
     this->wdat = wdat;
 }
 void RSEntity::parseREAL_OBJT_MISS_DATA(uint8_t *data, size_t size){}

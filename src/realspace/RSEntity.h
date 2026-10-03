@@ -177,7 +177,7 @@ class RSEntity {
     struct WDAT {
         uint16_t damage{0};
         uint16_t radius{0};
-        uint8_t unknown1{0};
+        uint8_t launch_class{0};     // +0x4A : 8 missile, 9 bombe, 10 panier, 13 canon (WeaponSystem_LaunchFromStation_3E744)
         uint8_t weapon_id{0};
         uint8_t weapon_category{0};
         uint8_t target_domain{0};
@@ -185,9 +185,7 @@ class RSEntity {
         uint32_t target_range{0};
         uint8_t tracking_cone{0};
         uint32_t effective_range{0};  
-        uint8_t unknown6{0};
-        uint8_t unknown7{0};
-        uint8_t unknown8{0};
+        float fire_interval{0.0f};   // +0x5A : secondes entre deux tirs de la famille
     };
     struct SWPN_DATA {
         std::string weapon_name;

@@ -727,6 +727,7 @@ void SCJetpPlane::Simulate() {
         this->chaff_timer -= dt;
     if (this->flare_timer > 0)
         this->flare_timer -= dt;
+    this->updateWeaponTimers(dt);
 
     this->groundlevel = this->area->getY(this->x, this->z);
 

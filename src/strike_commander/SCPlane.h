@@ -188,7 +188,10 @@ public:
     float chaff_timer{0.0f};
     int chaffs{30};
     int flares{30};
-    int wp_cooldown{0};
+    // WeaponSystem_FrameUpdate_3F8C0 : minuteurs +0x24 missiles, +0x28 bombes, +0x30 paniers, +0x2C canons
+    float weapon_timers[4]{0.0f, 0.0f, 0.0f, 0.0f};
+    int weaponTimerSlot(RSEntity *weapon);
+    void updateWeaponTimers(float dt);
     float mach{0.0f};
     float mcc{0.0f};
     float mratio{0.0f};
@@ -341,6 +344,10 @@ public:
     
     // Méthode pour tirer avec ajustement basé sur la prédiction
     void ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    void fireStation(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction);
+    void launchOne(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction);
+    void launchDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
+    int fullestHardpoint(uint8_t weapon_id);
     
     // Visualisation de la trajectoire projetée
     void RenderWeaponTrajectories();

@@ -182,6 +182,28 @@ Vector3D SCPlane::PredictShot(int weapon_hard_point_id, SCMissionActors *target)
     return adjusted_direction;
 }
 
+// WeaponSystem_LaunchFromStation_3E744 : famille de l'arme (WDAT +0x4A - 8), autre classe -> pas de tir
+int SCPlane::weaponTimerSlot(RSEntity *weapon) {
+    switch (weapon->wdat->launch_class) {
+        case 8:
+            return 0;
+        case 9:
+            return 1;
+        case 10:
+            return 2;
+        case 13:
+            return 3;
+        default:
+            return -1;
+    }
+}
+
+void SCPlane::updateWeaponTimers(float dt) {
+    for (float &timer : this->weapon_timers) {
+        timer = std::max(timer - dt, 0.0f);
+    }
+}
+
 void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     // Prédire d'abord le tir
     Vector3D adjusted_direction = this->PredictShot(weapon_hard_point_id, target);
@@ -197,12 +219,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
         }
     }
     
-    // Si en cooldown, ne pas tirer
-    if (this->wp_cooldown > 0) {
-        this->wp_cooldown--;
-        return;
-    }
-    
     // Créer l'objet réel en utilisant les paramètres ajustés
     SCSimulatedObject *weap = nullptr;
     MemSound *sound = nullptr;
@@ -210,7 +226,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case weapon_ids::ID_20MM:
             weap = new GunSimulatedObject();
-            this->wp_cooldown = 30;
             break;
         case weapon_ids::ID_MK20:
         case weapon_ids::ID_MK82:
@@ -220,7 +235,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
-            this->wp_cooldown = 120;
             break;
         default:
             if (this->pilot->mission->sound.sounds.size() > 0) {
@@ -228,7 +242,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
             weap = new SCSimulatedObject();
-            this->wp_cooldown = 160;
             break;
     }
     // Calcul de la direction et vitesse initiale avec ajustement
@@ -1347,21 +1360,74 @@ void SCPlane::onPlaneControl(const PlaneControlEvent &event) {
     this->wheels = event.wheel;
 }
 void SCPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
-    SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
-    weap_loadout = this->weaps_load[weapon_hard_point_id];
-    if (weap_loadout == nullptr) {
-        return;
+    this->fireStation(weapon_hard_point_id, target, mission, true);
+}
+void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
+    this->fireStation(weapon_hard_point_id, target, mission, false);
+}
+// PlayerComponent_MainOrchestrator_9F98D : pylone le plus charge portant cette arme
+int SCPlane::fullestHardpoint(uint8_t weapon_id) {
+    int best = -1;
+    int count = 0;
+    for (int i = 0; i < (int) this->weaps_load.size(); i++) {
+        SCWeaponLoadoutHardPoint *hardpoint = this->weaps_load[i];
+        if (hardpoint != nullptr && hardpoint->objct->wdat->weapon_id == weapon_id && hardpoint->nb_weap > count) {
+            best = i;
+            count = hardpoint->nb_weap;
+        }
     }
-    if (this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
+    return best;
+}
+void SCPlane::launchOne(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction) {
+    SCWeaponLoadoutHardPoint *weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (allow_prediction && this->pilot != nullptr && this->pilot->actor_name != "PLAYER") {
         int precision = std::rand() % 16;
         if (precision <= this->pilot->profile->ai.atrb.AA || weap_loadout->objct->wdat->weapon_id == ID_MK20 || weap_loadout->objct->wdat->weapon_id == ID_MK82) {
             this->ShootWithPrediction(weapon_hard_point_id, target, mission);
             return;
         }
     }
-    this->ShootDirect(weapon_hard_point_id, target, mission);
+    this->launchDirect(weapon_hard_point_id, target, mission);
 }
-void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
+// WeaponSystem_LaunchFromStation_3E744 : minuteur de la famille, panier = une roquette par panier LAU-3,
+// bombe = paire sur le pylone le plus charge (WeaponSystem_ReleaseBomb_9E289 force), sauf GBU-15
+void SCPlane::fireStation(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction) {
+    SCWeaponLoadoutHardPoint *weap_loadout = this->weaps_load[weapon_hard_point_id];
+    if (weap_loadout == nullptr) {
+        return;
+    }
+    RSEntity *launcher = weap_loadout->objct;
+    int slot = this->weaponTimerSlot(launcher);
+    if (slot < 0 || this->weapon_timers[slot] > 0.0f) {
+        return;
+    }
+    if (launcher->wdat->launch_class == 10) {
+        // compteur de roquettes du systeme (+0x1E)
+        if (launcher->weaps.empty() || launcher->weaps[0]->nb_weap <= 0) {
+            return;
+        }
+        for (int i = 0; i < (int) this->weaps_load.size(); i++) {
+            SCWeaponLoadoutHardPoint *hardpoint = this->weaps_load[i];
+            if (hardpoint == nullptr || hardpoint->objct->wdat->weapon_id != launcher->wdat->weapon_id) {
+                continue;
+            }
+            int pods = hardpoint->nb_weap;
+            for (int pod = 0; pod < pods; pod++) {
+                this->launchDirect(i, target, mission);
+            }
+        }
+    } else {
+        this->launchOne(weapon_hard_point_id, target, mission, allow_prediction);
+        if (launcher->wdat->launch_class == 9 && launcher->wdat->weapon_id != ID_GBU15) {
+            int pair = this->fullestHardpoint(launcher->wdat->weapon_id);
+            if (pair >= 0) {
+                this->launchOne(pair, target, mission, allow_prediction);
+            }
+        }
+    }
+    this->weapon_timers[slot] = launcher->wdat->fire_interval;
+}
+void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     SCWeaponLoadoutHardPoint *weap_loadout{nullptr};
     weap_loadout = this->weaps_load[weapon_hard_point_id];
     if (weap_loadout == nullptr) {
@@ -1371,10 +1437,6 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
     Vector3D initial_trust = {0,0,0};
     
     MemSound *sound;
-    if (this->wp_cooldown > 0) {
-        this->wp_cooldown--;
-        return;
-    }
     RSEntity *wobj = nullptr;
     wobj = this->weaps_load[weapon_hard_point_id]->objct;
     switch (wobj->wdat->weapon_id) {
@@ -1382,7 +1444,6 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
             weap = new GunSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1000.0f); // coefficient ajustable
             initial_trust = this->applyGunSpread(initial_trust, 0.4f); // ~0.4° de dispersion
-            this->wp_cooldown = 3; // Cooldown between two shots
 
         break;
         case ID_MK20:
@@ -1394,7 +1455,6 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::MK82_DROP];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
-            this->wp_cooldown = 10; // Cooldown between two shots
         break;
         case ID_LAU3:
             weap = new SCSimulatedObject();
@@ -1407,7 +1467,6 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
             weap->guidance = false;
             weap->no_gravity = false;
             wobj = wobj->weaps[0]->objct;
-            this->wp_cooldown = 10;
         break;
         case ID_GBU15:
             weap = new SCSimulatedObject();
@@ -1420,7 +1479,6 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
             weap->guidance = true;
             weap->no_gravity = false;
             weap->target = target;
-            this->wp_cooldown = 10;
         break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
@@ -1431,7 +1489,6 @@ void SCPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
             }
             weap = new SCSimulatedObject();
             weap->target = target;
-            this->wp_cooldown = 10; // Cooldown between two shots
         break;
     }
     weap->mission = mission;
