@@ -1467,13 +1467,13 @@ void VRScreen::refresh(void) {
 	xrCheck(xrWaitSwapchainImage(sc.handle, &waitImg), "xrWaitSwapchainImage");
 
 	const GLuint targetTex = sc.images[imageIndex].image;
-	const int copyW = std::max(0, std::min(drawableW, sc.width));
-	const int copyH = std::max(0, std::min(drawableH, sc.height));
+	const int copyW = (std::max)(0, (std::min)(drawableW, sc.width));
+	const int copyH = (std::max)(0, (std::min)(drawableH, sc.height));
 	// Centrer la zone copiée (si tailles différentes) pour éviter un rendu "en bas à gauche".
-	const int srcX = std::max(0, (drawableW - copyW) / 2);
-	const int srcY = std::max(0, (drawableH - copyH) / 2);
-	const int dstX = std::max(0, (sc.width - copyW) / 2);
-	const int dstY = std::max(0, (sc.height - copyH) / 2);
+	const int srcX = (std::max)(0, (drawableW - copyW) / 2);
+	const int srcY = (std::max)(0, (drawableH - copyH) / 2);
+	const int dstX = (std::max)(0, (sc.width - copyW) / 2);
+	const int dstY = (std::max)(0, (sc.height - copyH) / 2);
 	if (targetTex != 0 && copyW > 0 && copyH > 0) {
 		glBindTexture(GL_TEXTURE_2D, targetTex);
 		glReadBuffer(GL_BACK);

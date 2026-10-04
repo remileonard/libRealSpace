@@ -144,7 +144,7 @@ void SCPilot::controlThrottle() {
         if (this->plane->worldVelocity().Length() < this->target_speed_ms) {
             this->throttle = 100;
         } else {
-            this->throttle = std::max(0.0f, this->throttle - 10.0f);
+            this->throttle = (std::max)(0.0f, this->throttle - 10.0f);
         }
         return;
     }
@@ -452,7 +452,7 @@ void SCPilot::runAutopilot(float dt) {
     float velocity_elevation = v.Elevation();
     float pitch_gap = velocity_elevation - nose_pitch;
     if (pitch_gap != 0.0f) {
-        float f = std::min(1.0f, 5.0f * dt / std::fabs(pitch_gap));
+        float f = (std::min)(1.0f, 5.0f * dt / std::fabs(pitch_gap));
         Vector3D level(nose.x, 0.0f, nose.z);
         level.Normalize();
         nose = nose + (level - nose) * f;
@@ -482,7 +482,7 @@ void SCPilot::runAutopilot(float dt) {
     Vector3D horizontal(sinf(degreeToRad(heading)), 0.0f, cosf(degreeToRad(heading)));
     this->autopilot_world_velocity = horizontal * this->autopilot_hspeed + Vector3D(0.0f, vertical_speed, 0.0f);
 
-    float reach_distance = 20.0f * w_length * std::max(dt, 0.2f);
+    float reach_distance = 20.0f * w_length * (std::max)(dt, 0.2f);
     this->autopilot_reached = std::fabs(signed180(w_heading - heading)) < 5.0f && (P - own).Length() < reach_distance;
 
     PlaneKinematicEvent event;
@@ -532,7 +532,7 @@ bool SCPilot::guidanceSolution(Vector3D direction, float dt) {
     float altitude = this->plane->y;
     bool corrected = false;
     if (altitude <= floor && e < p) {
-        e = std::min(80.0f, 80.0f * (floor - altitude) / deck);
+        e = (std::min)(80.0f, 80.0f * (floor - altitude) / deck);
         corrected = true;
     } else {
         float m = 0.0f;
@@ -580,8 +580,8 @@ bool SCPilot::combatDecision(float h, float v, float r, float dt) {
     bool too_slow = this->plane->wing_stall > 0 || speed <= (float) this->plane->object->entity->jdyn->ai_speed_min;
     if (too_slow) {
         this->throttle = 100;
-        v = std::min(v, 10.0f);
-        h = std::min(h, 10.0f);
+        v = (std::min)(v, 10.0f);
+        h = (std::min)(h, 10.0f);
     }
     if (h == 0.0f && v == 0.0f) {
         this->rollToAngle(0.0f, 2.0f, dt);
@@ -598,7 +598,7 @@ bool SCPilot::combatDecision(float h, float v, float r, float dt) {
     }
     float w = signed180(this->bankAngle() + r);
     if (std::fabs(w) > 145.0f) {
-        float s = std::max(-16.0f, -16.0f * (v / 10.0f) * (v / 10.0f));
+        float s = (std::max)(-16.0f, -16.0f * (v / 10.0f) * (v / 10.0f));
         if (this->rollToAngle(0.0f, 5.0f, dt)) {
             this->pitch_stick = this->clampPitch(s);
         }
@@ -655,7 +655,7 @@ bool SCPilot::pitchToAngle(float pitch, float deadzone, float dt) {
     if (error < -15.0f || (std::fabs(bank) > 90.0f && error < 0.0f)) {
         this->rollToAngle(180.0f, 5.0f, dt);
         if (std::fabs(bank) > 165.0f) {
-            this->pitch_stick = this->clampPitch(16.0f * std::max(1.0f, std::fabs(error) / 15.0f));
+            this->pitch_stick = this->clampPitch(16.0f * (std::max)(1.0f, std::fabs(error) / 15.0f));
         }
         return false;
     }
@@ -783,7 +783,7 @@ float SCPilot::rollStickFromError(float error, float dt) {
         return 0.0f;
     }
     float rate = sqrtf(accel * dt * accel * dt + 2.0f * accel * std::fabs(error)) - accel * dt;
-    rate = std::min(rate, max_rate);
+    rate = (std::min)(rate, max_rate);
     return copysignf(16.0f * rate / max_rate, error);
 }
 

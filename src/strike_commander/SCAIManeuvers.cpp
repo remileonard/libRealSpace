@@ -18,13 +18,13 @@ void SCAIBrain::interceptSpeed(SCMissionActors *target, float threshold) {
     JDYN *jdyn = owner->object->entity->jdyn;
     Vector3D nose = owner->plane->forward;
     Vector3D target_velocity = target->plane->worldVelocity();
-    float closing = std::max(target_velocity.DotProduct(&nose), (float) jdyn->ai_speed_min);
+    float closing = (std::max)(target_velocity.DotProduct(&nose), (float) jdyn->ai_speed_min);
     Vector3D delta = target->plane->position - owner->plane->position;
     float along = std::fabs(delta.DotProduct(&nose));
     float wanted;
     if (along > threshold) {
         float maximum = (float) jdyn->ai_speed_max;
-        wanted = maximum > closing ? closing + std::min((along - threshold) / 3000.0f, 1.0f) * (maximum - closing) : maximum;
+        wanted = maximum > closing ? closing + (std::min)((along - threshold) / 3000.0f, 1.0f) * (maximum - closing) : maximum;
     } else {
         float reference = this->referenceSpeed();
         wanted = (closing - reference) * along / threshold + reference;
@@ -45,7 +45,7 @@ bool SCAIBrain::gunSnap(SCMissionActors *target) {
     int roll_draw = 1 + std::rand() % 6 + std::rand() % 6 + std::rand() % 6;
     bool skilled = owner->profile->ai.atrb.AA >= roll_draw;
     float bearing = pilot->BearingToRef(direction);
-    float window = std::max(7.0f * cosf(degreeToRad(std::fabs(bearing) / 4.0f)), 1.0f);
+    float window = (std::max)(7.0f * cosf(degreeToRad(std::fabs(bearing) / 4.0f)), 1.0f);
     if (!(std::fabs(h) < window && std::fabs(e) < window && distance < owner->mission->intel.range_gun && skilled)) {
         return error == 0.0f;
     }
@@ -356,7 +356,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
             } else {
                 score -= 2;
             }
-            return std::max(1, std::min(9, score));
+            return (std::max)(1, (std::min)(9, score));
         }
         case 13: {
             if (!has_target || this->tooSlow() || owner->plane->y >= owner->object->entity->jdyn->ai_engage_range) {
@@ -389,7 +389,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
             if (has_target || owner->pilot->autopilotActive()) {
                 return 0;
             }
-            float clear = std::min(9.0f * (float) std::max(flying, 8) / 32.0f, 5.0f);
+            float clear = (std::min)(9.0f * (float) (std::max)(flying, 8) / 32.0f, 5.0f);
             float height = owner->plane->y - owner->plane->groundlevel;
             float roll = owner->pilot->BankAngle();
             float vertical_speed = owner->plane->worldVelocity().y;
@@ -417,7 +417,7 @@ int SCAIBrain::scoreManeuver(int id, SCMissionActors *target) {
         default:
             return 0;
     }
-    return std::max(0, std::min(9, score));
+    return (std::max)(0, (std::min)(9, score));
 }
 
 bool SCAIBrain::runTournament() {
@@ -925,7 +925,7 @@ bool SCAIBrain::tickManeuver() {
             } else if (maneuver.phase == 3) {
                 maneuver.timer -= TICK_DURATION;
                 float min_speed = (float) owner->object->entity->jdyn->ai_speed_min;
-                float angle = std::min(60.0f, 30.0f + 30.0f * (ctx.ias - cruise) / min_speed);
+                float angle = (std::min)(60.0f, 30.0f + 30.0f * (ctx.ias - cruise) / min_speed);
                 pilot->CmdPitchTo(angle, 5.0f);
                 pilot->CmdThrottle(10);
                 if (maneuver.timer < 0.0f || this->tooSlow() || horizontal < (float) owner->mission->intel.range_long) {

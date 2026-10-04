@@ -2075,11 +2075,10 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     float offset_length = offset.Length();
     Vector3D to_slot = lead->position + offset - plane->position;
     float slot_distance = to_slot.Length();
-    bool far = slot_distance > 4.0f * offset_length;
     Vector3D own_flat(own_nose.x, 0.0f, own_nose.z);
     Vector3D slot_flat(to_slot.x, 0.0f, to_slot.z);
     bool behind = own_flat.AngleBetween(slot_flat) > 160.0f;
-    if (far) {
+    if (slot_distance > 4.0f * offset_length) {
         active = false;
     } else if (!active) {
         Vector3D lead_flat(lead_nose.x, 0.0f, lead_nose.z);
@@ -2103,7 +2102,7 @@ bool SCAIBrain::formationGuidance(SCMissionActors *leader) {
     if (step < slot_distance) {
         float extra = slot_distance - step;
         float cap = (slot_distance > 3000.0f && behind ? 50.0f : 20.0f) * dt;
-        step += std::min(extra, cap);
+        step += (std::min)(extra, cap);
     } else {
         step = slot_distance;
     }

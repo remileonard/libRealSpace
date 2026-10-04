@@ -305,7 +305,7 @@ bool SCPlane::seekerLocks(RSEntity *weapon, SCMissionActors *target) {
 
 void SCPlane::updateWeaponTimers(float dt) {
     for (float &timer : this->weapon_timers) {
-        timer = std::max(timer - dt, 0.0f);
+        timer = (std::max)(timer - dt, 0.0f);
     }
 }
 
@@ -2011,8 +2011,8 @@ Vector3D SCPlane::worldVelocity() {
 }
 
 float SCPlane::indicatedAirspeed() {
-    float altitude = std::max(0.0f, this->y);
-    float sigma = powf(std::max(0.0f, 1.0f - 2.2558e-5f * altitude), 4.2559f);
+    float altitude = (std::max)(0.0f, this->y);
+    float sigma = powf((std::max)(0.0f, 1.0f - 2.2558e-5f * altitude), 4.2559f);
     return this->worldVelocity().Length() * sqrtf(sigma);
 }
 
