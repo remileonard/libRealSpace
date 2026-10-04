@@ -159,7 +159,7 @@ void SCOrbitCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3
     if (this->dist <= 0.0f) {
         this->dist = size * 2.0f;
     }
-    this->dist = std::clamp(this->dist, distMin, distMax);
+    this->dist = (std::clamp)(this->dist, distMin, distMax);
 
     // `orbit` = identité pour CHASE/TARGET ; tournée par ROTA avant l'appel
     // à cette méthode (cf. SCRotaCamera::tick).
@@ -169,7 +169,7 @@ void SCOrbitCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3
     // Lissage ASM : pos += (cible - pos) / 4 PAR FRAME. Mis à l'échelle du dt
     // réel (référence 25 fps, cf. CAMERA_SYSTEM.md §6.3) pour rester correct
     // à tout framerate plutôt que de dépendre du taux de MissionUpdateEvent.
-    float alpha = std::clamp((dt * 25.0f) / 4.0f, 0.0f, 1.0f);
+    float alpha = (std::clamp)((dt * 25.0f) / 4.0f, 0.0f, 1.0f);
     Vector3D camPosBefore = this->cam_pos;
     this->cam_pos = this->cam_pos + (desiredPos - this->cam_pos) * alpha;
 

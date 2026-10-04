@@ -60,7 +60,7 @@ void SCSmokeSet::generateMissileSmokeTextures(int frames, int size) {
         const float r = r0 * (1.0f - t) + r1 * t;
 
         // Disparition globale avec le temps
-        const float globalFade = std::clamp(1.0f - t * 0.7f, 0.0f, 1.0f);
+        const float globalFade = (std::clamp)(1.0f - t * 0.7f, 0.0f, 1.0f);
 
         Texture* tex = new Texture();
         tex->width  = size;
@@ -90,8 +90,8 @@ void SCSmokeSet::generateMissileSmokeTextures(int frames, int size) {
                 bool inside = (d <= rEff + 0.25f);
 
                 // Bord “cassé” + trous qui augmentent dans le temps
-                const float rim = std::clamp((d - (rEff - 1.0f)) / 1.5f, 0.0f, 1.0f);
-                const float holeProb = std::clamp(t * 0.55f + rim * 0.25f, 0.0f, 0.9f);
+                const float rim = (std::clamp)((d - (rEff - 1.0f)) / 1.5f, 0.0f, 1.0f);
+                const float holeProb = (std::clamp)(t * 0.55f + rim * 0.25f, 0.0f, 0.9f);
 
                 if (inside && rnd(rng) < holeProb) {
                     inside = false;

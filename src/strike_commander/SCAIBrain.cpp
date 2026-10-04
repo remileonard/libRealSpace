@@ -596,7 +596,7 @@ void SCAIBrain::wander() {
     direction.Normalize();
     SCPlane *plane = owner->plane;
     float climb = plane->groundlevel + nav.altitude - plane->position.y;
-    climb = std::clamp(climb, -1000.0f, 1000.0f);
+    climb = (std::clamp)(climb, -1000.0f, 1000.0f);
     Vector3D point = plane->position + direction * 30000.0f + Vector3D(0.0f, climb, 0.0f);
     this->applyNavigation(point, direction * nav.speed, 30.0f);
 }
@@ -1815,7 +1815,7 @@ bool SCAIBrain::takeoffOrder() {
             // AI_PitchAttitudeHold_126CC
             float gain = (float) entity->takeoff_pitch_gain;
             float error = (float) entity->takeoff_climb_pitch - pilot->NosePitch();
-            ground_ops.stick = floorf(std::clamp(error * gain / 8.0f, -gain, gain));
+            ground_ops.stick = floorf((std::clamp)(error * gain / 8.0f, -gain, gain));
             pilot->CmdGroundControls(ground_ops.stick, 10, 1, 1, 0);
             break;
         }

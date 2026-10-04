@@ -228,7 +228,7 @@ void SCPilot::FlyTo() {
         // Remettre les ailes a plat (roll_signed -> 0).
         // control_stick_x > 0 fait DIMINUER roll_signed ; amortissement de meme signe que roll_speed.
         float recover_stick = 0.50f * roll_signed + 1.0f * this->plane->roll_speed;
-        this->control_stick_x = std::clamp((int)recover_stick, -160, 160);
+        this->control_stick_x = (std::clamp)((int)recover_stick, -160, 160);
         this->publishControls();
         return;
     }
@@ -278,24 +278,24 @@ void SCPilot::FlyTo() {
     }
 
     float bank_limit = this->maxBankForG(this->plane->object->entity->jdyn->max_g);
-    bank_limit = std::clamp(bank_limit, 250.0f, 600.0f);
+    bank_limit = (std::clamp)(bank_limit, 250.0f, 600.0f);
     if (this->actor != nullptr &&
         this->actor->current_command == prog_op::OP_SET_OBJ_DEFEND_TARGET) {
-        bank_limit = std::clamp(bank_limit * 1.25f, 250.0f, 900.0f);
+        bank_limit = (std::clamp)(bank_limit * 1.25f, 250.0f, 900.0f);
     }
 
     // Angle de bank vise (convention roll_signed) : virer a droite => bank NEGATIF.
     const float HEADING_DEADZONE = 15.0f; // 1.5 deg : cap considere atteint
 
     // --- Serrage du virage : par le ROULIS (le tangage ne sert qu'a l'altitude) ---
-    float turn_demand = std::clamp((fabsf(heading_err) - HEADING_DEADZONE) / 250.0f, 0.0f, 1.0f);
+    float turn_demand = (std::clamp)((fabsf(heading_err) - HEADING_DEADZONE) / 250.0f, 0.0f, 1.0f);
     float g_scale = this->plane->object->entity->jdyn->max_g / 10.0f;
     float skill   = (this->actor && this->actor->profile) ? (this->actor->profile->ai.atrb.AA / 16.0f) : 0.5f;
 
     // On incline davantage pour tourner plus fort (la portance sup. part a l'horizontale).
     float extra_bank = 250.0f * turn_demand * g_scale * (0.6f + 0.8f * skill);
-    float hard_bank_limit = std::clamp(bank_limit + extra_bank, 250.0f, 850.0f);
-    float bank_cmd = std::clamp(heading_err * 2.5f, -hard_bank_limit, hard_bank_limit);
+    float hard_bank_limit = (std::clamp)(bank_limit + extra_bank, 250.0f, 850.0f);
+    float bank_cmd = (std::clamp)(heading_err * 2.5f, -hard_bank_limit, hard_bank_limit);
     if (fabsf(heading_err) < HEADING_DEADZONE) {
         bank_cmd = 0.0f;
     }
@@ -312,17 +312,17 @@ void SCPilot::FlyTo() {
     // s'oppose a la rotation (roll_speed < 0 en roulant a droite => freine).
     float bank_err  = bank_cmd - roll_signed;
     float roll_stick = -0.50f * bank_err + 1.0f * this->plane->roll_speed;
-    this->control_stick_x = std::clamp((int)roll_stick, -160, 160);
+    this->control_stick_x = (std::clamp)((int)roll_stick, -160, 160);
 
     // ============ VERTICAL: altitude -> vario -> assiette -> manche (inchange) ============
     const float pitch_stick_sign = 1.0f;
     float lead_time  = 0.70f;
-    float lead_ticks = std::clamp(lead_time / dt, 4.0f, 24.0f);
+    float lead_ticks = (std::clamp)(lead_time / dt, 4.0f, 24.0f);
 
     float predicted_y = this->plane->y + this->plane->vy * lead_ticks;
     float alt_err     = (float)this->target_climb - predicted_y;
 
-    float vario_cmd = std::clamp(alt_err * 0.08f, -150.0f, 200.0f);
+    float vario_cmd = (std::clamp)(alt_err * 0.08f, -150.0f, 200.0f);
     float vario_err = vario_cmd - this->plane->vy;
 
     // Feed-forward de facteur de charge : tirer juste ce qu'il faut pour tenir
@@ -330,20 +330,20 @@ void SCPilot::FlyTo() {
     float bank_rad       = tenthOfDegreeToRad(fabsf(roll_signed));
     float load_factor_ff = 1.0f / (std::max)(0.20f, cosf(bank_rad)) - 1.0f;
     float pitch_cmd = 1.35f * vario_err + load_factor_ff * 120.0f;
-    pitch_cmd = std::clamp(pitch_cmd, -220.0f, 320.0f);
+    pitch_cmd = (std::clamp)(pitch_cmd, -220.0f, 320.0f);
     if (this->attitude_mode) {
         float pitch_error = this->attitude_pitch_error * 10.0f;
         if (fabsf(pitch_error) <= this->attitude_deadband * 10.0f) {
             pitch_error = 0.0f;
         }
-        pitch_cmd = std::clamp(this->plane->pitch + pitch_error, -450.0f, 450.0f) + load_factor_ff * 120.0f;
+        pitch_cmd = (std::clamp)(this->plane->pitch + pitch_error, -450.0f, 450.0f) + load_factor_ff * 120.0f;
     }
     
     float pitch_err = pitch_cmd - this->plane->pitch;
     float desired_pitch_speed = 0.6f * pitch_err - 2.00f * this->plane->pitch_speed;
 
     float pitch_stick = pitch_stick_sign * desired_pitch_speed * 3.0f;
-    this->control_stick_y = std::clamp((int)pitch_stick, -160, 160);
+    this->control_stick_y = (std::clamp)((int)pitch_stick, -160, 160);
 
     this->publishControls();
 }
@@ -443,7 +443,7 @@ void SCPilot::runAutopilot(float dt) {
         error = signed180(signed180(aim) - nose_heading);
     }
     float unclamped = error;
-    error = std::clamp(error, -20.0f * dt, 20.0f * dt);
+    error = (std::clamp)(error, -20.0f * dt, 20.0f * dt);
     float heading = nose_heading + error;
 
     Vector3D nose = this->plane->forward;
@@ -463,14 +463,14 @@ void SCPilot::runAutopilot(float dt) {
     float roll_deg = signed180(this->plane->roll / 10.0f);
     float roll_target = std::fabs(unclamped) > 10.0f ? (error > 0.0f ? 10.0f : -10.0f) : 0.0f;
     float roll_step = this->plane->object->entity->jdyn->max_turn_rate_dps * dt;
-    roll_deg += std::clamp(roll_target - roll_deg, -roll_step, roll_step);
+    roll_deg += (std::clamp)(roll_target - roll_deg, -roll_step, roll_step);
 
     float floor = this->plane->groundlevel + 250.0f;
     float target_y = P.y;
     if (target_y < floor) {
         target_y = own.y < floor ? floor : own.y;
     }
-    float vertical_speed = std::clamp(target_y - own.y, -50.0f, 50.0f);
+    float vertical_speed = (std::clamp)(target_y - own.y, -50.0f, 50.0f);
 
     float speed_gap = w_length - this->autopilot_hspeed;
     if (std::fabs(speed_gap) < 25.0f * dt) {
@@ -624,7 +624,7 @@ bool SCPilot::bankError(float error, float deadzone, float dt) {
     float g = (float) this->plane->object->entity->jdyn->max_g;
     float max_bank = g < 6.0f ? 90.0f * g / 6.0f : 90.0f;
     float bank = this->bankAngle();
-    float wanted = std::clamp(bank + error, -max_bank, max_bank);
+    float wanted = (std::clamp)(bank + error, -max_bank, max_bank);
     error = wanted - bank;
     if (std::fabs(error) > deadzone) {
         this->roll_stick = this->rollStickFromError(error, dt);
@@ -709,11 +709,11 @@ void SCPilot::CmdPitchStick(float stick16) {
 }
 
 void SCPilot::CmdRollStick(float stick16) {
-    this->roll_stick = std::clamp(stick16, -16.0f, 16.0f);
+    this->roll_stick = (std::clamp)(stick16, -16.0f, 16.0f);
 }
 
 void SCPilot::CmdThrottle(int notch) {
-    this->manual_throttle = std::clamp(notch, 0, 10) * 10;
+    this->manual_throttle = (std::clamp)(notch, 0, 10) * 10;
 }
 
 void SCPilot::BeginGroundOps() {
@@ -729,7 +729,7 @@ void SCPilot::CmdGearUp() {
 }
 
 void SCPilot::CmdGroundControls(float pitch_stick16, int throttle_notch, int flaps, int gear, int spoilers) {
-    this->ground_pitch_stick = std::clamp(pitch_stick16, -16.0f, 16.0f);
+    this->ground_pitch_stick = (std::clamp)(pitch_stick16, -16.0f, 16.0f);
     this->ground_throttle = (throttle_notch < 0 || throttle_notch > 10) ? 0 : throttle_notch * 10;
     this->flap = flaps;
     this->gear = gear;
@@ -794,5 +794,5 @@ float SCPilot::maxRollRate(float dt) {
 float SCPilot::clampPitch(float stick) {
     float flying = (float) std::max<int>(this->actor->profile->ai.atrb.FL, 8);
     float limit = 9.0f * flying / (float) this->plane->object->entity->jdyn->max_g;
-    return std::clamp(stick, -limit, limit);
+    return (std::clamp)(stick, -limit, limit);
 }

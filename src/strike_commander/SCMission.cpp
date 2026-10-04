@@ -57,7 +57,7 @@ void SCMission::cleanup() {
 // Cockpit_ReadControlsFrame_8F720 : avions du camp ennemi (+0x50 == 0xFF) -> PilotProfile_RescaleSkillByDifficulty_12FC9,
 // FL, AG, AA du fichier decales a droite de word_7235F (0 = intacts, 1 = moitie, 2 = quart)
 void SCMission::applyDifficulty() {
-    int shift = std::clamp(this->difficulty, 0, 2);
+    int shift = (std::clamp)(this->difficulty, 0, 2);
     for (auto actor : this->actors) {
         if (actor->plane == nullptr || actor->profile == nullptr || actor->team_id != 255) {
             continue;

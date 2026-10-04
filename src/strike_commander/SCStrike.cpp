@@ -1000,7 +1000,7 @@ void SCStrike::checkKeyboard(void) {
     if (!is_rudder_pressed) {
         this->player_plane->rudder = 0;
     } else {
-        this->player_plane->rudder = std::clamp(this->player_plane->rudder, -10.0f, 10.0f);
+        this->player_plane->rudder = (std::clamp)(this->player_plane->rudder, -10.0f, 10.0f);
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_UP))) {
         if (this->player_plane->GetThrottle() == 0) {
