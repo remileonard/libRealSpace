@@ -85,13 +85,15 @@ void RSArea::ParseObjects() {
                 mapObject.destroyedName[k] = reader.ReadByte();
             mapObject.destroyedName[8] = 0;
 
+            //mapObject.unknowns.push_back(reader.ReadByte());
             mapObject.unknowns.push_back(reader.ReadByte());
-            mapObject.unknowns.push_back(reader.ReadByte());
-            mapObject.position.x = reader.ReadInt24LE() * BLOCK_COORD_SCALE;
+            /*mapObject.position.x = reader.ReadInt24LE() * BLOCK_COORD_SCALE;
             mapObject.position.z = -reader.ReadInt24LE() * BLOCK_COORD_SCALE;
-            mapObject.position.y = reader.ReadInt24LE() * HEIGH_MAP_SCALE;
+            mapObject.position.y = reader.ReadInt24LE() * HEIGH_MAP_SCALE;*/
 
-
+            mapObject.position.x = reader.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            mapObject.position.z = -reader.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            mapObject.position.y = reader.ReadFixedFloatLE() * HEIGH_MAP_SCALE;
             for (int k = 0; k < 2; k++)
                 mapObject.unknowns.push_back(reader.ReadByte());
 
