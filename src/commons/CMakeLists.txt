@@ -11,4 +11,5 @@ target_include_directories(commons PUBLIC ${LIBRARY_INCLUDES})
 target_link_libraries(commons PUBLIC ${LIBRARY_LINKS})
 
 target_link_libraries(commons PUBLIC pklib)
+target_link_libraries(commons PUBLIC nuked-opl3)
 target_include_directories(commons PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

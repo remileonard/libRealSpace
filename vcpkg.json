@@ -15,13 +15,6 @@
     "sdl2",
     "simpleini",
     "sdl2-mixer-ext",
-    {
-      "name": "sdl2-mixer-ext",
-      "features": [
-        "libadlmidi",
-        "libopnmidi"
-      ]
-    },
     "sdl2-ttf",
     "nativefiledialog-extended",
     "boost-filesystem",

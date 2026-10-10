@@ -32,6 +32,7 @@ add_subdirectory(src/pacific_strike)
 add_subdirectory(src/engine)
 add_subdirectory(src/realspace)
 add_subdirectory(src/commons/pklib)
+add_subdirectory(src/commons/Nuked-OPL3)
 add_subdirectory(src/commons)
 
 # Tests unitaires
