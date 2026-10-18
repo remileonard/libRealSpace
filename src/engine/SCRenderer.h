@@ -105,6 +105,11 @@ public:
     bool show_clouds{false};
     int lodLevel{0};
     GLuint texture{0};
+
+    // [Video] texture_filter: 0 = bilinear (default), 1 = mipmaps (trilinear), 2 = mipmaps + anisotropic
+    int texture_filter{0};
+    float max_anisotropy{1.0f};
+    void applyTextureFilter(); // for the texture currently bound, call before glTexImage2D
     
     SCRenderer();
     ~SCRenderer();

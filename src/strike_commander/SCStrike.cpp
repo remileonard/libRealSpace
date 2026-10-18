@@ -975,7 +975,11 @@ void SCStrike::checkKeyboard(void) {
             this->player_plane->control_stick_y = 0;
         }
     }
-    if (this->camera_mode == View::REAL) {
+    if (this->camera_mode == View::REAL && this->forward_3d_active) {
+        // forward view in the 3D cockpit: look straight ahead, the mouse flies the plane
+        this->pilote_lookat.x = 0;
+        this->pilote_lookat.y = 0;
+    } else if (this->camera_mode == View::REAL) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
@@ -1230,6 +1234,7 @@ void SCStrike::checkKeyboard(void) {
         this->zoom_cockpit = false;
         this->camera_mode = View::REAL;
         this->cockpit->is_3d_cockpit = true;
+        this->forward_3d_active = false; // explicit cockpit key keeps the classic mouse look
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {
         if (this->cockpit->radar_mode == RadarMode::AARD) {
@@ -1595,6 +1600,7 @@ void SCStrike::init(void) {
     this->registerSimulatorInputs();
     Config &cfg = Config::getInstance();
     this->world_lod = cfg.getInt("Game", "world_detail", 0);
+    this->cockpit_3d_default = cfg.getString("Video", "cockpit", "2d") == "3d";
     this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
     GameState.f16_replacements=0;
 }
@@ -1869,6 +1875,14 @@ void SCStrike::runFrame(void) {
     if (director_view != this->last_director_view) {
         this->camera_mode = director_view;
         this->last_director_view = director_view;
+    }
+    if (this->cockpit_3d_default && this->camera_mode == View::FRONT) {
+        // forward view -> 3D virtual cockpit (same view as the cockpit key)
+        this->camera_mode = View::REAL;
+        this->cockpit->is_3d_cockpit = true;
+        this->forward_3d_active = true;
+    } else if (this->camera_mode != View::REAL) {
+        this->forward_3d_active = false;
     }
     Renderer.setLight(&this->light);
     if (!this->pause_simu && this->camera_mode!=View::AUTO_PILOT) {

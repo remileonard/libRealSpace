@@ -166,6 +166,10 @@ protected:
     static void cleanupVirtualCockpitTextures();
     Vector2D gunsight_hud_offset{0.0f, -0.077f};
     bool zoom_cockpit{false};
+    /** @brief [Video] cockpit = 3d: the forward view uses the 3D virtual cockpit instead of the 2D 320x200 one */
+    bool cockpit_3d_default{false};
+    /** @brief true while the 3D cockpit is used as forward view (head fixed straight ahead) */
+    bool forward_3d_active{false};
     void renderVirtualF16Cockpit();
     void renderVirtualF22Cockpit();
     int world_lod{BLOCK_LOD_MAX};
