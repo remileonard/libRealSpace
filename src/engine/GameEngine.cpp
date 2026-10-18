@@ -241,6 +241,16 @@ void GameEngine::initKeyboard() {
 
 void GameEngine::pumpEvents(void) {
 
+    // Menus use relative mouse motion: capture the pointer so the system cursor can not run
+    // into the screen edge (which would stop the motion events and desync it from the game cursor).
+    // The simulation uses the absolute position and needs the normal pointer.
+    static int relativeMouse = -1;
+    const int wantRelative = this->direct_mouse_control ? 0 : 1;
+    if (relativeMouse != wantRelative) {
+        SDL_SetRelativeMouseMode(wantRelative ? SDL_TRUE : SDL_FALSE);
+        relativeMouse = wantRelative;
+    }
+
     // Met à jour tout (Keyboard encapsule InputActionSystem/EventManager)
     m_keyboard->update();
 
@@ -265,8 +275,25 @@ void GameEngine::pumpEvents(void) {
             lastControllerPosition.x = (px * 320) / Screen->logical_width;
             lastControllerPosition.y = (py * 200) / Screen->logical_height;
         } else {
-            lastControllerPosition.x += mx;
-            lastControllerPosition.y += my;
+            // mx/my are window pixels: convert them to the 320x200 legacy space so the cursor
+            // follows the pointer 1:1 on the image, whatever the window resolution
+            // the game image is a 4:3 area centered in the window (letterboxing, see RSScreen::openScreen)
+            const float winW = (float)Screen->logical_width;
+            const float winH = (float)Screen->logical_height;
+            const float imgW = std::min(winW, winH * (4.0f / 3.0f));
+            const float imgH = std::min(winH, winW * (3.0f / 4.0f));
+            const float sx = (imgW > 0.0f) ? 320.0f / imgW : 1.0f;
+            const float sy = (imgH > 0.0f) ? 200.0f / imgH : 1.0f;
+            // the position is an integer: keep the sub-unit remainder so slow movements are not lost
+            static float remainderX = 0.0f, remainderY = 0.0f;
+            remainderX += mx * sx;
+            remainderY += my * sy;
+            const int stepX = (int)remainderX;
+            const int stepY = (int)remainderY;
+            remainderX -= (float)stepX;
+            remainderY -= (float)stepY;
+            lastControllerPosition.x += stepX;
+            lastControllerPosition.y += stepY;
         }
         
     }
