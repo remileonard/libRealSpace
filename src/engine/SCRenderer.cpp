@@ -22,6 +22,13 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <cstring>
+
+#ifndef GL_GENERATE_MIPMAP
+#define GL_GENERATE_MIPMAP 0x8191
+#endif
+#define SC_TEXTURE_MAX_ANISOTROPY 0x84FE
+#define SC_MAX_TEXTURE_MAX_ANISOTROPY 0x84FF
 
 SCRenderer &Renderer = SCRenderer::getInstance();
 
@@ -334,6 +341,13 @@ void SCRenderer::init(int width, int height) {
     this->terrain_shadow_lift = config.getInt("Game", "terrain_shadow_lift", 8) / 100.0f;
     this->terrain_shadow_range = config.getInt("Game", "terrain_shadow_range", 35) / 100.0f;
     this->terrain_flat = config.getBool("Game", "terrain_flat", false);
+    this->texture_filter = config.getInt("Video", "texture_filter", 0);
+    if (this->texture_filter >= 2) {
+        const char *ext = (const char *)glGetString(GL_EXTENSIONS);
+        if (ext && strstr(ext, "texture_filter_anisotropic")) {
+            glGetFloatv(SC_MAX_TEXTURE_MAX_ANISOTROPY, &this->max_anisotropy);
+        }
+    }
     this->show_clouds = config.getBool("Game", "clouds_enabled", false);
     this->width = width;
     this->height = height;
@@ -380,12 +394,25 @@ void SCRenderer::createTextureInGPU(Texture *texture) {
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
     glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_ADD);
 
+    this->applyTextureFilter();
     glTexImage2D(GL_TEXTURE_2D, 0, 4, (GLsizei)texture->width, (GLsizei)texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                  texture->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+}
+
+// Must run before glTexImage2D: GL_GENERATE_MIPMAP rebuilds the mip chain on every upload.
+void SCRenderer::applyTextureFilter() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (this->texture_filter <= 0) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        return;
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    if (this->texture_filter >= 2 && this->max_anisotropy > 1.0f) {
+        glTexParameterf(GL_TEXTURE_2D, SC_TEXTURE_MAX_ANISOTROPY, std::min(16.0f, this->max_anisotropy));
+    }
 }
 
 void SCRenderer::uploadTextureContentToGPU(Texture *texture) {
@@ -417,8 +444,7 @@ void SCRenderer::drawTexturedQuad(Vector3D pos, Vector3D orientation, std::vecto
         glBindTexture(GL_TEXTURE_2D, tex->id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        this->applyTextureFilter();
         
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)tex->width, (GLsizei)tex->height, 
                      0, GL_RGBA, GL_UNSIGNED_BYTE, tex->data);
@@ -2235,8 +2261,7 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size, float alp
         glBindTexture(GL_TEXTURE_2D, tex->id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        this->applyTextureFilter();
         
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)tex->width, (GLsizei)tex->height, 
                      0, GL_RGBA, GL_UNSIGNED_BYTE, tex->data);
