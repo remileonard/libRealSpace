@@ -1,4 +1,5 @@
 #include "EventManager.h"
+#include "SCRenderer.h"
 #include <SDL_gamecontroller.h>
 #include <cstring>
 #include <algorithm>
@@ -273,6 +274,10 @@ void EventManager::update() {
             case SDL_KEYDOWN:
                 handleTextInputEvent(event);
                 // Gérer le keydown pour d'autres fonctionnalités...
+                if (event.key.keysym.sym == SDLK_F12) {
+                    // switch between the legacy and the gl4 render path
+                    SCRenderer::getInstance().toggleRenderPath();
+                }
                 break;
         }
         

@@ -7,6 +7,7 @@
 //
 
 #include "SCRenderer.h"
+#include "GL4Terrain.h"
 #include "Config.hpp"
 #include "../realspace/AssetManager.h"
 #include "../realspace/RSArea.h"
@@ -210,12 +211,14 @@ const AABB& SCRenderer::computeBlockAABB(RSArea* area, int LOD, int blockId) {
 // Invalidation globale
 void SCRenderer::InvalidateAABBCache() {
     aabbCache_.clear();
+    if (gl4Terrain) gl4Terrain->clear();
 }
 
 // Invalidation pour une carte
 void SCRenderer::InvalidateAABBCache(RSArea* area) {
     if (!area) return;
     aabbCache_.erase(area);
+    if (gl4Terrain) gl4Terrain->clear();
 }
 
 // Invalidation fine d’un bloc
@@ -308,6 +311,31 @@ SCRenderer::~SCRenderer() {}
 
 Camera *SCRenderer::getCamera(void) { return &this->camera; }
 
+void SCRenderer::setRenderPath(bool gl4) {
+    if (!gl4) {
+        useGL4Terrain = false;
+        return;
+    }
+    if (!gl4Terrain) {
+        auto t = std::make_unique<GL4Terrain>();
+        if (!t->init()) {
+            printf("[Renderer] gl4 render path unavailable, using legacy\n");
+            useGL4Terrain = false;
+            return;
+        }
+        gl4Terrain = std::move(t);
+    }
+    useGL4Terrain = true;
+    printf("[Renderer] render path: gl4 (terrain)\n");
+}
+
+void SCRenderer::toggleRenderPath() {
+    setRenderPath(!useGL4Terrain);
+    if (!useGL4Terrain) {
+        printf("[Renderer] render path: legacy\n");
+    }
+}
+
 VGAPalette *SCRenderer::getPalette(void) { return &this->palette; }
 
 void SCRenderer::setPlayerPosition(Point3D *position) { camera.SetPosition(position); }
@@ -347,6 +375,7 @@ void SCRenderer::init(int width, int height) {
 
     light.SetWithCoo(300, 300, 300);
     initialized = true;
+    this->setRenderPath(config.getString("Graphics", "renderer", "legacy") == "gl4");
 }
 void SCRenderer::resetCameraPerspective() {
     camera.setPersective(this->fov, this->width / (float)this->height, 1.5f, this->max_view_distance+this->max_view_distance*0.2f);
@@ -1815,36 +1844,43 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
         terrainFront = DetectTerrainFrontFace(refBlk);
     }
     glFrontFace(terrainFront);
-    // Passe géométrie (non texturée)
-    glBegin(GL_TRIANGLES);
-    textureSortedVertex.clear();
-    for (int id : visibleHiLOD) {
-        renderBlock(area, LOD, id, true);
-    }
-    glEnd();
-
-    // Passe textures: réutilise les mêmes listes visibles (pas de culling)
-    glEnable(GL_TEXTURE_2D);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-
-    for (auto const &x : textureSortedVertex) {
-        RSImage *image = area->GetImageByID(x.first);
-        if (!image) {
-            printf("This should never happen: Put a break point here.\n");
-            continue;
-        }
-        glBindTexture(GL_TEXTURE_2D, image->GetTexture()->getTextureID());
+    if (this->useGL4Terrain && this->gl4Terrain && this->gl4Terrain->ready()) {
+        // Shader/VBO path (config [Graphics] renderer = gl4)
+        this->gl4Terrain->draw(*this, area, LOD, visibleHiLOD);
+        // The legacy overlay code below relies on the texture env set by the legacy texture pass
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    } else {
+        // Passe géométrie (non texturée)
         glBegin(GL_TRIANGLES);
-        for (int i = 0; i < (int)x.second.size(); i++) {
-            VertexCache v = x.second.at(i);
-            if (v.lv1 != NULL && v.lv1->lowerImageID == x.first) {
-                renderTexturedTriangle(v.lv1, v.lv2, v.lv3, area, LOWER_TRIANGE, image);
-            }
-            if (v.uv1 != NULL && v.uv1->upperImageID == x.first) {
-                renderTexturedTriangle(v.uv1, v.uv2, v.uv3, area, UPPER_TRIANGE, image);
-            }
+        textureSortedVertex.clear();
+        for (int id : visibleHiLOD) {
+            renderBlock(area, LOD, id, true);
         }
         glEnd();
+
+        // Passe textures: réutilise les mêmes listes visibles (pas de culling)
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+
+        for (auto const &x : textureSortedVertex) {
+            RSImage *image = area->GetImageByID(x.first);
+            if (!image) {
+                printf("This should never happen: Put a break point here.\n");
+                continue;
+            }
+            glBindTexture(GL_TEXTURE_2D, image->GetTexture()->getTextureID());
+            glBegin(GL_TRIANGLES);
+            for (int i = 0; i < (int)x.second.size(); i++) {
+                VertexCache v = x.second.at(i);
+                if (v.lv1 != NULL && v.lv1->lowerImageID == x.first) {
+                    renderTexturedTriangle(v.lv1, v.lv2, v.lv3, area, LOWER_TRIANGE, image);
+                }
+                if (v.uv1 != NULL && v.uv1->upperImageID == x.first) {
+                    renderTexturedTriangle(v.uv1, v.uv2, v.uv3, area, UPPER_TRIANGE, image);
+                }
+            }
+            glEnd();
+        }
     }
     glDisable(GL_TEXTURE_2D);
     // Overlay: inversion de Z -> winding mirroir, on inverse temporairement la front face

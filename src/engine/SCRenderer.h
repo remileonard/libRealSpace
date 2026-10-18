@@ -23,6 +23,7 @@
 #include <SDL_opengl_glext.h>
 #define MAP_SIZE 200000
 class RSArea;
+class GL4Terrain;
 class RSEntity;
 struct MapVertex;
 struct Triangle;
@@ -105,6 +106,13 @@ public:
     bool show_clouds{false};
     int lodLevel{0};
     GLuint texture{0};
+
+    // Optional shader/VBO render path (config [Graphics] renderer = gl4, F12 toggles).
+    // The legacy fixed-function path stays the default and the fallback.
+    bool useGL4Terrain{false};
+    std::unique_ptr<GL4Terrain> gl4Terrain;
+    void setRenderPath(bool gl4);
+    void toggleRenderPath();
     
     SCRenderer();
     ~SCRenderer();
