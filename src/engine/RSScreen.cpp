@@ -282,9 +282,12 @@ void RSScreen::initPostProcess() {
                 color.rgb = mix(color.rgb, vec3(l), gEffect.y);
                 color.rgb = mix(color.rgb, vec3(l * 1.4, l * 0.15, l * 0.1), gEffect.w * 0.8);
                 // tunnel vision: dark ring that closes towards the centre
-                float edge = mix(1.8, 0.30, gEffect.x);
+                float tx = pow(gEffect.x, 0.6);   // visible right from the start, flattens towards the end
+                float edge = mix(1.35, 0.30, tx);
+                // the colours already drain a little while the tunnel closes
+                color.rgb = mix(color.rgb, vec3(l), tx * 0.35);
                 float dark = smoothstep(edge - 0.45, edge + 0.15, r);
-                color.rgb *= 1.0 - dark * min(1.0, gEffect.x * 1.5 + gEffect.w * 0.6);
+                color.rgb *= 1.0 - dark * min(1.0, tx * 1.6 + gEffect.w * 0.6);
                 // blackout over the whole picture
                 color.rgb *= 1.0 - gEffect.z;
             }

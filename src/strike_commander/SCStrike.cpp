@@ -813,6 +813,13 @@ void SCStrike::updateGEffects() {
     float red = clamp01((-this->g_smooth - 1.0f) / 2.5f);
     tunnel = std::max(tunnel, red * 0.5f);
     Screen->setGEffect(clamp01(tunnel * s), clamp01(grey * s), clamp01(black * s), clamp01(red * s));
+    if (getenv("SC_GTEST")) {
+        static int dbg = 0;
+        if ((++dbg % 60) == 0) {
+            printf("[GFX] g=%.2f smooth=%.2f threshold=%.1f strength=%.1f -> tunnel=%.2f grey=%.2f black=%.2f red=%.2f\n", g, this->g_smooth,
+                   this->g_effects_threshold, s, clamp01(tunnel * s), clamp01(grey * s), clamp01(black * s), clamp01(red * s));
+        }
+    }
 }
 
 void SCStrike::registerSimulatorInputs() {
@@ -1708,7 +1715,7 @@ void SCStrike::init(void) {
     this->camera_mouse = cfg.getString("Video", "camera_mouse", "1") != "0";
     this->camera_mouse_invert_y = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     this->g_effects = cfg.getString("Video", "g_effects", "1") != "0";
-    this->g_effects_threshold = std::min(9.0f, std::max(2.0f, (float)atof(cfg.getString("Video", "g_effects_threshold", "5").c_str())));
+    this->g_effects_threshold = std::min(9.0f, std::max(2.0f, (float)atof(cfg.getString("Video", "g_effects_threshold", "4.5").c_str())));
     this->g_effects_strength = std::min(2.0f, std::max(0.0f, (float)atof(cfg.getString("Video", "g_effects_strength", "1").c_str())));
     this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
     GameState.f16_replacements=0;
