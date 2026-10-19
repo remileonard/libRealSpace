@@ -149,6 +149,7 @@ void RSScreen::initPostProcess() {
         uniform int useCPC;
         uniform float pixelScale;
         uniform int useFXAA;
+        uniform vec4 gEffect; // x = tunnel, y = grey-out, z = blackout, w = red-out
 
 
         // Luminosité perçue d'une couleur
@@ -271,6 +272,23 @@ void RSScreen::initPostProcess() {
                 color = applyFXAA(screenTexture, uv, screenWidth / pixelScale, screenHeight / pixelScale);
             }
 
+            if (gEffect.x > 0.0 || gEffect.y > 0.0 || gEffect.z > 0.0 || gEffect.w > 0.0) {
+                // distance from the screen centre, height = 1.0 (keeps the tunnel round on wide screens)
+                vec2 c = uv - vec2(0.5);
+                c.x *= screenWidth / screenHeight;
+                float r = length(c);
+                // grey-out and red-out
+                float l = luma(color.rgb);
+                color.rgb = mix(color.rgb, vec3(l), gEffect.y);
+                color.rgb = mix(color.rgb, vec3(l * 1.4, l * 0.15, l * 0.1), gEffect.w * 0.8);
+                // tunnel vision: dark ring that closes towards the centre
+                float edge = mix(1.8, 0.30, gEffect.x);
+                float dark = smoothstep(edge - 0.45, edge + 0.15, r);
+                color.rgb *= 1.0 - dark * min(1.0, gEffect.x * 1.5 + gEffect.w * 0.6);
+                // blackout over the whole picture
+                color.rgb *= 1.0 - gEffect.z;
+            }
+
             if (useCPC == 1) {
                 float threshold = bayerThreshold(gl_FragCoord.xy);
                 // Perturber la couleur avec le dithering avant la recherche palette
@@ -330,7 +348,7 @@ void RSScreen::initPostProcess() {
 }
 
 void RSScreen::refresh(void) {
-    if (m_postProcessReady && (fx_cpc_palette || fx_scanlines || fx_pixel_scale > 1 || fx_fxaa)) {
+    if (m_postProcessReady && (fx_cpc_palette || fx_scanlines || fx_pixel_scale > 1 || fx_fxaa || gEffectActive())) {
         // 1. Allouer la texture de capture si nécessaire
         if (m_postProcessTexture == 0) {
             glGenTextures(1, &m_postProcessTexture);
@@ -367,6 +385,7 @@ void RSScreen::refresh(void) {
         glUniform1i(glGetUniformLocation(m_shaderProgram, "useCPC"),       fx_cpc_palette ? 1 : 0);
         glUniform1i(glGetUniformLocation(m_shaderProgram, "useScanlines"), fx_scanlines   ? 1 : 0);
         glUniform1i(glGetUniformLocation(m_shaderProgram, "useFXAA"), fx_fxaa ? 1 : 0);
+        glUniform4f(glGetUniformLocation(m_shaderProgram, "gEffect"), fx_g_tunnel, fx_g_grey, fx_g_black, fx_g_red);
         GLint vp[4];
         glGetIntegerv(GL_VIEWPORT, vp);
         // vp[0]=x, vp[1]=y, vp[2]=w, vp[3]=h

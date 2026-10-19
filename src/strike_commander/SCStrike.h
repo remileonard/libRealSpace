@@ -177,6 +177,13 @@ protected:
     /** @brief [Video] camera_mouse: mouse position orbits the external cameras (F2, F7, F8), wheel zooms */
     bool camera_mouse{true};
     bool camera_mouse_invert_y{true};
+    /** @brief [Video] g_effects: tunnel vision / grey-out / blackout at high G, red-out at negative G (first person views) */
+    bool g_effects{true};
+    float g_effects_threshold{5.0f};   // G where the tunnel vision starts
+    float g_effects_strength{1.0f};
+    float g_smooth{1.0f};              // low-passed G load (the body reacts slowly)
+    unsigned int g_last_ticks{0};
+    void updateGEffects();
     float orbit_yaw{0.0f};
     float orbit_pitch{0.0f};
     float orbit_zoom{1.0f};

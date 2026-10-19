@@ -77,6 +77,17 @@ public:
     bool fx_scanlines{false};    // scanlines CRT
     bool fx_fxaa{false};         // FXAA anti-aliasing
     float fx_pixel_scale{1.0f};   // pixelation scale (1.0 = normal, 2.0 = double size, etc.)
+    // G-force vision effects (all 0..1, set every frame by the simulation, 0 = off)
+    float fx_g_tunnel{0.0f};     // tunnel vision (dark edges closing in)
+    float fx_g_grey{0.0f};       // grey-out (desaturation)
+    float fx_g_black{0.0f};      // blackout (fade to black)
+    float fx_g_red{0.0f};        // red-out (negative G)
+    void setGEffect(float tunnel, float grey, float black, float red) {
+        fx_g_tunnel = tunnel; fx_g_grey = grey; fx_g_black = black; fx_g_red = red;
+    }
+    bool gEffectActive() const {
+        return fx_g_tunnel > 0.002f || fx_g_grey > 0.002f || fx_g_black > 0.002f || fx_g_red > 0.002f;
+    }
     virtual void initPostProcess();
     // --- VR stéréo (optionnel) ---
     // Par défaut: non supporté. Les implémentations VR (ex: VRScreen) surchargent.

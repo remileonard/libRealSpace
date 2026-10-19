@@ -770,7 +770,51 @@ SCStrike::SCStrike() {
 
 SCStrike::~SCStrike() {
     Game->direct_mouse_control = false;
+    Screen->setGEffect(0.0f, 0.0f, 0.0f, 0.0f);
 }
+/**
+ * @brief G-force vision effects, applied as a post-process pass (see RSScreen).
+ *
+ * The G load shown on the HUD is low-passed (the body reacts slowly: onset ~1.2 s, recovery ~0.7 s).
+ * Above g_effects_threshold the picture gets a tunnel vision, then grey-out and finally a (never
+ * complete) blackout; below about -1 G the picture turns red. Only in the first person views.
+ */
+void SCStrike::updateGEffects() {
+    unsigned int now = SDL_GetTicks();
+    float dt = this->g_last_ticks == 0 ? 0.0f : (float)(now - this->g_last_ticks) / 1000.0f;
+    this->g_last_ticks = now;
+    dt = std::min(0.1f, std::max(0.0f, dt));
+
+    bool first_person = this->camera_mode == View::REAL || this->camera_mode == View::FRONT ||
+                        this->camera_mode == View::LEFT || this->camera_mode == View::RIGHT ||
+                        this->camera_mode == View::REAR;
+    bool alive = this->player_plane && !this->player_plane->crached && !this->player_plane->ejected;
+    if (!this->g_effects || !first_person || !alive) {
+        this->g_smooth = 1.0f;
+        Screen->setGEffect(0.0f, 0.0f, 0.0f, 0.0f);
+        return;
+    }
+    float g = this->player_plane->g_load;
+    if (!(g > -20.0f && g < 20.0f)) {
+        g = 1.0f;   // NaN / garbage guard
+    }
+    if (const char *test_g = getenv("SC_GTEST")) {
+        g = (float)atof(test_g);   // testing aid: SC_GTEST=9 forces a G load, no need to pull hard
+    }
+    float tau = g > this->g_smooth ? 1.2f : 0.7f;
+    this->g_smooth += (g - this->g_smooth) * (1.0f - expf(-dt / tau));
+
+    auto clamp01 = [](float v) { return std::min(1.0f, std::max(0.0f, v)); };
+    float s = this->g_effects_strength;
+    float pos = this->g_smooth - this->g_effects_threshold;
+    float tunnel = clamp01(pos / 4.0f);
+    float grey = clamp01((pos - 1.0f) / 3.0f);
+    float black = clamp01((pos - 3.0f) / 2.5f) * 0.65f;   // full blackout only well above the grey-out
+    float red = clamp01((-this->g_smooth - 1.0f) / 2.5f);
+    tunnel = std::max(tunnel, red * 0.5f);
+    Screen->setGEffect(clamp01(tunnel * s), clamp01(grey * s), clamp01(black * s), clamp01(red * s));
+}
+
 void SCStrike::registerSimulatorInputs() {
     
 }
@@ -1663,6 +1707,9 @@ void SCStrike::init(void) {
     this->cockpit_metal = cfg.getString("Video", "cockpit_metal", "1") != "0";
     this->camera_mouse = cfg.getString("Video", "camera_mouse", "1") != "0";
     this->camera_mouse_invert_y = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
+    this->g_effects = cfg.getString("Video", "g_effects", "1") != "0";
+    this->g_effects_threshold = std::min(9.0f, std::max(2.0f, (float)atof(cfg.getString("Video", "g_effects_threshold", "5").c_str())));
+    this->g_effects_strength = std::min(2.0f, std::max(0.0f, (float)atof(cfg.getString("Video", "g_effects_strength", "1").c_str())));
     this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
     GameState.f16_replacements=0;
 }
@@ -1947,6 +1994,7 @@ void SCStrike::runFrame(void) {
     } else if (this->camera_mode != View::REAL) {
         this->forward_3d_active = false;
     }
+    this->updateGEffects();
     Renderer.setLight(&this->light);
     if (!this->pause_simu && this->camera_mode!=View::AUTO_PILOT) {
         this->mfd_timeout--;
