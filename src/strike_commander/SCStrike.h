@@ -170,6 +170,16 @@ protected:
     bool cockpit_3d_default{false};
     /** @brief true while the 3D cockpit is used as forward view (head fixed straight ahead) */
     bool forward_3d_active{false};
+    /** @brief [Video] cockpit_metal: brushed metal texture on the flat grey surfaces of the 3D cockpit model */
+    bool cockpit_metal{true};
+    /** @brief head yaw (degrees) used while forward_3d_active: 0 forward, 270 left, 90 right */
+    float forward_3d_yaw{0.0f};
+    /** @brief [Video] camera_mouse: mouse position orbits the external cameras (F2, F7, F8), wheel zooms */
+    bool camera_mouse{true};
+    bool camera_mouse_invert_y{true};
+    float orbit_yaw{0.0f};
+    float orbit_pitch{0.0f};
+    float orbit_zoom{1.0f};
     void renderVirtualF16Cockpit();
     void renderVirtualF22Cockpit();
     int world_lod{BLOCK_LOD_MAX};

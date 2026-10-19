@@ -3,6 +3,7 @@
 #include "SCChaseCamera.h"
 #include "SCTargetCamera.h"
 #include "SCRotaCamera.h"
+#include "SCOrbitCamera.h"
 #include "SCSequenceCamera.h"
 #include "../realspace/RSWorld.h"
 #include <functional>
@@ -285,4 +286,10 @@ RSCameraType SCCameraDirector::activeCameraType() const {
 
 SCMissionActors *SCCameraDirector::activeSubject() const {
     return this->active_subject;
+}
+
+void SCCameraDirector::setUserOrbit(float yaw, float pitch, float zoom) {
+    if (auto *orbit = dynamic_cast<SCOrbitCamera *>(this->active_camera)) {
+        orbit->setUserOrbit(yaw, pitch, zoom);
+    }
 }

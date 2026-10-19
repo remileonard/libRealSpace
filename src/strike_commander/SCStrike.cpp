@@ -15,6 +15,7 @@
 #include "SCStrike.h"
 #include "../realspace/block_def.h"
 #include "../engine/gametimer.h"
+#include "../engine/EventManager.h"
 #define SC_WORLD 1100
 #define RENDER_DISTANCE 40000.0f
 #define AUTOPILOTE_TIMEOUT 1000
@@ -92,6 +93,11 @@ static void drawTargetSquareOverlay(int32_t viewportW,
     glMatrixMode(GL_MODELVIEW);
 
 }
+// enables the metal detail of the renderer while the 3D cockpit model is drawn
+struct MetalScope {
+    explicit MetalScope(bool on) { SCRenderer::getInstance().metal_detail = on; }
+    ~MetalScope() { SCRenderer::getInstance().metal_detail = false; }
+};
 void SCStrike::cleanupVirtualCockpitTextures() {
     static std::vector<Texture *> s_PrevFrameGLTex;
     static std::vector<Texture *> s_CurrentFrameGLTex;
@@ -153,9 +159,9 @@ void SCStrike::renderVirtualF16Cockpit() {
         const float cockpitScale = 1.0f; // ajuste: 0.7 .. 0.95
         //cockpit_ajustement = { -0.225f,-(float) this->eye_y+2.35f,0.0f};
         cockpit_ajustement = { -0.55f,-(float) this->eye_y,0.0f};
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
+        MetalScope metal_scope(this->cockpit_metal); Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
     } else {
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement);
+        MetalScope metal_scope(this->cockpit_metal); Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
 
     
@@ -495,9 +501,9 @@ void SCStrike::renderVirtualF22Cockpit() {
         const float cockpitScale = 1.0f; // ajuste: 0.7 .. 0.95
         //cockpit_ajustement = { -0.225f,-(float) this->eye_y+2.35f,0.0f};
         cockpit_ajustement = { -0.55f,-(float) this->eye_y,0.0f};
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
+        MetalScope metal_scope(this->cockpit_metal); Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement, cockpitScale);
     } else {
-        Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement);
+        MetalScope metal_scope(this->cockpit_metal); Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, cockpit_pos, cockpit_rot, cockpit_ajustement);
     }
 
     
@@ -966,8 +972,30 @@ void SCStrike::checkKeyboard(void) {
     if (this->camera_mode == View::AUTO_PILOT) {
         return;
     }
+    // external cameras (chase F2, target F7, missile F8): like the F6 cockpit look, the mouse position
+    // orbits the camera around the plane (no button needed); wheel zooms, middle button resets the zoom
+    bool orbiting = false;
+    if (this->camera_mouse && (this->camera_mode == View::CAM_DIRECTOR || this->camera_mode == View::MISSILE_CAM)) {
+        orbiting = true;
+        float nx = (float)msx / (float)std::max(1, Screen->logical_width / 2);    // -1 .. 1
+        float ny = (float)msy / (float)std::max(1, Screen->logical_height / 2);   // -1 .. 1
+        nx = std::min(1.0f, std::max(-1.0f, nx));
+        ny = std::min(1.0f, std::max(-1.0f, ny));
+        this->orbit_yaw = nx * (float)M_PI;                                        // screen edge = 180 degrees
+        this->orbit_pitch = std::min(1.35f, std::max(-0.9f, (this->camera_mouse_invert_y ? -ny : ny) * 1.35f));
+        int wheel = EventManager::getInstance().getMouseWheel();
+        if (wheel != 0) {
+            this->orbit_zoom = std::min(3.0f, std::max(0.35f, this->orbit_zoom * powf(0.9f, (float)wheel)));
+        }
+        if (m_keyboard->isActionJustPressed(InputAction::MOUSE_MIDDLE)) {
+            this->orbit_zoom = 1.0f;
+        }
+        if (this->camera_mode == View::CAM_DIRECTOR) {
+            this->current_mission->camera_director->setUserOrbit(this->orbit_yaw, this->orbit_pitch, this->orbit_zoom);
+        }
+    }
     if (!this->autopilot) {
-        if (this->mouse_control) {
+        if (this->mouse_control && !orbiting) {
             this->player_plane->control_stick_x = msx;
             this->player_plane->control_stick_y = msy;
         } else {
@@ -976,8 +1004,8 @@ void SCStrike::checkKeyboard(void) {
         }
     }
     if (this->camera_mode == View::REAL && this->forward_3d_active) {
-        // forward view in the 3D cockpit: look straight ahead, the mouse flies the plane
-        this->pilote_lookat.x = 0;
+        // fixed view in the 3D cockpit (forward or left/right): the mouse flies the plane
+        this->pilote_lookat.x = this->forward_3d_yaw;
         this->pilote_lookat.y = 0;
     } else if (this->camera_mode == View::REAL) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
@@ -1197,6 +1225,9 @@ void SCStrike::checkKeyboard(void) {
     
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
         //this->camera_mode = View::TARGET;
+        this->orbit_yaw = 0.0f;
+        this->orbit_pitch = 0.0f;
+        this->orbit_zoom = 1.0f;
         CameraViewRequest target_req;
         this->camera_mode = View::CAM_DIRECTOR;
         target_req.camera_type = RSCameraType::RSCAM_TARG;
@@ -1223,6 +1254,9 @@ void SCStrike::checkKeyboard(void) {
             this->follow_dynamic = !this->follow_dynamic;
         }
         this->camera_mode = View::FOLLOW;*/
+        this->orbit_yaw = 0.0f;
+        this->orbit_pitch = 0.0f;
+        this->orbit_zoom = 1.0f;
         CameraViewRequest chase;
         this->camera_mode = View::CAM_DIRECTOR;
         chase.camera_type = RSCameraType::RSCAM_CHAS;   // = 3, défini dans RSWorld.h
@@ -1245,6 +1279,9 @@ void SCStrike::checkKeyboard(void) {
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_WEAPONS))) {
         if (this->camera_mode != View::MISSILE_CAM) {
+            this->orbit_yaw = 0.0f;
+            this->orbit_pitch = 0.0f;
+            this->orbit_zoom = 1.0f;
             this->camera_mode = View::MISSILE_CAM;
         } else {
             this->camera_mode = View::REAL;
@@ -1257,15 +1294,37 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = 0;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_LEFT))) {
-        this->camera_mode = View::LEFT;
+        if (this->cockpit_3d_default) {
+            // 3D cockpit instead of the (empty) 2D side view, head fixed looking left
+            this->camera_mode = View::REAL;
+            this->cockpit->is_3d_cockpit = true;
+            this->forward_3d_active = true;
+            this->forward_3d_yaw = 270.0f;
+        } else {
+            this->camera_mode = View::LEFT;
+        }
         this->pilote_lookat.x = 270;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_RIGHT))) {
-        this->camera_mode = View::RIGHT;
+        if (this->cockpit_3d_default) {
+            this->camera_mode = View::REAL;
+            this->cockpit->is_3d_cockpit = true;
+            this->forward_3d_active = true;
+            this->forward_3d_yaw = 90.0f;
+        } else {
+            this->camera_mode = View::RIGHT;
+        }
         this->pilote_lookat.x = 90;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_BEHIND))) {
-        this->camera_mode = View::REAR;
+        if (this->cockpit_3d_default) {
+            this->camera_mode = View::REAL;
+            this->cockpit->is_3d_cockpit = true;
+            this->forward_3d_active = true;
+            this->forward_3d_yaw = 180.0f;
+        } else {
+            this->camera_mode = View::REAR;
+        }
         this->pilote_lookat.x = 180;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_TARGET_CAMERA))) {
@@ -1601,6 +1660,9 @@ void SCStrike::init(void) {
     Config &cfg = Config::getInstance();
     this->world_lod = cfg.getInt("Game", "world_detail", 0);
     this->cockpit_3d_default = cfg.getString("Video", "cockpit", "2d") == "3d";
+    this->cockpit_metal = cfg.getString("Video", "cockpit_metal", "1") != "0";
+    this->camera_mouse = cfg.getString("Video", "camera_mouse", "1") != "0";
+    this->camera_mouse_invert_y = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     this->virtual_mouse_cockpit_buffer = new FrameBuffer(320, 200);
     GameState.f16_replacements=0;
 }
@@ -1881,6 +1943,7 @@ void SCStrike::runFrame(void) {
         this->camera_mode = View::REAL;
         this->cockpit->is_3d_cockpit = true;
         this->forward_3d_active = true;
+        this->forward_3d_yaw = 0.0f;
     } else if (this->camera_mode != View::REAL) {
         this->forward_3d_active = false;
     }
@@ -2160,9 +2223,9 @@ void SCStrike::runFrame(void) {
             missil_pos.y+this->camera_pos.y,
             missil_pos.z+this->camera_pos.z
         };
-        const float distanceBehind = -60.0f;
-        float r_azim = degreeToRad(missile->azimuthf);
-        float r_elev = degreeToRad(missile->elevationf);
+        const float distanceBehind = -60.0f * this->orbit_zoom;
+        float r_azim = degreeToRad(missile->azimuthf) + this->orbit_yaw;
+        float r_elev = degreeToRad(missile->elevationf) + this->orbit_pitch;
         float r_twist = 0.0f;
         Vector3D camPos;
         camPos.x = missil_pos.x - distanceBehind * cos(r_elev) * sin(r_azim);

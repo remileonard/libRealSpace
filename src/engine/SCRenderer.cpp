@@ -794,10 +794,86 @@ void SCRenderer::drawModelWithChilds(
         glPopMatrix();
     }
 }
+// Planar mapping of the metal texture along the dominant axis of the face normal (model space)
+static inline void metalTexCoord(const Vector3D &v, const Vector3D &n) {
+    const float k = 0.25f;
+    float ax = fabsf(n.x), ay = fabsf(n.y), az = fabsf(n.z);
+    if (ay >= ax && ay >= az) {
+        glTexCoord2f(v.x * k, v.z * k);
+    } else if (ax >= az) {
+        glTexCoord2f(v.z * k, v.y * k);
+    } else {
+        glTexCoord2f(v.x * k, v.y * k);
+    }
+}
+
+// Procedural brushed metal: horizontal streaks, fine grain, panel seams and rivets. Tiles seamlessly.
+void SCRenderer::ensureMetalTexture() {
+    if (this->metal_tex != 0) {
+        return;
+    }
+    const int N = 128;
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    uint32_t seed = 0x1234abcd;
+    auto rnd = [&seed]() {
+        seed = seed * 1664525u + 1013904223u;
+        return (float)((seed >> 8) & 0xffff) / 65535.0f;
+    };
+    std::vector<float> row(N);
+    for (int y = 0; y < N; y++) {
+        row[y] = rnd();
+    }
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            float v = 0.84f + 0.10f * row[y] + 0.06f * rnd();
+            // panel seams (one per tile in both directions)
+            if (x == 0 || y == 0) {
+                v *= 0.55f;
+            } else if (x == 1 || y == 1) {
+                v *= 0.80f;
+            }
+            // rivets
+            const int rc[4][2] = {{18, 18}, {110, 18}, {18, 110}, {110, 110}};
+            for (auto &r : rc) {
+                int dx = x - r[0], dy = y - r[1];
+                int d2 = dx * dx + dy * dy;
+                if (d2 <= 2) {
+                    v = 1.0f;
+                } else if (d2 <= 7) {
+                    v *= 0.6f;
+                }
+            }
+            if (v > 1.0f) v = 1.0f;
+            uint8_t c = (uint8_t)(v * 255.0f);
+            size_t i = ((size_t)y * N + x) * 4;
+            px[i] = px[i + 1] = px[i + 2] = c;
+            px[i + 3] = 255;
+        }
+    }
+    glGenTextures(1, &this->metal_tex);
+    glBindTexture(GL_TEXTURE_2D, this->metal_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    if (this->max_anisotropy > 1.0f) {
+        glTexParameterf(GL_TEXTURE_2D, SC_TEXTURE_MAX_ANISOTROPY, std::min(8.0f, this->max_anisotropy));
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+}
+
 void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {
     Lod *lod = &object->lods[lodLevel];
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    const bool metal = this->metal_detail;
+    if (metal) {
+        this->ensureMetalTexture();
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, this->metal_tex);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    }
     // Pass 1, draw color
     for (int i = 0; i < lod->numTriangles; i++) {
         uint16_t triangleID = lod->triangleIDs[i];
@@ -850,6 +926,9 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
             }
             Vector3D rgb = this->shadeAlongRamp(colour, this->objectIntensity(normal));
             glColor4f(rgb.x, rgb.y, rgb.z, alpha);
+            if (metal) {
+                metalTexCoord(vLocal, face_normal);
+            }
             glVertex3f(vLocal.x, vLocal.y, vLocal.z);
         }
         glEnd();
@@ -915,6 +994,9 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
                 }
                 Vector3D rgb = this->shadeAlongRamp(colour, this->objectIntensity(normal));
                 glColor4f(rgb.x, rgb.y, rgb.z, alpha);
+                if (metal) {
+                    metalTexCoord(vLocal, face_normal);
+                }
                 glVertex3f(vLocal.x, vLocal.y, vLocal.z);
             }
             glEnd();
@@ -922,6 +1004,9 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
                 glEnable(GL_CULL_FACE);
             }
         }
+    }
+    if (metal) {
+        glDisable(GL_TEXTURE_2D);
     }
     glDisable(GL_BLEND);
 }

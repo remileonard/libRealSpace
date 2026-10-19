@@ -39,6 +39,8 @@ public:
     const RSCameraDef        &definition() const;             // accès complet (fov, clips, viewport, params...)
 
     void activate(SCMissionActors *subject, SCMissionActors *target) override;
+    // player mouse orbit around the subject: yaw/pitch in radians, zoom = distance factor
+    void setUserOrbit(float yaw, float pitch, float zoom) { user_yaw = yaw; user_pitch = pitch; user_zoom = zoom; }
     void tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3D &out_up) override;
 
 protected:
@@ -72,4 +74,7 @@ protected:
     Matrix    orbit;                       // identité par défaut ; ROTA la tourne
     float     dist{0.0f};
     Vector3D  cam_pos{0.0f, 0.0f, 0.0f};
+    float     user_yaw{0.0f};
+    float     user_pitch{0.0f};
+    float     user_zoom{1.0f};
 };

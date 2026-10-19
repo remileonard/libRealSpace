@@ -85,6 +85,9 @@ public:
     RSCameraType     activeCameraType() const;
     SCMissionActors *activeSubject() const;
 
+    // mouse orbit of the player around the subject (orbit cameras only: chase F2, target F7)
+    void setUserOrbit(float yaw, float pitch, float zoom);
+
 private:
     void onEvent(const EventMessage &event);
     // Aiguilleur : une CameraViewRequest -> retrouve la SCProceduralCamera

@@ -119,6 +119,9 @@ void SCOrbitCamera::activate(SCMissionActors *subject, SCMissionActors *target) 
     (void)target;   // ignoré par la classe de base — cf. commentaire de tête de fichier
     this->subject = subject;
     this->orbit.Identity();
+    this->user_yaw = 0.0f;
+    this->user_pitch = 0.0f;
+    this->user_zoom = 1.0f;
     if (subject == nullptr) {
         if (this->debugEnabled()) {
             printf("%s activate name='%s' subject=NULL -> subject reste NULL, rien d'autre initialisé\n",
@@ -164,7 +167,15 @@ void SCOrbitCamera::tick(float dt, Vector3D &out_pos, Vector3D &out_aim, Vector3
     // `orbit` = identité pour CHASE/TARGET ; tournée par ROTA avant l'appel
     // à cette méthode (cf. SCRotaCamera::tick).
     Vector3D axis       = this->backwardAxis(subjectPos);
-    Vector3D desiredPos = subjectPos - axis * this->dist;
+    if (this->user_yaw != 0.0f || this->user_pitch != 0.0f) {
+        // orbit around the subject: yaw about the world vertical, then raise/lower the camera
+        float c = cosf(this->user_yaw), s = sinf(this->user_yaw);
+        Vector3D a(axis.x * c + axis.z * s, axis.y, -axis.x * s + axis.z * c);
+        float cp = cosf(this->user_pitch), sp = sinf(this->user_pitch);
+        axis = Vector3D(a.x * cp, a.y * cp - sp, a.z * cp);
+        axis.Normalize();
+    }
+    Vector3D desiredPos = subjectPos - axis * (this->dist * this->user_zoom);
 
     // Lissage ASM : pos += (cible - pos) / 4 PAR FRAME. Mis à l'échelle du dt
     // réel (référence 25 fps, cf. CAMERA_SYSTEM.md §6.3) pour rester correct

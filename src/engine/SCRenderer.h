@@ -102,6 +102,10 @@ public:
     float terrain_shadow_range{0.35f};
     bool terrain_flat{false};
     bool show_textured{true};
+    // brushed metal detail for flat coloured polygons (set around the 3D cockpit model only)
+    bool metal_detail{false};
+    GLuint metal_tex{0};
+    void ensureMetalTexture();
     bool show_clouds{false};
     int lodLevel{0};
     GLuint texture{0};
