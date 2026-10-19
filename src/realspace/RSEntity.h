@@ -318,6 +318,10 @@ public:
     void parseREAL_OBJT_JETP(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size);
     BoudingBox bb;
+    // Optional replacement airframe for the player jet (OBJ file with groups lod0..lodN, game axes:
+    // x forward, y up, z lateral). Flight model, hard points and child objects stay from the IFF.
+    static std::string airframe_obj_path;
+    bool replaceGeometryFromOBJ(const std::string &path);
 private:
     void CalcBoundingBox(void);
     void calcWingArea(void);

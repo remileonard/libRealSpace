@@ -316,6 +316,7 @@ void SCRenderer::init(int width, int height) {
     AssetManager &assets = AssetManager::instance();
     Config &config = Config::instance();
     this->max_view_distance = config.getInt("Game", "max_view_distance", 160000);
+    RSEntity::airframe_obj_path = config.getString("Models", "f16_obj", "");
     this->counter = 0;
 
     RSPalette palette;

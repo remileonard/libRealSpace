@@ -34,3 +34,6 @@ out/
 CMakeFiles
 .clang-uml
 GAMEFLOW.IFF
+
+# local-only 3D models (licence does not allow redistribution)
+models/
