@@ -1,7 +1,7 @@
 # StrikeCommanderEnhanced
 
 Optional extensions of Strike Commander that live outside the original classes. Everything here derives from the
-original code (`EnhancedMainMenu : SCMainMenu`, `EnhancedGameFlow`, `EnhancedStrike`, `EnhancedMission`, `EnhancedEntity`, ...) and is only active in the
+original code (`EnhancedEntity : RSEntity`, later `EnhancedStrike : SCStrike`, ...) and is only active in the
 `neosc_enhanced` executable. The original `neosc` is not affected.
 
 ## Replacement models
@@ -32,3 +32,15 @@ drawn. `EnhancedStrike` overrides it and adds, per aircraft:
 The renderer stays pure: it only offers `SCRenderer::createTexture()` and `SCRenderer::drawTriangles()` (world-space
 triangles, texture, alpha or additive blending). All effect geometry and the procedural textures are built here.
 Plain fixed-function OpenGL, nothing else is required.
+
+## Mouse orbit for the external cameras (`EnhancedStrike`)
+
+`SCStrike` provides two empty hooks, `afterInput()` (after the keyboard/mouse processing, before the simulation) and
+`afterCameraPlaced()` (after the camera of the current view has been placed). `EnhancedStrike` uses them for the chase (F2),
+target (F7) and rotating cameras of the camera director and for the missile camera (F8):
+
+- the mouse position orbits the camera around the plane (screen edge = 180 degrees), no button needed,
+- the mouse wheel zooms, the middle button resets the zoom,
+- while orbiting, the mouse does not fly the plane.
+
+`[Video] camera_mouse_invert_y = 0` makes mouse-down raise the camera instead of lowering it.

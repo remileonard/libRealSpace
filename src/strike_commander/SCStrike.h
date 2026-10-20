@@ -40,6 +40,18 @@ protected:
      */
     virtual void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) {}
 
+    /**
+     * @brief Hook, empty by default: called each frame right after the keyboard/mouse input has been processed and before the
+     *        simulation step.
+     */
+    virtual void afterInput() {}
+
+    /**
+     * @brief Hook, empty by default: called each frame once the camera of the current view has been placed, before the scene
+     *        is rendered.
+     */
+    virtual void afterCameraPlaced() {}
+
     bool air_weapons_mode{false};
     /**
      * @brief Path to current mission file

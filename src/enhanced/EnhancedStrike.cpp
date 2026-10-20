@@ -1,7 +1,9 @@
 #include "../strike_commander/precomp.h"
 #include "EnhancedStrike.h"
 #include "EnhancedMission.h"
+#include <cmath>
 #include <cstdio>
+#include "../engine/EventManager.h"
 #include "../engine/SCRenderer.h"
 #include "../realspace/RSEntity.h"
 #include "../realspace/RSMission.h"
@@ -114,4 +116,117 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
     }
     this->vortices.draw(plane, entity, model, view, plane->g_load);
     this->updateSmoke(plane, position, now, view);
+}
+
+void EnhancedStrike::init() {
+    SCStrike::init();
+    Config &cfg = Config::getInstance();
+    this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
+    printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
+}
+
+// Chase (F2), target (F7) and orbit cameras of the camera director, and the missile camera (F8)
+bool EnhancedStrike::orbitAllowed() const {
+    if (this->camera_mode == View::MISSILE_CAM) {
+        return !this->player_plane->weaps_object.empty() && this->player_plane->weaps_object.back() != nullptr;
+    }
+    if (this->camera_mode != View::CAM_DIRECTOR) {
+        return false;
+    }
+    RSCameraType type = this->current_mission->camera_director->activeCameraType();
+    return type == RSCameraType::RSCAM_CHAS || type == RSCameraType::RSCAM_TARG || type == RSCameraType::RSCAM_ROTA;
+}
+
+// The mouse position orbits the camera around the plane (screen edge = 180 degrees), wheel zooms, middle button resets
+void EnhancedStrike::updateOrbit() {
+    const float halfWidth = (float)std::max(1, Screen->logical_width / 2);
+    const float halfHeight = (float)std::max(1, Screen->logical_height / 2);
+    float mx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
+    float my = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
+    float nx = std::min(1.0f, std::max(-1.0f, (mx - Screen->logical_width / 2) / halfWidth));
+    float ny = std::min(1.0f, std::max(-1.0f, (my - Screen->logical_height / 2) / halfHeight));
+    this->orbitYaw = nx * (float)M_PI;
+    this->orbitPitch = std::min(1.35f, std::max(-0.9f, (this->orbitInvertY ? -ny : ny) * 1.35f));
+    int wheel = EventManager::getInstance().getMouseWheel();
+    if (wheel != 0) {
+        this->orbitZoom = std::min(3.0f, std::max(0.35f, this->orbitZoom * powf(0.9f, (float)wheel)));
+    }
+    if (m_keyboard->isActionJustPressed(InputAction::MOUSE_MIDDLE)) {
+        this->orbitZoom = 1.0f;
+    }
+}
+
+void EnhancedStrike::afterInput() {
+    if ((int)this->camera_mode != this->orbitLastView) {
+        this->orbitLastView = (int)this->camera_mode;
+        this->orbitZoom = 1.0f;
+    }
+    const bool allowed = this->orbitAllowed();
+    if (allowed != this->orbitActive) {
+        printf("[enhanced] camera mouse orbit: %s (view %d)\n", allowed ? "on" : "off", (int)this->camera_mode);
+        this->orbitActive = allowed;
+    }
+    if (!allowed) {
+        this->orbitYaw = 0.0f;
+        this->orbitPitch = 0.0f;
+        return;
+    }
+    this->updateOrbit();
+    // the mouse position steers the camera here, not the plane (a key press has already switched mouse_control off)
+    if (this->mouse_control) {
+        this->player_plane->control_stick_x = 0;
+        this->player_plane->control_stick_y = 0;
+    }
+}
+
+// Yaw about the world vertical, then raise/lower the camera, distance scaled by the zoom
+Vector3D EnhancedStrike::orbitedPosition(Vector3D pivot, Vector3D position) const {
+    Vector3D offset = position - pivot;
+    const float distance = offset.Length();
+    if (distance < 1e-3f) {
+        return position;
+    }
+    Vector3D axis = offset * (-1.0f / distance);
+    const float c = cosf(this->orbitYaw);
+    const float s = sinf(this->orbitYaw);
+    Vector3D turned(axis.x * c + axis.z * s, axis.y, -axis.x * s + axis.z * c);
+    const float cp = cosf(this->orbitPitch);
+    const float sp = sinf(this->orbitPitch);
+    axis = Vector3D(turned.x * cp, turned.y * cp - sp, turned.z * cp);
+    axis.Normalize();
+    return pivot - axis * (distance * this->orbitZoom);
+}
+
+void EnhancedStrike::afterCameraPlaced() {
+    if (!this->orbitActive || !this->orbitAllowed()) {
+        return;
+    }
+    Vector3D pivot;
+    if (this->camera_mode == View::MISSILE_CAM) {
+        this->player_plane->weaps_object.back()->GetPosition(&pivot);
+    } else {
+        SCMissionActors *subject = this->current_mission->camera_director->activeSubject();
+        if (subject == nullptr) {
+            return;
+        }
+        if (subject->plane != nullptr) {
+            pivot = Vector3D(subject->plane->x, subject->plane->y, subject->plane->z);
+        } else {
+            pivot = subject->object->position;
+        }
+    }
+    Point3D current = this->camera->getPosition();
+    Vector3D position = this->orbitedPosition(pivot, Vector3D(current.x, current.y, current.z));
+    this->camera->SetPosition(&position);
+    if (this->camera_mode == View::MISSILE_CAM) {
+        this->camera->lookAt(&pivot);
+    } else {
+        Vector3D up = this->current_mission->camera_director->up();
+        this->camera->lookAt(&pivot, &up);
+    }
+    if (this->orbitTraceFrames > 0) {
+        printf("[enhanced] orbit: pivot (%.1f %.1f %.1f) camera (%.1f %.1f %.1f) yaw %.2f pitch %.2f zoom %.2f\n", pivot.x, pivot.y,
+               pivot.z, position.x, position.y, position.z, this->orbitYaw, this->orbitPitch, this->orbitZoom);
+        this->orbitTraceFrames--;
+    }
 }
