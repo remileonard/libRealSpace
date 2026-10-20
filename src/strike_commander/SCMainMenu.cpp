@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "SCFactory.h"
 #include <boost/filesystem.hpp>
 
 
@@ -54,7 +55,7 @@ void SCMainMenu::OnLoadGame() {
 }
 
 void SCMainMenu::OnStartNewGame() {
-    SCGameFlow *gfl = new SCGameFlow();
+    SCGameFlow *gfl = SCFactory::createGameFlow();
     GameState.Reset();
     gfl->init();
     SCRegister *registerActivity = new SCRegister();
@@ -115,7 +116,7 @@ void SCMainMenu::init(void) {
 }
 void SCMainMenu::LoadGame(std::string filename) {
     GameState.Load(filename);
-    SCGameFlow *gfl = new SCGameFlow();
+    SCGameFlow *gfl = SCFactory::createGameFlow();
     gfl->InitFromGameState();
     Game->addActivity(gfl);
     if (this->frequest) {

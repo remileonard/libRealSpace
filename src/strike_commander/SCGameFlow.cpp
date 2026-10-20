@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "SCFactory.h"
 
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
@@ -126,7 +127,7 @@ void SCGameFlow::flyOrReturnFromScene(std::vector<EFCT *> *script, uint8_t id) {
     }
 }
 void SCGameFlow::flyMission(uint8_t missionid) {
-    SCStrike *fly = new SCStrike();
+    SCStrike *fly = SCFactory::createStrike();
     fly->init();
     fly->setMission(this->missionToFly);
     this->missionToFly = nullptr;

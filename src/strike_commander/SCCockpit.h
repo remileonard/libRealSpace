@@ -119,7 +119,7 @@ public:
     Vector3D targetImpactPointWorld = {0.0f, 0.0f, 0.0f};
     int frame{0};
     SCCockpit();
-    ~SCCockpit();
+    virtual ~SCCockpit();
     void init( );
     void Update();
     void Render(CockpitFace face);

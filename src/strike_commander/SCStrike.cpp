@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "SCFactory.h"
 #include <cctype>
 #include <tuple>
 #include <optional>
@@ -1635,7 +1636,7 @@ void SCStrike::setMission(char const *missionName) {
         this->current_mission = nullptr;
     } 
     this->miss_file_name = missionName;
-    this->current_mission = new SCMission(missionName, &object_cache);
+    this->current_mission = SCFactory::createMission(missionName, &object_cache);
     ai_planes.clear();
     ai_planes.shrink_to_fit();
     
@@ -1694,7 +1695,7 @@ void SCStrike::setMission(char const *missionName) {
     
     this->player_plane->InitLoadout();
     this->player_prof = this->current_mission->player->profile;
-    this->cockpit = new SCCockpit();
+    this->cockpit = SCFactory::createCockpit();
     this->cockpit->player_plane = this->player_plane;
     this->cockpit->init();
     this->cockpit->current_mission = this->current_mission;

@@ -99,7 +99,7 @@ public:
     bool mission_won{false};
     SCMission();
     SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache);
-    ~SCMission();
+    virtual ~SCMission();
     virtual void loadMission();
     void cleanup();
     virtual void update();

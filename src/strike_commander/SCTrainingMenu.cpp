@@ -7,6 +7,7 @@
 //
 
 #include "precomp.h"
+#include "SCFactory.h"
 
 SCTrainingMenu::SCTrainingMenu() {
     this->music_playing = false;
@@ -33,7 +34,7 @@ void SCTrainingMenu::unFocus(void) {
 }
 
 void SCTrainingMenu::OnSearchAndDestroy() {
-    SCStrike *strike = new SCStrike();
+    SCStrike *strike = SCFactory::createStrike();
     strike->init();
     strike->setMission("TEMPLATE.IFF");
     Game->addActivity(strike);

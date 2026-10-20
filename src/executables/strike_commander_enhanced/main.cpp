@@ -9,14 +9,14 @@
 #include "../../strike_commander/precomp.h"
 #include "../../engine/gametimer.h"
 #include "../../engine/desktoptimer.h"
-#include "../../enhanced/EnhancedEntity.h"
+#include "../../enhanced/EnhancedModule.h"
 #define FLOPPY 0
 
 int main(int argc, char* argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
-    // StrikeCommanderEnhanced: game entities are created as EnhancedEntity (replacement models by file name)
-    RSEntity::factory = []() -> RSEntity * { return new EnhancedEntity(); };
+    // StrikeCommanderEnhanced: the game creates its entities, game flow, strike, mission and cockpit as Enhanced* classes
+    EnhancedModule::registerAll();
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
     
     RSScreen::setInstance(std::make_unique<RSScreen>());
