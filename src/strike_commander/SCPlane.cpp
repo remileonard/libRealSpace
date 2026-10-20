@@ -743,7 +743,8 @@ void SCPlane::Simulate() {
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
     const float rise_speed = 1.0f; // Adjust this value to control the rise speed of the smoke
-    if (this->object->alive == false) {
+    this->damage_level = this->object->alive ? this->getDamageLevel() : 1.0f;
+    if (this->object->alive == false || this->damage_level >= 0.2f) {
         Vector3D smoke_position = {this->x, this->y, this->z};
 
         this->smoke_positions.insert(this->smoke_positions.begin(), smoke_position);
@@ -1387,52 +1388,38 @@ void SCPlane::Render() {
         if (this->object->alive == false) {
             this->RenderSmoke();
         } else {
+            if (this->damage_level >= 0.2f) {
+                this->RenderSmoke();
+            }
             this->RenderSimulatedObject();
         }
     }
 }
 void SCPlane::RenderSmoke() {
-    int cpt = 0;
-    const int MAX_SMOKE=7;
-    std::map<int, int> anim_map = {
-        {0, 0}, {1, 1}, {2, 3}, {3, 2}, {4, 4}, {5, 2}, {6, 4}
-    };
-    
-
-    // Ensure we don't divide by zero
-    int frames_per_tick = this->tps / 12;
-    if (frames_per_tick < 1) frames_per_tick = 1;
-    this->anim_ticks++;
-    int anim_frame = 0;
-    int nb_smoke = (int) this->smoke_positions.size();
-    for (auto pos: this->smoke_positions) {
-        int id_anim = 4;
-        if (cpt < 5) {
-            cpt++;
-            continue;
-        }
-        
-        int id_map = (cpt - 5);
-        if (id_map >= anim_map.size()-1) {
-            id_map = (int) (anim_map.size()-1)-(cpt % 2);
-        }
-        id_anim = anim_map[id_map];
-        int frame = 0;
-        if (id_anim < 0 || id_anim >= this->smoke_set->smoke_textures.size()) {
-            continue;
-        }
-        if (this->smoke_set->smoke_textures[id_anim].size() > 0) {
-            if (this->anim_ticks % frames_per_tick == 0) {
-                this->smoke_anim_counters[cpt] = (this->smoke_anim_counters[cpt]+1) % (this->smoke_set->smoke_textures[id_anim].size());
-            }
-            float alpha = ((nb_smoke-5) - (cpt-5)) / ((float) nb_smoke-5.0f);
-            Texture *tex = this->smoke_set->smoke_textures[id_anim][this->smoke_anim_counters[cpt]];
-            if (tex != nullptr) {
-                Renderer.drawBillboard(pos, tex, 10, alpha);
-            }
-        }
-        cpt++;
+    const bool burning = !this->crached && (this->object->alive == false || this->damage_level >= 0.7f);
+    Renderer.drawDamageSmoke(this->smoke_positions, this->damage_level, burning);
+}
+float SCPlane::getDamageLevel() {
+    if (this->object == nullptr || this->object->entity == nullptr) {
+        return 0.0f;
     }
+    float max_sum = 0.0f;
+    float lost = 0.0f;
+    for (const auto &sys : this->object->entity->sysm) {
+        auto hs = this->system_health.find(sys.first);
+        if (hs == this->system_health.end()) {
+            continue;
+        }
+        for (const auto &sub : sys.second) {
+            auto h = hs->second.find(sub.first);
+            if (h == hs->second.end() || sub.second == 0) {
+                continue;
+            }
+            max_sum += (float)sub.second;
+            lost += (float)(sub.second - std::min<uint16_t>(sub.second, h->second));
+        }
+    }
+    return max_sum > 0.0f ? std::min(1.0f, lost / max_sum) : 0.0f;
 }
 void SCPlane::RenderSimulatedObject() {
     for (auto sim_obj: this->weaps_object) {

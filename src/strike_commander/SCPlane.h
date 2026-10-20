@@ -346,6 +346,10 @@ public:
     virtual void Render();
     virtual void RenderSimulatedObject();
     virtual void RenderSmoke(); 
+    /** 0 = undamaged ... 1 = all systems gone, derived from system_health vs. the model's sysm table */
+    float getDamageLevel();
+    float damage_level{0.0f};
+    void clearSmoke() { this->smoke_positions.clear(); this->smoke_anim_counters.clear(); }
     virtual void Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
     virtual void ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);
     virtual void InitLoadout();

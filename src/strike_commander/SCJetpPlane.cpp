@@ -806,7 +806,8 @@ void SCJetpPlane::Simulate() {
     this->object->entity->position.z = this->z;
 
     const float rise_speed = 1.0f;
-    if (this->object->alive == false) {
+    this->damage_level = this->object->alive ? this->getDamageLevel() : 1.0f;
+    if (this->object->alive == false || this->damage_level >= 0.2f) {
         Vector3D smoke_position(this->x, this->y, this->z);
         this->smoke_positions.insert(this->smoke_positions.begin(), smoke_position);
         if (this->smoke_anim_counters.size() < this->smoke_set->smoke_textures.size() + 10)

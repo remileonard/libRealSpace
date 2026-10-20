@@ -952,6 +952,186 @@ void SCRenderer::drawExhaust(int thrust) {
     glPopAttrib();
 }
 
+// ---------------------------------------------------------------------------
+// Damage smoke: soft, noisy, ageing puffs (replaces the low-res original sprites)
+// ---------------------------------------------------------------------------
+void SCRenderer::ensureSmokeTexture() {
+    if (this->smoke_puff_tex != 0) {
+        return;
+    }
+    uint32_t seed = 0x1b873593;
+    auto rnd = [&seed]() {
+        seed = seed * 1664525u + 1013904223u;
+        return (float)((seed >> 8) & 0xffff) / 65535.0f;
+    };
+    std::vector<float> lat(64 * 64);
+    for (auto &v : lat) {
+        v = rnd();
+    }
+    const int N = 128;
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            float fx = (x + 0.5f) / N, fy = (y + 0.5f) / N;
+            float dx = fx * 2.0f - 1.0f, dy = fy * 2.0f - 1.0f;
+            float r = sqrtf(dx * dx + dy * dy);
+            float n = 0.50f * fl_noise(lat, 4, 4, fx, fy) + 0.30f * fl_noise(lat, 8, 8, fx, fy) +
+                      0.20f * fl_noise(lat, 16, 16, fx, fy);
+            // soft round body, billowy edge
+            float edge = fl_smooth(1.0f, 0.35f, r + (n - 0.5f) * 0.55f);
+            float core = 0.55f + 0.45f * n;
+            float a = std::min(1.0f, std::max(0.0f, edge * core));
+            // slightly lighter on the upper left so the puffs read as volumes
+            float shade = 0.80f + 0.20f * std::min(1.0f, std::max(0.0f, 0.5f - 0.5f * (dx + dy) * 0.7f + (n - 0.5f) * 0.6f));
+            size_t i = ((size_t)y * N + x) * 4;
+            px[i] = px[i + 1] = px[i + 2] = (uint8_t)(255.0f * shade);
+            px[i + 3] = (uint8_t)(a * 255.0f);
+        }
+    }
+    glGenTextures(1, &this->smoke_puff_tex);
+    glBindTexture(GL_TEXTURE_2D, this->smoke_puff_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+}
+
+// pts[0] is the newest puff, the last one the oldest. intensity: 0.2 (light damage, thin grey wisp) .. 1 (destroyed,
+// thick black). burning: aircraft is still airborne and on fire.
+void SCRenderer::drawDamageSmoke(const std::vector<Vector3D> &pts, float intensity, bool burning) {
+    const size_t n = pts.size();
+    if (!initialized || n < 2) {
+        return;
+    }
+    this->ensureFlameTextures();
+    this->ensureSmokeTexture();
+    static const auto t0 = std::chrono::steady_clock::now();
+    const float now = std::chrono::duration<float>(std::chrono::steady_clock::now() - t0).count();
+    Point3D cp = camera.getPosition();
+    const float eye[3] = {(float)cp.x, (float)cp.y, (float)cp.z};
+
+    struct Puff {
+        size_t i;
+        float d;
+    };
+    std::vector<Puff> order(n);
+    for (size_t i = 0; i < n; i++) {
+        float dx = pts[i].x - eye[0], dy = pts[i].y - eye[1], dz = pts[i].z - eye[2];
+        order[i] = {i, dx * dx + dy * dy + dz * dz};
+    }
+    std::sort(order.begin(), order.end(), [](const Puff &a, const Puff &b) { return a.d > b.d; });
+
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    auto hash01 = [](uint32_t h, uint32_t k) {
+        h = (h ^ (k * 0x9e3779b1u)) * 0x85ebca6bu;
+        h ^= h >> 13;
+        h *= 0xc2b2ae35u;
+        h ^= h >> 16;
+        return (float)(h & 0xffff) / 65535.0f;
+    };
+    // draws one camera-facing, rotated quad
+    auto quad = [&](const float c[3], float size, float rot) {
+        float L[3] = {eye[0] - c[0], eye[1] - c[1], eye[2] - c[2]};
+        float ll = sqrtf(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+        if (ll < 1e-4f) return;
+        for (int j = 0; j < 3; j++) L[j] /= ll;
+        float R[3] = {L[2], 0.0f, -L[0]};  // up(0,1,0) x look
+        float rl = sqrtf(R[0] * R[0] + R[2] * R[2]);
+        if (rl < 1e-4f) { R[0] = 1.0f; R[2] = 0.0f; rl = 1.0f; }
+        R[0] /= rl; R[2] /= rl;
+        float U[3] = {L[1] * R[2] - L[2] * R[1], L[2] * R[0] - L[0] * R[2], L[0] * R[1] - L[1] * R[0]};
+        float cs = cosf(rot) * size, sn = sinf(rot) * size;
+        float rx[3], ux[3];
+        for (int j = 0; j < 3; j++) {
+            rx[j] = R[j] * cs + U[j] * sn;
+            ux[j] = -R[j] * sn + U[j] * cs;
+        }
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(c[0] - rx[0] - ux[0], c[1] - rx[1] - ux[1], c[2] - rx[2] - ux[2]);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(c[0] + rx[0] - ux[0], c[1] + rx[1] - ux[1], c[2] + rx[2] - ux[2]);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(c[0] + rx[0] + ux[0], c[1] + rx[1] + ux[1], c[2] + rx[2] + ux[2]);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(c[0] - rx[0] + ux[0], c[1] - rx[1] + ux[1], c[2] - rx[2] + ux[2]);
+        glEnd();
+    };
+
+    glBindTexture(GL_TEXTURE_2D, this->smoke_puff_tex);
+    for (const Puff &pf : order) {
+        const size_t i = pf.i;
+        const float age = (float)i / (float)(n - 1);  // 0 = fresh, 1 = oldest
+        const uint32_t h = ((uint32_t)(int)(pts[i].x * 7.0f)) * 73856093u ^ ((uint32_t)(int)(pts[i].z * 7.0f)) * 19349663u;
+        const float inten = std::min(1.0f, std::max(0.0f, intensity));
+        const float base = (6.0f + 24.0f * powf(age, 0.7f)) * (0.55f + 0.45f * inten);
+        float fade = fl_smooth(0.0f, 0.10f, age) * powf(1.0f - age, 0.8f) * (0.35f + 0.65f * inten);
+        // dense black core near the aircraft, greyer and thinner further back
+        float g = 0.05f + 0.34f * fl_smooth(0.0f, 0.85f, age) + 0.30f * (1.0f - inten);
+        const float tint = (1.0f - age) * 0.04f;
+        for (int k = 0; k < 4; k++) {
+            float ox = (hash01(h, 11 + k) - 0.5f) * 2.0f, oy = (hash01(h, 21 + k) - 0.5f) * 2.0f, oz = (hash01(h, 31 + k) - 0.5f) * 2.0f;
+            float spread = base * (0.10f + 0.32f * age);
+            float c[3] = {pts[i].x + ox * spread, pts[i].y + oy * spread * 0.8f + age * 1.5f, pts[i].z + oz * spread};
+            float sz = base * (0.62f + 0.38f * hash01(h, 41 + k));
+            float rot = hash01(h, 51 + k) * 6.2831853f + now * (0.10f + 0.12f * hash01(h, 61 + k)) * (k & 1 ? 1.0f : -1.0f);
+            glColor4f(g + tint, g + tint * 0.6f, g, std::min(1.0f, 0.95f * fade));
+            quad(c, sz, rot);
+        }
+    }
+
+    if (burning) {
+        // fire: flickering tongues of flame along the first part of the trail, plus flying embers (additive)
+        const float strength = 0.65f + 0.35f * std::min(1.0f, std::max(0.0f, intensity));
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glBindTexture(GL_TEXTURE_2D, this->flame_glow_tex);
+        const size_t m = std::min<size_t>(n, 14);
+        for (size_t i = 0; i < m; i++) {
+            const float t = (float)i / (float)(m - 1);  // 0 at the source .. 1 at the flame tip
+            const uint32_t h = ((uint32_t)(int)(pts[i].x * 5.0f)) * 73856093u ^ ((uint32_t)(int)(pts[i].z * 5.0f)) * 19349663u;
+            for (int k = 0; k < 3; k++) {
+                float flick = 0.60f + 0.40f * sinf(now * (21.0f + 8.0f * k) + (float)i * 2.3f + (float)k * 1.7f);
+                float jx = (hash01(h, 71 + k) - 0.5f) * (1.0f + 5.0f * t), jy = (hash01(h, 81 + k) - 0.5f) * (1.0f + 3.0f * t),
+                      jz = (hash01(h, 91 + k) - 0.5f) * (1.0f + 5.0f * t);
+                float c[3] = {pts[i].x + jx, pts[i].y + jy + t * 3.0f, pts[i].z + jz};
+                float sz = (3.2f + 8.5f * t) * (0.75f + 0.5f * hash01(h, 101 + k)) * (0.85f + 0.25f * flick);
+                // white-yellow core -> orange -> deep red towards the tip
+                float cr = 1.0f, cg = 0.92f - 0.72f * t, cb = 0.50f * (1.0f - t) * (1.0f - t);
+                float a = powf(1.0f - t, 0.8f) * 0.60f * flick * strength;
+                glColor4f(cr, cg, cb, std::min(1.0f, a));
+                quad(c, sz, 0.0f);
+            }
+        }
+        // embers / sparks, twinkling
+        const uint32_t tick = (uint32_t)(now * 14.0f);
+        for (size_t e2 = 0; e2 < m * 3; e2++) {
+            size_t i = e2 / 3;
+            const float t = (float)i / (float)(m - 1);
+            const uint32_t h = ((uint32_t)(int)(pts[i].x * 5.0f)) * 73856093u ^ ((uint32_t)(int)(pts[i].z * 5.0f)) * 19349663u;
+            float sp = 1.5f + 9.0f * t;
+            float c[3] = {pts[i].x + (hash01(h, 200 + e2) - 0.5f) * 2.0f * sp, pts[i].y + (hash01(h, 300 + e2) - 0.2f) * 1.5f * sp,
+                          pts[i].z + (hash01(h, 400 + e2) - 0.5f) * 2.0f * sp};
+            float tw = hash01(h + tick, 500 + (uint32_t)e2) > 0.35f ? 1.0f : 0.15f;
+            glColor4f(1.0f, 0.78f - 0.35f * t, 0.30f, 0.95f * tw * (1.0f - 0.6f * t));
+            quad(c, 0.55f + 0.5f * hash01(h, 600 + e2), 0.0f);
+        }
+    }
+    glDepthMask(GL_TRUE);
+    glPopAttrib();
+}
+
 void SCRenderer::drawModelWithChilds(
     RSEntity *object,
     size_t lodLevel, 

@@ -959,6 +959,30 @@ void SCStrike::checkKeyboard(void) {
     
     float dx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
     float dy = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
+    // Developer aid (only with NEOSC_DEBUG_KEYS=1): F12 steps the player's plane through damage stages
+    // (repaired -> light -> heavy), never destroyed so the player stays in the game to look at the damage effects without getting hit first.
+    static const bool debug_keys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
+    if (debug_keys && this->player_plane != nullptr && this->player_plane->object != nullptr) {
+        static bool f12_prev = false;
+        static int stage = 0;
+        const Uint8 *ks = SDL_GetKeyboardState(nullptr);
+        const bool f12 = ks[SDL_SCANCODE_F12] != 0;
+        if (f12 && !f12_prev) {
+            stage = (stage + 1) % 3;
+            static const float keep[3] = {1.0f, 0.65f, 0.25f};  // remaining health per stage 0..2
+            for (auto &sys : this->player_plane->object->entity->sysm) {
+                for (auto &sub : sys.second) {
+                    float k = keep[stage];
+                    this->player_plane->system_health[sys.first][sub.first] = (uint16_t)(sub.second * k);
+                }
+            }
+            if (stage == 0) {
+                this->player_plane->clearSmoke();
+            }
+            printf("[debug] damage stage %d\n", stage);
+        }
+        f12_prev = f12;
+    }
 
     msy = dy - (Screen->logical_height / 2);
     msx = dx - (Screen->logical_width / 2);

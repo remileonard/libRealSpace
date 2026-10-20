@@ -178,7 +178,8 @@ void SCJdynPlane::Simulate() {
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
     const float rise_speed = 1.0f; // Adjust this value to control the rise speed of the smoke
-    if (this->object->alive == false) {
+    this->damage_level = this->object->alive ? this->getDamageLevel() : 1.0f;
+    if (this->object->alive == false || this->damage_level >= 0.2f) {
         Vector3D smoke_position = {this->x, this->y, this->z};
 
         this->smoke_positions.insert(this->smoke_positions.begin(), smoke_position);

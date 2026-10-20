@@ -132,6 +132,9 @@ public:
     GLuint flame_glow_tex{0};
     void ensureFlameTextures();
     void drawExhaust(int thrust);
+    GLuint smoke_puff_tex{0};
+    void ensureSmokeTexture();
+    void drawDamageSmoke(const std::vector<Vector3D> &pts, float intensity, bool burning);
     void drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawModelTexturePass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawModelTransparentPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
