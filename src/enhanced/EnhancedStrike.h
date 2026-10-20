@@ -34,6 +34,7 @@ private:
 
     bool orbitAllowed() const;
     void updateOrbit();
+    void debugDamage();
     Vector3D orbitedPosition(Vector3D pivot, Vector3D position) const;
     float damageLevel(SCPlane *plane) const;
     enhanced::Mat4 modelMatrix(SCPlane *plane, Vector3D position) const;
@@ -47,6 +48,9 @@ private:
     float orbitZoom{1.0f};
     int orbitLastView{-1};
     int orbitTraceFrames{5};
+    bool debugKeys{false};
+    bool debugF12Down{false};
+    int debugDamageStage{0};
 
     std::unordered_map<const SCPlane *, SmokeTrail> smoke;
     enhanced::ExhaustEffect exhaust;

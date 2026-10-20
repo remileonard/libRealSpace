@@ -123,6 +123,27 @@ void EnhancedStrike::init() {
     Config &cfg = Config::getInstance();
     this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
+    this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
+    printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
+}
+
+// F12 steps the player's aircraft through damage stages (repaired, light, heavy), never destroyed
+void EnhancedStrike::debugDamage() {
+    static const float remaining[3] = {1.0f, 0.65f, 0.25f};
+    const bool down = SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_F12] != 0;
+    const bool pressed = down && !this->debugF12Down;
+    this->debugF12Down = down;
+    if (!pressed) {
+        return;
+    }
+    this->debugDamageStage = (this->debugDamageStage + 1) % 3;
+    const float keep = remaining[this->debugDamageStage];
+    for (auto &sys : this->player_plane->object->entity->sysm) {
+        for (auto &sub : sys.second) {
+            this->player_plane->system_health[sys.first][sub.first] = (uint16_t)(sub.second * keep);
+        }
+    }
+    printf("[enhanced] debug damage stage %d (remaining health %.2f)\n", this->debugDamageStage, keep);
 }
 
 // Chase (F2), target (F7) and orbit cameras of the camera director, and the missile camera (F8)
@@ -157,6 +178,9 @@ void EnhancedStrike::updateOrbit() {
 }
 
 void EnhancedStrike::afterInput() {
+    if (this->debugKeys) {
+        this->debugDamage();
+    }
     if ((int)this->camera_mode != this->orbitLastView) {
         this->orbitLastView = (int)this->camera_mode;
         this->orbitZoom = 1.0f;

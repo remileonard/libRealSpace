@@ -44,3 +44,7 @@ target (F7) and rotating cameras of the camera director and for the missile came
 - while orbiting, the mouse does not fly the plane.
 
 `[Video] camera_mouse_invert_y = 0` makes mouse-down raise the camera instead of lowering it.
+
+## Debug keys
+
+With the environment variable `NEOSC_DEBUG_KEYS` set, F12 steps the player's aircraft through damage stages (repaired, light damage with smoke, heavy damage with fire). The aircraft is never destroyed, so the effects can be looked at without being shot at.
