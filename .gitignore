@@ -35,5 +35,8 @@ CMakeFiles
 .clang-uml
 GAMEFLOW.IFF
 
-# local-only 3D models (licence does not allow redistribution)
-models/
+# local 3D models: only the GPL-licensed replacement F-16 (see models/README.md) is tracked
+models/*
+!models/f16_rs.obj
+!models/README.md
+!models/GPL-2.0.txt
