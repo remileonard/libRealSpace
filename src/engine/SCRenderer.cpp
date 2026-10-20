@@ -21,6 +21,9 @@
 #include <unordered_map>
 #include <cmath>
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <vector>
 #include <limits>
 
 SCRenderer &Renderer = SCRenderer::getInstance();
@@ -711,6 +714,244 @@ void SCRenderer::drawSprite(Vector3D pos, Texture *tex, float zoom) {
     glDisable( GL_BLEND );
     glDisable(GL_TEXTURE_2D);
 }
+// ---------------------------------------------------------------------------
+// Engine exhaust: thrust-dependent plume (dry thrust glow -> afterburner)
+// ---------------------------------------------------------------------------
+static inline float fl_smooth(float a, float b, float x) {
+    float t = std::min(1.0f, std::max(0.0f, (x - a) / (b - a)));
+    return t * t * (3.0f - 2.0f * t);
+}
+
+// Tileable value noise (periodic lattice px x py)
+static float fl_noise(const std::vector<float> &lat, int px, int py, float x, float y) {
+    float fx = x * px, fy = y * py;
+    int ix = (int)floorf(fx), iy = (int)floorf(fy);
+    float tx = fx - ix, ty = fy - iy;
+    tx = tx * tx * (3.0f - 2.0f * tx);
+    ty = ty * ty * (3.0f - 2.0f * ty);
+    auto at = [&](int a, int b) { return lat[(size_t)(((b % py) + py) % py) * 64 + (((a % px) + px) % px)]; };
+    float a = at(ix, iy) * (1 - tx) + at(ix + 1, iy) * tx;
+    float b = at(ix, iy + 1) * (1 - tx) + at(ix + 1, iy + 1) * tx;
+    return a * (1 - ty) + b * ty;
+}
+
+void SCRenderer::ensureFlameTextures() {
+    if (this->flame_noise_tex != 0) {
+        return;
+    }
+    uint32_t seed = 0x9e3779b9;
+    auto rnd = [&seed]() {
+        seed = seed * 1664525u + 1013904223u;
+        return (float)((seed >> 8) & 0xffff) / 65535.0f;
+    };
+    std::vector<float> lat(64 * 64);
+    for (auto &v : lat) {
+        v = rnd();
+    }
+    const int N = 128;
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            float fx = (x + 0.5f) / N, fy = (float)y / N;
+            // streaks: finer across the flow (x) than along it (y)
+            float n = 0.50f * fl_noise(lat, 6, 3, fx, fy) + 0.30f * fl_noise(lat, 12, 6, fx, fy) +
+                      0.20f * fl_noise(lat, 24, 12, fx, fy);
+            float prof = powf(sinf(3.14159265f * fx), 1.3f);
+            float a = prof * (0.20f + 0.80f * n * n * 1.6f);
+            a = std::min(1.0f, std::max(0.0f, a));
+            size_t i = ((size_t)y * N + x) * 4;
+            px[i] = px[i + 1] = px[i + 2] = 255;
+            px[i + 3] = (uint8_t)(a * 255.0f);
+        }
+    }
+    glGenTextures(1, &this->flame_noise_tex);
+    glBindTexture(GL_TEXTURE_2D, this->flame_noise_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+
+    const int G = 64;
+    std::vector<uint8_t> gp((size_t)G * G * 4);
+    for (int y = 0; y < G; y++) {
+        for (int x = 0; x < G; x++) {
+            float dx = (x + 0.5f) / G * 2.0f - 1.0f, dy = (y + 0.5f) / G * 2.0f - 1.0f;
+            float r2 = dx * dx + dy * dy;
+            float a = r2 >= 1.0f ? 0.0f : (1.0f - r2) * (1.0f - r2);
+            a = a * (0.35f + 0.65f * expf(-r2 * 6.0f));
+            size_t i = ((size_t)y * G + x) * 4;
+            gp[i] = gp[i + 1] = gp[i + 2] = 255;
+            gp[i + 3] = (uint8_t)(std::min(1.0f, a) * 255.0f);
+        }
+    }
+    glGenTextures(1, &this->flame_glow_tex);
+    glBindTexture(GL_TEXTURE_2D, this->flame_glow_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, G, G, 0, GL_RGBA, GL_UNSIGNED_BYTE, gp.data());
+}
+
+// Called with the model matrix of the aircraft active, origin at the nozzle exit, plume towards -x.
+void SCRenderer::drawExhaust(int thrust) {
+    if (thrust < 8) {
+        return;
+    }
+    this->ensureFlameTextures();
+
+    const float R = 1.0f;  // nozzle exit radius in model units (tune here)
+    const float t = std::min(1.0f, std::max(0.0f, thrust / 100.0f));
+    const float dry = fl_smooth(0.08f, 0.72f, t);              // 10..~70 %: hot exhaust gas
+    const float ab = fl_smooth(0.70f, 0.76f, t);               // afterburner lights
+    const float abp = std::min(1.0f, std::max(0.0f, (t - 0.72f) / 0.28f));  // AB stages 1..max
+
+    static const auto t0 = std::chrono::steady_clock::now();
+    const float time = std::chrono::duration<float>(std::chrono::steady_clock::now() - t0).count();
+    const float flick = 1.0f + 0.045f * sinf(time * 37.0f) + 0.035f * sinf(time * 61.0f + 1.3f) +
+                        0.03f * sinf(time * 13.7f + 0.4f);
+
+    float M[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, M);
+    float cx[3] = {M[0], M[4], M[8]};   // camera right in model space
+    float cu[3] = {M[1], M[5], M[9]};   // camera up
+    auto nrm = [](float *v) {
+        float l = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        if (l > 1e-6f) { v[0] /= l; v[1] /= l; v[2] /= l; }
+    };
+    nrm(cx);
+    nrm(cu);
+    float eye[3];
+    for (int i = 0; i < 3; i++) {
+        const float *c = &M[i * 4];
+        float d = c[0] * c[0] + c[1] * c[1] + c[2] * c[2];
+        eye[i] = -(c[0] * M[12] + c[1] * M[13] + c[2] * M[14]) / (d > 1e-9f ? d : 1.0f);
+    }
+
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    // Plume strip: camera-facing about the (-x) axis, soft edges and scrolling turbulence from the noise texture
+    auto strip = [&](float L, float width, float swell, float cr, float cg, float cb, float alpha, float rep,
+                     float speed, float phase) {
+        const int SEG = 22;
+        glBindTexture(GL_TEXTURE_2D, this->flame_noise_tex);
+        glBegin(GL_QUAD_STRIP);
+        for (int i = 0; i <= SEG; i++) {
+            float u = (float)i / SEG;
+            float x = -u * L;
+            float vy = eye[1], vz = eye[2];
+            float vl = sqrtf((eye[0] - x) * (eye[0] - x) + vy * vy + vz * vz);
+            float wy = vz, wz = -vy;
+            float wl = sqrtf(wy * wy + wz * wz);
+            float side = vl > 1e-6f ? wl / vl : 0.0f;
+            if (wl > 1e-6f) { wy /= wl; wz /= wl; } else { wy = 1.0f; wz = 0.0f; }
+            float r = R * width * (1.0f + swell * sqrtf(u)) * (1.0f - powf(u, 1.7f)) + 0.02f;
+            float a = alpha * powf(1.0f - u, 1.1f) * std::min(1.0f, 0.35f + u * 14.0f) * fl_smooth(0.04f, 0.40f, side);
+            float cool = 1.0f - 0.38f * u;
+            glColor4f(cr * cool, cg * cool * (1.0f - 0.25f * u), cb * cool * (1.0f - 0.55f * u), std::min(1.0f, a));
+            float tv = u * rep - time * speed + phase;
+            glTexCoord2f(0.0f, tv);
+            glVertex3f(x, wy * r, wz * r);
+            glTexCoord2f(1.0f, tv);
+            glVertex3f(x, -wy * r, -wz * r);
+        }
+        glEnd();
+    };
+    // Soft sprite facing the camera
+    auto sprite = [&](float x, float rad, float cr, float cg, float cb, float a) {
+        if (a <= 0.003f) return;
+        glBindTexture(GL_TEXTURE_2D, this->flame_glow_tex);
+        glColor4f(cr, cg, cb, std::min(1.0f, a));
+        glBegin(GL_QUADS);
+        for (int k = 0; k < 4; k++) {
+            float sx = (k == 0 || k == 3) ? -1.0f : 1.0f;
+            float sy = (k < 2) ? -1.0f : 1.0f;
+            glTexCoord2f(sx * 0.5f + 0.5f, sy * 0.5f + 0.5f);
+            glVertex3f(x + (cx[0] * sx + cu[0] * sy) * rad, (cx[1] * sx + cu[1] * sy) * rad,
+                       (cx[2] * sx + cu[2] * sy) * rad);
+        }
+        glEnd();
+    };
+    // Mach diamond: short spindle along the axis
+    auto diamond = [&](float x, float hl, float hw, float a) {
+        if (a <= 0.003f) return;
+        float vy = eye[1], vz = eye[2];
+        float wy = vz, wz = -vy, wl = sqrtf(wy * wy + wz * wz);
+        float vl = sqrtf((eye[0] - x) * (eye[0] - x) + vy * vy + vz * vz);
+        float side = vl > 1e-6f ? wl / vl : 0.0f;
+        if (wl > 1e-6f) { wy /= wl; wz /= wl; } else { wy = 1.0f; wz = 0.0f; }
+        glBindTexture(GL_TEXTURE_2D, this->flame_glow_tex);
+        glColor4f(0.80f, 0.88f, 1.0f, std::min(1.0f, a * fl_smooth(0.05f, 0.4f, side)));
+        glBegin(GL_QUADS);
+        glTexCoord2f(0, 0); glVertex3f(x - hl, -wy * hw, -wz * hw);
+        glTexCoord2f(1, 0); glVertex3f(x - hl, wy * hw, wz * hw);
+        glTexCoord2f(1, 1); glVertex3f(x + hl, wy * hw, wz * hw);
+        glTexCoord2f(0, 1); glVertex3f(x + hl, -wy * hw, -wz * hw);
+        glEnd();
+    };
+
+    // how much we look down the axis (1 = straight from behind)
+    float vlen = sqrtf(eye[0] * eye[0] + eye[1] * eye[1] + eye[2] * eye[2]);
+    float endon = vlen > 1e-6f ? 1.0f - sqrtf(eye[1] * eye[1] + eye[2] * eye[2]) / vlen : 0.0f;
+    endon = fl_smooth(0.0f, 0.6f, endon);
+    if (eye[0] > 0.0f) endon = 0.0f;  // seen from the front the airframe hides it anyway
+
+    // --- hot exhaust gas at military power: short, pale blue-orange, with Mach diamonds ---
+    {
+        float Ld = (1.0f + 3.4f * dry) * (1.0f + 0.5f * (flick - 1.0f));
+        strip(Ld, 0.90f, 0.08f, 1.0f, 0.55f, 0.20f, (0.07f + 0.30f * dry) * (1.0f - 0.6f * ab), 0.45f * Ld, 2.2f, 0.0f);
+        strip(Ld * 0.75f, 0.55f, 0.05f, 0.65f, 0.78f, 1.0f, (0.10f + 0.45f * dry) * (1.0f - 0.5f * ab), 0.5f * Ld, 3.1f, 0.37f);
+        float dI = fl_smooth(0.22f, 0.65f, t) * (1.0f - 0.45f * ab) * flick;
+        for (int k = 0; k < 5; k++) {
+            float x = -(0.55f + 0.85f * k) * (0.7f + 0.3f * dry) * R * (1.0f + 0.35f * ab);
+            float fall = expf(-0.45f * k);
+            diamond(x, 0.32f * R, 0.30f * R * (1.0f - 0.10f * k), 0.55f * dI * fall);
+        }
+        // nozzle hot-spot
+        sprite(-0.12f, R * (1.05f + 0.35f * dry), 1.0f, 0.62f + 0.25f * dry, 0.30f + 0.4f * dry, 0.10f + 0.50f * dry);
+    }
+
+    // --- afterburner: long turbulent plume, white-blue core, orange mantle ---
+    if (ab > 0.001f) {
+        float L = (6.0f + 10.5f * abp) * (1.0f + 1.0f * (flick - 1.0f)) * (0.55f + 0.45f * ab);
+        float A = ab * (0.70f + 0.30f * abp);
+        // outer mantle: red-orange, wide, soft
+        strip(L, 1.10f + 0.22f * abp, 0.38f, 1.0f, 0.34f, 0.06f, 0.55f * A, 0.22f * L, 4.2f, 0.0f);
+        strip(L * 0.92f, 1.00f + 0.20f * abp, 0.34f, 1.0f, 0.42f, 0.08f, 0.40f * A, 0.30f * L, 5.1f, 0.5f);
+        // mid: yellow-orange
+        strip(L * 0.78f, 0.68f, 0.28f, 1.0f, 0.72f, 0.28f, 0.60f * A, 0.28f * L, 6.3f, 0.21f);
+        // core: white-blue, short, hot
+        strip(L * 0.50f, 0.36f, 0.18f, 0.80f, 0.90f, 1.0f, 0.85f * A, 0.35f * L, 7.4f, 0.77f);
+        // Mach diamonds inside the plume
+        for (int k = 0; k < 7; k++) {
+            float x = -(0.9f + 1.25f * k) * R * (1.0f + 0.40f * abp);
+            if (-x > L * 0.8f) break;
+            diamond(x, 0.45f * R, 0.38f * R * (1.0f - 0.07f * k), 0.45f * A * expf(-0.30f * k) * flick);
+        }
+        // bright nozzle ring + halo
+        sprite(-0.10f, R * (1.5f + 0.5f * abp), 1.0f, 0.82f, 0.50f, 0.65f * A * flick);
+        sprite(-0.30f, R * 2.6f, 1.0f, 0.42f, 0.10f, 0.22f * A);
+        sprite(-L * 0.30f, R * (2.4f + 0.8f * abp), 1.0f, 0.38f, 0.08f, 0.10f * A);
+        // looking straight into the jet: axial glow stack replaces the edge-on strips
+        for (int k = 0; k < 4; k++) {
+            sprite(-L * (0.08f + 0.2f * k), R * (1.9f - 0.3f * k), 1.0f, 0.55f - 0.08f * k, 0.15f, 0.30f * A * endon);
+        }
+        sprite(-0.4f, R * 1.1f, 1.0f, 0.92f, 0.78f, 0.55f * A * endon * flick);
+    }
+
+    glDepthMask(GL_TRUE);
+    glPopAttrib();
+}
+
 void SCRenderer::drawModelWithChilds(
     RSEntity *object,
     size_t lodLevel, 
@@ -738,19 +979,11 @@ void SCRenderer::drawModelWithChilds(
                 Renderer.drawModel(object->chld[wheel_index]->objct, this->lodLevel);
             }
         }
-        if (thrust > 50) {
-            if (object->chld.size() > 0) {
-                glPushMatrix();
-                Vector3D pos = {
-                    (float) object->chld[0]->x,
-                    (float) object->chld[0]->y,
-                    (float) object->chld[0]->z
-                };
-                glTranslatef(pos.z/250 , pos.y /250 , pos.x /250);
-                glScalef(1+thrust/100.0f,1,1);
-                Renderer.drawModel(object->chld[0]->objct, this->lodLevel);
-                glPopMatrix();
-            }
+        if (thrust >= 8 && object->chld.size() > 0) {
+            glPushMatrix();
+            glTranslatef((float) object->chld[0]->z / 250, (float) object->chld[0]->y / 250, (float) object->chld[0]->x / 250);
+            this->drawExhaust(thrust);
+            glPopMatrix();
         }
         for (auto weaps_it: weaps_load) {
             float decy=0.5f;

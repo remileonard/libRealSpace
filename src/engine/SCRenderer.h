@@ -128,6 +128,10 @@ public:
     void drawModelWithChilds(RSEntity *object, size_t lodLevel, Vector3D position, Vector3D orientation,
                              int wheel_index, int thrust, std::vector<std::tuple<Vector3D, RSEntity *>> weaps_load);
     void drawModel(RSEntity *object, size_t lodLevel);
+    GLuint flame_noise_tex{0};
+    GLuint flame_glow_tex{0};
+    void ensureFlameTextures();
+    void drawExhaust(int thrust);
     void drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawModelTexturePass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawModelTransparentPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
