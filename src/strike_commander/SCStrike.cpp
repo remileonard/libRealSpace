@@ -1623,6 +1623,9 @@ RSEntity * SCStrike::loadWeapon(std::string name) {
  *
  * @param[in] missionName The name of the mission file to load.
  */
+SCMission *SCStrike::createMission(char const *missionName) {
+    return new SCMission(missionName, &object_cache);
+}
 void SCStrike::setMission(char const *missionName) {
     if (Mixer.isSoundPlaying(5)) {
         Mixer.stopSound(5);
@@ -1635,7 +1638,7 @@ void SCStrike::setMission(char const *missionName) {
         this->current_mission = nullptr;
     } 
     this->miss_file_name = missionName;
-    this->current_mission = new SCMission(missionName, &object_cache);
+    this->current_mission = this->createMission(missionName);
     ai_planes.clear();
     ai_planes.shrink_to_fit();
     

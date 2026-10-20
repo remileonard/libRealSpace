@@ -1,7 +1,7 @@
 # StrikeCommanderEnhanced
 
 Optional extensions of Strike Commander that live outside the original classes. Everything here derives from the
-original code (`EnhancedEntity : RSEntity`, later `EnhancedStrike : SCStrike`, ...) and is only active in the
+original code (`EnhancedMainMenu : SCMainMenu`, `EnhancedGameFlow`, `EnhancedStrike`, `EnhancedMission`, `EnhancedEntity`, ...) and is only active in the
 `neosc_enhanced` executable. The original `neosc` is not affected.
 
 ## Replacement models
@@ -12,3 +12,9 @@ configuration entry is needed; any model can be replaced by dropping a file with
 
 OBJ conventions: groups `lod0`..`lodN`, game axes (x forward, y up, z lateral); `usemtl glass` marks the canopy,
 `usemtl rgb_RRGGBB` a fixed palette colour.
+
+## Creation chain
+
+There is no factory. `main.cpp` creates `new EnhancedMainMenu()`; each class creates the next one with a visible `new`
+(`EnhancedGameFlow::flyMission` -> `new EnhancedStrike()`, `EnhancedStrike::createMission` -> `new EnhancedMission()`,
+`EnhancedMission::createEntity` -> `new EnhancedEntity()`).
