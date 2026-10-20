@@ -1202,6 +1202,20 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     glEnable(GL_CULL_FACE);
 }
 
+int SCRenderer::nearestPaletteColour(int r, int g, int b) {
+    int best_idx = 0, best_d = 1 << 30;
+    for (int i = 0; i < 256; i++) {
+        const Texel *t = this->palette.GetRGBColor((uint8_t)i);
+        int dr = t->r - r, dg = t->g - g, db = t->b - b;
+        int d = dr * dr + dg * dg + db * db;
+        if (d < best_d) {
+            best_d = d;
+            best_idx = i;
+        }
+    }
+    return best_idx;
+}
+
 void SCRenderer::setLight(Point3D *l) { this->light = *l; }
 
 void SCRenderer::setObjectLight(int ambient_weight, int light_weight, int c0, int c1, int c2) {
