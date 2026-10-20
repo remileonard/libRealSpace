@@ -32,6 +32,13 @@ static int mission_idx = 0;
  */
 class SCStrike : public IActivity {
 protected:
+    /**
+     * @brief Hook, empty by default: called right after an aircraft has been drawn, with the world camera active.
+     * @param plane the aircraft
+     * @param position its world position
+     * @param thrust its throttle, 0..100
+     */
+    virtual void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) {}
 
     bool air_weapons_mode{false};
     /**

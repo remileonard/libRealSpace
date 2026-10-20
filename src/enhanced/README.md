@@ -18,3 +18,17 @@ OBJ conventions: groups `lod0`..`lodN`, game axes (x forward, y up, z lateral); 
 There is no factory. `main.cpp` creates `new EnhancedMainMenu()`; each class creates the next one with a visible `new`
 (`EnhancedGameFlow::flyMission` -> `new EnhancedStrike()`, `EnhancedStrike::createMission` -> `new EnhancedMission()`,
 `EnhancedMission::createEntity` -> `new EnhancedEntity()`).
+
+## Effects (`EnhancedStrike`)
+
+`SCStrike` only provides an empty virtual hook, `afterPlaneRendered(SCPlane *, Vector3D position, int thrust)`, called after each aircraft has been
+drawn. `EnhancedStrike` overrides it and adds, per aircraft:
+
+- `ExhaustEffect`: thrust dependent exhaust (hot gas with Mach diamonds, afterburner plume),
+- `WingVortexEffect`: condensation trails behind the wing tips while pulling G,
+- `DamageSmokeEffect`: smoke and, when badly hit, fire and embers. The damage level is computed from the same
+  `system_health` values the damage display uses.
+
+The renderer stays pure: it only offers `SCRenderer::createTexture()` and `SCRenderer::drawTriangles()` (world-space
+triangles, texture, alpha or additive blending). All effect geometry and the procedural textures are built here.
+Plain fixed-function OpenGL, nothing else is required.

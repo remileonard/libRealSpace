@@ -2256,3 +2256,43 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size, float alp
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 }
+
+unsigned int SCRenderer::createTexture(int w, int h, const unsigned char *rgba, bool repeatT) {
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, repeatT ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+    return tex;
+}
+
+void SCRenderer::drawTriangles(const EffectVertex *vertices, size_t count, unsigned int texture, BlendMode blend,
+                               bool depthWrite) {
+    if (vertices == nullptr || count < 3) {
+        return;
+    }
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(depthWrite ? GL_TRUE : GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, blend == BlendMode::Additive ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glBegin(GL_TRIANGLES);
+    for (size_t i = 0; i < count - count % 3; i++) {
+        const EffectVertex &v = vertices[i];
+        glColor4f(v.r, v.g, v.b, v.a);
+        glTexCoord2f(v.u, v.v);
+        glVertex3f(v.x, v.y, v.z);
+    }
+    glEnd();
+    glPopAttrib();
+}
