@@ -23,6 +23,11 @@ RSEntity::~RSEntity() {
     }
 }
 
+std::function<RSEntity *()> RSEntity::factory;
+RSEntity *RSEntity::create() {
+    return RSEntity::factory ? RSEntity::factory() : new RSEntity();
+}
+
 void RSEntity::InitFromRAM(uint8_t *data, size_t size, std::string name) {
     this->name = name;
     IFFSaxLexer lexer;

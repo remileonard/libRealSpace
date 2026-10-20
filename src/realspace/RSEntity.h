@@ -7,6 +7,7 @@
 //
 
 #pragma once
+#include <functional>
 #include <stdint.h>
 #include <vector>
 
@@ -304,9 +305,13 @@ public:
     bool prepared{false};
     AssetManager &assetsManager = AssetManager::instance();
     std::string name;
-    ~RSEntity();
+    virtual ~RSEntity();
 
-    void InitFromRAM(uint8_t *data, size_t size, std::string name);
+    virtual void InitFromRAM(uint8_t *data, size_t size, std::string name);
+    // Extension point: derived entity classes (see StrikeCommanderEnhanced) register a factory here so that
+    // entities loaded by the game are created as the derived type. Defaults to a plain RSEntity.
+    static std::function<RSEntity *()> factory;
+    static RSEntity *create();
     size_t NumImages(void);
     size_t NumVertice(void);
     size_t NumUVs(void);
