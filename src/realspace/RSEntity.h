@@ -7,6 +7,7 @@
 //
 
 #pragma once
+#include <functional>
 #include <stdint.h>
 #include <vector>
 
@@ -321,6 +322,8 @@ public:
     // Optional replacement airframe for the player jet (OBJ file with groups lod0..lodN, game axes:
     // x forward, y up, z lateral). Flight model, hard points and child objects stay from the IFF.
     static std::string airframe_obj_path;
+    // maps an RGB colour to the nearest palette index (set by the renderer once the palette is loaded)
+    static std::function<int(int, int, int)> nearest_palette_colour;
     bool replaceGeometryFromOBJ(const std::string &path);
 private:
     void CalcBoundingBox(void);

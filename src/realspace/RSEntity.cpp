@@ -10,6 +10,7 @@
 #include <cfloat>
 #include <cstdio>
 #include <cmath>
+#include <cstring>
 #include <array>
 #include <algorithm>
 #include "RSEntity.h"
@@ -40,6 +41,7 @@ void RSEntity::InitFromRAM(uint8_t *data, size_t size, std::string name) {
 }
 
 std::string RSEntity::airframe_obj_path;
+std::function<int(int, int, int)> RSEntity::nearest_palette_colour;
 
 static Vector3D closestPointOnTriangle(const Vector3D &p, const Vector3D &a, const Vector3D &b, const Vector3D &c) {
     auto sub = [](const Vector3D &u, const Vector3D &v) { return Vector3D{u.x - v.x, u.y - v.y, u.z - v.z}; };
@@ -71,7 +73,8 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
         return false;
     }
     std::vector<Vector3D> nv;
-    std::vector<std::vector<std::array<uint32_t, 3>>> groups;
+    std::vector<std::vector<std::array<uint32_t, 4>>> groups;
+    uint32_t curTag = 0;  // 0 = airframe (colour from the original model), 1 = glass, 0x1000000|RGB = fixed colour
     float lift = 0.0f;  // "# lift <units>": how far the airframe was raised relative to the original model
     char line[512];
     while (fgets(line, sizeof(line), f)) {
@@ -82,11 +85,17 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
             if (sscanf(line + 2, "%f %f %f", &v.x, &v.y, &v.z) == 3) nv.push_back(v);
         } else if (line[0] == 'g') {
             groups.emplace_back();
+            curTag = 0;
+        } else if (strncmp(line, "usemtl ", 7) == 0) {
+            unsigned rgb = 0;
+            if (strncmp(line + 7, "glass", 5) == 0) curTag = 1;
+            else if (sscanf(line + 7, "rgb_%x", &rgb) == 1) curTag = 0x1000000u | (rgb & 0xFFFFFFu);
+            else curTag = 0;
         } else if (line[0] == 'f' && line[1] == ' ') {
             int a, b, c;
             if (sscanf(line + 2, "%d %d %d", &a, &b, &c) == 3) {
                 if (groups.empty()) groups.emplace_back();
-                groups.back().push_back({(uint32_t)(a - 1), (uint32_t)(b - 1), (uint32_t)(c - 1)});
+                groups.back().push_back({(uint32_t)(a - 1), (uint32_t)(b - 1), (uint32_t)(c - 1), curTag});
             }
         }
     }
@@ -132,6 +141,7 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
     std::vector<Vector3D> tnorm, tcen;
     int agree = 0, disagree = 0;
     std::vector<float> dots;
+    std::vector<uint8_t> fixedTri;  // glass and fixed-colour triangles: no colour rule, no smoothing
     for (size_t g = 0; g < groups.size(); g++) {
         Lod lod;
         size_t gstart = ntris.size();
@@ -148,7 +158,9 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
             Vector3D cen = {(a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3, (a.z + b.z + c.z) / 3};
             uint8_t colour = 0;
             float best = FLT_MAX, bestDot = 0;
+            const uint32_t tag = tri[3];
             for (auto &s : src) {
+                if (tag != 0) break;
                 Vector3D q = closestPointOnTriangle(cen, s.a, s.b, s.c);
                 float dx = q.x - cen.x, dy = q.y - cen.y, dz = q.z - cen.z;
                 float d = sqrtf(dx * dx + dy * dy + dz * dz);
@@ -156,12 +168,19 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
                 float score = d + 4.0f * (1.0f - fabsf(dp));
                 if (score < best) { best = score; colour = s.color; bestDot = dp; }
             }
-            if (g == 0) { if (bestDot > 0.5f) agree++; else if (bestDot < -0.5f) disagree++; }
+            if (g == 0 && tag == 0) { if (bestDot > 0.5f) agree++; else if (bestDot < -0.5f) disagree++; }
             Triangle t;
             t.property = 0;
             t.ids[0] = (uint16_t)tri[0]; t.ids[1] = (uint16_t)tri[1]; t.ids[2] = (uint16_t)tri[2];
             t.color = colour;
             t.flags[0] = t.flags[1] = t.flags[2] = 0;
+            if (tag == 1) {
+                t.property = RSEntity::SC_TRANSPARENT;  // canopy glass: drawn additively with a sun glint
+                t.flags[1] = 0xA7;
+            } else if (tag != 0 && nearest_palette_colour) {
+                t.color = (uint8_t)nearest_palette_colour((tag >> 16) & 0xFF, (tag >> 8) & 0xFF, tag & 0xFF);
+            }
+            fixedTri.push_back(tag != 0 ? 1 : 0);
             lod.triangleIDs[lod.numTriangles++] = (uint16_t)ntris.size();
             ntris.push_back(t);
             tnorm.push_back(n);
@@ -176,6 +195,7 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
     if (!granges.empty() && granges[0].second > granges[0].first) {
         std::unordered_map<uint8_t, int> topVotes, sideVotes;
         for (size_t i = granges[0].first; i < granges[0].second; i++) {
+            if (fixedTri[i]) continue;
             const Vector3D &n = tnorm[i], &c = tcen[i];
             if (n.y > 0.7f && c.x < 11.0f) topVotes[ntris[i].color]++;
             if (fabsf(n.y) < 0.3f && fabsf(c.z) < 1.3f && c.x > -6.0f && c.x < 8.0f && c.y < 1.5f) sideVotes[ntris[i].color]++;
@@ -188,6 +208,7 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
         int topC = 0, sideC = 0;
         if (best(topVotes, topC) && best(sideVotes, sideC) && topC != sideC) {
             for (size_t i = 0; i < ntris.size(); i++) {
+                if (fixedTri[i]) continue;
                 const Vector3D &n = tnorm[i], &c = tcen[i];
                 if (c.x >= 11.0f) continue;
                 bool fin = (c.y > 3.0f && fabsf(n.y) <= 0.25f && fabsf(c.z) < 0.9f);
@@ -209,10 +230,12 @@ bool RSEntity::replaceGeometryFromOBJ(const std::string &path) {
         };
         std::unordered_map<uint64_t, std::vector<uint32_t>> vt;
         for (size_t i = 0; i < n; i++)
-            for (int k = 0; k < 3; k++) vt[posKey(ntris[gr.first + i].ids[k])].push_back((uint32_t)i);
+            if (!fixedTri[gr.first + i])
+                for (int k = 0; k < 3; k++) vt[posKey(ntris[gr.first + i].ids[k])].push_back((uint32_t)i);
         for (int pass = 0; pass < 16; pass++) {
             std::vector<uint8_t> nc(n);
             for (size_t i = 0; i < n; i++) {
+                if (fixedTri[gr.first + i]) { nc[i] = ntris[gr.first + i].color; continue; }
                 std::unordered_map<uint8_t, int> votes;
                 votes[ntris[gr.first + i].color] += 1;
                 for (int k = 0; k < 3; k++)

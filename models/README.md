@@ -21,11 +21,14 @@ next to this file. The rest of this repository is not affected by this licence
 
 ## Modifications
 
-* Selected airframe parts only (fuselage, intake, wings, flaps, tail, canopy,
-  nozzle); landing gear, doors, air brakes, ventral fins, stores, pylons,
+* Selected airframe parts only (fuselage, intake, wings, flaps, tail, canopy
+  frame, nozzle); landing gear, doors, air brakes, ventral fins, stores, pylons,
   lights, logos, engine fans and flames were left out.
 * Merged into one closed mesh (voxel remeshing at 2.5 cm, light smoothing),
   decimated to four levels of detail (15000 / 5000 / 1500 / 500 triangles).
 * Axes and scale fitted to the original Strike Commander F-16
   (x forward, y up, z lateral); belly closed; vertices split at 45 degree creases.
+* Canopy glass (`CanopyForwardOutside`, `CanopyBackOutside`) kept as a separate
+  surface (`usemtl glass`), pilot (`pilot_externalview.ac`) and ejection seat
+  (`Cockpit/chair/chair.ac`) decimated into fixed-colour groups (`usemtl rgb_RRGGBB`).
 * Per-triangle colours are taken from the original game model at load time.

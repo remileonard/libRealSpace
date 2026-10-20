@@ -317,6 +317,16 @@ void SCRenderer::init(int width, int height) {
     Config &config = Config::instance();
     this->max_view_distance = config.getInt("Game", "max_view_distance", 160000);
     RSEntity::airframe_obj_path = config.getString("Models", "f16_obj", "");
+    RSEntity::nearest_palette_colour = [this](int r, int g, int b) {
+        int bestIdx = 0, bestD = 1 << 30;
+        for (int i = 0; i < 256; i++) {
+            const Texel *c = this->palette.GetRGBColor((uint8_t)i);
+            int dr = c->r - r, dg = c->g - g, db = c->b - b;
+            int d = dr * dr + dg * dg + db * db;
+            if (d < bestD) { bestD = d; bestIdx = i; }
+        }
+        return bestIdx;
+    };
     this->counter = 0;
 
     RSPalette palette;
@@ -1085,6 +1095,36 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
                 ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
                 : ComputeLambertAt(vLocal, nLocal, MV, lightEye, ambientLamber);
 
+            if (triangle->flags[1] == 0xA7) {
+                // Canopy glass: a faint tint, a sky reflection towards grazing angles and the sun glint.
+                // Added on top of the scene, so the cockpit behind the glass stays visible.
+                Vector3D E = {this->shading_eye_local.x - vLocal.x, this->shading_eye_local.y - vLocal.y,
+                              this->shading_eye_local.z - vLocal.z};
+                float el = sqrtf(E.x * E.x + E.y * E.y + E.z * E.z);
+                if (el > 1e-6f) { E.x /= el; E.y /= el; E.z /= el; }
+                const Vector3D &L = this->shading_light_local;
+                float nl = nLocal.x * L.x + nLocal.y * L.y + nLocal.z * L.z;
+                float ne = nLocal.x * E.x + nLocal.y * E.y + nLocal.z * E.z;
+                float nlen = sqrtf(nLocal.x * nLocal.x + nLocal.y * nLocal.y + nLocal.z * nLocal.z);
+                if (nlen > 1e-6f) { nl /= nlen; ne /= nlen; }
+                float fres = powf(1.0f - fminf(fabsf(ne), 1.0f), 3.0f);
+                Vector3D R = {2.0f * nl * nLocal.x / (nlen > 1e-6f ? nlen : 1.0f) - L.x,
+                              2.0f * nl * nLocal.y / (nlen > 1e-6f ? nlen : 1.0f) - L.y,
+                              2.0f * nl * nLocal.z / (nlen > 1e-6f ? nlen : 1.0f) - L.z};
+                float rl = sqrtf(R.x * R.x + R.y * R.y + R.z * R.z);
+                float spec = 0.0f;
+                if (rl > 1e-6f && nl > 0.0f) {
+                    float rv = (R.x * E.x + R.y * E.y + R.z * E.z) / rl;
+                    spec = powf(fmaxf(rv, 0.0f), 40.0f);
+                }
+                float base = 0.35f + 0.65f * fmaxf(nl, 0.0f);
+                float r = 0.03f * base + 0.30f * fres + 1.1f * spec;
+                float g = 0.07f * base + 0.38f * fres + 1.1f * spec;
+                float b = 0.10f * base + 0.50f * fres + 1.0f * spec;
+                glColor4f(fminf(r, 1.0f), fminf(g, 1.0f), fminf(b, 1.0f), 1.0f);
+                glVertex3f(vLocal.x, vLocal.y, vLocal.z);
+                continue;
+            }
             const Texel *texel = palette.GetRGBColor(triangle->color-1);
             glColor4f(texel->r / 255.0f * lambertianFactor, texel->g / 255.0f * lambertianFactor,
                       texel->b / 255.0f * lambertianFactor, texel->a);
