@@ -22,6 +22,8 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <deque>
+#include <unordered_map>
 #include <cstdint>
 #include <vector>
 #include <limits>
@@ -952,6 +954,194 @@ void SCRenderer::drawExhaust(int thrust) {
     glPopAttrib();
 }
 
+// ---------------------------------------------------------------------------
+// Wingtip vortices: condensation trails behind the wing tips while pulling G
+// ---------------------------------------------------------------------------
+namespace {
+struct VortexSample {
+    float p[3];
+    float t;
+    float s;
+};
+struct VortexTrail {
+    std::deque<VortexSample> side[2];
+    float last_sample{-1.0f};
+    float last_seen{0.0f};
+};
+struct WingTips {
+    float p[2][3];
+    bool valid{false};
+};
+static std::unordered_map<const void *, VortexTrail> g_vortex_trails;
+static std::unordered_map<const RSEntity *, WingTips> g_wing_tips;
+
+static const WingTips &fl_wing_tips(const RSEntity *e) {
+    auto it = g_wing_tips.find(e);
+    if (it != g_wing_tips.end()) {
+        return it->second;
+    }
+    WingTips wt;
+    float zmax = 0.0f, zmin = 0.0f;
+    for (const auto &v : e->vertices) {
+        zmax = std::max(zmax, (float)v.z);
+        zmin = std::min(zmin, (float)v.z);
+    }
+    float span = std::min(zmax, -zmin);
+    if (span > 1.0f) {
+        for (int s = 0; s < 2; s++) {
+            float ext = s == 0 ? zmax : zmin;
+            double sx = 0, sy = 0;
+            int n = 0;
+            for (const auto &v : e->vertices) {
+                if ((s == 0 ? v.z : -v.z) > 0.94f * fabsf(ext)) {
+                    sx += v.x; sy += v.y; n++;
+                }
+            }
+            if (n > 0) {
+                wt.p[s][0] = (float)(sx / n) - 0.4f;  // slightly behind the tip's middle
+                wt.p[s][1] = (float)(sy / n);
+                wt.p[s][2] = ext;
+                wt.valid = true;
+            }
+        }
+    }
+    return g_wing_tips.emplace(e, wt).first->second;
+}
+}  // namespace
+
+// modelMat: aircraft model->world (column major), view: modelview at entry (world->eye)
+void SCRenderer::drawWingVortices(RSEntity *object, const float *modelMat, const float *view, const void *key,
+                                  float g_load) {
+    if (object == nullptr || key == nullptr) {
+        return;
+    }
+    static const auto t0 = std::chrono::steady_clock::now();
+    const float now = std::chrono::duration<float>(std::chrono::steady_clock::now() - t0).count();
+
+    // forget trails of aircraft that are gone
+    for (auto it = g_vortex_trails.begin(); it != g_vortex_trails.end();) {
+        if (now - it->second.last_seen > 6.0f) it = g_vortex_trails.erase(it); else ++it;
+    }
+
+    const WingTips &wt = fl_wing_tips(object);
+    if (!wt.valid) {
+        return;
+    }
+    const float s = fl_smooth(2.2f, 6.0f, fabsf(g_load));
+    VortexTrail &tr = g_vortex_trails[key];
+    tr.last_seen = now;
+
+    float cur[2][3];
+    for (int k = 0; k < 2; k++) {
+        for (int i = 0; i < 3; i++) {
+            cur[k][i] = modelMat[i] * wt.p[k][0] + modelMat[4 + i] * wt.p[k][1] + modelMat[8 + i] * wt.p[k][2] + modelMat[12 + i];
+        }
+    }
+    if (now - tr.last_sample >= 0.025f || tr.last_sample < 0.0f) {
+        tr.last_sample = now;
+        for (int k = 0; k < 2; k++) {
+            auto &d = tr.side[k];
+            if (!d.empty()) {
+                float dx = d.back().p[0] - cur[k][0], dy = d.back().p[1] - cur[k][1], dz = d.back().p[2] - cur[k][2];
+                if (dx * dx + dy * dy + dz * dz > 3600.0f) d.clear();  // teleport
+            }
+            d.push_back({{cur[k][0], cur[k][1], cur[k][2]}, now, s});
+            while (!d.empty() && now - d.front().t > 3.2f) d.pop_front();
+        }
+    }
+    bool any = s > 0.01f;
+    for (int k = 0; k < 2 && !any; k++) {
+        for (const auto &sm : tr.side[k]) {
+            if (sm.s > 0.01f) { any = true; break; }
+        }
+    }
+    if (!any) {
+        return;
+    }
+    this->ensureFlameTextures();
+
+    float cx[3] = {view[0], view[4], view[8]};
+    float eyeW[3];
+    for (int i = 0; i < 3; i++) {
+        const float *c = &view[i * 4];
+        float d = c[0] * c[0] + c[1] * c[1] + c[2] * c[2];
+        eyeW[i] = -(c[0] * view[12] + c[1] * view[13] + c[2] * view[14]) / (d > 1e-9f ? d : 1.0f);
+    }
+    (void)cx;
+
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glBindTexture(GL_TEXTURE_2D, this->flame_noise_tex);
+
+    const float LIFE = 3.0f;
+    for (int k = 0; k < 2; k++) {
+        std::vector<VortexSample> pts(tr.side[k].begin(), tr.side[k].end());
+        pts.push_back({{cur[k][0], cur[k][1], cur[k][2]}, now, s});
+        const size_t n = pts.size();
+        if (n < 2) continue;
+        std::vector<float> dist(n, 0.0f);
+        for (size_t i = 1; i < n; i++) {
+            float dx = pts[i].p[0] - pts[i - 1].p[0], dy = pts[i].p[1] - pts[i - 1].p[1], dz = pts[i].p[2] - pts[i - 1].p[2];
+            dist[i] = dist[i - 1] + sqrtf(dx * dx + dy * dy + dz * dz);
+        }
+        // per-point frame
+        struct Fr { float T[3], B1[3], B2[3], S[3]; };
+        std::vector<Fr> fr(n);
+        for (size_t i = 0; i < n; i++) {
+            size_t a = i > 0 ? i - 1 : i, b = i + 1 < n ? i + 1 : i;
+            float T[3] = {pts[b].p[0] - pts[a].p[0], pts[b].p[1] - pts[a].p[1], pts[b].p[2] - pts[a].p[2]};
+            float tl = sqrtf(T[0] * T[0] + T[1] * T[1] + T[2] * T[2]);
+            if (tl < 1e-6f) { T[0] = 1; T[1] = T[2] = 0; tl = 1; }
+            for (int j = 0; j < 3; j++) T[j] /= tl;
+            float V[3] = {eyeW[0] - pts[i].p[0], eyeW[1] - pts[i].p[1], eyeW[2] - pts[i].p[2]};
+            float S[3] = {T[1] * V[2] - T[2] * V[1], T[2] * V[0] - T[0] * V[2], T[0] * V[1] - T[1] * V[0]};
+            float sl = sqrtf(S[0] * S[0] + S[1] * S[1] + S[2] * S[2]);
+            if (sl < 1e-6f) { S[0] = 0; S[1] = 1; S[2] = 0; sl = 1; }
+            float B1[3] = {T[1] * 0 - T[2] * 1, T[2] * 0 - T[0] * 0, T[0] * 1 - T[1] * 0};  // T x up(0,1,0)
+            float bl = sqrtf(B1[0] * B1[0] + B1[1] * B1[1] + B1[2] * B1[2]);
+            if (bl < 1e-6f) { B1[0] = 0; B1[1] = 0; B1[2] = 1; bl = 1; }
+            for (int j = 0; j < 3; j++) { B1[j] /= bl; S[j] /= sl; }
+            float B2[3] = {T[1] * B1[2] - T[2] * B1[1], T[2] * B1[0] - T[0] * B1[2], T[0] * B1[1] - T[1] * B1[0]};
+            for (int j = 0; j < 3; j++) { fr[i].T[j] = T[j]; fr[i].B1[j] = B1[j]; fr[i].B2[j] = B2[j]; fr[i].S[j] = S[j]; }
+        }
+        auto ribbon = [&](float w0, float w1, float alpha, float helixR, float phase0, float turns, float br, float bg, float bb) {
+            glBegin(GL_QUAD_STRIP);
+            for (size_t i = 0; i < n; i++) {
+                float age = now - pts[i].t;
+                float u = std::min(1.0f, age / LIFE);
+                float a = alpha * pts[i].s * powf(1.0f - u, 1.4f) * fl_smooth(0.0f, 0.12f, u + 0.02f);
+                float w = w0 + (w1 - w0) * sqrtf(u);
+                float c[3] = {pts[i].p[0], pts[i].p[1], pts[i].p[2]};
+                if (helixR > 0.0f) {
+                    float ph = phase0 + turns * age * 6.2831853f;
+                    float hr = helixR * (0.4f + 1.6f * u);
+                    for (int j = 0; j < 3; j++) c[j] += (fr[i].B1[j] * cosf(ph) + fr[i].B2[j] * sinf(ph)) * hr;
+                }
+                glColor4f(br, bg, bb, std::min(1.0f, a));
+                float tv = dist[i] * 0.22f + (k ? 0.37f : 0.0f);
+                glTexCoord2f(0.0f, tv);
+                glVertex3f(c[0] + fr[i].S[0] * w, c[1] + fr[i].S[1] * w, c[2] + fr[i].S[2] * w);
+                glTexCoord2f(1.0f, tv);
+                glVertex3f(c[0] - fr[i].S[0] * w, c[1] - fr[i].S[1] * w, c[2] - fr[i].S[2] * w);
+            }
+            glEnd();
+        };
+        float sg = k == 0 ? 1.0f : -1.0f;
+        ribbon(0.22f, 1.5f, 0.42f, 0.0f, 0.0f, 0.0f, 0.93f, 0.96f, 1.0f);                 // diffuse condensation
+        ribbon(0.07f, 0.26f, 0.95f, 0.14f, 0.0f, sg * 1.6f, 1.0f, 1.0f, 1.0f);            // vortex strand 1
+        ribbon(0.07f, 0.26f, 0.80f, 0.14f, 3.14159f, sg * 1.6f, 0.95f, 0.98f, 1.0f);     // vortex strand 2
+    }
+    glDepthMask(GL_TRUE);
+    glPopAttrib();
+}
+
 void SCRenderer::drawModelWithChilds(
     RSEntity *object,
     size_t lodLevel, 
@@ -959,9 +1149,13 @@ void SCRenderer::drawModelWithChilds(
     Vector3D orientation, 
     int wheel_index, 
     int thrust, 
-    std::vector<std::tuple<Vector3D, RSEntity *>> weaps_load
+    std::vector<std::tuple<Vector3D, RSEntity *>> weaps_load,
+    float g_load,
+    const void *trail_key
 ) {
     if (object != nullptr) {
+        float view_mv[16];
+        glGetFloatv(GL_MODELVIEW_MATRIX, view_mv);
         glPushMatrix();
         Matrix rotation;
         rotation.Clear();
@@ -999,6 +1193,9 @@ void SCRenderer::drawModelWithChilds(
             glPopMatrix();            
         }
         glPopMatrix();
+        if (trail_key != nullptr) {
+            this->drawWingVortices(object, (const float *)rotation.v, view_mv, trail_key, g_load);
+        }
     }
 }
 void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV) {

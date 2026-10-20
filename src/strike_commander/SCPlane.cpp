@@ -1383,7 +1383,7 @@ void SCPlane::Render() {
                 position.y -= 0.5f;
             }
         }
-        Renderer.drawModelWithChilds(this->object->entity, Renderer.lodLevel, pos, orientation, wheel_index, thrust, weapons);
+        Renderer.drawModelWithChilds(this->object->entity, Renderer.lodLevel, pos, orientation, wheel_index, thrust, weapons, this->g_load, this);
         if (this->object->alive == false) {
             this->RenderSmoke();
         } else {
