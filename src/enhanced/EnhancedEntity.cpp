@@ -61,7 +61,7 @@ void EnhancedEntity::takeGeometry(Geometry &geometry) const {
     geometry.quads = this->quads;
     geometry.qmapuvs = this->qmapuvs;
     geometry.childY.clear();
-    for (const CHLD *c : this->chld) {
+    for (const auto *c : this->chld) {
         geometry.childY.push_back(c != nullptr ? c->y : 0);
     }
 }
