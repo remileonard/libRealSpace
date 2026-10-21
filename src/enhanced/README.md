@@ -49,6 +49,14 @@ target (F7) and rotating cameras of the camera director and for the missile came
 
 With the environment variable `NEOSC_DEBUG_KEYS` set, F12 steps the player's aircraft through damage stages (repaired, light damage with smoke, heavy damage with fire). The aircraft is never destroyed, so the effects can be looked at without being shot at.
 
+## 3D cockpit as forward view (`EnhancedStrike`)
+
+With `[Video] cockpit = 3d` in `config.ini` the forward view and the left/right/rear looks (F1, F3, F4, F5) use the 3D virtual
+cockpit with the head fixed in that direction instead of the 2D 320x200 cockpit; the mouse keeps flying the aircraft. The
+explicit cockpit key still gives the free mouse look. Default is `2d`. `[Video] cockpit_fov` (default 45, the original value) sets
+the vertical field of view of the 3D cockpit views; 55-65 shows more of the lower panel, especially on wide windows. Implemented in `EnhancedStrike::afterInput()`, the core
+is not changed.
+
 ## Cockpit glass (`EnhancedStrike`)
 
 `SCStrike` offers a second empty hook, `afterCockpitSceneRendered()`, called in every cockpit view (2D and 3D cockpit) after the 3D scene and before the 2D cockpit overlay.

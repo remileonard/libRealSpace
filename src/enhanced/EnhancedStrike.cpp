@@ -1,7 +1,9 @@
 #include "../strike_commander/precomp.h"
 #include "EnhancedStrike.h"
 #include "EnhancedMission.h"
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstdio>
 #include "../engine/EventManager.h"
 #include "../engine/SCRenderer.h"
@@ -123,6 +125,9 @@ void EnhancedStrike::init() {
     Config &cfg = Config::getInstance();
     this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
+    this->cockpit3d = cfg.getString("Video", "cockpit", "2d") == "3d";
+    this->cockpitFov = std::min(100.0f, std::max(30.0f, (float)atof(cfg.getString("Video", "cockpit_fov", "45").c_str())));
+    printf("[enhanced] cockpit: %s, fov %.0f\n", this->cockpit3d ? "3d (forward, left, right and rear view)" : "2d", this->cockpitFov);
     this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
     printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
 }
@@ -177,10 +182,55 @@ void EnhancedStrike::updateOrbit() {
     }
 }
 
+// [Video] cockpit = 3d: the forward and the left/right/rear views use the 3D virtual cockpit with the head fixed in that
+// direction (the mouse keeps flying the aircraft). The explicit cockpit key keeps the classic free mouse look.
+void EnhancedStrike::updateCockpit3D() {
+    if (!this->cockpit3d || this->cockpit == nullptr) {
+        return;
+    }
+    if (this->m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
+        this->cockpitLookFixed = false;
+        return;
+    }
+    float yaw = -1.0f;
+    switch (this->camera_mode) {
+    case View::FRONT:
+        yaw = 0.0f;
+        break;
+    case View::LEFT:
+        yaw = 270.0f;
+        break;
+    case View::RIGHT:
+        yaw = 90.0f;
+        break;
+    case View::REAR:
+        yaw = 180.0f;
+        break;
+    default:
+        break;
+    }
+    if (yaw >= 0.0f) {
+        if (!this->cockpitLookFixed || this->cockpitLookYaw != yaw) {
+            printf("[enhanced] 3D cockpit view, head yaw %.0f\n", yaw);
+        }
+        this->camera_mode = View::REAL;
+        this->cockpit->is_3d_cockpit = true;
+        this->cockpitLookFixed = true;
+        this->cockpitLookYaw = yaw;
+    } else if (this->camera_mode != View::REAL) {
+        this->cockpitLookFixed = false;
+    }
+    if (this->camera_mode == View::REAL && this->cockpitLookFixed) {
+        this->pilote_lookat.x = this->cockpitLookYaw;
+        this->pilote_lookat.y = 0;
+    }
+}
+
 void EnhancedStrike::afterInput() {
     if (this->debugKeys) {
         this->debugDamage();
     }
+    this->updateCockpit3D();
     if ((int)this->camera_mode != this->orbitLastView) {
         this->orbitLastView = (int)this->camera_mode;
         this->orbitZoom = 1.0f;
@@ -222,6 +272,11 @@ Vector3D EnhancedStrike::orbitedPosition(Vector3D pivot, Vector3D position) cons
 }
 
 void EnhancedStrike::afterCameraPlaced() {
+    if (!this->zoom_cockpit && (this->camera_mode == View::REAL || this->camera_mode == View::CONTROLLER_LOOK ||
+                                this->camera_mode == View::EYE_ON_TARGET)) {
+        Renderer.camera.fovy = this->cockpitFov;
+        Renderer.camera.update();
+    }
     if (!this->orbitActive || !this->orbitAllowed()) {
         return;
     }

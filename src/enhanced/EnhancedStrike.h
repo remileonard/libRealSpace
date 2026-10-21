@@ -8,8 +8,8 @@
 #include "ExhaustEffect.h"
 #include "WingVortexEffect.h"
 
-// Flight activity with visual effects (engine exhaust, wing tip vortices, damage smoke/fire) and mouse orbit for the
-// external cameras.
+// Flight activity with visual effects (engine exhaust, wing tip vortices, damage smoke/fire, cockpit glass), mouse orbit for
+// the external cameras and the 3D cockpit as forward and side view.
 class EnhancedStrike : public SCStrike {
 public:
     EnhancedStrike() = default;
@@ -36,12 +36,18 @@ private:
 
     bool orbitAllowed() const;
     void updateOrbit();
+    void updateCockpit3D();
     void debugDamage();
     Vector3D orbitedPosition(Vector3D pivot, Vector3D position) const;
     float damageLevel(SCPlane *plane) const;
     enhanced::Mat4 modelMatrix(SCPlane *plane, Vector3D position) const;
     void forgetOldTrails(float now);
     void updateSmoke(SCPlane *plane, Vector3D position, float now, const float *view);
+
+    bool cockpit3d{false};
+    float cockpitFov{45.0f};
+    bool cockpitLookFixed{false};
+    float cockpitLookYaw{0.0f};
 
     bool orbitActive{false};
     bool orbitInvertY{true};
