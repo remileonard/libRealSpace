@@ -1167,12 +1167,18 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     
     float ambientLamber = 0.4f;
 
+    float MV[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
+    float eyeDistance = sqrtf(MV[12] * MV[12] + MV[13] * MV[13] + MV[14] * MV[14]);
+    currentLodLevel = object->selectLod(currentLodLevel, eyeDistance);
+    if (currentLodLevel >= object->NumLods()) {
+        currentLodLevel = object->NumLods() - 1;
+    }
+
     Lod *lod = &object->lods[currentLodLevel];
     std::vector<Vector3D> &vertexNormals = this->objectNormals(object);
 
     // Prépare les matrices pour faire l’éclairage en espace œil
-    float MV[16];
-    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
     const float* V = camera.getViewMatrix()->ToGL();
     Vector3D lightWorld{light.x, light.y, light.z};
     Vector3D lightEye = TransformPointCM(V, lightWorld);

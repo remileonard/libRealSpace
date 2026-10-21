@@ -31,6 +31,7 @@ private:
     void takeGeometry(Geometry &geometry) const;
     void putGeometry(const Geometry &geometry);
     void useReplacement(bool active);
+    size_t selectLod(size_t requested, float distance) override;
 
     Geometry original;
     Geometry replacement;

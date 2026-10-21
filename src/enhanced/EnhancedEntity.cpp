@@ -95,6 +95,21 @@ void EnhancedEntity::useReplacement(bool active) {
     this->active = active;
 }
 
+size_t EnhancedEntity::selectLod(size_t requested, float distance) {
+    if (!this->active) {
+        return requested;
+    }
+    size_t level = 0;
+    if (distance > 600.0f) {
+        level = 3;
+    } else if (distance > 200.0f) {
+        level = 2;
+    } else if (distance > 60.0f) {
+        level = 1;
+    }
+    return level > requested ? level : requested;
+}
+
 void EnhancedEntity::setReplacementsActive(bool active) {
     wanted = active;
     for (EnhancedEntity *entity : replacedEntities) {
