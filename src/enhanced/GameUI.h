@@ -32,11 +32,15 @@ public:
     bool button(int x, int y, int w, int h, const char *text);
     /** Debug aid: draws all images of a game .SHP file (fonts, buttons, dialogs) as a sheet, e.g. "CHKEXIT". */
     void sheet(const char *name);
+    /** A button that stays pressed (sunken, green) while @p on is set. @return true if it was clicked in this frame */
+    bool toggle(int x, int y, int w, int h, const char *text, bool on);
     /** Uploads the picture and draws it with the cursor over the current frame. */
     void end();
 
 private:
     void fillRect(int x, int y, int w, int h, uint8_t color);
+    uint8_t nearestColor(int r, int g, int b) const;
+    bool drawButton(int x, int y, int w, int h, const char *text, bool pressed, uint8_t fill);
     void drawCursor(float scale) const;
 
     bool tried{false};
@@ -51,6 +55,8 @@ private:
     uint8_t dark{0};
     uint8_t body{0};
     int capHeight{7};
+    uint8_t onBody{0};
+    uint8_t onHover{0};
     unsigned int texture{0};
 
     float viewW{1.0f};

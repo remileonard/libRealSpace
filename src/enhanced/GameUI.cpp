@@ -95,6 +95,8 @@ bool GameUI::init() {
     this->light = this->plate[(size_t)1 * this->plateW + this->plateW / 2];
     this->dark = this->plate[(size_t)(this->plateH - 2) * this->plateW + this->plateW / 2];
     this->body = this->plate[(size_t)(this->plateH / 2) * this->plateW + this->plateW / 2];
+    this->onBody = this->nearestColor(96, 168, 96);
+    this->onHover = this->nearestColor(128, 200, 128);
     this->picture = new FrameBuffer(UI_W, UI_H);
     this->ready = true;
     printf("[enhanced] game UI: board %dx%d, shades light %d body %d dark %d\n", this->plateW, this->plateH, this->light,
@@ -190,23 +192,59 @@ void GameUI::label(const char *text, int centerX, int y, int scale) {
     }
 }
 
+uint8_t GameUI::nearestColor(int r, int g, int b) const {
+    int best = 0;
+    int bestDistance = 1 << 30;
+    for (int i = 0; i < 255; i++) {
+        const Texel &c = this->palette->colors[i];
+        const int dr = (int)c.r - r;
+        const int dg = (int)c.g - g;
+        const int db = (int)c.b - b;
+        const int distance = dr * dr + dg * dg + db * db;
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            best = i;
+        }
+    }
+    return (uint8_t)best;
+}
+
+// raised bevel; pressed = sunken
+bool GameUI::drawButton(int x, int y, int w, int h, const char *text, bool pressed, uint8_t fill) {
+    this->fillRect(x, y, w, h, fill);
+    const uint8_t topLeft = pressed ? this->dark : this->light;
+    const uint8_t bottomRight = pressed ? this->light : this->dark;
+    this->fillRect(x, y, w, 1, topLeft);
+    this->fillRect(x, y, 1, h, topLeft);
+    if (pressed) {
+        this->fillRect(x + 1, y + 1, w - 2, 1, topLeft);
+        this->fillRect(x + 1, y + 1, 1, h - 2, topLeft);
+    }
+    this->fillRect(x, y + h - 1, w, 1, bottomRight);
+    this->fillRect(x + w - 1, y, 1, h, bottomRight);
+    if (!pressed) {
+        this->fillRect(x + 1, y + h - 2, w - 2, 1, bottomRight);
+        this->fillRect(x + w - 2, y + 1, 1, h - 2, bottomRight);
+    }
+    std::string s = text;
+    const int width = this->picture->getTextWidth(this->font, s);
+    const int shift = pressed ? 1 : 0;
+    this->picture->printText(this->font, {x + (w - width) / 2 + shift, y + (h - this->capHeight) / 2 + this->capHeight - 1 + shift}, s,
+                             TEXT_COLOR);
+    return this->mouseX >= x && this->mouseX < x + w && this->mouseY >= y && this->mouseY < y + h && this->mousePressed;
+}
+
 bool GameUI::button(int x, int y, int w, int h, const char *text) {
     const bool hover = this->mouseX >= x && this->mouseX < x + w && this->mouseY >= y && this->mouseY < y + h;
     const bool held = hover && this->mouseDown;
-    // raised bevel, pressed while held, brighter while the mouse is over it
-    this->fillRect(x, y, w, h, hover && !held ? this->light : this->body);
-    const uint8_t topLeft = held ? this->dark : this->light;
-    const uint8_t bottomRight = held ? this->light : this->dark;
-    this->fillRect(x, y, w, 1, topLeft);
-    this->fillRect(x, y, 1, h, topLeft);
-    this->fillRect(x, y + h - 1, w, 1, bottomRight);
-    this->fillRect(x + w - 1, y, 1, h, bottomRight);
-    this->fillRect(x + 1, y + h - 2, w - 2, 1, bottomRight);
-    this->fillRect(x + w - 2, y + 1, 1, h - 2, bottomRight);
-    std::string s = text;
-    const int width = this->picture->getTextWidth(this->font, s);
-    this->picture->printText(this->font, {x + (w - width) / 2 + (held ? 1 : 0), y + (h - this->capHeight) / 2 + this->capHeight - 1 + (held ? 1 : 0)}, s, TEXT_COLOR);
-    return hover && this->mousePressed;
+    return this->drawButton(x, y, w, h, text, held, hover && !held ? this->light : this->body);
+}
+
+bool GameUI::toggle(int x, int y, int w, int h, const char *text, bool on) {
+    const bool hover = this->mouseX >= x && this->mouseX < x + w && this->mouseY >= y && this->mouseY < y + h;
+    const bool held = hover && this->mouseDown;
+    const uint8_t fill = on ? (hover ? this->onHover : this->onBody) : (hover && !held ? this->light : this->body);
+    return this->drawButton(x, y, w, h, text, on || held, fill);
 }
 
 void GameUI::sheet(const char *name) {
