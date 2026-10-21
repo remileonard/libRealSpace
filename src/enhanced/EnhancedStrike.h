@@ -8,6 +8,7 @@
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
 #include "EndMissionPrompt.h"
+#include "OptionsPanel.h"
 #include "WaterSplashEffect.h"
 #include "WingVortexEffect.h"
 
@@ -28,6 +29,10 @@ protected:
     bool confirmEndMission() override;
     void afterFrameRendered() override;
     void finishEndPrompt(bool end);
+    void handleOptionsKey();
+    void drawOptions();
+    void applyOption(int index);
+    void saveConfig() const;
 
 private:
     struct SmokeTrail {
@@ -74,7 +79,12 @@ private:
     enhanced::CockpitGlassEffect cockpitGlass;
     enhanced::WaterSplashEffect waterSplash;
     bool waterSplashEnabled{false};
-    bool confirmEnd{true};
+    bool glassEnabled{true};
+    bool orbitEnabled{true};
+    bool optionsOpen{false};
+    bool optionsWasPaused{false};
+    std::vector<enhanced::OptionEntry> options;
+    enhanced::OptionsPanel optionsPanel;
     bool endPrompt{false};
     bool endPromptWasPaused{false};
     enhanced::EndMissionPrompt endMissionPrompt;

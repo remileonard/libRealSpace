@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "../engine/EventManager.h"
+#include <fstream>
 #include "../engine/SCRenderer.h"
 #include "../realspace/RSEntity.h"
 #include "../realspace/RSMission.h"
@@ -138,8 +139,12 @@ void EnhancedStrike::init() {
     printf("[enhanced] cockpit: %s, fov %.0f\n", this->cockpit3d ? "3d (forward, left, right and rear view)" : "2d", this->cockpitFov);
     this->waterSplashEnabled = cfg.getString("Video", "water_splash", "0") == "1";
     printf("[enhanced] water splash: %s\n", this->waterSplashEnabled ? "on" : "off");
-    this->confirmEnd = cfg.getString("Video", "confirm_end_mission", "1") != "0";
-    printf("[enhanced] confirm end mission (ESC): %s\n", this->confirmEnd ? "on" : "off");
+    this->orbitEnabled = cfg.getString("Video", "camera_mouse_orbit", "1") != "0";
+    printf("[enhanced] outside camera mouse orbit: %s\n", this->orbitEnabled ? "on" : "off");
+    this->options.clear();
+    this->options.push_back({"ENHANCED WATER", &this->waterSplashEnabled});
+    this->options.push_back({"ENHANCED COCKPIT", &this->cockpit3d});
+    this->options.push_back({"ENHANCED OUTSIDE CAMERA", &this->orbitEnabled});
     this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
     printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
 }
@@ -165,6 +170,9 @@ void EnhancedStrike::debugDamage() {
 
 // Chase (F2), target (F7) and orbit cameras of the camera director, and the missile camera (F8)
 bool EnhancedStrike::orbitAllowed() const {
+    if (!this->orbitEnabled) {
+        return false;
+    }
     if (this->camera_mode == View::MISSILE_CAM) {
         return !this->player_plane->weaps_object.empty() && this->player_plane->weaps_object.back() != nullptr;
     }
@@ -239,6 +247,7 @@ void EnhancedStrike::updateCockpit3D() {
 }
 
 void EnhancedStrike::afterInput() {
+    this->handleOptionsKey();
     if (this->endPrompt) {
         this->pause_simu = true;
         if (m_keyboard->isKeyJustPressed(SDL_SCANCODE_RETURN) || m_keyboard->isKeyJustPressed(SDL_SCANCODE_KP_ENTER)) {
@@ -343,12 +352,18 @@ void EnhancedStrike::afterCockpitSceneRendered() {
     glGetFloatv(GL_MODELVIEW_MATRIX, view);
     glGetFloatv(GL_PROJECTION_MATRIX, proj);
     const Vector3D &light = SCRenderer::getInstance().object_light_direction;
+    if (!this->glassEnabled) {
+        return;
+    }
     this->cockpitGlass.draw(view, proj, vec3(light.x, light.y, light.z), this->damageLevel(this->player_plane));
 }
 
 bool EnhancedStrike::confirmEndMission() {
-    if (!this->confirmEnd) {
-        return true;
+    if (this->optionsOpen) {
+        // ESC closes the options screen first
+        this->optionsOpen = false;
+        this->pause_simu = this->optionsWasPaused;
+        return false;
     }
     if (this->endPrompt) {
         // ESC again closes the question
@@ -365,6 +380,10 @@ bool EnhancedStrike::confirmEndMission() {
 }
 
 void EnhancedStrike::afterFrameRendered() {
+    if (this->optionsOpen) {
+        this->drawOptions();
+        return;
+    }
     if (!this->endPrompt) {
         return;
     }
@@ -390,4 +409,78 @@ void EnhancedStrike::finishEndPrompt(bool end) {
         Mixer.stopSound(5);
     }
     printf("[enhanced] end mission asked: %s\n", end ? "end" : "continue");
+}
+
+// ALT+O opens the options screen, the simulation stays paused while it is open
+void EnhancedStrike::handleOptionsKey() {
+    EventManager &events = EventManager::getInstance();
+    const bool alt = events.isKeyPressed(SDL_SCANCODE_LALT) || events.isKeyPressed(SDL_SCANCODE_RALT);
+    if (!alt || !m_keyboard->isKeyJustPressed(SDL_SCANCODE_O) || this->endPrompt) {
+        if (this->optionsOpen) {
+            this->pause_simu = true;
+        }
+        return;
+    }
+    if (!this->optionsPanel.available()) {
+        printf("[enhanced] options: game menu assets not found\n");
+        return;
+    }
+    this->optionsOpen = !this->optionsOpen;
+    if (this->optionsOpen) {
+        this->optionsWasPaused = this->pause_simu;
+        this->pause_simu = true;
+    } else {
+        this->pause_simu = this->optionsWasPaused;
+    }
+    printf("[enhanced] options: %s\n", this->optionsOpen ? "open" : "closed");
+}
+
+void EnhancedStrike::drawOptions() {
+    const float mx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
+    const float my = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
+    const bool down = m_keyboard->isActionPressed(InputAction::MOUSE_LEFT);
+    const bool pressed = m_keyboard->isActionJustPressed(InputAction::MOUSE_LEFT);
+    int toggled = -1;
+    const enhanced::OptionsPanel::Action action = this->optionsPanel.draw(
+        this->options, mx, my, (float)Screen->logical_width, (float)Screen->logical_height, down, pressed, toggled);
+    if (action == enhanced::OptionsPanel::Action::Toggled) {
+        this->applyOption(toggled);
+    } else if (action == enhanced::OptionsPanel::Action::Close) {
+        this->optionsOpen = false;
+        this->pause_simu = this->optionsWasPaused;
+        printf("[enhanced] options: closed\n");
+    }
+}
+
+// the value itself is flipped here, the bundle behind a switch and config.ini follow
+void EnhancedStrike::applyOption(int index) {
+    if (index < 0 || index >= (int)this->options.size()) {
+        return;
+    }
+    bool *value = this->options[index].value;
+    *value = !*value;
+    if (value == &this->cockpit3d) {
+        this->glassEnabled = this->cockpit3d;
+        if (!this->cockpit3d) {
+            this->cockpitLookFixed = false;
+        }
+    }
+    printf("[enhanced] option %s: %s\n", this->options[index].label, *value ? "on" : "off");
+    this->saveConfig();
+}
+
+void EnhancedStrike::saveConfig() const {
+    Config &cfg = Config::getInstance();
+    cfg.setString("Video", "water_splash", this->waterSplashEnabled ? "1" : "0");
+    cfg.setString("Video", "cockpit", this->cockpit3d ? "3d" : "2d");
+    cfg.setString("Video", "camera_mouse_orbit", this->orbitEnabled ? "1" : "0");
+    static bool backedUp = false;
+    if (!backedUp) {
+        backedUp = true;
+        std::ifstream in("./assets/config.ini", std::ios::binary);
+        std::ofstream out("./assets/config.ini.bak", std::ios::binary);
+        out << in.rdbuf();
+    }
+    cfg.save("./assets/config.ini");
+    printf("[enhanced] options saved to ./assets/config.ini\n");
 }
