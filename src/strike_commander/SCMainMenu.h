@@ -28,14 +28,19 @@ public:
     virtual void focus(void);
     virtual void unFocus(void);
     
+protected:
+    virtual void LoadGame(std::string filename);
+    virtual void OnTrainingMission();
+    virtual void OnStartNewGame();
+    SCFileRequester *frequest{nullptr};
+    SCState &GameState = SCState::getInstance();
+
 private:
     void LoadButtons(void);
     void LoadBoard(void);
     void LoadBackgrounds(void);
     void LoadPalette(void);
-    void LoadGame(std::string filename);
     
-    SCFileRequester *frequest{nullptr};
     RLEShape board;
     RLEShape sky;
     RLEShape mountain;
@@ -45,12 +50,9 @@ private:
     Point2D boardPosition;
 
     void OnViewObject();
-    void OnTrainingMission();
-    void OnStartNewGame();
     void OnLoadGame();
     void OnContinue(void);
     std::string findLatestSave();
-    SCState &GameState = SCState::getInstance();
 };
 
 #endif /* defined(__libRealSpace__SCMainMenu__) */

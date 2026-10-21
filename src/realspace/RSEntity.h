@@ -306,13 +306,15 @@ public:
     bool prepared{false};
     AssetManager &assetsManager = AssetManager::instance();
     std::string name;
-    ~RSEntity();
+    virtual ~RSEntity();
 
-    void InitFromRAM(uint8_t *data, size_t size, std::string name);
+    virtual void InitFromRAM(uint8_t *data, size_t size, std::string name);
     size_t NumImages(void);
     size_t NumVertice(void);
     size_t NumUVs(void);
     size_t NumLods(void);
+    // Hook: lets a derived class pick the level of detail by the eye distance of the object origin
+    virtual size_t selectLod(size_t requested, float distance) { return requested; }
     size_t NumTriangles(void);
     inline bool IsPrepared(void) { return this->prepared; }
     BoudingBox *GetBoudingBpx(void);
