@@ -52,6 +52,12 @@ protected:
      */
     virtual void afterCameraPlaced() {}
 
+    /**
+     * @brief Hook, empty by default: called in every cockpit view once the 3D scene (and the 3D cockpit model, if used) has
+     *        been drawn and before the 2D cockpit overlay, with the camera matrices of the view active.
+     */
+    virtual void afterCockpitSceneRendered() {}
+
     bool air_weapons_mode{false};
     /**
      * @brief Path to current mission file

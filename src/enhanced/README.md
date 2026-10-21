@@ -48,3 +48,10 @@ target (F7) and rotating cameras of the camera director and for the missile came
 ## Debug keys
 
 With the environment variable `NEOSC_DEBUG_KEYS` set, F12 steps the player's aircraft through damage stages (repaired, light damage with smoke, heavy damage with fire). The aircraft is never destroyed, so the effects can be looked at without being shot at.
+
+## Cockpit glass (`EnhancedStrike`)
+
+`SCStrike` offers a second empty hook, `afterCockpitSceneRendered()`, called in every cockpit view (2D and 3D cockpit) after the 3D scene and before the 2D cockpit overlay.
+`CockpitGlassEffect` draws a thin overlay directly in front of the camera: a faint reflection with a streak that follows the
+sun, fine dust and scratches that light up when looking towards the sun, a glare veil and halo, and impact cracks that appear
+step by step with the damage level of the player aircraft.

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include "../strike_commander/SCStrike.h"
+#include "CockpitGlassEffect.h"
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
 #include "WingVortexEffect.h"
@@ -19,6 +20,7 @@ protected:
     void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) override;
     void afterInput() override;
     void afterCameraPlaced() override;
+    void afterCockpitSceneRendered() override;
 
 private:
     struct SmokeTrail {
@@ -56,4 +58,5 @@ private:
     enhanced::ExhaustEffect exhaust;
     enhanced::WingVortexEffect vortices;
     enhanced::DamageSmokeEffect damageSmoke;
+    enhanced::CockpitGlassEffect cockpitGlass;
 };

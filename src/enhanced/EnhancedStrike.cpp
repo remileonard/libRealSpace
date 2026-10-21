@@ -254,3 +254,15 @@ void EnhancedStrike::afterCameraPlaced() {
         this->orbitTraceFrames--;
     }
 }
+
+void EnhancedStrike::afterCockpitSceneRendered() {
+    if (this->player_plane == nullptr || this->player_plane->object == nullptr || this->player_plane->object->entity == nullptr) {
+        return;
+    }
+    float view[16];
+    float proj[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, view);
+    glGetFloatv(GL_PROJECTION_MATRIX, proj);
+    const Vector3D &light = SCRenderer::getInstance().object_light_direction;
+    this->cockpitGlass.draw(view, proj, vec3(light.x, light.y, light.z), this->damageLevel(this->player_plane));
+}

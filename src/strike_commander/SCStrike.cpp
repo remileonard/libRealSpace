@@ -114,6 +114,7 @@ void SCStrike::renderVirtualCockpit() {
     } else {
         renderVirtualF22Cockpit();
     }
+    this->afterCockpitSceneRendered();
 }
 void SCStrike::renderVirtualF16Cockpit() {
     if (this->cockpit->cockpit == nullptr) {
@@ -2342,6 +2343,7 @@ void SCStrike::runFrame(void) {
             break;
         case View::FRONT:
             if (!forceVirtualCockpit) {
+                this->afterCockpitSceneRendered();
                 if (this->zoom_cockpit) {
                     this->cockpit->Render(CockpitFace::CP_BIG);
                 } else {
@@ -2351,16 +2353,19 @@ void SCStrike::runFrame(void) {
             }
         case View::RIGHT:
             if (!forceVirtualCockpit) {
+                this->afterCockpitSceneRendered();
                 this->cockpit->Render(CockpitFace::CP_RIGHT);
                 break;    
             }
         case View::LEFT:
             if (!forceVirtualCockpit) {
+                this->afterCockpitSceneRendered();
                 this->cockpit->Render(CockpitFace::CP_LEFT);
                 break;
             }
         case View::REAR:
             if (!forceVirtualCockpit) {
+                this->afterCockpitSceneRendered();
                 this->cockpit->Render(CockpitFace::CP_REAR);
                 break;
             }
