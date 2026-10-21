@@ -81,3 +81,14 @@ frame `EnhancedStrike::afterCameraPlaced()` looks for new entries in `mission->e
 cell below are sea (`type == 0`), the explosion is marked finished and a splash is started: a ring wave on the water, soft spray
 puffs and droplets that rise, fall back and fade out (about 1.3 s). Hits at the coast keep the normal explosion. Drawing happens
 in `afterPlaneRendered()` once per frame. There is no splash sound, the original impact sound is unchanged.
+
+## End-mission question (`EndMissionPrompt`, `GameUI`)
+ESC in a mission ends it at once, which is easy to hit by mistake instead of F2. With `[Video] confirm_end_mission = 1` (default 1 in
+`neosc_enhanced`, 0 = ESC ends at once) `EnhancedStrike::confirmEndMission()` pauses the simulation and shows a panel with the
+two buttons "END MISSION" and "STAY IN COCKPIT". Mouse (own cursor, hover, click) and keys work: Enter ends the mission, ESC or N
+goes back. If the game menu assets cannot be loaded the question is skipped and ESC behaves as before.
+
+`GameUI` is a small immediate-mode UI in the look of the main menu: a panel of any size cut from the silver board of
+`MAINMENU.PAK` (corners and edges from its clean margins), bevelled buttons with free text in `OPTFONT.SHP`, labels with whole-number
+scaling and a cursor. It draws into a 320x200 palette picture (main menu palette), uploads it as one texture and draws it over the
+finished frame. `NEOSC_UI_SHEET=NAME` shows all images of `DATA\FONTS\NAME.SHP` in the dialog (debug aid to look at the game's own UI art).

@@ -7,6 +7,7 @@
 #include "EnhancedCockpit.h"
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
+#include "EndMissionPrompt.h"
 #include "WaterSplashEffect.h"
 #include "WingVortexEffect.h"
 
@@ -24,6 +25,9 @@ protected:
     void afterInput() override;
     void afterCameraPlaced() override;
     void afterCockpitSceneRendered() override;
+    bool confirmEndMission() override;
+    void afterFrameRendered() override;
+    void finishEndPrompt(bool end);
 
 private:
     struct SmokeTrail {
@@ -70,5 +74,9 @@ private:
     enhanced::CockpitGlassEffect cockpitGlass;
     enhanced::WaterSplashEffect waterSplash;
     bool waterSplashEnabled{false};
+    bool confirmEnd{true};
+    bool endPrompt{false};
+    bool endPromptWasPaused{false};
+    enhanced::EndMissionPrompt endMissionPrompt;
     bool splashDrawnThisFrame{false};
 };

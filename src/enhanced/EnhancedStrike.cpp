@@ -138,6 +138,8 @@ void EnhancedStrike::init() {
     printf("[enhanced] cockpit: %s, fov %.0f\n", this->cockpit3d ? "3d (forward, left, right and rear view)" : "2d", this->cockpitFov);
     this->waterSplashEnabled = cfg.getString("Video", "water_splash", "0") == "1";
     printf("[enhanced] water splash: %s\n", this->waterSplashEnabled ? "on" : "off");
+    this->confirmEnd = cfg.getString("Video", "confirm_end_mission", "1") != "0";
+    printf("[enhanced] confirm end mission (ESC): %s\n", this->confirmEnd ? "on" : "off");
     this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
     printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
 }
@@ -237,6 +239,14 @@ void EnhancedStrike::updateCockpit3D() {
 }
 
 void EnhancedStrike::afterInput() {
+    if (this->endPrompt) {
+        this->pause_simu = true;
+        if (m_keyboard->isKeyJustPressed(SDL_SCANCODE_RETURN) || m_keyboard->isKeyJustPressed(SDL_SCANCODE_KP_ENTER)) {
+            this->finishEndPrompt(true);
+        } else if (m_keyboard->isKeyJustPressed(SDL_SCANCODE_N)) {
+            this->finishEndPrompt(false);
+        }
+    }
     if (this->debugKeys) {
         this->debugDamage();
     }
@@ -334,4 +344,50 @@ void EnhancedStrike::afterCockpitSceneRendered() {
     glGetFloatv(GL_PROJECTION_MATRIX, proj);
     const Vector3D &light = SCRenderer::getInstance().object_light_direction;
     this->cockpitGlass.draw(view, proj, vec3(light.x, light.y, light.z), this->damageLevel(this->player_plane));
+}
+
+bool EnhancedStrike::confirmEndMission() {
+    if (!this->confirmEnd) {
+        return true;
+    }
+    if (this->endPrompt) {
+        // ESC again closes the question
+        this->finishEndPrompt(false);
+        return false;
+    }
+    if (!this->endMissionPrompt.available()) {
+        return true;
+    }
+    this->endPrompt = true;
+    this->endPromptWasPaused = this->pause_simu;
+    this->pause_simu = true;
+    return false;
+}
+
+void EnhancedStrike::afterFrameRendered() {
+    if (!this->endPrompt) {
+        return;
+    }
+    const float mx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
+    const float my = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
+    const bool down = m_keyboard->isActionPressed(InputAction::MOUSE_LEFT);
+    const bool pressed = m_keyboard->isActionJustPressed(InputAction::MOUSE_LEFT);
+    const enhanced::EndMissionPrompt::Result result =
+        this->endMissionPrompt.draw(mx, my, (float)Screen->logical_width, (float)Screen->logical_height, down, pressed);
+    if (result == enhanced::EndMissionPrompt::Result::End) {
+        this->finishEndPrompt(true);
+    } else if (result == enhanced::EndMissionPrompt::Result::Stay) {
+        this->finishEndPrompt(false);
+    }
+}
+
+void EnhancedStrike::finishEndPrompt(bool end) {
+    this->endPrompt = false;
+    this->pause_simu = this->endPromptWasPaused;
+    if (end) {
+        this->current_mission->mission_ended = true;
+        Mixer.stopSound();
+        Mixer.stopSound(5);
+    }
+    printf("[enhanced] end mission asked: %s\n", end ? "end" : "continue");
 }

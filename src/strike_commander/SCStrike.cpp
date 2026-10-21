@@ -980,7 +980,7 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION)) && this->confirmEndMission()) {
         this->current_mission->mission_ended = true;
         Mixer.stopSound();
         Mixer.stopSound(5);
@@ -2457,4 +2457,5 @@ void SCStrike::runFrame(void) {
     }
 
     renderScene(Renderer.width, Renderer.height, verticalOffset, false);
+    this->afterFrameRendered();
 }

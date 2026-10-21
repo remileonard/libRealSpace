@@ -58,6 +58,17 @@ protected:
      */
     virtual void afterCockpitSceneRendered() {}
 
+    /**
+     * @brief Hook, returns true by default: called when the player presses the end-mission key. The mission only ends
+     *        if it returns true.
+     */
+    virtual bool confirmEndMission() { return true; }
+
+    /**
+     * @brief Hook, empty by default: called once the complete frame (3D scene and 2D cockpit) has been drawn, for 2D overlays.
+     */
+    virtual void afterFrameRendered() {}
+
     bool air_weapons_mode{false};
     /**
      * @brief Path to current mission file
