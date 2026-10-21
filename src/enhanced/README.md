@@ -74,3 +74,10 @@ GPU texture, the renderer is not touched. Without a matching file the original i
 `stb_image.h` (public domain / MIT) is in `third_party`.
 
 Not verified: images that the game rewrites later (marked dirty) would show the original again; none were observed.
+
+## Water splash (`WaterSplashEffect`)
+With `[Video] water_splash = 1` (default 0) shots and bombs that hit open sea no longer show the land explosion sprite. Each
+frame `EnhancedStrike::afterCameraPlaced()` looks for new entries in `mission->explosions`. If all four vertices of the terrain
+cell below are sea (`type == 0`), the explosion is marked finished and a splash is started: a ring wave on the water, soft spray
+puffs and droplets that rise, fall back and fade out (about 1.3 s). Hits at the coast keep the normal explosion. Drawing happens
+in `afterPlaneRendered()` once per frame. There is no splash sound, the original impact sound is unchanged.

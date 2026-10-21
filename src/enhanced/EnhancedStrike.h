@@ -7,6 +7,7 @@
 #include "EnhancedCockpit.h"
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
+#include "WaterSplashEffect.h"
 #include "WingVortexEffect.h"
 
 // Flight activity with visual effects (engine exhaust, wing tip vortices, damage smoke/fire, cockpit glass), mouse orbit for
@@ -67,4 +68,7 @@ private:
     enhanced::WingVortexEffect vortices;
     enhanced::DamageSmokeEffect damageSmoke;
     enhanced::CockpitGlassEffect cockpitGlass;
+    enhanced::WaterSplashEffect waterSplash;
+    bool waterSplashEnabled{false};
+    bool splashDrawnThisFrame{false};
 };

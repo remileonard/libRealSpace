@@ -121,6 +121,10 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
         this->exhaust.draw(plane, model, nozzle, thrust, view);
     }
     this->vortices.draw(plane, entity, model, view, plane->g_load);
+    if (this->waterSplashEnabled && !this->splashDrawnThisFrame) {
+        this->splashDrawnThisFrame = true;
+        this->waterSplash.draw(view);
+    }
     this->updateSmoke(plane, position, now, view);
 }
 
@@ -132,6 +136,8 @@ void EnhancedStrike::init() {
     this->cockpit3d = cfg.getString("Video", "cockpit", "2d") == "3d";
     this->cockpitFov = std::min(100.0f, std::max(30.0f, (float)atof(cfg.getString("Video", "cockpit_fov", "45").c_str())));
     printf("[enhanced] cockpit: %s, fov %.0f\n", this->cockpit3d ? "3d (forward, left, right and rear view)" : "2d", this->cockpitFov);
+    this->waterSplashEnabled = cfg.getString("Video", "water_splash", "0") == "1";
+    printf("[enhanced] water splash: %s\n", this->waterSplashEnabled ? "on" : "off");
     this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
     printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
 }
@@ -276,6 +282,10 @@ Vector3D EnhancedStrike::orbitedPosition(Vector3D pivot, Vector3D position) cons
 }
 
 void EnhancedStrike::afterCameraPlaced() {
+    this->splashDrawnThisFrame = false;
+    if (this->waterSplashEnabled) {
+        this->waterSplash.scan(this->current_mission);
+    }
     if (!this->zoom_cockpit && (this->camera_mode == View::REAL || this->camera_mode == View::CONTROLLER_LOOK ||
                                 this->camera_mode == View::EYE_ON_TARGET)) {
         Renderer.camera.fovy = this->cockpitFov;
