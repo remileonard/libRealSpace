@@ -331,6 +331,7 @@ void SCRenderer::init(int width, int height) {
     this->lodLevel = config.getInt("Game", "object_detail", 0);
     this->show_textured = config.getBool("Game", "show_texture", true);
     this->show_fog = config.getBool("Game", "show_fog", true);
+    this->terrain_detail = config.getInt("Video", "terrain_detail", 0);
     this->show_clouds = config.getBool("Game", "clouds_enabled", false);
     this->width = width;
     this->height = height;
@@ -1401,6 +1402,9 @@ bool SCRenderer::isTextured(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2) {
         // tri0->type != tri2->type ||
         tri0->upperImageID == 0xFF || tri0->lowerImageID == 0xFF;
 }
+// One world unit of the detail texture repeats every DETAIL_TILE_SIZE units on the ground (planar mapping)
+static const float DETAIL_TILE_SIZE = 2500.0f;
+
 void SCRenderer::renderColoredTriangle(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2, float colors[3][4]) {
 
     glColor4fv(colors[0]);
@@ -1411,6 +1415,144 @@ void SCRenderer::renderColoredTriangle(MapVertex *tri0, MapVertex *tri1, MapVert
 
     glColor4fv(colors[2]);
     glVertex3f(tri2->v.x, tri2->v.y, tri2->v.z);
+}
+
+static void detailVertex(const MapVertex *v) {
+    glTexCoord2f(v->v.x / DETAIL_TILE_SIZE, v->v.z / DETAIL_TILE_SIZE);
+    glVertex3f(v->v.x, v->v.y, v->v.z);
+}
+
+static void detailQuad(const MapVertex *cur, const MapVertex *right, const MapVertex *bottomRight, const MapVertex *bottom) {
+    detailVertex(cur);
+    detailVertex(bottomRight);
+    detailVertex(bottom);
+    detailVertex(cur);
+    detailVertex(right);
+    detailVertex(bottomRight);
+}
+
+// Detail pass over the whole terrain, after the colour and texture passes: the noise texture (mean 0.5) is
+// multiplied onto what is already in the framebuffer (result = 2 * src * dst), so grass tiles, rock and
+// coloured terrain all get fine structure and keep their brightness.
+void SCRenderer::renderTerrainDetail(RSArea *area, int LOD, const std::vector<int> &blocks) {
+    this->ensureDetailTexture();
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, this->detail_tex);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+    glDisable(GL_FOG);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(-2.0f, -2.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    glBegin(GL_TRIANGLES);
+    for (int i : blocks) {
+        AreaBlock *block = area->GetAreaBlockByID(LOD, i);
+        if (block == nullptr || block->sideSize < 2) {
+            continue;
+        }
+        const int s = block->sideSize;
+        const bool hasRight = i % BLOCK_PER_MAP_SIDE != BLOCK_PER_MAP_SIDE - 1;
+        const bool hasBottom = i / BLOCK_PER_MAP_SIDE != BLOCK_PER_MAP_SIDE - 1;
+        AreaBlock *rightBlock = hasRight ? area->GetAreaBlockByID(LOD, i + 1) : nullptr;
+        AreaBlock *bottomBlock = hasBottom ? area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE) : nullptr;
+        AreaBlock *cornerBlock = (hasRight && hasBottom) ? area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE) : nullptr;
+        for (int y = 0; y < s - 1; y++) {
+            for (int x = 0; x < s - 1; x++) {
+                detailQuad(block->GetVertice(x, y), block->GetVertice(x + 1, y), block->GetVertice(x + 1, y + 1),
+                           block->GetVertice(x, y + 1));
+            }
+        }
+        if (rightBlock != nullptr) {
+            for (int y = 0; y < s - 1; y++) {
+                detailQuad(block->GetVertice(s - 1, y), rightBlock->GetVertice(0, y), rightBlock->GetVertice(0, y + 1),
+                           block->GetVertice(s - 1, y + 1));
+            }
+        }
+        if (bottomBlock != nullptr) {
+            for (int x = 0; x < s - 1; x++) {
+                detailQuad(block->GetVertice(x, s - 1), block->GetVertice(x + 1, s - 1), bottomBlock->GetVertice(x + 1, 0),
+                           bottomBlock->GetVertice(x, 0));
+            }
+        }
+        if (cornerBlock != nullptr) {
+            detailQuad(block->GetVertice(s - 1, s - 1), rightBlock->GetVertice(0, s - 1), cornerBlock->GetVertice(0, 0),
+                       bottomBlock->GetVertice(s - 1, 0));
+        }
+    }
+    glEnd();
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
+    if (this->show_fog) {
+        glEnable(GL_FOG);
+    }
+    // the rest of the renderer expects the decal mode
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    glDisable(GL_TEXTURE_2D);
+}
+
+// Procedural, seamlessly tiling value noise (four octaves). The texture has a mean of 0.5 and is applied with
+// a colour scale of 2, so the terrain keeps its brightness and only gets texture around it.
+void SCRenderer::ensureDetailTexture() {
+    if (this->detail_tex != 0) {
+        return;
+    }
+    const int N = 256;
+    const int octaves[4] = {8, 16, 32, 64};
+    const float weights[4] = {0.35f, 0.30f, 0.20f, 0.15f};
+    const float amplitude = 0.5f * (this->terrain_detail / 100.0f); // 100 = about +-50% brightness at one sigma
+    auto lattice = [](int x, int y, int period, int seed) {
+        x = ((x % period) + period) % period;
+        y = ((y % period) + period) % period;
+        uint32_t h = (uint32_t)(x * 374761393 + y * 668265263 + seed * 2147483647);
+        h = (h ^ (h >> 13)) * 1274126177u;
+        h ^= h >> 16;
+        return (float)(h & 0xffff) / 65535.0f;
+    };
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            float n = 0.0f;
+            for (int o = 0; o < 4; o++) {
+                const int period = octaves[o];
+                const float fx = (float)x / N * period;
+                const float fy = (float)y / N * period;
+                const int ix = (int)fx;
+                const int iy = (int)fy;
+                float tx = fx - ix;
+                float ty = fy - iy;
+                tx = tx * tx * (3.0f - 2.0f * tx);
+                ty = ty * ty * (3.0f - 2.0f * ty);
+                const float a = lattice(ix, iy, period, o);
+                const float b = lattice(ix + 1, iy, period, o);
+                const float c = lattice(ix, iy + 1, period, o);
+                const float d = lattice(ix + 1, iy + 1, period, o);
+                n += weights[o] * ((a + (b - a) * tx) * (1.0f - ty) + (c + (d - c) * tx) * ty);
+            }
+            // the octave sum has a standard deviation of about 0.12, normalise it to about 1
+            const float z = (n - 0.5f) / 0.12f;
+            float v = 0.5f * (1.0f + amplitude * z);
+            if (v < 0.0f) v = 0.0f;
+            if (v > 1.0f) v = 1.0f;
+            const uint8_t c = (uint8_t)(v * 255.0f);
+            const size_t i = ((size_t)y * N + x) * 4;
+            px[i] = px[i + 1] = px[i + 2] = c;
+            px[i + 3] = 255;
+        }
+    }
+    glGenTextures(1, &this->detail_tex);
+    glBindTexture(GL_TEXTURE_2D, this->detail_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+    printf("[Renderer] terrain detail texture %d%%\n", this->terrain_detail);
 }
 
 void SCRenderer::renderQuad(MapVertex *currentVertex, MapVertex *rightVertex, MapVertex *bottomRightVertex,
@@ -1780,6 +1922,9 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
         glEnd();
     }
     glDisable(GL_TEXTURE_2D);
+    if (this->terrain_detail > 0) {
+        this->renderTerrainDetail(area, LOD, visibleHiLOD);
+    }
     // Overlay: inversion de Z -> winding mirroir, on inverse temporairement la front face
     
     glDepthFunc(GL_LEQUAL);
