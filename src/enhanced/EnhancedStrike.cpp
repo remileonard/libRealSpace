@@ -7,6 +7,7 @@
 #include <cstdio>
 #include "../engine/EventManager.h"
 #include <fstream>
+#include "EnhancedEntity.h"
 #include "../engine/SCRenderer.h"
 #include "../realspace/RSEntity.h"
 #include "../realspace/RSMission.h"
@@ -117,7 +118,7 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
     const Mat4 model = this->modelMatrix(plane, position);
 
     this->forgetOldTrails(now);
-    if (plane->object->alive && !entity->chld.empty()) {
+    if (this->enhancedModel && plane->object->alive && !entity->chld.empty()) {
         Vec3 nozzle = vec3((float)entity->chld[0]->z / 250.0f, (float)entity->chld[0]->y / 250.0f, (float)entity->chld[0]->x / 250.0f);
         this->exhaust.draw(plane, model, nozzle, thrust, view);
     }
@@ -145,6 +146,8 @@ void EnhancedStrike::init() {
     this->options.push_back({"ENHANCED WATER", &this->waterSplashEnabled});
     this->options.push_back({"ENHANCED COCKPIT", &this->cockpit3d});
     this->options.push_back({"ENHANCED OUTSIDE CAMERA", &this->orbitEnabled});
+    this->enhancedModel = cfg.getString("Video", "enhanced_f16_model", "1") != "0";
+    this->options.push_back({"ENHANCED F-16 MODEL", &this->enhancedModel});
     this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
     printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
 }
@@ -465,6 +468,9 @@ void EnhancedStrike::applyOption(int index) {
             this->cockpitLookFixed = false;
         }
     }
+    if (value == &this->enhancedModel) {
+        EnhancedEntity::setReplacementsActive(this->enhancedModel);
+    }
     printf("[enhanced] option %s: %s\n", this->options[index].label, *value ? "on" : "off");
     this->saveConfig();
 }
@@ -474,6 +480,7 @@ void EnhancedStrike::saveConfig() const {
     cfg.setString("Video", "water_splash", this->waterSplashEnabled ? "1" : "0");
     cfg.setString("Video", "cockpit", this->cockpit3d ? "3d" : "2d");
     cfg.setString("Video", "camera_mouse_orbit", this->orbitEnabled ? "1" : "0");
+    cfg.setString("Video", "enhanced_f16_model", this->enhancedModel ? "1" : "0");
     static bool backedUp = false;
     if (!backedUp) {
         backedUp = true;

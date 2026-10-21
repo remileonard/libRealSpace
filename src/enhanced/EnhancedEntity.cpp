@@ -19,9 +19,12 @@
 #include <vector>
 #include <string>
 #include "EnhancedEntity.h"
+#include "../engine/Config.hpp"
 #include "../engine/SCRenderer.h"
 
 std::string EnhancedEntity::models_dir = "./assets/models";
+bool EnhancedEntity::wanted = true;
+std::vector<EnhancedEntity *> EnhancedEntity::replacedEntities;
 
 void EnhancedEntity::InitFromRAM(uint8_t *data, size_t size, std::string name) {
     RSEntity::InitFromRAM(data, size, name);
@@ -29,11 +32,75 @@ void EnhancedEntity::InitFromRAM(uint8_t *data, size_t size, std::string name) {
     if (this->jdyn == nullptr) {
         return;
     }
+    wanted = Config::getInstance().getString("Video", "enhanced_f16_model", "1") != "0";
     const std::string path = replacementPathFor(name);
     if (FILE *f = fopen(path.c_str(), "r")) {
         fclose(f);
-        this->replaceGeometryFromOBJ(path);
+        this->takeGeometry(this->original);
+        if (this->replaceGeometryFromOBJ(path)) {
+            this->takeGeometry(this->replacement);
+            this->replaced = true;
+            this->active = true;
+            replacedEntities.push_back(this);
+            this->useReplacement(wanted);
+        } else {
+            this->putGeometry(this->original);
+        }
     }
+}
+
+void EnhancedEntity::takeGeometry(Geometry &geometry) const {
+    geometry.vertices = this->vertices;
+    geometry.triangles = this->triangles;
+    geometry.lods = this->lods;
+    geometry.attrs.clear();
+    for (const auto &kv : this->attrs) {
+        geometry.attrs[kv.first] = new Attr(*kv.second);
+    }
+    geometry.uvs = this->uvs;
+    geometry.quads = this->quads;
+    geometry.qmapuvs = this->qmapuvs;
+    geometry.childY.clear();
+    for (const CHLD *c : this->chld) {
+        geometry.childY.push_back(c != nullptr ? c->y : 0);
+    }
+}
+
+void EnhancedEntity::putGeometry(const Geometry &geometry) {
+    this->vertices = geometry.vertices;
+    this->triangles = geometry.triangles;
+    this->lods = geometry.lods;
+    for (auto &kv : this->attrs) {
+        delete kv.second;
+    }
+    this->attrs.clear();
+    for (const auto &kv : geometry.attrs) {
+        this->attrs[kv.first] = new Attr(*kv.second);
+    }
+    this->uvs = geometry.uvs;
+    this->quads = geometry.quads;
+    this->qmapuvs = geometry.qmapuvs;
+    for (size_t i = 0; i < this->chld.size() && i < geometry.childY.size(); i++) {
+        if (this->chld[i] != nullptr) {
+            this->chld[i]->y = geometry.childY[i];
+        }
+    }
+}
+
+void EnhancedEntity::useReplacement(bool active) {
+    if (!this->replaced || active == this->active) {
+        return;
+    }
+    this->putGeometry(active ? this->replacement : this->original);
+    this->active = active;
+}
+
+void EnhancedEntity::setReplacementsActive(bool active) {
+    wanted = active;
+    for (EnhancedEntity *entity : replacedEntities) {
+        entity->useReplacement(active);
+    }
+    printf("[MODEL] replacement models %s (%zu aircraft models)\n", active ? "on" : "off", replacedEntities.size());
 }
 
 std::string EnhancedEntity::replacementPathFor(const std::string &entity_name) {

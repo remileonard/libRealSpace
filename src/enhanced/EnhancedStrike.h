@@ -80,6 +80,7 @@ private:
     enhanced::WaterSplashEffect waterSplash;
     bool waterSplashEnabled{false};
     bool glassEnabled{true};
+    bool enhancedModel{true};
     bool orbitEnabled{true};
     bool optionsOpen{false};
     bool optionsWasPaused{false};
