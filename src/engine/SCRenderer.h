@@ -109,6 +109,12 @@ public:
     GLuint detail_tex{0};
     void ensureDetailTexture();
     void renderTerrainDetail(RSArea *area, int LOD, const std::vector<int> &blocks);
+
+    // [Video] water_waves: 0 = off (default), 1..100 = strength of two drifting wave layers on the water
+    int water_waves{0};
+    GLuint wave_tex{0};
+    void ensureWaveTexture();
+    void renderWaterWaves(RSArea *area, int LOD, const std::vector<int> &blocks);
     
     SCRenderer();
     ~SCRenderer();

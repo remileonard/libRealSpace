@@ -36,6 +36,7 @@ typedef struct MapVertex {
     uint8_t upperImageID;
 
     float color[4];
+    float waterShare{1.0f};     // share of water vertices around the vertex, 0 on land
     float lowerColors[3][4];
     float upperColors[3][4];
 

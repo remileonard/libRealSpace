@@ -371,6 +371,7 @@ void RSArea::ParseHeightMap(void) {
     smallPak.InitFromRAM("SMALSIZE", entry->data, entry->size);
     ParseBlocks(BLOCK_LOD_MIN, entry, 5);
     ComputeTriangleColors();
+    ComputeWaterShare();
     BuildSkirts();
     generateClouds(randInt(500), 15000, 15.0f);
     
@@ -928,6 +929,39 @@ void RSArea::ComputeTriangleColors() {
             if (brBlk)
                 computeQuadColors(block->GetVertice(s - 1, s - 1), rightBlk->GetVertice(0, s - 1),
                                   brBlk->GetVertice(0, 0), bottomBlk->GetVertice(s - 1, 0));
+        }
+    }
+}
+// Share of water vertices (land type 0) among the neighbours of every vertex, used to fade effects out towards
+// the shore. Neighbours in other blocks are not looked at.
+void RSArea::ComputeWaterShare() {
+    for (int lod = 0; lod < NUM_LODS; lod++) {
+        for (int i = 0; i < BLOCKS_PER_MAP; i++) {
+            AreaBlock *block = &blocks[lod][i];
+            const int s = block->sideSize;
+            for (int y = 0; y < s; y++) {
+                for (int x = 0; x < s; x++) {
+                    MapVertex *vertex = block->GetVertice(x, y);
+                    if (vertex->type != 0) {
+                        vertex->waterShare = 0.0f;
+                        continue;
+                    }
+                    int total = 0;
+                    int water = 0;
+                    for (int dy = -1; dy <= 1; dy++) {
+                        for (int dx = -1; dx <= 1; dx++) {
+                            const int nx = x + dx;
+                            const int ny = y + dy;
+                            if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= s || ny >= s) {
+                                continue;
+                            }
+                            total++;
+                            water += block->GetVertice(nx, ny)->type == 0 ? 1 : 0;
+                        }
+                    }
+                    vertex->waterShare = total > 0 ? (float)water / (float)total : 1.0f;
+                }
+            }
         }
     }
 }

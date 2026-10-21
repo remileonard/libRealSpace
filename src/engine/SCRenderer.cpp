@@ -332,6 +332,7 @@ void SCRenderer::init(int width, int height) {
     this->show_textured = config.getBool("Game", "show_texture", true);
     this->show_fog = config.getBool("Game", "show_fog", true);
     this->terrain_detail = config.getInt("Video", "terrain_detail", 0);
+    this->water_waves = config.getInt("Video", "water_waves", 0);
     this->show_clouds = config.getBool("Game", "clouds_enabled", false);
     this->width = width;
     this->height = height;
@@ -1417,6 +1418,46 @@ void SCRenderer::renderColoredTriangle(MapVertex *tri0, MapVertex *tri1, MapVert
     glVertex3f(tri2->v.x, tri2->v.y, tri2->v.z);
 }
 
+typedef void (*TerrainQuadFn)(const MapVertex *cur, const MapVertex *right, const MapVertex *bottomRight, const MapVertex *bottom);
+
+// Calls fn for every terrain quad of the given blocks, including the quads that reach into the neighbouring blocks.
+static void eachTerrainQuad(RSArea *area, int LOD, const std::vector<int> &blocks, TerrainQuadFn fn) {
+    for (int i : blocks) {
+        AreaBlock *block = area->GetAreaBlockByID(LOD, i);
+        if (block == nullptr || block->sideSize < 2) {
+            continue;
+        }
+        const int s = block->sideSize;
+        const bool hasRight = i % BLOCK_PER_MAP_SIDE != BLOCK_PER_MAP_SIDE - 1;
+        const bool hasBottom = i / BLOCK_PER_MAP_SIDE != BLOCK_PER_MAP_SIDE - 1;
+        AreaBlock *rightBlock = hasRight ? area->GetAreaBlockByID(LOD, i + 1) : nullptr;
+        AreaBlock *bottomBlock = hasBottom ? area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE) : nullptr;
+        AreaBlock *cornerBlock = (hasRight && hasBottom) ? area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE) : nullptr;
+        for (int y = 0; y < s - 1; y++) {
+            for (int x = 0; x < s - 1; x++) {
+                fn(block->GetVertice(x, y), block->GetVertice(x + 1, y), block->GetVertice(x + 1, y + 1),
+                   block->GetVertice(x, y + 1));
+            }
+        }
+        if (rightBlock != nullptr) {
+            for (int y = 0; y < s - 1; y++) {
+                fn(block->GetVertice(s - 1, y), rightBlock->GetVertice(0, y), rightBlock->GetVertice(0, y + 1),
+                   block->GetVertice(s - 1, y + 1));
+            }
+        }
+        if (bottomBlock != nullptr) {
+            for (int x = 0; x < s - 1; x++) {
+                fn(block->GetVertice(x, s - 1), block->GetVertice(x + 1, s - 1), bottomBlock->GetVertice(x + 1, 0),
+                   bottomBlock->GetVertice(x, 0));
+            }
+        }
+        if (cornerBlock != nullptr) {
+            fn(block->GetVertice(s - 1, s - 1), rightBlock->GetVertice(0, s - 1), cornerBlock->GetVertice(0, 0),
+               bottomBlock->GetVertice(s - 1, 0));
+        }
+    }
+}
+
 static void detailVertex(const MapVertex *v) {
     glTexCoord2f(v->v.x / DETAIL_TILE_SIZE, v->v.z / DETAIL_TILE_SIZE);
     glVertex3f(v->v.x, v->v.y, v->v.z);
@@ -1429,6 +1470,156 @@ static void detailQuad(const MapVertex *cur, const MapVertex *right, const MapVe
     detailVertex(cur);
     detailVertex(right);
     detailVertex(bottomRight);
+}
+
+// Water is terrain of land type 0. Only triangles whose three vertices are water and that have no tile texture count.
+static const float WAVE_TILE_SIZE = 1500.0f;
+
+// Camera position for the distance fade of the waves, set before the water is drawn
+static Vector3D waveCamera;
+static const float WAVE_FADE_START = 8000.0f;
+static const float WAVE_FADE_END = 30000.0f;
+
+// Strength of the waves at a vertex: fades out towards the shore and with the distance to the camera
+static float waveStrength(const MapVertex *v) {
+    float shore = (v->waterShare - 0.4f) / 0.5f;
+    shore = shore < 0.0f ? 0.0f : (shore > 1.0f ? 1.0f : shore);
+    const float dx = v->v.x - waveCamera.x;
+    const float dz = v->v.z - waveCamera.z;
+    const float d = sqrtf(dx * dx + dz * dz);
+    float far = 1.0f - (d - WAVE_FADE_START) / (WAVE_FADE_END - WAVE_FADE_START);
+    far = far < 0.0f ? 0.0f : (far > 1.0f ? 1.0f : far);
+    return shore * far;
+}
+
+static void waveVertex(const MapVertex *v) {
+    glColor4f(1.0f, 1.0f, 1.0f, waveStrength(v));
+    glTexCoord2f(v->v.x / WAVE_TILE_SIZE, v->v.z / WAVE_TILE_SIZE);
+    glVertex3f(v->v.x, v->v.y, v->v.z);
+}
+
+static void waterQuad(const MapVertex *cur, const MapVertex *right, const MapVertex *bottomRight, const MapVertex *bottom) {
+    if (cur->lowerImageID == 0xFF && cur->type == 0 && bottomRight->type == 0 && bottom->type == 0) {
+        waveVertex(cur);
+        waveVertex(bottomRight);
+        waveVertex(bottom);
+    }
+    if (cur->upperImageID == 0xFF && cur->type == 0 && right->type == 0 && bottomRight->type == 0) {
+        waveVertex(cur);
+        waveVertex(right);
+        waveVertex(bottomRight);
+    }
+}
+
+// Ridged, seamlessly tiling noise (crest lines), mean 0.5, applied like the detail texture.
+void SCRenderer::ensureWaveTexture() {
+    if (this->wave_tex != 0) {
+        return;
+    }
+    const int N = 256;
+    const int octaves[3] = {6, 12, 24};
+    const float weights[3] = {0.5f, 0.3f, 0.2f};
+    const float amplitude = 0.5f * (this->water_waves / 100.0f);
+    auto lattice = [](int x, int y, int period, int seed) {
+        x = ((x % period) + period) % period;
+        y = ((y % period) + period) % period;
+        uint32_t h = (uint32_t)(x * 374761393 + y * 668265263 + seed * 2147483647);
+        h = (h ^ (h >> 13)) * 1274126177u;
+        h ^= h >> 16;
+        return (float)(h & 0xffff) / 65535.0f;
+    };
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            float n = 0.0f;
+            for (int o = 0; o < 3; o++) {
+                const int period = octaves[o];
+                const float fx = (float)x / N * period;
+                const float fy = (float)y / N * period;
+                const int ix = (int)fx;
+                const int iy = (int)fy;
+                float tx = fx - ix;
+                float ty = fy - iy;
+                tx = tx * tx * (3.0f - 2.0f * tx);
+                ty = ty * ty * (3.0f - 2.0f * ty);
+                const float a = lattice(ix, iy, period, 10 + o);
+                const float b = lattice(ix + 1, iy, period, 10 + o);
+                const float c = lattice(ix, iy + 1, period, 10 + o);
+                const float d = lattice(ix + 1, iy + 1, period, 10 + o);
+                const float v = (a + (b - a) * tx) * (1.0f - ty) + (c + (d - c) * tx) * ty;
+                n += weights[o] * (1.0f - fabsf(2.0f * v - 1.0f)); // ridge
+            }
+            // ridge values are around 0.5 with a deviation of about 0.12
+            const float z = (n - 0.5f) / 0.12f;
+            float v = 0.5f * (1.0f + amplitude * z);
+            if (v < 0.0f) v = 0.0f;
+            if (v > 1.0f) v = 1.0f;
+            const uint8_t c = (uint8_t)(v * 255.0f);
+            const size_t i = ((size_t)y * N + x) * 4;
+            px[i] = px[i + 1] = px[i + 2] = c;
+            px[i + 3] = 255;
+        }
+    }
+    glGenTextures(1, &this->wave_tex);
+    glBindTexture(GL_TEXTURE_2D, this->wave_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+    printf("[Renderer] water waves %d%%\n", this->water_waves);
+}
+
+// Two layers of the wave texture drift over the water in different directions and speeds.
+void SCRenderer::renderWaterWaves(RSArea *area, int LOD, const std::vector<int> &blocks) {
+    this->ensureWaveTexture();
+    const float t = (float)SDL_GetTicks() / 1000.0f;
+    // scale, drift in tile fractions per second
+    const float layers[2][3] = {{1.0f, 0.010f, 0.006f}, {1.7f, -0.007f, 0.012f}};
+    waveCamera = this->camera.getPosition();
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, this->wave_tex);
+    // result = mix(0.5, texture, vertex alpha): the waves fade to a neutral 0.5 that the blend leaves unchanged
+    const GLfloat neutral[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+    glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, neutral);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
+    glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_CONSTANT);
+    glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+    glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE2_RGB, GL_PRIMARY_COLOR);
+    glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+    glDisable(GL_FOG);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(-2.0f, -2.0f);
+    for (int layer = 0; layer < 2; layer++) {
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();
+        glTranslatef(t * layers[layer][1], t * layers[layer][2], 0.0f);
+        glScalef(layers[layer][0], layers[layer][0], 1.0f);
+        glMatrixMode(GL_MODELVIEW);
+        glBegin(GL_TRIANGLES);
+        eachTerrainQuad(area, LOD, blocks, waterQuad);
+        glEnd();
+    }
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
+    if (this->show_fog) {
+        glEnable(GL_FOG);
+    }
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    glDisable(GL_TEXTURE_2D);
 }
 
 // Detail pass over the whole terrain, after the colour and texture passes: the noise texture (mean 0.5) is
@@ -1448,40 +1639,7 @@ void SCRenderer::renderTerrainDetail(RSArea *area, int LOD, const std::vector<in
     glPolygonOffset(-2.0f, -2.0f);
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     glBegin(GL_TRIANGLES);
-    for (int i : blocks) {
-        AreaBlock *block = area->GetAreaBlockByID(LOD, i);
-        if (block == nullptr || block->sideSize < 2) {
-            continue;
-        }
-        const int s = block->sideSize;
-        const bool hasRight = i % BLOCK_PER_MAP_SIDE != BLOCK_PER_MAP_SIDE - 1;
-        const bool hasBottom = i / BLOCK_PER_MAP_SIDE != BLOCK_PER_MAP_SIDE - 1;
-        AreaBlock *rightBlock = hasRight ? area->GetAreaBlockByID(LOD, i + 1) : nullptr;
-        AreaBlock *bottomBlock = hasBottom ? area->GetAreaBlockByID(LOD, i + BLOCK_PER_MAP_SIDE) : nullptr;
-        AreaBlock *cornerBlock = (hasRight && hasBottom) ? area->GetAreaBlockByID(LOD, i + 1 + BLOCK_PER_MAP_SIDE) : nullptr;
-        for (int y = 0; y < s - 1; y++) {
-            for (int x = 0; x < s - 1; x++) {
-                detailQuad(block->GetVertice(x, y), block->GetVertice(x + 1, y), block->GetVertice(x + 1, y + 1),
-                           block->GetVertice(x, y + 1));
-            }
-        }
-        if (rightBlock != nullptr) {
-            for (int y = 0; y < s - 1; y++) {
-                detailQuad(block->GetVertice(s - 1, y), rightBlock->GetVertice(0, y), rightBlock->GetVertice(0, y + 1),
-                           block->GetVertice(s - 1, y + 1));
-            }
-        }
-        if (bottomBlock != nullptr) {
-            for (int x = 0; x < s - 1; x++) {
-                detailQuad(block->GetVertice(x, s - 1), block->GetVertice(x + 1, s - 1), bottomBlock->GetVertice(x + 1, 0),
-                           bottomBlock->GetVertice(x, 0));
-            }
-        }
-        if (cornerBlock != nullptr) {
-            detailQuad(block->GetVertice(s - 1, s - 1), rightBlock->GetVertice(0, s - 1), cornerBlock->GetVertice(0, 0),
-                       bottomBlock->GetVertice(s - 1, 0));
-        }
-    }
+    eachTerrainQuad(area, LOD, blocks, detailQuad);
     glEnd();
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDepthMask(GL_TRUE);
@@ -1924,6 +2082,9 @@ void SCRenderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     glDisable(GL_TEXTURE_2D);
     if (this->terrain_detail > 0) {
         this->renderTerrainDetail(area, LOD, visibleHiLOD);
+    }
+    if (this->water_waves > 0) {
+        this->renderWaterWaves(area, LOD, visibleHiLOD);
     }
     // Overlay: inversion de Z -> winding mirroir, on inverse temporairement la front face
     
