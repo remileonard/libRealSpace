@@ -219,6 +219,10 @@ public:
      * @brief Creates the mission object for setMission, derived activities return their own mission type
      */
     virtual SCMission *createMission(char const *missionName);
+    /**
+     * @brief Creates the cockpit object for setMission, derived activities return their own cockpit type
+     */
+    virtual SCCockpit *createCockpit();
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();

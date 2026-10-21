@@ -4,6 +4,7 @@
 #include <vector>
 #include "../strike_commander/SCStrike.h"
 #include "CockpitGlassEffect.h"
+#include "EnhancedCockpit.h"
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
 #include "WingVortexEffect.h"
@@ -17,6 +18,7 @@ public:
 
 protected:
     SCMission *createMission(char const *missionName) override;
+    SCCockpit *createCockpit() override;
     void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) override;
     void afterInput() override;
     void afterCameraPlaced() override;

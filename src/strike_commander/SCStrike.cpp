@@ -1624,6 +1624,9 @@ RSEntity * SCStrike::loadWeapon(std::string name) {
  *
  * @param[in] missionName The name of the mission file to load.
  */
+SCCockpit *SCStrike::createCockpit() {
+    return new SCCockpit();
+}
 SCMission *SCStrike::createMission(char const *missionName) {
     return new SCMission(missionName, &object_cache);
 }
@@ -1698,7 +1701,7 @@ void SCStrike::setMission(char const *missionName) {
     
     this->player_plane->InitLoadout();
     this->player_prof = this->current_mission->player->profile;
-    this->cockpit = new SCCockpit();
+    this->cockpit = this->createCockpit();
     this->cockpit->player_plane = this->player_plane;
     this->cockpit->init();
     this->cockpit->current_mission = this->current_mission;

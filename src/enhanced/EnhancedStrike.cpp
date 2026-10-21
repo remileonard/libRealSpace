@@ -13,6 +13,10 @@
 
 using namespace enhanced;
 
+SCCockpit *EnhancedStrike::createCockpit() {
+    return new EnhancedCockpit();
+}
+
 SCMission *EnhancedStrike::createMission(char const *missionName) {
     return new EnhancedMission(missionName, &object_cache);
 }

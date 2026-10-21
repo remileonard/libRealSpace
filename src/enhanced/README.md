@@ -63,3 +63,14 @@ is not changed.
 `CockpitGlassEffect` draws a thin overlay directly in front of the camera: a faint reflection with a streak that follows the
 sun, fine dust and scratches that light up when looking towards the sun, a glare veil and halo, and impact cracks that appear
 step by step with the damage level of the player aircraft.
+
+## HD cockpit textures (`EnhancedCockpit`)
+
+`EnhancedStrike::createCockpit()` returns an `EnhancedCockpit`. With `[Video] hd_textures = 1` its `init()` replaces cockpit
+images by PNG files from `./assets/hdtex/`. The file name is the first 8 characters of the image name plus its original size,
+for example `FI6PIT1_70x121.png`. The replacement may have any larger size (RGBA, mipmapped) and is uploaded to the existing
+GPU texture, the renderer is not touched. Without a matching file the original image is used. The console prints
+`[enhanced] HD textures: N replaced`. Example files for the side consoles are in `resources/hdtex` (see `CREDITS.md`),
+`stb_image.h` (public domain / MIT) is in `third_party`.
+
+Not verified: images that the game rewrites later (marked dirty) would show the original again; none were observed.
