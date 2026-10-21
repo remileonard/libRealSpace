@@ -272,6 +272,14 @@ void EnhancedStrike::afterInput() {
         printf("[enhanced] camera mouse orbit: %s (view %d)\n", allowed ? "on" : "off", (int)this->camera_mode);
         this->orbitActive = allowed;
     }
+    if (allowed && (this->optionsOpen || this->endPrompt)) {
+        // a panel is open: the mouse belongs to the panel, the camera keeps its current orbit
+        if (this->mouse_control) {
+            this->player_plane->control_stick_x = 0;
+            this->player_plane->control_stick_y = 0;
+        }
+        return;
+    }
     if (!allowed) {
         this->orbitYaw = 0.0f;
         this->orbitPitch = 0.0f;
