@@ -14,6 +14,10 @@
 #include "imgui_impl_opengl2.h"
 #include <functional>
 
+#ifndef GL_MULTISAMPLE
+#define GL_MULTISAMPLE 0x809D
+#endif
+
 
 
 void RSScreen::setTitle(const char* title){
@@ -47,6 +51,13 @@ void RSScreen::init(int width, int height, bool fullscreen){
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
+    // [Video] msaa: 0 = off (default), 2/4/8 = multisample anti-aliasing of the window framebuffer
+    int msaa = Config::getInstance().getInt("Video", "msaa", 0);
+    if (msaa > 1) {
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, msaa);
+    }
+
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (fullscreen) {
         window_flags = (SDL_WindowFlags)(SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -59,6 +70,18 @@ void RSScreen::init(int width, int height, bool fullscreen){
                                  this->width,
                                  this->height,
                                  window_flags);
+    if (m_window == nullptr && msaa > 1) {
+        printf("[RSScreen] msaa %d not available (%s), continuing without\n", msaa, SDL_GetError());
+        msaa = 0;
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
+        m_window = SDL_CreateWindow("Neo Strike Commander",
+                                     SDL_WINDOWPOS_UNDEFINED,
+                                     SDL_WINDOWPOS_UNDEFINED,
+                                     this->width,
+                                     this->height,
+                                     window_flags);
+    }
 
     int drawableW = 0, drawableH = 0;
     SDL_GL_GetDrawableSize(m_window, &drawableW, &drawableH);
@@ -83,6 +106,14 @@ void RSScreen::init(int width, int height, bool fullscreen){
         return;
     }
     SDL_GL_MakeCurrent(m_window, m_glContext);
+    if (msaa > 1) {
+        int samples = 0;
+        SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &samples);
+        printf("[RSScreen] msaa requested %d, framebuffer has %d samples\n", msaa, samples);
+        if (samples > 1) {
+            glEnable(GL_MULTISAMPLE);
+        }
+    }
     if (!initGLExtensions()) {
         printf("[RSScreen] Failed to load OpenGL extensions\n");
         return;
