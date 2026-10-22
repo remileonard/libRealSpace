@@ -1,0 +1,6 @@
+file (GLOB SCE_SOURCE "*.cpp")
+file (GLOB SCE_HEADER "*.h")
+add_library (strike_commander_enhanced STATIC ${SCE_SOURCE} ${SCE_HEADER})
+target_include_directories(strike_commander_enhanced PUBLIC ${SDL2_INCLUDE_DIRS})
+target_include_directories(strike_commander_enhanced PUBLIC ${OPENGL_INCLUDE_DIR})
+target_link_libraries(strike_commander_enhanced PUBLIC realspace engine commons)

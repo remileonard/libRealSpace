@@ -26,9 +26,8 @@ class SCCameraDirector;
 
 class SCMission {
     
-private:
-    MessageBus::SubscriptionId subscription_id{-1};
 protected:
+    MessageBus::SubscriptionId subscription_id{-1};
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
     
@@ -105,6 +104,7 @@ public:
     virtual void update();
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
+    virtual RSEntity *createEntity();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
     uint32_t tps{0};

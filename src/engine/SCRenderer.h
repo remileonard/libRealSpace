@@ -78,6 +78,8 @@ private:
     void renderSkydome(int rings, int slices);
 
 public:
+    // index of the palette entry closest to the given colour (used to map fixed colours of replacement models)
+    int nearestPaletteColour(int r, int g, int b);
     Camera camera;
     static SCRenderer& getInstance() {
         if (!SCRenderer::hasInstance()) {
