@@ -186,16 +186,19 @@ bool EnhancedStrike::orbitAllowed() const {
     return type == RSCameraType::RSCAM_CHAS || type == RSCameraType::RSCAM_TARG || type == RSCameraType::RSCAM_ROTA;
 }
 
-// The mouse position orbits the camera around the plane (screen edge = 180 degrees), wheel zooms, middle button resets
+// The mouse movement orbits the camera around the plane without limit (screen width = 360 degrees), wheel zooms,
+// middle button resets. The relative mouse mode keeps the movement coming when the pointer would hit the screen edge.
 void EnhancedStrike::updateOrbit() {
     const float halfWidth = (float)std::max(1, Screen->logical_width / 2);
     const float halfHeight = (float)std::max(1, Screen->logical_height / 2);
-    float mx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
-    float my = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
-    float nx = (std::min)(1.0f, (std::max)(-1.0f, (mx - Screen->logical_width / 2) / halfWidth));
-    float ny = (std::min)(1.0f, (std::max)(-1.0f, (my - Screen->logical_height / 2) / halfHeight));
-    this->orbitYaw = nx * (float)M_PI;
-    this->orbitPitch = (std::min)(1.35f, (std::max)(-0.9f, (this->orbitInvertY ? -ny : ny) * 1.35f));
+    int dx = 0;
+    int dy = 0;
+    EventManager::getInstance().getMouseMotion(dx, dy);
+    this->orbitYaw += (float)dx * (float)M_PI / halfWidth;
+    this->orbitYaw = remainderf(this->orbitYaw, 2.0f * (float)M_PI);
+    const float pitchStep = (float)dy * 1.35f / halfHeight;
+    this->orbitPitch += this->orbitInvertY ? -pitchStep : pitchStep;
+    this->orbitPitch = (std::min)(1.35f, (std::max)(-0.9f, this->orbitPitch));
     int wheel = EventManager::getInstance().getMouseWheel();
     if (wheel != 0) {
         this->orbitZoom = (std::min)(3.0f, (std::max)(0.35f, this->orbitZoom * powf(0.9f, (float)wheel)));
@@ -272,6 +275,7 @@ void EnhancedStrike::afterInput() {
         printf("[enhanced] camera mouse orbit: %s (view %d)\n", allowed ? "on" : "off", (int)this->camera_mode);
         this->orbitActive = allowed;
     }
+    this->setOrbitRelativeMouse(allowed && !this->optionsOpen && !this->endPrompt);
     if (allowed && (this->optionsOpen || this->endPrompt)) {
         // a panel is open: the mouse belongs to the panel, the camera keeps its current orbit
         if (this->mouse_control) {
@@ -291,6 +295,16 @@ void EnhancedStrike::afterInput() {
         this->player_plane->control_stick_x = 0;
         this->player_plane->control_stick_y = 0;
     }
+}
+
+// Endless mouse movement while the orbit camera owns the mouse, normal pointer otherwise (panels)
+void EnhancedStrike::setOrbitRelativeMouse(bool on) {
+    if (on == this->orbitRelativeMouse) {
+        return;
+    }
+    this->orbitRelativeMouse = on;
+    SDL_SetRelativeMouseMode(on ? SDL_TRUE : SDL_FALSE);
+    printf("[enhanced] orbit relative mouse: %s\n", on ? "on" : "off");
 }
 
 // Yaw about the world vertical, then raise/lower the camera, distance scaled by the zoom
