@@ -44,6 +44,7 @@ public:
         if (rawDeltaTime > maxReasonableDeltaTime) {
             // Frame anormale détectée
             m_hadSpikeThisSecond = true;
+            m_spikeFramesThisSecond++;
             rawDeltaTime = m_smoothedDeltaTime;
         }
         
@@ -68,15 +69,29 @@ public:
             bool isReasonable = avgFPS >= 10.0f && avgFPS <= 200.0f;
             bool isCloseToExpected = avgFPS > (m_expectedFPS * 0.5f);
             
+            // If most frames of this second were "spikes", the frame rate really changed
+            // (e.g. switching to a more expensive view) and it is not a transient hiccup.
+            bool sustainedChange = m_spikeFramesThisSecond * 2 >= m_framesSinceLastUpdate;
+
             if (!m_hadSpikeThisSecond && isReasonable && isCloseToExpected) {
                 m_smoothedDeltaTime = 1.0f / avgFPS;
                 m_expectedFPS = avgFPS;
+                m_changedSeconds = 0;
+            } else if (isReasonable && sustainedChange) {
+                // Far from the expected rate: follow it only when it lasts 2 seconds.
+                if (++m_changedSeconds >= 2) {
+                    m_smoothedDeltaTime = 1.0f / avgFPS;
+                    m_expectedFPS = avgFPS;
+                    m_changedSeconds = 0;
+                }
+            } else {
+                m_changedSeconds = 0;
             }
-            // Sinon on garde l'ancien smoothedDeltaTime
             
             m_lastFPSUpdate = currentTime;
             m_framesSinceLastUpdate = 0;
             m_hadSpikeThisSecond = false;
+            m_spikeFramesThisSecond = 0;
         }
         
         m_deltaTime = m_smoothedDeltaTime;
@@ -105,4 +120,6 @@ private:
     float m_smoothedDeltaTime;
     float m_expectedFPS;
     bool m_hadSpikeThisSecond;
+    uint32_t m_spikeFramesThisSecond{0};
+    int m_changedSeconds{0};
 };
