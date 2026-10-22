@@ -169,6 +169,7 @@ private:
     MapVertex *highestVertex(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2);
     void computeQuadColors(MapVertex *cur, MapVertex *right, MapVertex *bottomRight, MapVertex *bottom);
     void ComputeTriangleColors();
+    void ComputeWaterShare();
     char name[16];
     PrecomputedSkirts skirts_;
     float terrain_shadow_lift{0.08f};
