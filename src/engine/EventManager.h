@@ -41,6 +41,7 @@ public:
     bool isMouseButtonJustReleased(int button) const;
     void getMousePosition(int& x, int& y) const;
     void getMouseMotion(int& dx, int& dy) const;
+    int getMouseWheel() const { return m_mouse.wheel; }   // wheel notches since the last update (up = +)
     
     // Gestionnaires d'événements personnalisés
     using EventCallback = std::function<void(const SDL_Event&)>;
@@ -128,6 +129,7 @@ private:
         Uint32 previousButtonState = 0;
         int x = 0, y = 0;
         int dx = 0, dy = 0;
+        int wheel = 0;
     } m_mouse;
     
     // Callbacks d'événements personnalisés

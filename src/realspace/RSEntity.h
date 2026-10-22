@@ -306,9 +306,9 @@ public:
     bool prepared{false};
     AssetManager &assetsManager = AssetManager::instance();
     std::string name;
-    ~RSEntity();
+    virtual ~RSEntity();
 
-    void InitFromRAM(uint8_t *data, size_t size, std::string name);
+    virtual void InitFromRAM(uint8_t *data, size_t size, std::string name);
     size_t NumImages(void);
     size_t NumVertice(void);
     size_t NumUVs(void);
