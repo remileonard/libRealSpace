@@ -199,6 +199,7 @@ void EventManager::update() {
     m_mouse.previousButtonState = m_mouse.currentButtonState;
     m_mouse.dx = 0;
     m_mouse.dy = 0;
+    m_mouse.wheel = 0;
     
     // Sauvegarder l'état précédent des joysticks
     for (auto& joystick : m_joysticks) {
@@ -237,6 +238,10 @@ void EventManager::update() {
                 m_mouse.dy += event.motion.yrel;
                 break;
                 
+            case SDL_MOUSEWHEEL:
+                m_mouse.wheel += event.wheel.y;
+                break;
+
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
                 m_mouse.x = event.button.x;

@@ -20,13 +20,15 @@ public:
     void focus(void);
     void runFrame(void);
 
+protected:
+    virtual void OnSearchAndDestroy();
+
 private:
     RLEShape title;
     RLEShape background;
     RLEShape board;
 
     void OnExitTraining();
-    void OnSearchAndDestroy();
     void OnDogFight();
 };
 

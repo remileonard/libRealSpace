@@ -32,6 +32,42 @@ static int mission_idx = 0;
  */
 class SCStrike : public IActivity {
 protected:
+    /**
+     * @brief Hook, empty by default: called right after an aircraft has been drawn, with the world camera active.
+     * @param plane the aircraft
+     * @param position its world position
+     * @param thrust its throttle, 0..100
+     */
+    virtual void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) {}
+
+    /**
+     * @brief Hook, empty by default: called each frame right after the keyboard/mouse input has been processed and before the
+     *        simulation step.
+     */
+    virtual void afterInput() {}
+
+    /**
+     * @brief Hook, empty by default: called each frame once the camera of the current view has been placed, before the scene
+     *        is rendered.
+     */
+    virtual void afterCameraPlaced() {}
+
+    /**
+     * @brief Hook, empty by default: called in every cockpit view once the 3D scene (and the 3D cockpit model, if used) has
+     *        been drawn and before the 2D cockpit overlay, with the camera matrices of the view active.
+     */
+    virtual void afterCockpitSceneRendered() {}
+
+    /**
+     * @brief Hook, returns true by default: called when the player presses the end-mission key. The mission only ends
+     *        if it returns true.
+     */
+    virtual bool confirmEndMission() { return true; }
+
+    /**
+     * @brief Hook, empty by default: called once the complete frame (3D scene and 2D cockpit) has been drawn, for 2D overlays.
+     */
+    virtual void afterFrameRendered() {}
 
     bool air_weapons_mode{false};
     /**
@@ -190,6 +226,14 @@ public:
      * @param missionName The name of the mission to load
      */
     void setMission(char const *missionName);
+    /**
+     * @brief Creates the mission object for setMission, derived activities return their own mission type
+     */
+    virtual SCMission *createMission(char const *missionName);
+    /**
+     * @brief Creates the cockpit object for setMission, derived activities return their own cockpit type
+     */
+    virtual SCCockpit *createCockpit();
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();
