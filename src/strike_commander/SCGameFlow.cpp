@@ -204,7 +204,7 @@ void SCGameFlow::runEffect() {
     bool elseEncountered[MAX_IF_DEPTH] = {false};  // Suivi des else
     int ifDepth = 0;  // Niveau d'imbrication actuel
     int i = 0;
-    bool flymission = false;
+    this->weapon_loadout_requested = false;
     
     for (auto instruction : *this->efect) {
         if (i < this->currentOptCode) {
@@ -297,7 +297,7 @@ void SCGameFlow::runEffect() {
             }
             break;
         case EFECT_OPT_END_MISS: {
-            // @TODO Show weapons selection screen.
+            // WEAPON_LOADOUT : écran d'armement, ouvert en fin de script ; le départ en vol (sprite 12) lance la mission.
             this->playEndMission();
         } break;
         case EFECT_OPT_MIS2:
@@ -307,10 +307,12 @@ void SCGameFlow::runEffect() {
             this->playShot(instruction->value);
         } break;
         case EFECT_OPT_FLYM: {
-            flymission = this->playFlyMission(instruction->value);
+            // SELECT_MISSION : choix de la mission seulement.
+            this->playFlyMission(instruction->value);
         } break;
         case EFECT_OPT_FLYM2: {
-            flymission = this->playFlyMission2(instruction->value);
+            // FLY_MISSION_NOW : choix de la mission et départ en vol, sans écran d'armement.
+            this->playFlyMission2(instruction->value);
         } break;
         case EFECT_OPT_SETFLAG_TRUE:
             GameState.requierd_flags[instruction->value] = true;
@@ -532,7 +534,10 @@ void SCGameFlow::runEffect() {
         };
         i++;
     }
-    if (flymission) {
+    if (this->weapon_loadout_requested) {
+        this->weapon_loadout_requested = false;
+        printf("GAMEFLOW: WEAPON_LOADOUT, ecran d'armement pour %s\n",
+               this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
         if (this->scen != nullptr) {
             delete this->scen;
             this->scen = nullptr;
@@ -908,23 +913,7 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
 void SCGameFlow::playShowMap(uint8_t mapId) {}
 
 void SCGameFlow::playEndMission() {
-    bool direct = false;
-    for (auto z : *this->zones) {
-        if (z->id == this->currentSpriteId) {
-            direct = z->sprite->requ == nullptr;
-            if (!direct) {
-                for (auto r : *z->sprite->requ) {
-                    if (r->op == 1) {
-                        direct = true;
-                    }
-                }
-            }
-            break;
-        }
-    }
-    if (direct) {
-        this->next_miss = GameState.mission_id;
-    }
+    this->weapon_loadout_requested = true;
 }
 
 bool SCGameFlow::playFlyMission(uint8_t flyMissionId) {
@@ -942,7 +931,10 @@ bool SCGameFlow::playFlyMission(uint8_t flyMissionId) {
 }
 
 bool SCGameFlow::playFlyMission2(uint8_t flyMissionId) {
-    return this->playFlyMission(flyMissionId);
+    this->playFlyMission(flyMissionId);
+    printf("GAMEFLOW: FLY_MISSION_NOW, depart en vol sans ecran d'armement : %s\n", this->missionToFly);
+    this->flyMission(0);
+    return true;
 }
 
 void SCGameFlow::lookAtLedger() {

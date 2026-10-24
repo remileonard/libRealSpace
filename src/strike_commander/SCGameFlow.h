@@ -99,6 +99,7 @@ protected:
     SCFileRequester *frequest{nullptr};
     bool isGameOver{false};
     bool mission_report_pending{false};
+    bool weapon_loadout_requested{false};
     void applyMissionReport(void);
     void setMusic(uint8_t track);
     void clicked(std::vector<EFCT *> *script, uint8_t id);
