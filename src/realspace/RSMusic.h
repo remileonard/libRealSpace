@@ -77,6 +77,9 @@ public:
     std::vector<RSMusicSet *> LoadMusicFile(const char *file, const char *datFile = nullptr);
     // La banque 'bank' sert les pistes du jeu 'set' (GetMusic) ; ses transitions si set->hasDat.
     void SetBank(uint8_t bank, RSMusicSet *set);
+    // Jeux de GAMEFLOW.ADL / GAMEFLOW.DAT ; la banque 1 sert le jeu 'index' (PLAY_GAMEFLOW_TUNE).
+    std::vector<RSMusicSet *> gameflow_sets;
+    void SetGameflowSet(size_t index);
     // Fichiers d'un appareil : extension des musiques (ADL, ROL, MID), pak des cinematiques,
     // bibliotheque de timbres (vide : aucune), extension et bibliotheque des effets SOUNDFX.
     RSMusic(const std::string &music_ext, const std::string &midgames_pak, const std::string &timbre_file,

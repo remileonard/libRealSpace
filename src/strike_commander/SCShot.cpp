@@ -216,7 +216,7 @@ void EndMissionScene::runFrame() {
     if (fpsupdate) {
         this->fps = (SDL_GetTicks() / 10);
     }
-    Mixer.switchBank(0);
+    Mixer.switchBank(1);
     Mixer.playMusic(27, 1);
     ByteStream paletteReader;
     paletteReader.Set((this->rawPalette), 772);

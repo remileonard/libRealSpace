@@ -98,6 +98,9 @@ protected:
     SCScene *scen{nullptr};
     SCFileRequester *frequest{nullptr};
     bool isGameOver{false};
+    bool mission_report_pending{false};
+    void applyMissionReport(void);
+    void setMusic(uint8_t track);
     void clicked(std::vector<EFCT *> *script, uint8_t id);
     void loadGame(std::string filename);
     void saveGame(std::string filename);

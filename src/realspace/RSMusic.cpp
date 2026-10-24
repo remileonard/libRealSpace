@@ -43,8 +43,10 @@ void RSMusic::init() {
         midgames_musics[0] = amusic[0]->tracks;
     }
 
-    // banque 1 : GAMEFLOW.ADL / GAMEFLOW.MID
-    std::vector<RSMusicSet *> gameflow = LoadMusicFile((sound + "GAMEFLOW." + ext).c_str());
+    // banque 1 : GAMEFLOW.ADL / GAMEFLOW.MID, transitions de GAMEFLOW.DAT
+    std::vector<RSMusicSet *> gameflow =
+        LoadMusicFile((sound + "GAMEFLOW." + ext).c_str(), (sound + "GAMEFLOW.DAT").c_str());
+    this->gameflow_sets = gameflow;
     for (size_t i = 0; i < gameflow.size(); i++) {
         if (i > 0) {
             gameflow_musics[i] = gameflow_musics[0];
@@ -227,6 +229,16 @@ void RSMusic::SetBank(uint8_t bank, RSMusicSet *set) {
     }
     bank_sets[bank] = set;
     musics[bank] = set->tracks;
+}
+
+void RSMusic::SetGameflowSet(size_t index) {
+    if (index >= this->gameflow_sets.size()) {
+        printf("RSMusic: jeu %zu absent de GAMEFLOW (%zu jeux)\n", index, this->gameflow_sets.size());
+        return;
+    }
+    SetBank(1, this->gameflow_sets[index]);
+    printf("RSMusic: banque 1 = jeu %zu de GAMEFLOW, %zu pistes, transitions %d\n", index,
+           this->gameflow_sets[index]->tracks.size(), this->gameflow_sets[index]->hasDat);
 }
 
 void RSMusic::SwitchBank(uint8_t bank) {

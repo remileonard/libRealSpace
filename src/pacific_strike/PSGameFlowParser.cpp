@@ -29,7 +29,7 @@ void PSGameFlowParser::parseOpCode(uint8_t *data, size_t size, std::vector<EFCT 
         {GameFlowOpCode::EFFCT_OPT_IF_MISS_SUCCESS      ,1},
         {GameFlowOpCode::EFECT_OPT_APPLY_CHANGE         ,1},
         {GameFlowOpCode::EFECT_OPT_TUNE_MODIFIER        ,1},
-        {GameFlowOpCode::EFECT_OPT_U8                   ,1},
+        {GameFlowOpCode::EFECT_OPT_SET_MUSIC                  ,1},
         {GameFlowOpCode::EFECT_OPT_U10                  ,1},
         {GameFlowOpCode::EFECT_OPT_U11                  ,1},
         {GameFlowOpCode::EFECT_OPT_CHECK_BALANCE        ,1},

@@ -157,6 +157,7 @@ void SCScene::Render() {
     }
 
     if (this->sceneOpts != nullptr && this->sceneOpts->tune != nullptr && this->music) {
+        Mixer.switchBank(1);
         Mixer.playMusic(Mixer.music->gameflow_musics[GameState.tune_modifier][this->sceneOpts->tune->ID],1);
     }
     if (this->rawPalette != nullptr) {

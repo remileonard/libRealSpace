@@ -1876,40 +1876,33 @@ void SCStrike::runFrame(void) {
         this->player_plane->Simulate();
         this->current_mission->update();
         if (this->current_mission->mission_ended) {
-            GameState.missions_flags.clear();
-            GameState.missions_flags.shrink_to_fit();
-            // @TODO Rework this part when we will be dealing with the mission funds bonus
-            for (auto flags: this->current_mission->gameflow_registers) {
-                GameState.missions_flags.push_back(flags.second);
+            // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu) : valeurs brutes du vol seulement.
+            MissionReport report;
+            report.exit_code = this->player_plane->crached ? 2 : 1;
+            report.mission_name = this->miss_file_name;
+            report.planes_lost = this->player_plane->ejected ? 1 : 0;
+            for (size_t i = 0; i < report.results.size(); i++) {
+                auto found = this->current_mission->gameflow_registers.find(static_cast<uint16_t>(i));
+                if (found != this->current_mission->gameflow_registers.end()) {
+                    report.results[i] = found->second;
+                }
             }
-            //GameState.cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000;
-            
-            GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0]>0;
-            //GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
-            //GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
-            GameState.air_kills += this->current_mission->player->plane_down;
-            GameState.ground_kills += this->current_mission->player->ground_down;
-            GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] =GameState.air_kills;
-            GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = GameState.ground_kills;
-            if (this->player_plane->crached) {
-                GameState.player_dead = true;
-            }
-            if (this->player_plane->ejected) {
-                GameState.player_ejected = true;
-                GameState.f16_replacements += 500000;
-                GameState.lost_aircraft += 1;
-            }
-            GameState.cash = GameState.proj_cash - GameState.over_head;
-            GameState.proj_cash = GameState.cash + this->current_mission->gameflow_registers[1]*1000 - GameState.weapons_costs - GameState.f16_replacements  ;
-            GameState.weapons_costs = 0;
+            report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] = this->current_mission->player->plane_down;
+            report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = this->current_mission->player->ground_down;
             for (auto team: this->current_mission->friendlies) {
                 if (team->is_active) {
-                    if (team->plane != nullptr && team->actor_name != "PLAYER") {
-                        GameState.kill_board[pilot_profile[team->actor_name]][KillBoardType::AIR_KILL] += team->plane_down;
-                        GameState.kill_board[pilot_profile[team->actor_name]][KillBoardType::GROUND_KILL] += team->ground_down;
+                    auto pilot = pilot_profile.find(team->actor_name);
+                    if (team->plane != nullptr && team->actor_name != "PLAYER" && pilot != pilot_profile.end()) {
+                        report.kills[pilot->second][KillBoardType::AIR_KILL] += team->plane_down;
+                        report.kills[pilot->second][KillBoardType::GROUND_KILL] += team->ground_down;
                     }
                 }
             }
+            GameState.mission_report = report;
+            printf("STRIKE: compte rendu de vol %s, sortie %d, avions perdus %d, resultats %d %d %d %d %d %d %d %d\n",
+                   report.mission_name.c_str(), report.exit_code, report.planes_lost, report.results[0], report.results[1],
+                   report.results[2], report.results[3], report.results[4], report.results[5], report.results[6],
+                   report.results[7]);
             Renderer.clear();
             Screen->refresh();
             Renderer.clear();

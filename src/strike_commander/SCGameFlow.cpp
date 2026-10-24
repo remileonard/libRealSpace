@@ -57,6 +57,7 @@ void SCGameFlow::clicked(std::vector<EFCT *> *script, uint8_t id) {
     this->currentOptCode = 0;
     VGA.fadeOut(30, 6);
     if (this->scen->sceneOpts->foreground->sprites[id]->tune != nullptr) {        
+        Mixer.switchBank(1);
         Mixer.playMusic(Mixer.music->gameflow_musics[GameState.tune_modifier][this->scen->sceneOpts->foreground->sprites[id]->tune->ID],1);
         
     }
@@ -262,6 +263,30 @@ void SCGameFlow::runEffect() {
         case EFECT_OPT_CONV: {
             this->playConv(instruction->value);
         } break;
+        case EFECT_OPT_U10: {
+            // SHOW_KILL_MARKS : marques de victoires si le joueur en a eu pendant le dernier vol et n'est pas mort.
+            MissionReport &report = GameState.mission_report;
+            int kills = report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] +
+                        report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
+            printf("GAMEFLOW: SHOW_KILL_MARKS, %d victoires au dernier vol, mort %d\n", kills, GameState.player_dead);
+            if (kills > 0 && !GameState.player_dead) {
+                EndMissionScene *end = new EndMissionScene(&this->optShps, &this->optPals);
+                end->init();
+                this->cutsenes.push(end);
+            }
+        } break;
+        case EFECT_OPT_SET_MUSIC: {
+            this->setMusic(instruction->value);
+        } break;
+        case EFECT_OPT_U14: {
+            // PLANES_LOST_CONV : avion perdu au dernier vol, joueur éjecté (mort : cinématique 33 au retour).
+            printf("GAMEFLOW: PLANES_LOST_CONV, %d avions perdus au dernier vol, mort %d\n",
+                   GameState.mission_report.planes_lost, GameState.player_dead);
+            if (GameState.mission_report.planes_lost > 0 && !GameState.player_dead) {
+                this->setMusic(8);
+                this->playConv(LOST_PLAYER_PLANE);
+            }
+        } break;
         case EFECT_OPT_SCEN:
             for (int j = 0; j < this->gameFlowParser.game.game[this->current_miss]->scen.size(); j++) {
                 if (this->gameFlowParser.game.game[this->current_miss]->scen.at(j)->info.ID == instruction->value) {
@@ -422,6 +447,9 @@ void SCGameFlow::runEffect() {
             break;
         case EFECT_OPT_TUNE_MODIFIER:
             GameState.tune_modifier = instruction->value;
+            if (instruction->value > 0) {
+                Mixer.music->SetGameflowSet(instruction->value - 1);
+            }
             break;
         case EFECT_OPT_APPLY_CHANGE:
             if (this->gameFlowParser.game.stat[instruction->value] != nullptr) {
@@ -539,6 +567,9 @@ void SCGameFlow::runEffectAfterLoad() {
         switch (instruction->opcode) {
         case EFECT_OPT_TUNE_MODIFIER:
             GameState.tune_modifier = instruction->value;
+            if (instruction->value > 0) {
+                Mixer.music->SetGameflowSet(instruction->value - 1);
+            }
             break;
         default:
             break;
@@ -702,25 +733,63 @@ RSImageSet *SCGameFlow::getShape(uint8_t shpid) {
  *
  * @throws None
  */
+// SET_MUSIC : piste n du jeu de musique du déroulement (banque 1), jouée par le séquenceur avec ses liaisons ; 255 = rien.
+void SCGameFlow::setMusic(uint8_t track) {
+    printf("GAMEFLOW: SET_MUSIC %d\n", track);
+    if (track == 255) {
+        return;
+    }
+    Mixer.switchBank(1);
+    Mixer.playMusic(track);
+}
+
+// Retour de vol : le compte rendu de SCStrike est appliqué à la partie (Gameflow_ReadMissionResult_4B544 du jeu).
+void SCGameFlow::applyMissionReport(void) {
+    MissionReport &report = GameState.mission_report;
+    GameState.missions_flags.assign(report.results.begin(), report.results.end());
+    GameState.mission_flyed_success[GameState.mission_flyed] = report.results[0] > 0;
+    GameState.air_kills += report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL];
+    GameState.ground_kills += report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
+    GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] = GameState.air_kills;
+    GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = GameState.ground_kills;
+    if (report.exit_code == 2) {
+        GameState.player_dead = true;
+    }
+    if (report.planes_lost > 0) {
+        GameState.player_ejected = true;
+        GameState.f16_replacements += 500000 * report.planes_lost;
+        GameState.lost_aircraft += report.planes_lost;
+    }
+    GameState.cash = GameState.proj_cash - GameState.over_head;
+    GameState.proj_cash = GameState.cash + report.results[1] * 1000 - GameState.weapons_costs - GameState.f16_replacements;
+    GameState.weapons_costs = 0;
+    for (auto &pilot : report.kills) {
+        if (pilot.first == PilotsId::PLAYER) {
+            continue;
+        }
+        GameState.kill_board[pilot.first][KillBoardType::AIR_KILL] += pilot.second[KillBoardType::AIR_KILL];
+        GameState.kill_board[pilot.first][KillBoardType::GROUND_KILL] += pilot.second[KillBoardType::GROUND_KILL];
+    }
+    printf("GAMEFLOW: compte rendu applique, mission %d %s, succes %d, gain %d milliers, mort %d, ejecte %d, argent %d\n",
+           GameState.mission_flyed, report.mission_name.c_str(), report.results[0] > 0, report.results[1],
+           GameState.player_dead, GameState.player_ejected, GameState.cash);
+    // Joueur mort (code de sortie 2) : cinématique 33 puis fin du déroulement, sans script (runFrame, file mid_games).
+    if (GameState.player_dead) {
+        this->playMidGame(33);
+    }
+}
+
 void SCGameFlow::runFrame(void) {
     
     if (this->frequest != nullptr && !this->frequest->opened) {
         delete this->frequest;
         this->frequest = nullptr;
     }
+    if (this->mission_report_pending) {
+        this->mission_report_pending = false;
+        this->applyMissionReport();
+    }
     if (this->cutsenes.size() > 0) {
-        if (GameState.player_ejected) {
-            this->cutsenes.pop();
-            GameState.player_ejected = false;
-            this->playConv(LOST_PLAYER_PLANE);
-            return;
-        }
-        if (GameState.player_dead) {
-            this->cutsenes.pop();
-            this->playMidGame(33);
-            return;
-        }
-        
         SCShot *c = this->cutsenes.front();
         this->cutsenes.pop();
         Game->addActivity(c);
@@ -748,9 +817,7 @@ void SCGameFlow::runFrame(void) {
         SCStrike *c = this->fly_mission.front();
         this->fly_mission.pop();
         Game->addActivity(c);
-        EndMissionScene *end = new EndMissionScene(&this->optShps, &this->optPals);
-        end->init();
-        this->cutsenes.push(end);
+        this->mission_report_pending = true;
         return;
     }
     if (this->next_miss > 0) {
