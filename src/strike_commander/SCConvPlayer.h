@@ -106,6 +106,7 @@ protected:
     SCZone *CheckZones(void);
     std::vector<uint8_t> wing_pilots;
     void DrawText(void);
+    std::string expandTextCodes(const std::string &raw);
     int txt_color{0};
     SCState &GameState = SCState::getInstance();
 public:

@@ -188,8 +188,69 @@ void FrameBuffer::circle_slow(int x, int y, int radius, uint8_t color) {
         dy = (int)((float) radius * sin(acos(n)));
     }
 }
-void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize) {
-    this->printText_SM(font, coo, text, color, start, size, interLetterSpace, spaceSize, true, false);
+void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize, int justify, int zoneWidth) {
+    if (justify == TEXT_JUSTIFY_LEGACY) {
+        this->printText_SM(font, coo, text, color, start, size, interLetterSpace, spaceSize, true, false);
+        return;
+    }
+    this->printTextJustified(font, *coo, text, color, start, size, interLetterSpace, justify, zoneWidth);
+}
+
+// Avance d'un caractère dans le moteur de texte du jeu (GlyphObject_MeasureChar_31312) : étendue à droite du point
+// d'ancrage + 1, soit rightDist ; l'espace prend celle du tiret.
+static int textGlyphAdvance(RSFont *font, char c) {
+    RLEShape *shape = font->GetShapeForChar(c == ' ' ? '-' : c);
+    if (shape == nullptr) {
+        return 0;
+    }
+    return shape->rightDist;
+}
+
+// Une ligne comme le moteur de texte du jeu (Widget_RenderComplexLayout_31810, CONV_SYSTEM.md § 7.7) : origin = haut
+// gauche de la zone de la ligne ; largeur = somme des avances + espacement entre caractères ; chaque caractère au-dessus
+// de 31 est posé par son point d'ancrage à origin.y + topDist(« A ») + 1 ; couleur 255 = couleurs propres de la
+// police, sinon caractère plein de cette couleur (Render_DrawTextString_32A58).
+void FrameBuffer::printTextJustified(RSFont *font, Point2D origin, char *text, uint8_t color, size_t start,
+                                     uint32_t size, size_t interLetterSpace, int justify, int zoneWidth) {
+    if (text == nullptr || size == 0) {
+        return;
+    }
+    int spacing = static_cast<int>(interLetterSpace);
+    int textWidth = 0;
+    for (size_t i = 0; i < size; i++) {
+        textWidth += textGlyphAdvance(font, text[start + i]);
+    }
+    textWidth += (static_cast<int>(size) - 1) * spacing;
+    int x = origin.x;
+    if (justify == TEXT_JUSTIFY_CENTER) {
+        x += (zoneWidth - textWidth) / 2;
+    } else if (justify == TEXT_JUSTIFY_RIGHT) {
+        x += zoneWidth - textWidth;
+    }
+    RLEShape *letter = font->GetShapeForChar('A');
+    int anchorY = origin.y + 1;
+    if (letter != nullptr) {
+        anchorY += letter->topDist;
+    }
+    for (size_t i = 0; i < size; i++) {
+        char c = text[start + i];
+        RLEShape *shape = font->GetShapeForChar(c);
+        if (c > 31 && c != ' ' && shape != nullptr) {
+            Point2D saved = shape->position;
+            Point2D position;
+            position.x = x - shape->leftDist;
+            position.y = anchorY - shape->topDist;
+            shape->SetPosition(&position);
+            shape->SetColorOffset(0);
+            if (color != 255) {
+                shape->SetColorReplacement(color);
+            }
+            drawShape(shape);
+            shape->SetColorReplacement(0);
+            shape->SetPosition(&saved);
+        }
+        x += textGlyphAdvance(font, c) + spacing;
+    }
 }
 void FrameBuffer::printTextFixedWidth(RSFont *font, Point2D coo, std::string text, uint8_t color) {
     int32_t width;

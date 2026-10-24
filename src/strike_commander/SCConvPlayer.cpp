@@ -347,15 +347,6 @@ void ConvFrame::setSentence(const ConvRecord &record) {
         }
     }
     std::string *text = new std::string(record.text);
-    if (text->find("$N") != std::string::npos) {
-        text->replace(text->find("$N"), 2, GameState.player_firstname);
-    }
-    if (text->find("$S") != std::string::npos) {
-        text->replace(text->find("$S"), 2, GameState.player_name);
-    }
-    if (text->find("$C") != std::string::npos) {
-        text->replace(text->find("$C"), 2, GameState.player_callsign);
-    }
     this->text = (char *)text->c_str();
 }
 void ConvFrame::copyCloseUp(const ConvFrame *previous) {
@@ -890,87 +881,68 @@ void SCConvPlayer::CheckFrameExpired(void) {
     }
 }
 
-/**
- * @brief Draw a block of text within a conv window.
- *
- * @details
- * This function is used by the conversation engine to draw a block of text
- * within a conversation window. The text is split into lines. The width of
- * each line is determined by the number of characters that can fit between
- * the left and right border of the conversation window. If a word does not fit
- * in a line, it is moved to the next line. The text is centered.
- *
- * @param[in]   text        The text to draw.
- * @param[in]   textColor   The color of the text.
- * @param[in]   font        The font use to draw the text.
- */
-void SCConvPlayer::DrawText(void) {
-
-    if (this->current_frame->text == NULL)
-        return;
-
-    std::string *text = new std::string(this->current_frame->text);
-    if (text->find("$W") != std::string::npos) {
-        text->replace(text->find("$W"), 2, GameState.wingman);
-    }
-    this->current_frame->text = (char *)text->c_str();
-    size_t textSize    = strlen(this->current_frame->text);
-    
-    const char *cursor = this->current_frame->text;
-    const char *end    = cursor + textSize;
-
-    uint8_t lineNumber = 0;
-
-    while (cursor < end) {
-
-        const char *wordSearch  = cursor;
-        const char *lastGoodPos = wordSearch;
-
-        // How many pixels are avaiable for a line.
-        int32_t pixelAvailable = 320 - CONV_BORDER_MARGIN * 2;
-
-        // Determine what will fit in a line.
-        while (pixelAvailable > 0 && wordSearch < end) {
-
-            lastGoodPos = wordSearch - 1;
-            while (*wordSearch != ' ' && wordSearch < end) {
-
-                if (*wordSearch == ' ') {
-                    pixelAvailable -= CONV_SPACE_SIZE;
-                } else {
-                    RLEShape *letter = this->current_frame->font->GetShapeForChar(*wordSearch);
-                    if (letter != nullptr) {
-                        pixelAvailable -= letter->GetWidth() + CONV_INTERLETTER_SPACE;
-                    } else {
-                        pixelAvailable -= 8 + CONV_INTERLETTER_SPACE;
-                    }
-                }
-                wordSearch++;
-            }
-
-            if (pixelAvailable > 0)
-                lastGoodPos = this->current_frame->text + strlen(this->current_frame->text);
-            // Skip the space char
-            wordSearch++;
+// Codes du texte (Conv_DrawText_59F54), remplacés à chaque occurrence. $L et $O : vides pour les escadres de type 0,
+// les seules des données. $A, $B, $P, $T : état absent de libRealSpace, laissés tels quels comme un code inconnu.
+std::string SCConvPlayer::expandTextCodes(const std::string &raw) {
+    std::string text;
+    size_t i = 0;
+    while (i < raw.size()) {
+        if (raw[i] != '$' || i + 1 >= raw.size()) {
+            text.push_back(raw[i]);
+            i++;
+            continue;
         }
+        char code = raw[i + 1];
+        if (code == 'S') {
+            text += GameState.player_name;
+        } else if (code == 'N') {
+            text += GameState.player_firstname;
+        } else if (code == 'C') {
+            text += GameState.player_callsign;
+        } else if (code == 'W') {
+            text += GameState.wingman;
+        } else if (code != 'L' && code != 'O') {
+            text.push_back('$');
+            text.push_back(code);
+        }
+        i += 2;
+    }
+    return text;
+}
 
-        // Draw the line
-        Point2D coo = {CONV_BORDER_MARGIN, 165 + lineNumber * 13};
-
-        if (pixelAvailable < 0)
-            pixelAvailable = 0;
-        // Don't forget to center the text
-        coo.x += pixelAvailable / 2;
-
-        VGA.getFrameBuffer()->printText(
-            this->font, &coo, this->current_frame->text, static_cast<uint32_t>(this->current_frame->textColor),
-            static_cast<uint32_t>(cursor - this->current_frame->text), static_cast<uint32_t>(lastGoodPos - cursor),
-            CONV_INTERLETTER_SPACE, CONV_SPACE_SIZE
-        );
-
-        // Go to next line
-        cursor = lastGoodPos + 1;
-        lineNumber++;
+// Texte d'une réplique (Conv_DrawText_59F54) : lignes de 30 caractères au plus, coupées à l'espace précédent, chacune
+// centrée sur l'écran, haut de la ligne n à y = 156 + 15 × n (zone de texte en 152, y = 4 + 15 × n).
+void SCConvPlayer::DrawText(void) {
+    if (this->current_frame->text == NULL) {
+        return;
+    }
+    std::string rest = this->expandTextCodes(this->current_frame->text);
+    int line = 0;
+    while (!rest.empty()) {
+        std::string current;
+        if (rest.size() > 30) {
+            size_t cut = 30;
+            while (cut > 0 && rest[cut] != ' ') {
+                cut--;
+            }
+            if (cut == 0) {
+                cut = 30;
+                current = rest.substr(0, cut);
+                rest = rest.substr(cut);
+            } else {
+                current = rest.substr(0, cut);
+                rest = rest.substr(cut + 1);
+            }
+        } else {
+            current = rest;
+            rest.clear();
+        }
+        Point2D origin;
+        origin.x = 0;
+        origin.y = 156 + 15 * line;
+        VGA.getFrameBuffer()->printText(this->font, &origin, (char *)current.c_str(), this->current_frame->textColor, 0,
+                                        static_cast<uint32_t>(current.size()), 2, 0, TEXT_JUSTIFY_CENTER, 320);
+        line++;
     }
 }
 void SCConvPlayer::applyGroupPalette(void) {
@@ -1274,11 +1246,12 @@ SCZone *SCConvPlayer::CheckZones(void) {
         Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
         hit->onAction();
     }
-    Point2D p;
-    p.x = 160 - static_cast<int32_t>(hit->label->length() / 2) * 8;
-    p.y = 175;
-    VGA.getFrameBuffer()->printText(FontManager.GetFont("..\\..\\DATA\\FONTS\\OPTFONT.SHP"), &p,
-                                    (char *)hit->label->c_str(), 64, 0, static_cast<uint32_t>(hit->label->length()), 3, 5);
+    // Libellé : police de la conversation, couleur de la dernière réplique, centré sur l'écran à y = 175.
+    Point2D origin;
+    origin.x = 0;
+    origin.y = 175;
+    VGA.getFrameBuffer()->printText(this->font, &origin, (char *)hit->label->c_str(), this->current_frame->textColor, 0,
+                                    static_cast<uint32_t>(hit->label->length()), 2, 0, TEXT_JUSTIFY_CENTER, 320);
     return hit;
 }
 
