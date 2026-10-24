@@ -34,6 +34,7 @@ public:
     int figure_palette{-1};
     uint32_t duration{0};
     bool game_positions{false};
+    bool cd_format{false};
     std::vector<int16_t> voice_mouths;
     int voice_index{-1};
     int voice_mouth{-1};

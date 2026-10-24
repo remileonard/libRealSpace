@@ -656,15 +656,27 @@ size_t SCConvPlayer::buildGroupShot(const std::vector<ConvRecord> &records, size
     }
     printf("CONV %d: GROUP_SHOT %s, %zu figurants, %zu repliques, palette du premier figurant %d\n",
            this->conversationID, shot.background.c_str(), figurants.size(), replies.size(), figure_palette);
-    if (replies.empty()) {
+    // Version CD : 7 attentes de 10 tics à 60 Hz avant la première réplique, ou à la place des répliques s'il n'y en
+    // a pas (CONV_SYSTEM.md § 8.6) ; le premier personnage qui parle est déjà construit.
+    static const uint32_t kCdSceneWait = 7 * 10 * 1000 / 60;
+    if (replies.empty() || format == ConvFormat::Cd) {
         ConvFrame *frame = newFrame();
         frame->setGroupShot(shot);
         for (const ConvRecord *figurant : figurants) {
             frame->addFigure(*figurant);
         }
         frame->figure_palette = figure_palette;
+        frame->cd_format = format == ConvFormat::Cd;
+        if (format == ConvFormat::Cd) {
+            frame->duration = kCdSceneWait;
+            if (!replies.empty() && replies[0]->op == CONV_GROUP_SHOT_CHARACTER_TALK) {
+                frame->addFigure(*replies[0]);
+            }
+        }
         this->pushFrame(frame, records, shot);
-        return i;
+        if (replies.empty()) {
+            return i;
+        }
     }
     for (size_t k = 0; k < replies.size(); k++) {
         const ConvRecord &reply = *replies[k];
@@ -674,6 +686,7 @@ size_t SCConvPlayer::buildGroupShot(const std::vector<ConvRecord> &records, size
             frame->addFigure(*figurant);
         }
         frame->figure_palette = figure_palette;
+        frame->cd_format = format == ConvFormat::Cd;
         // Disquette : tous les personnages qui parlent sont là dès le début de la scène ; CD : chacun apparaît à
         // sa première réplique et reste.
         for (size_t t = 0; t < replies.size(); t++) {
@@ -1090,9 +1103,10 @@ void SCConvPlayer::drawGroupScene(void) {
             continue;
         }
         int mouth = -1;
+        // Sans voix, la version CD laisse la bouche immobile (CONV_SYSTEM.md § 8.5).
         if (!frame->voice_mouths.empty()) {
             mouth = voiceMouth(frame, false);
-        } else {
+        } else if (!frame->cd_format) {
             mouth = groupMouth(frame->lip_text, SDL_GetTicks() - frame->creationTime);
         }
         if (mouth >= 0) {
