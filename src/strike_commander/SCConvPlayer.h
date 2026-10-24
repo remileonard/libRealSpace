@@ -34,6 +34,9 @@ public:
     int figure_palette{-1};
     uint32_t duration{0};
     bool game_positions{false};
+    std::vector<int16_t> voice_mouths;
+    int voice_index{-1};
+    int voice_mouth{-1};
     std::string *sound_file_name{nullptr};
     // If we are in close up mode
     CharFace *face{nullptr};

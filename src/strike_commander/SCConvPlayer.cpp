@@ -973,6 +973,103 @@ static int groupMouth(const std::string &lip_text, uint32_t elapsed) {
     return lip_table[c - 'a'] - '0' + 1;
 }
 
+// Table des bouches d'une voix (VoicePlayer_LoadWithLipSync_7D52, MIDGAME_SYSTEM.md § 6.6) : le VOC (premier bloc,
+// octets non signés à partir de l'octet 32) est découpé en tranches d'une image de scène ; valeur d'une tranche =
+// moyenne × 1000 − 128 000 ; référence = plus grande valeur absolue du maximum et du minimum pris sans l'entrée
+// maximale ni l'entrée minimale ; p = (référence − |valeur sur 16 bits|) × 100 / référence, puis une bouche du jeu.
+static std::vector<int16_t> voiceLipTable(const uint8_t *voc, size_t size, int cadence) {
+    std::vector<int16_t> mouths;
+    if (size <= 32 || voc[30] == 0) {
+        return mouths;
+    }
+    int32_t frequency = 1000000 / (256 - voc[30]);
+    uint32_t block = static_cast<uint32_t>(voc[26]) | (static_cast<uint32_t>(voc[27]) << 8) |
+                     (static_cast<uint32_t>(voc[28]) << 16) | (static_cast<uint32_t>(voc[29]) << 24);
+    int32_t samples = static_cast<int32_t>(block >> 8) - 2;
+    if (samples > static_cast<int32_t>(size) - 32) {
+        samples = static_cast<int32_t>(size) - 32;
+    }
+    int32_t per_frame = frequency / cadence;
+    std::vector<int32_t> values;
+    for (int32_t k = 0; values.size() < 512; k++) {
+        int32_t first = static_cast<int32_t>(static_cast<int64_t>(k) * frequency / cadence);
+        if (first >= samples) {
+            break;
+        }
+        int32_t count = per_frame + 1;
+        if (first + count > samples) {
+            count = samples - first;
+        }
+        int64_t sum = 0;
+        for (int32_t i = 0; i < count; i++) {
+            sum += voc[32 + first + i];
+        }
+        values.push_back(static_cast<int32_t>(sum * 1000 / count) - 128000);
+    }
+    if (values.size() < 3) {
+        return mouths;
+    }
+    size_t highest = 0;
+    size_t lowest = 0;
+    for (size_t i = 1; i < values.size(); i++) {
+        if (values[i] > values[highest]) {
+            highest = i;
+        }
+        if (values[i] < values[lowest]) {
+            lowest = i;
+        }
+    }
+    int32_t maximum = INT32_MIN;
+    int32_t minimum = INT32_MAX;
+    for (size_t i = 0; i < values.size(); i++) {
+        if (i == highest || i == lowest) {
+            continue;
+        }
+        maximum = (std::max)(maximum, values[i]);
+        minimum = (std::min)(minimum, values[i]);
+    }
+    int32_t reference = (std::max)(std::abs(maximum), std::abs(minimum));
+    for (int32_t value : values) {
+        int16_t mouth = -1;
+        if (reference != 0) {
+            int32_t p = (reference - std::abs(static_cast<int32_t>(static_cast<int16_t>(value)))) * 100 / reference;
+            if (p >= 95) {
+                mouth = -1;
+            } else if (p >= 78) {
+                mouth = 8;
+            } else if (p >= 65) {
+                mouth = 3;
+            } else if (p >= 42) {
+                mouth = 2;
+            } else if (p >= 25) {
+                mouth = 10;
+            } else {
+                mouth = 11;
+            }
+        }
+        mouths.push_back(mouth);
+    }
+    return mouths;
+}
+
+// Bouche de la voix à l'image de scène courante (10 par seconde), numéro du jeu, -1 = aucune. Gros plan (filtre de
+// la version CD, 1116E) : 10 ou 11 après un 10 ou un 11 devient -1.
+static int voiceMouth(ConvFrame *frame, bool closeup) {
+    int index = static_cast<int>((SDL_GetTicks() - frame->creationTime) / 100);
+    while (frame->voice_index < index) {
+        frame->voice_index++;
+        int mouth = -1;
+        if (frame->voice_index < static_cast<int>(frame->voice_mouths.size())) {
+            mouth = frame->voice_mouths[frame->voice_index];
+        }
+        if (closeup && (mouth == 10 || mouth == 11) && (frame->voice_mouth == 10 || frame->voice_mouth == 11)) {
+            mouth = -1;
+        }
+        frame->voice_mouth = mouth;
+    }
+    return frame->voice_mouth;
+}
+
 static void drawAnchored(FrameBuffer *fb, RLEShape *shape, Point2D anchor) {
     Point2D saved = shape->position;
     Point2D position;
@@ -992,7 +1089,12 @@ void SCConvPlayer::drawGroupScene(void) {
         if (static_cast<int>(i) != frame->talker) {
             continue;
         }
-        int mouth = groupMouth(frame->lip_text, SDL_GetTicks() - frame->creationTime);
+        int mouth = -1;
+        if (!frame->voice_mouths.empty()) {
+            mouth = voiceMouth(frame, false);
+        } else {
+            mouth = groupMouth(frame->lip_text, SDL_GetTicks() - frame->creationTime);
+        }
         if (mouth >= 0) {
             drawAnchored(VGA.getFrameBuffer(), participant->appearances->GetShape(participant->image_offset + mouth),
                          anchor);
@@ -1044,7 +1146,11 @@ void SCConvPlayer::drawCloseUp(bool lips) {
     if (frame->face != nullptr) {
         int mouth = -1;
         if (lips) {
-            mouth = closeUpMouth(frame->lip_text, (SDL_GetTicks() - frame->creationTime) / 100);
+            if (!frame->voice_mouths.empty()) {
+                mouth = voiceMouth(frame, true);
+            } else {
+                mouth = closeUpMouth(frame->lip_text, (SDL_GetTicks() - frame->creationTime) / 100);
+            }
         }
         this->drawCloseUpFace(mouth);
     }
@@ -1073,8 +1179,12 @@ void SCConvPlayer::startVoice(void) {
         frame->sound_file_name = nullptr;
         return;
     }
-    printf("CONV %d: voix %s\n", this->conversationID, filename.c_str());
     Mixer.playSoundVoc(sound_entry->data, sound_entry->size, 6);
+    frame->voice_mouths = voiceLipTable(sound_entry->data, sound_entry->size, 10);
+    frame->voice_index = -1;
+    frame->voice_mouth = -1;
+    printf("CONV %d: voix %s, %zu bouches calculees sur le son\n", this->conversationID, filename.c_str(),
+           frame->voice_mouths.size());
 }
 
 int SCConvPlayer::layerOffset(size_t index) {
