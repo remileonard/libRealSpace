@@ -15,17 +15,6 @@ SCConvPlayer::SCConvPlayer() : conversationID(0), initialized(false) {
 
 SCConvPlayer::~SCConvPlayer() {}
 
-#define GROUP_SHOT 0x00
-#define GROUP_SHOT_ADD_CHARCTER 0x01
-#define GROUP_SHOT_CHARCTR_TALK 0x02
-#define CLOSEUP 0x03
-#define CLOSEUP_CONTINUATION 0x04
-#define SHOW_TEXT 0x0A
-#define YESNOCHOICE_BRANCH1 0x0B
-#define YESNOCHOICE_BRANCH2 0x0C
-#define UNKNOWN 0x0E
-#define CHOOSE_WINGMAN 0x0F
-
 // Taking animation
 // 03 mouth anim
 // 04 mouth anim
@@ -75,7 +64,194 @@ SCConvPlayer::~SCConvPlayer() {}
 // 39 pilot helmet (if drawing this, don't draw hairs
 // 40 pilot helmet visor (if drawing this draw 39 too
 
+// Images du gros plan pour chaque octet « image » de CLOSEUP, numéros libRealSpace (image du jeu + 1) : tête,
+// yeux ou expression, bouche, coiffure, habits (CONV_SYSTEM.md § 7.4).
+static const uint8_t kFaceMouthSlot = 255;
+static const uint8_t kFaceHead = 1;
+static const uint8_t kFaceHair = 2;
+static const uint8_t kFaceClothes = 35;
+static const uint8_t kFaceBlink = 13;
+
 std::unordered_map<uint8_t, std::vector<uint8_t>> faces_shape = {
+    { 13,
+      std::vector<uint8_t>{
+          kFaceHead,
+          14,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 14,
+      std::vector<uint8_t>{
+          kFaceHead,
+          15,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 15,
+      std::vector<uint8_t>{
+          kFaceHead,
+          16,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 16,
+      std::vector<uint8_t>{
+          kFaceHead,
+          17,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 17,
+      std::vector<uint8_t>{
+          kFaceHead,
+          18,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 18,
+      std::vector<uint8_t>{
+          kFaceHead,
+          19,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 19,
+      std::vector<uint8_t>{
+          kFaceHead,
+          20,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 20,
+      std::vector<uint8_t>{
+          kFaceHead,
+          21,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 21,
+      std::vector<uint8_t>{
+          kFaceHead,
+          22,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 22,
+      std::vector<uint8_t>{
+          kFaceHead,
+          23,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 23,
+      std::vector<uint8_t>{
+          kFaceHead,
+          24,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 24,
+      std::vector<uint8_t>{
+          kFaceHead,
+          25,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 25,
+      std::vector<uint8_t>{
+          kFaceHead,
+          26,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 26,
+      std::vector<uint8_t>{
+          kFaceHead,
+          27,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 27,
+      std::vector<uint8_t>{
+          kFaceHead,
+          28,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 28,
+      std::vector<uint8_t>{
+          kFaceHead,
+          29,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 29,
+      std::vector<uint8_t>{
+          kFaceHead,
+          30,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 30,
+      std::vector<uint8_t>{
+          kFaceHead,
+          31,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 31,
+      std::vector<uint8_t>{
+          kFaceHead,
+          32,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 32,
+      std::vector<uint8_t>{
+          kFaceHead,
+          33,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 33,
+      std::vector<uint8_t>{
+          kFaceHead,
+          34,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+    { 255,
+      std::vector<uint8_t>{
+          kFaceHead,
+          kFaceMouthSlot,
+          kFaceHair,
+          kFaceClothes,
+      } },
+};
+
+// Ancienne table, gardée pour les répliques de Pacific Strike (PSConvFrame).
+std::unordered_map<uint8_t, std::vector<uint8_t>> legacy_faces_shape = {
     { 13,     std::vector<uint8_t>{1, 14, 2, 35}},
     { 14, std::vector<uint8_t>{1, 21, 28, 2, 35}},
     { 16,     std::vector<uint8_t>{1, 17, 2, 35}},
@@ -97,289 +273,80 @@ std::unordered_map<uint8_t, std::vector<uint8_t>> faces_shape = {
     {255,         std::vector<uint8_t>{1, 2, 35}},
 };
 
-bool isNextFrameIsConv(uint8_t type) {
-    switch (type) {
-        case GROUP_SHOT:
-        case GROUP_SHOT_CHARCTR_TALK:
-        case CLOSEUP:
-        case CLOSEUP_CONTINUATION:
-        case SHOW_TEXT:
-        case GROUP_SHOT_ADD_CHARCTER:
-        case YESNOCHOICE_BRANCH1:
-        case YESNOCHOICE_BRANCH2:
-        case CHOOSE_WINGMAN:
-        case 0xE0:
-            return true;
-        default:
-            return false;
-    }
-    return false;
+static Point2D scriptPosition(int16_t x, int16_t y) {
+    Point2D position;
+    position.x = x;
+    position.y = y;
+    return position;
 }
 
-void ConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
-    char *location = (char *)conv->GetPosition();
-
-    ConvBackGround *bg = ConvAssets.GetBackGround(location);
+void ConvFrame::setGroupShot(const ConvRecord &record) {
+    ConvBackGround *bg = ConvAssets.GetBackGround(record.background);
 
     this->mode = ConvFrame::CONV_WIDE;
     this->participants.clear();
     this->participants.shrink_to_fit();
+    this->participant_positions.clear();
     this->bgLayers   = &bg->layers;
     this->bgPalettes = &bg->palettes;
+    this->bgYs       = &bg->ys;
     this->face      = nullptr;
-
-    conv->MoveForward(8);
-    while (conv->PeekByte() == 0x0 && !conv->IsEndOfStream()) {
-        conv->MoveForward(1);
-    }
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte()) && !conv->IsEndOfStream()) {
-        conv->MoveForward(1);
-    }
-    uint8_t next_type = conv->PeekByte();
-    if (next_type == GROUP_SHOT_ADD_CHARCTER) {
-        conv->MoveForward(2);
-        this->parse_GROUP_SHOT_ADD_CHARACTER(conv);
-    } else if (next_type == SHOW_TEXT) {
-        conv->MoveForward(2);
-        this->parse_SHOW_TEXT(conv);
-    } else if (next_type == GROUP_SHOT_CHARCTR_TALK) {
-        conv->MoveForward(2);
-        this->parse_GROUP_SHOT_CHARACTER_TALK(conv);
-    } else {
-        conv->MoveForward(1);
-    }
+    this->group_scene = true;
+    this->talker = -1;
 }
-void ConvFrame::parse_CLOSEUP(ByteStream *conv) {
-    char *speakerName            = (char *)conv->GetPosition();
-    this->face_expression = (uint8_t)*(conv->GetPosition() + 0x09);
-    char *setName                = (char *)conv->GetPosition() + 0xA;
-
-    int next_frame_offset = SetSentenceFromConv(conv,0x17);
+void ConvFrame::addFigure(const ConvRecord &record) {
+    CharFigure *participant = ConvAssets.GetFigure(record.name);
+    this->participants.push_back(participant);
+    this->participant_positions.push_back(scriptPosition(record.x, record.y));
+}
+void ConvFrame::setTalk(const ConvRecord &record) {
+    this->textColor = record.color;
+    this->setSentence(record);
+}
+void ConvFrame::copyScene(const ConvFrame *previous) {
+    this->participants = previous->participants;
+    this->participant_positions = previous->participant_positions;
+    this->group_scene = previous->group_scene;
+    this->figure_palette = previous->figure_palette;
+    this->talker = -1;
+}
+void ConvFrame::setNarration(const ConvRecord &record) {
+    this->mode = ConvFrame::CONV_SHOW_TEXT;
+    this->textColor = record.color;
+    this->setSentence(record);
+}
+void ConvFrame::setCloseUp(const ConvRecord &record) {
+    this->face_expression = record.baseFrame;
+    this->setSentence(record);
     this->participants.clear();
     this->participants.shrink_to_fit();
-    uint8_t pos               = *(conv->GetPosition() + 0x13);
-    this->facePosition = static_cast<ConvFrame::FacePos>(pos);
+    this->participant_positions.clear();
+    this->face_position = scriptPosition(record.x, record.y);
+    this->game_positions = true;
+    this->facePosition = static_cast<ConvFrame::FacePos>(static_cast<uint8_t>(record.x));
 
     this->mode         = ConvFrame::CONV_CLOSEUP;
-    this->face         = ConvAssets.GetCharFace(speakerName);
-    ConvBackGround *bg        = ConvAssets.GetBackGround(setName);
+    this->face         = ConvAssets.GetCharFace(record.name);
+    ConvBackGround *bg = ConvAssets.GetBackGround(record.background);
     this->bgLayers     = &bg->layers;
     this->bgPalettes   = &bg->palettes;
+    this->bgYs         = &bg->ys;
 
-    conv->MoveForward(next_frame_offset);
-    uint8_t color              = conv->ReadByte(); // Color ?
-    this->textColor            = color;
-    const char *pszExt         = "normal";
-    this->facePaletteID = ConvAssets.GetFacePaletteID(const_cast<char *>(pszExt));
+    this->textColor     = record.color;
+    this->facePaletteID = ConvAssets.GetFacePaletteID("normal");
 }
-void ConvFrame::parse_CLOSEUP_CONTINUATION(ByteStream *conv) {
-    int next_frame_offset = SetSentenceFromConv(conv,0x0);
-    conv->MoveForward(next_frame_offset);
-}
-void ConvFrame::parse_YESNOCHOICE_BRANCH1(ByteStream *conv, SCConvPlayer *player) {
-    this->mode = ConvFrame::CONV_CONTRACT_CHOICE;
-    // Looks like first byte is the offset to skip if the answer is no.
-    uint8_t noOffset  = conv->ReadByte();
-    uint8_t yesOffset = conv->ReadByte();
-
-    SCZone *zone = new SCZone();
-    zone->label  = new std::string("yes");
-    zone->quad   = new std::vector<Point2D *>();
-    Point2D *p1  = new Point2D{0, 100};
-    Point2D *p2  = new Point2D{120, 100};
-    Point2D *p3  = new Point2D{120, 199};
-    Point2D *p4  = new Point2D{0, 199};
-
-    zone->id = 1;
-    zone->quad->push_back(p1);
-    zone->quad->push_back(p2);
-    zone->quad->push_back(p3);
-    zone->quad->push_back(p4);
-    zone->onclick = std::bind(&SCConvPlayer::clicked, player, std::placeholders::_1, std::placeholders::_2);
-    player->zones.push_back(zone);
-
-    zone        = new SCZone();
-    zone->id    = 2;
-    zone->label = new std::string("no");
-    zone->quad  = new std::vector<Point2D *>();
-
-    Point2D *np1 = new Point2D{200, 100};
-    Point2D *np2 = new Point2D{320, 100};
-    Point2D *np3 = new Point2D{320, 199};
-    Point2D *np4 = new Point2D{200, 199};
-
-    zone->quad->push_back(np1);
-    zone->quad->push_back(np2);
-    zone->quad->push_back(np3);
-    zone->quad->push_back(np4);
-    zone->onclick = std::bind(&SCConvPlayer::clicked, player, std::placeholders::_1, std::placeholders::_2);
-    player->zones.push_back(zone);
-    this->yes_no_path = 1;
-}
-void ConvFrame::parse_YESNOCHOICE_BRANCH2(ByteStream *conv) {
-    uint8_t t = conv->ReadByte();
-    uint8_t b = conv->ReadByte();
-    this->yes_no_path = 2;
-}
-void ConvFrame::parse_GROUP_SHOT_ADD_CHARACTER(ByteStream *conv) {
-    char *participantName   = (char *)conv->GetPosition();
-    CharFigure *participant = ConvAssets.GetFigure(participantName);
-
-    conv->MoveForward(8);
-    participant->x = conv->ReadUShortBE();
-    participant->y = conv->ReadUShortBE();
-    this->participants.push_back(participant);
-    while (!isNextFrameIsConv((uint8_t) conv->PeekByte())&& !conv->IsEndOfStream()) {
-        conv->MoveForward(1);
-    }
-    if (conv->PeekByte() == GROUP_SHOT_ADD_CHARCTER) {
-        conv->MoveForward(2);
-        this->parse_GROUP_SHOT_ADD_CHARACTER(conv);
-    } else if (conv->PeekByte() == SHOW_TEXT) {
-        conv->MoveForward(2);
-        this->parse_SHOW_TEXT(conv);
-    } else {
-        conv->MoveForward(1);
-    }
-}
-void ConvFrame::parse_GROUP_SHOT_CHARACTER_TALK(ByteStream *conv) {
-    char *who = (char *)conv->GetPosition();
-    this->textColor = (uint8_t) *(conv->GetPosition() + 0xD);
-    int next_frame_offset = this->SetSentenceFromConv(conv, 0xE);
-    
-    conv->MoveForward(next_frame_offset);
-    CharFigure *participant = ConvAssets.GetFigure(who);
-    this->participants.push_back(participant);
-}
-void ConvFrame::parse_SHOW_TEXT(ByteStream *conv) {
-    this->mode = ConvFrame::CONV_SHOW_TEXT;
-    uint8_t color      = conv->ReadByte();
-    int next_frame_offset = this->SetSentenceFromConv(conv, 0);
-    this->textColor = color;
-
-    conv->MoveForward(next_frame_offset);
-    conv->PeekByte();
-}
-void ConvFrame::parse_UNKNOWN(ByteStream *conv) {
-}
-void ConvFrame::parse_CHOOSE_WINGMAN(ByteStream *conv, SCConvPlayer *player) {
-    ConvBackGround *bg = ConvAssets.GetBackGround(const_cast<char*>("s_wing"));
-
-    this->bgLayers   = &bg->layers;
-    this->bgPalettes = &bg->palettes;
-
-    this->participants.clear();
-    this->mode = ConvFrame::CONV_WINGMAN_CHOICE;
-
-    CharFigure *entry = ConvAssets.GetFigure(const_cast<char*>("red1"));
-    this->participants.push_back(entry);
-    std::vector<std::string> airwing = {"billy2", "gwen2", "lyle2", "miguel2", "tex3"};
-    std::vector<std::string> airwing_names = {"Lyle", "Miguel", "Gwen", "Billy", "Tex"};
-    std::vector<std::vector<Point2D>> zonespos = {
-        { { 0, 80 }, { 60, 80 }, { 60, 200 }, { 0, 200 } },
-        { { 64, 80 }, { 110, 80 }, { 110, 200 }, { 64, 200 } },
-        { { 120, 80 }, { 170, 80 }, { 170, 200 }, { 120, 200 } },
-        { { 175, 80 }, { 218, 80 }, { 218, 200 }, { 175, 200 } },
-        { { 228, 80 }, { 268, 80 }, { 268, 200 }, { 228, 200 } }
-    };
-    player->zones.clear();
-    player->zones.shrink_to_fit();
-    int i = 0;
-    for (auto pilot : airwing) {
-        CharFigure *participant = ConvAssets.GetFigure((char *)pilot.c_str());
-        this->participants.push_back(participant);
-        SCZone *zone = new SCZone();
-        zone->label  = new std::string("Select "+airwing_names[i]);
-        zone->quad   = new std::vector<Point2D *>();
-        for (auto zp: zonespos[i]) {
-            Point2D *p = new Point2D{zp.x, zp.y};
-            zone->quad->push_back(p);
-        }
-        zone->id = i;
-        zone->active = true;
-        zone->onclick = std::bind(&SCConvPlayer::selectWingMan, player, std::placeholders::_1, std::placeholders::_2);
-        player->zones.push_back(zone);
-        i++;
-    }
-}
-
-void SCConvPlayer::focus(void) { IActivity::focus(); }
-
-void SCConvPlayer::clicked(void *none, uint8_t id) {
-    if (id != 1 && id != 2) {
-        this->current_frame->SetExpired(true);
-        return;
-    }
-
-    bool accepted = (id == 1);
-    GameState.mission_accepted = accepted;
-
-    // On veut supprimer les frames de la branche opposée :
-    // si accepté -> supprimer yes_no_path == 2 (branche NO)
-    // si refusé  -> supprimer yes_no_path == 1 (branche YES)
-    uint8_t pathToRemove = accepted ? 2 : 1;
-
-    // Ne pas toucher à current_frame (première frame affichée de la question).
-    // Parcours sûr avec itérateur, suppression in situ.
-    // On part après current_frame si elle est bien en tête.
-    auto it = conversation_frames.begin();
-    if (it != conversation_frames.end() && *it == this->current_frame) {
-        ++it;
-    }
-
-    while (it != conversation_frames.end()) {
-        ConvFrame *f = *it;
-        if (f && f->yes_no_path == pathToRemove) {
-            delete f;                                   // libérer la mémoire
-            it = conversation_frames.erase(it);        // erase retourne le suivant
-        } else {
-            ++it;
-        }
-    }
-    // Optionnel: compaction après coup seulement (évite realloc pendant la boucle)
-    conversation_frames.shrink_to_fit();
-
-    this->current_frame->SetExpired(true);
-}
-void SCConvPlayer::selectWingMan(void *none, uint8_t id) {
-    std::unordered_map<uint8_t, std::string> wingman_map = {
-        {0,"LYLE"},
-        {1,"MIGUEL"},
-        {2,"GWEN"},
-        {3,"BILLY"},
-        {4,"TEX"}
-    };
-    if (wingman_map.find(id) == wingman_map.end()) {
-        return;
-    } else {
-        GameState.wingman = wingman_map[id];
-        this->current_frame->SetExpired(true);
-    }
-    
-}
-
-int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
-    char *sentence = (char *)conv->GetPosition() + start_offset;
-    int sound_offset = 0;
-    char *sentence_end = (char *)conv->GetPosition() + start_offset + strlen((char *)sentence) + 1;
+void ConvFrame::setSentence(const ConvRecord &record) {
     this->sound_file_name = nullptr;
-    int decalage = 1;
-    if ((int8_t)sentence_end[0] < 0) {
-        sentence_end += 1;
-        decalage = 2;
+    if (!record.voice.empty()) {
+        this->sound_file_name = new std::string(record.voice);
     }
-    if (!isNextFrameIsConv((uint8_t) sentence_end[0])) {
-        std::string test = std::string(sentence_end);
-        sound_offset = (int) strlen((char *)sentence) + decalage;
-        uint8_t t = test.c_str()[0];
-        if (t != 0xFF && t != 0xF4) {
-            this->sound_file_name = new std::string(sentence);
-            sentence = sentence_end;
-        } else {
-            sound_offset = 4;
+    this->lip_text = record.text;
+    for (auto &c : this->lip_text) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
         }
     }
-    std::string *text = new std::string(sentence);
+    std::string *text = new std::string(record.text);
     if (text->find("$N") != std::string::npos) {
         text->replace(text->find("$N"), 2, GameState.player_firstname);
     }
@@ -389,155 +356,428 @@ int ConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
     if (text->find("$C") != std::string::npos) {
         text->replace(text->find("$C"), 2, GameState.player_callsign);
     }
-    this->text         = (char *)text->c_str();
-    return (int) (sound_offset + start_offset + strlen((char *)sentence) + 1);
+    this->text = (char *)text->c_str();
 }
-/**
- * @brief Read the next frame of the conversation from the data stream.
- *
- * If the end of the conversation is reached, stop the activity.
- *
- * The function reads the next byte from the stream and uses it to determine the type of frame to read.
- * Depending on the type of frame, it reads the appropriate data from the stream and stores it in tmp_frame->
- * If the type of frame is unknown, it stops the activity and prints an error message.
- */
-void SCConvPlayer::ReadNextFrame(void) {
+void ConvFrame::copyCloseUp(const ConvFrame *previous) {
+    this->face            = previous->face;
+    this->textColor       = previous->textColor;
+    this->face_expression = previous->face_expression;
+    this->facePaletteID   = previous->facePaletteID;
+    this->facePosition    = previous->facePosition;
+    this->face_position   = previous->face_position;
+    this->game_positions  = previous->game_positions;
+}
+static const std::vector<std::string> kPilotNames = {
+    "",
+    "Billy",
+    "Gwen",
+    "Lyle",
+    "Miguel",
+    "Tex"
+};
+static const std::vector<std::string> kPilotFigures = {
+    "red1",
+    "billy2",
+    "gwen2",
+    "lyle2",
+    "miguel2",
+    "tex3"
+};
 
-    ConvFrame *tmp_frame = new ConvFrame();
-
-    tmp_frame->creationTime       = SDL_GetTicks();
-    tmp_frame->text               = nullptr;
-    tmp_frame->sound_file_name    = nullptr;
-    tmp_frame->facePaletteID      = 0;
-    tmp_frame->font = this->font;
-    tmp_frame->conversationID = this->conversationID;
-    // tmp_frame->face = nullptr;
-
-    this->parseConv(tmp_frame);
-
-    tmp_frame->SetExpired(false);
-    if (this->conversation_frames.size() > 0) {
-        if (tmp_frame->bgLayers == nullptr) {
-            tmp_frame->bgLayers = this->conversation_frames.back()->bgLayers;
-            tmp_frame->bgPalettes = this->conversation_frames.back()->bgPalettes;
-        }
-    }
-    if (this->txt_color != 0 && tmp_frame->textColor == 0) {
-        tmp_frame->textColor = this->txt_color;
-    } else if (tmp_frame->textColor != 0) {
-        this->txt_color = tmp_frame->textColor;
-    }
-    if (this->yes_no_path == 0 && tmp_frame->yes_no_path != 0) {
-        this->yes_no_path = tmp_frame->yes_no_path;
-    } else if (this->yes_no_path == 1 && tmp_frame->yes_no_path != 0) {
-        this->yes_no_path = tmp_frame->yes_no_path;
-    } else if (tmp_frame->yes_no_path == 0) {
-        tmp_frame->yes_no_path = this->yes_no_path;
-    }
-    if (!tmp_frame->do_not_add) {
-        this->conversation_frames.push_back(tmp_frame);
-    } else {
-        delete tmp_frame;
-    }
-    
+static std::string pilotWingmanName(uint8_t pilot) {
+    std::string name = pilot < kPilotNames.size() ? kPilotNames[pilot] : "";
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+    return name;
 }
 
-void SCConvPlayer::parseConv(ConvFrame *tmp_frame) {
-    static bool yes_no_choice_in_progress = false;
-    if (this->conv.GetCurrentPosition() > this->size) {
-        return;
-    }
-    uint8_t type = conv.ReadByte();
-    switch (type) {
-    case GROUP_SHOT: // Group plan
-    {
-        tmp_frame->parse_GROUP_SHOT(&conv);
-        break;
-    }
-    case CLOSEUP: // Person talking
-    {
-        tmp_frame->parse_CLOSEUP(&conv);
-        break;
-    }
-    case CLOSEUP_CONTINUATION: // Same person keep talking
-    {
-        tmp_frame->parse_CLOSEUP_CONTINUATION(&conv);
-        tmp_frame->textColor = this->conversation_frames.back()->textColor;
-        tmp_frame->face = this->conversation_frames.back()->face;
-        tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
-        tmp_frame->mode = this->conversation_frames.back()->mode;
-        tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
-        tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
-        break;
-    }
-    case YESNOCHOICE_BRANCH1: // Choice Offsets are question
-    {
-        tmp_frame->parse_YESNOCHOICE_BRANCH1(&conv, this);
-        tmp_frame->face = this->conversation_frames.back()->face;
-        tmp_frame->textColor = this->conversation_frames.back()->textColor;
-        tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
-        tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
-        tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
-        yes_no_choice_in_progress = true;
-        break;
-    }
-    case YESNOCHOICE_BRANCH2: // Choice offset after first branch
-    {
-        if (!yes_no_choice_in_progress) {
-            tmp_frame->do_not_add = true;
+void SCConvPlayer::selectWing(const ConvRecord &record) {
+    this->wing_screen = static_cast<uint8_t>(record.value & 255);
+    this->wing_number = static_cast<uint8_t>(record.value >> 8);
+    this->wing_pilots.clear();
+    TreEntry *gameflowIFF = Assets.GetEntryByName(Assets.gameflow_filename);
+    RSGameFlow flow;
+    flow.InitFromRam(gameflowIFF->data, gameflowIFF->size);
+    for (WING *wing : flow.game.wngs) {
+        if (wing->info.ID == this->wing_number) {
+            this->wing_pilots = wing->pilt;
             break;
         }
-        // tmp_frame->mode = ConvFrame::CONV_CONTRACT_CHOICE;
-        // Looks like first byte is the offset to skip if the answer is no.
-        tmp_frame->parse_YESNOCHOICE_BRANCH2(&conv);
-        tmp_frame->do_not_add = true;
-        yes_no_choice_in_progress = false;
-        break;
     }
-    case GROUP_SHOT_ADD_CHARCTER: // Add person to GROUP
-    {
-        if (conv.CurrentByte() == CLOSEUP) {
-            conv.MoveForward(1);
-            tmp_frame->parse_CLOSEUP(&conv);
-        } else {
-            tmp_frame->parse_GROUP_SHOT_ADD_CHARACTER(&conv);
-        }
-            
+    if (this->wing_pilots.empty()) {
+        printf("CONV %d: SELECT_WING, escadre %d absente de GAMEFLOW.IFF ou sans PILT\n", this->conversationID,
+               this->wing_number);
+        return;
+    }
+    GameState.wingman = pilotWingmanName(this->wing_pilots[0]);
+    printf("CONV %d: SELECT_WING, ecran %d, escadre %d, %zu pilotes, equipier par defaut %s\n", this->conversationID,
+           this->wing_screen, this->wing_number, this->wing_pilots.size(), GameState.wingman.c_str());
+}
 
-        break;
+void SCConvPlayer::setWingmanChoice(ConvFrame *frame) {
+    ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+    ConvBackGround *bg = ConvAssets.GetBackGround(this->wing_screen == 0 ? "s_wing" : "w_wing");
+
+    frame->bgLayers   = &bg->layers;
+    frame->bgPalettes = &bg->palettes;
+    frame->bgYs       = &bg->ys;
+    frame->game_positions = true;
+
+    frame->participants.clear();
+    frame->participant_positions.clear();
+    frame->pilots.clear();
+    frame->mode = ConvFrame::CONV_WINGMAN_CHOICE;
+
+    // Les pilots de p_wing sont des enfants du premier élément du décor : posés en (0, y de cet élément).
+    int16_t parent_y = bg->ys.empty() ? 0 : bg->ys[0];
+    for (uint8_t pilot = 0; pilot < kPilotFigures.size(); pilot++) {
+        bool proposed = pilot == 0 ||
+                        std::find(this->wing_pilots.begin(), this->wing_pilots.end(), pilot) != this->wing_pilots.end();
+        if (!proposed) {
+            continue;
+        }
+        frame->participants.push_back(ConvAssets.GetFigure(kPilotFigures[pilot]));
+        frame->participant_positions.push_back(scriptPosition(0, parent_y));
+        frame->pilots.push_back(pilot);
     }
-    case GROUP_SHOT_CHARCTR_TALK: // Make group character talk
-    {
-        tmp_frame->parse_GROUP_SHOT_CHARACTER_TALK(&conv);  
-        break;
+    printf("CONV %d: CHOOSE_WINGMAN, decor %s, %zu pilotes proposes\n", this->conversationID,
+           this->wing_screen == 0 ? "s_wing" : "w_wing", frame->pilots.size() - 1);
+}
+
+void SCConvPlayer::focus(void) { IActivity::focus(); }
+
+void SCConvPlayer::answerQuestion(bool accepted) {
+    GameState.mission_accepted = accepted;
+    printf("CONV %d: reponse %s\n", this->conversationID, accepted ? "Accept Mission" : "Reject Mission");
+
+    // Les répliques de la branche opposée sont retirées : refus = branche 1, acceptation = branche 2.
+    int pathToRemove = accepted ? 2 : 1;
+    auto it = conversation_frames.begin();
+    if (it != conversation_frames.end() && *it == this->current_frame) {
+        ++it;
     }
-    case SHOW_TEXT: // Show text
-    {
-        tmp_frame->parse_SHOW_TEXT(&conv);
-        tmp_frame->face = this->conversation_frames.back()->face;
-        tmp_frame->textColor = this->conversation_frames.back()->textColor;
-        tmp_frame->face_expression = this->conversation_frames.back()->face_expression;
-        tmp_frame->facePaletteID = this->conversation_frames.back()->facePaletteID;
-        tmp_frame->facePosition = this->conversation_frames.back()->facePosition;
-        
-        break;
+    while (it != conversation_frames.end()) {
+        ConvFrame *f = *it;
+        if (f && f->yes_no_path == pathToRemove) {
+            delete f;
+            it = conversation_frames.erase(it);
+        } else {
+            ++it;
+        }
     }
-    case 0xE: {
-        topOffset = conv.ReadByte();
-        first_palette = conv.ReadByte();
-        this->parseConv(tmp_frame);
-        break;
-    }
-    case CHOOSE_WINGMAN: // Wingman selection trigger
-    {
-        tmp_frame->parse_CHOOSE_WINGMAN(&conv, this);
-        break;
-    }
+    conversation_frames.shrink_to_fit();
+}
+
+static const char *convCommandName(uint8_t op) {
+    switch (op) {
+    case CONV_GROUP_SHOT:
+        return "GROUP_SHOT";
+    case CONV_GROUP_SHOT_ADD_CHARACTER:
+        return "GROUP_SHOT_ADD_CHARACTER";
+    case CONV_GROUP_SHOT_CHARACTER_TALK:
+        return "GROUP_SHOT_CHARACTER_TALK";
+    case CONV_CLOSEUP:
+        return "CLOSEUP";
+    case CONV_CLOSEUP_CONTINUATION:
+        return "CLOSEUP_CONTINUATION";
+    case CONV_SHOW_TEXT:
+        return "SHOW_TEXT";
+    case CONV_YESNOCHOICE_BRANCH1:
+        return "YESNOCHOICE_BRANCH1";
+    case CONV_YESNOCHOICE_BRANCH2:
+        return "YESNOCHOICE_BRANCH2";
+    case CONV_SELECT_WING:
+        return "SELECT_WING";
+    case CONV_CHOOSE_WINGMAN:
+        return "CHOOSE_WINGMAN";
+    case CONV_NOP_16:
+        return "NOP_16";
+    case CONV_NOP_18:
+        return "NOP_18";
     default:
-        tmp_frame->do_not_add = true;
-        break;
+        return "?";
     }
 }
+
+ConvFrame *SCConvPlayer::newFrame(void) {
+    ConvFrame *frame = new ConvFrame();
+
+    frame->creationTime    = SDL_GetTicks();
+    frame->text            = nullptr;
+    frame->sound_file_name = nullptr;
+    frame->facePaletteID   = 0;
+    frame->font            = this->font;
+    frame->conversationID  = this->conversationID;
+    return frame;
+}
+
+void SCConvPlayer::addFrame(ConvFrame *frame) {
+    frame->SetExpired(false);
+    if (this->conversation_frames.size() > 0) {
+        if (frame->bgLayers == nullptr) {
+            frame->bgLayers = this->conversation_frames.back()->bgLayers;
+            frame->bgPalettes = this->conversation_frames.back()->bgPalettes;
+            frame->bgYs = this->conversation_frames.back()->bgYs;
+        }
+    }
+    if (this->txt_color != 0 && frame->textColor == 0) {
+        frame->textColor = this->txt_color;
+    } else if (frame->textColor != 0) {
+        this->txt_color = frame->textColor;
+    }
+    if (!frame->do_not_add) {
+        this->conversation_frames.push_back(frame);
+    } else {
+        delete frame;
+    }
+}
+
+static int answerBranch(const std::vector<ConvRecord> &records, size_t offset) {
+    for (const ConvRecord &question : records) {
+        if (question.op != CONV_YESNOCHOICE_BRANCH1) {
+            continue;
+        }
+        size_t refuse_start = question.offset + 3 + question.value;
+        if (offset >= question.offset && offset < refuse_start) {
+            return 1;
+        }
+        for (const ConvRecord &jump : records) {
+            if (jump.op != CONV_YESNOCHOICE_BRANCH2 || jump.offset + 3 != refuse_start) {
+                continue;
+            }
+            size_t refuse_end = jump.offset + 3 + jump.value;
+            if (offset >= refuse_start && offset < refuse_end) {
+                return 2;
+            }
+        }
+    }
+    return 0;
+}
+
+static int advanceCloseUpMouth(const std::string &text, size_t &cursor) {
+    static const char *lip_table = "06891599098769362999252999";
+    if (cursor >= text.size()) {
+        return -1;
+    }
+    int mouth = -1;
+    char c = text[cursor];
+    cursor++;
+    char next = cursor < text.size() ? text[cursor] : '\0';
+    if (c == 'e') {
+        if (next < 'a' || next > 'z') {
+            c = next;
+            cursor++;
+        } else if (next == 'r') {
+            mouth = 6;
+            cursor++;
+        }
+    } else if (c == 'h') {
+        cursor++;
+    } else if (c == 't') {
+        if (next == 'h') {
+            mouth = 9;
+            cursor++;
+        }
+    } else if (c == 'c') {
+        if (next == 'h') {
+            mouth = 6;
+            cursor++;
+        }
+    }
+    if (mouth == -1 && c >= 'a' && c <= 'z') {
+        mouth = lip_table[c - 'a'] - '0' + 2;
+    }
+    return mouth;
+}
+
+// Bouche du gros plan à la lecture numéro reads (une lecture par image de scène, 10 par seconde), -1 = aucune.
+static int closeUpMouth(const std::string &text, uint32_t reads) {
+    size_t cursor = 0;
+    int mouth = -1;
+    for (uint32_t r = 0; r <= reads; r++) {
+        if (cursor >= text.size()) {
+            return -1;
+        }
+        mouth = advanceCloseUpMouth(text, cursor);
+    }
+    return mouth;
+}
+
+// Durée d'une réplique de gros plan sans voix, en ms (§ 7.4 et § 8.7 de CONV_SYSTEM.md).
+static uint32_t closeUpDuration(const ConvFrame *frame, uint8_t op, ConvFormat format) {
+    if (format == ConvFormat::Cd) {
+        return frame->lip_text.empty() ? 800 : 5000;
+    }
+    if (op == CONV_SHOW_TEXT) {
+        return 2000;
+    }
+    if (frame->lip_text.empty()) {
+        return 1500;
+    }
+    size_t cursor = 0;
+    uint32_t reads = 0;
+    while (cursor < frame->lip_text.size()) {
+        advanceCloseUpMouth(frame->lip_text, cursor);
+        reads++;
+    }
+    return (reads + 40) * 100;
+}
+
+// Durée d'une réplique de scène de groupe sans voix, en ms (§ 7.2 et § 8.6 de CONV_SYSTEM.md).
+static uint32_t groupReplyDuration(const ConvRecord &record, ConvFormat format) {
+    if (format == ConvFormat::Cd) {
+        return record.text.empty() ? 800 : 5000;
+    }
+    if (record.op == CONV_SHOW_TEXT) {
+        return 4000;
+    }
+    size_t letters = record.text.size() > 0 ? record.text.size() : 1;
+    return static_cast<uint32_t>(letters * 100);
+}
+
+void SCConvPlayer::pushFrame(ConvFrame *frame, const std::vector<ConvRecord> &records, const ConvRecord &record) {
+    frame->yes_no_path = answerBranch(records, record.offset);
+    printf("CONV %d: replique %zu, %s (octet %zu), mode %d, branche %d, couleur %d, figures %zu, parle %d, duree %u, "
+           "voix \"%s\", texte \"%s\"\n",
+           this->conversationID, this->conversation_frames.size(), convCommandName(record.op), record.offset,
+           frame->mode, frame->yes_no_path, frame->textColor, frame->participants.size(), frame->talker,
+           frame->duration, frame->sound_file_name != nullptr ? frame->sound_file_name->c_str() : "",
+           frame->text != nullptr ? frame->text : "");
+    this->addFrame(frame);
+}
+
+size_t SCConvPlayer::buildGroupShot(const std::vector<ConvRecord> &records, size_t index, ConvFormat format) {
+    const ConvRecord &shot = records[index];
+    size_t i = index + 1;
+    std::vector<const ConvRecord *> figurants;
+    while (i < records.size() && records[i].op == CONV_GROUP_SHOT_ADD_CHARACTER) {
+        figurants.push_back(&records[i]);
+        i++;
+    }
+    std::vector<const ConvRecord *> replies;
+    while (i < records.size() && records[i].level == 1 &&
+           (records[i].op == CONV_GROUP_SHOT_CHARACTER_TALK || records[i].op == CONV_SHOW_TEXT)) {
+        replies.push_back(&records[i]);
+        i++;
+    }
+    int figure_palette = -1;
+    if (!figurants.empty()) {
+        figure_palette = static_cast<int>(ConvAssetManager::getInstance().GetFigure(figurants[0]->name)->paletteID);
+    }
+    printf("CONV %d: GROUP_SHOT %s, %zu figurants, %zu repliques, palette du premier figurant %d\n",
+           this->conversationID, shot.background.c_str(), figurants.size(), replies.size(), figure_palette);
+    if (replies.empty()) {
+        ConvFrame *frame = newFrame();
+        frame->setGroupShot(shot);
+        for (const ConvRecord *figurant : figurants) {
+            frame->addFigure(*figurant);
+        }
+        frame->figure_palette = figure_palette;
+        this->pushFrame(frame, records, shot);
+        return i;
+    }
+    for (size_t k = 0; k < replies.size(); k++) {
+        const ConvRecord &reply = *replies[k];
+        ConvFrame *frame = newFrame();
+        frame->setGroupShot(shot);
+        for (const ConvRecord *figurant : figurants) {
+            frame->addFigure(*figurant);
+        }
+        frame->figure_palette = figure_palette;
+        // Disquette : tous les personnages qui parlent sont là dès le début de la scène ; CD : chacun apparaît à
+        // sa première réplique et reste.
+        for (size_t t = 0; t < replies.size(); t++) {
+            if (replies[t]->op != CONV_GROUP_SHOT_CHARACTER_TALK) {
+                continue;
+            }
+            if (format == ConvFormat::Cd && t > k) {
+                continue;
+            }
+            if (t == k) {
+                frame->talker = static_cast<int>(frame->participants.size());
+            }
+            frame->addFigure(*replies[t]);
+        }
+        if (reply.op == CONV_GROUP_SHOT_CHARACTER_TALK) {
+            frame->setTalk(reply);
+        } else {
+            frame->setNarration(reply);
+        }
+        frame->duration = groupReplyDuration(reply, format);
+        this->pushFrame(frame, records, reply);
+    }
+    return i;
+}
+
+void SCConvPlayer::buildFrames(const std::vector<ConvRecord> &records, ConvFormat format) {
+    size_t i = 0;
+    while (i < records.size()) {
+        const ConvRecord &record = records[i];
+        if (record.op == CONV_GROUP_SHOT) {
+            i = this->buildGroupShot(records, i, format);
+            continue;
+        }
+        i++;
+        ConvFrame *frame = nullptr;
+        switch (record.op) {
+        case CONV_SHOW_TEXT:
+            frame = newFrame();
+            frame->setNarration(record);
+            if (!this->conversation_frames.empty()) {
+                frame->copyCloseUp(this->conversation_frames.back());
+                frame->copyScene(this->conversation_frames.back());
+            }
+            if (frame->group_scene) {
+                frame->duration = groupReplyDuration(record, format);
+            } else if (frame->game_positions) {
+                frame->duration = closeUpDuration(frame, record.op, format);
+            }
+            break;
+        case CONV_CLOSEUP:
+            frame = newFrame();
+            frame->setCloseUp(record);
+            frame->duration = closeUpDuration(frame, record.op, format);
+            break;
+        case CONV_CLOSEUP_CONTINUATION:
+            frame = newFrame();
+            frame->setSentence(record);
+            if (!this->conversation_frames.empty()) {
+                frame->copyCloseUp(this->conversation_frames.back());
+                frame->mode = this->conversation_frames.back()->mode;
+            }
+            if (frame->game_positions) {
+                frame->duration = closeUpDuration(frame, record.op, format);
+            }
+            break;
+        case CONV_YESNOCHOICE_BRANCH1:
+            frame = newFrame();
+            frame->mode = ConvFrame::CONV_CONTRACT_CHOICE;
+            if (!this->conversation_frames.empty()) {
+                frame->copyCloseUp(this->conversation_frames.back());
+            }
+            printf("CONV %d: YESNOCHOICE_BRANCH1 (octet %zu), refus a l'octet %zu\n", this->conversationID,
+                   record.offset, record.offset + 3 + record.value);
+            break;
+        case CONV_YESNOCHOICE_BRANCH2:
+            printf("CONV %d: YESNOCHOICE_BRANCH2 (octet %zu), saut a l'octet %zu\n", this->conversationID,
+                   record.offset, record.offset + 3 + record.value);
+            break;
+        case CONV_SELECT_WING:
+            this->selectWing(record);
+            break;
+        case CONV_CHOOSE_WINGMAN:
+            frame = newFrame();
+            this->setWingmanChoice(frame);
+            break;
+        default:
+            printf("CONV %d: %s, rien a faire\n", this->conversationID, convCommandName(record.op));
+            break;
+        }
+        if (frame != nullptr) {
+            this->pushFrame(frame, records, record);
+        }
+    }
+}
+
 void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
 
     if (convPakEntry->size == 0) {
@@ -545,11 +785,6 @@ void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
         stop();
         return;
     }
-
-    this->size = convPakEntry->size;
-
-    this->conv.Set(convPakEntry->data, convPakEntry->size);
-    end = convPakEntry->data + convPakEntry->size;
 
     if (this->conversation_frames.size() > 0) {
         for (auto frame : this->conversation_frames) {
@@ -559,9 +794,18 @@ void SCConvPlayer::SetArchive(PakEntry *convPakEntry) {
         this->conversation_frames.shrink_to_fit();
     }
 
-    while (conv.GetPosition() < end && !conv.IsEndOfStream()) {
-        ReadNextFrame();
+    ConvData script(convPakEntry->data, convPakEntry->size);
+    int error = script.parse();
+    if (error != 0) {
+        printf("CONV %d: erreur de lecture %d a l'octet %zu : %s\n", this->conversationID, error,
+               script.errorOffset(), script.errorMessage().c_str());
+        Game->log("Conv ID %d: parse error %d at byte %zu.\n", this->conversationID, error, script.errorOffset());
+        stop();
+        return;
     }
+    printf("CONV %d: format %s, %zu enregistrements\n", this->conversationID,
+           script.format() == ConvFormat::Cd ? "CD" : "disquette", script.records().size());
+    this->buildFrames(script.records(), script.format());
 
     initialized = true;
 }
@@ -576,7 +820,6 @@ void SCConvPlayer::SetID(int32_t id) {
         return;
     }
     
-    topOffset = CONV_TOP_BAR_HEIGHT + 1;
     PakEntry *entry = convPak.GetEntry(id);
     if (entry->size == 0) {
         Game->log("Conversation entry is empty: Unable to load it.\n");
@@ -638,8 +881,10 @@ void SCConvPlayer::CheckFrameExpired(void) {
                 this->current_frame->SetExpired(true);
             }
         } else {
-            if (currentTime - this->current_frame->creationTime > 5000)
+            uint32_t limit = this->current_frame->duration > 0 ? this->current_frame->duration : 5000;
+            if (currentTime - this->current_frame->creationTime > limit) {
                 this->current_frame->SetExpired(true);
+            }
         }
         
     }
@@ -728,51 +973,390 @@ void SCConvPlayer::DrawText(void) {
         lineNumber++;
     }
 }
-void SCConvPlayer::CheckZones() {
-    for (auto zone : zones) {
-        if (zone->isActive(&GameState.requierd_flags)) {
-            if (zone->quad != nullptr) {
-                if (isPointInQuad(Mouse.getPosition(), zone->quad)) {
-                    Mouse.setMode(SCMouse::VISOR);
+void SCConvPlayer::applyGroupPalette(void) {
+    ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
+    ByteStream paletteReader;
+    PakEntry *normal = convPals.GetEntry(ConvAssets.GetFigurePaletteID("normal"));
+    paletteReader.Set(normal->data, normal->size);
+    this->palette.ReadPatch(&paletteReader);
+    if (this->current_frame->figure_palette >= 0) {
+        PakEntry *figure = convPals.GetEntry(this->current_frame->figure_palette);
+        ByteStream figureReader;
+        figureReader.Set(figure->data, figure->size);
+        this->palette.ReadPatch(&figureReader);
+    }
+    VGA.setPalette(&this->palette);
+}
 
-                    // If the mouse button has just been released: trigger action.
-                    if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
-                        Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE; 
-                        zone->onAction();
-                    }
-                        
-                    Point2D p = {160 - static_cast<int32_t>(zone->label->length() / 2) * 8, 180};
-                    VGA.getFrameBuffer()->printText(
-                        FontManager.GetFont("..\\..\\DATA\\FONTS\\OPTFONT.SHP"), &p, (char *)zone->label->c_str(), 64, 0,
-                        static_cast<uint32_t>(zone->label->length()), 3, 5
-                    );
-                    return;
-                }
-            }
-            if (Mouse.getPosition().x > zone->position.x &&
-                Mouse.getPosition().x < zone->position.x + zone->dimension.x &&
-                Mouse.getPosition().y > zone->position.y &&
-                Mouse.getPosition().y < zone->position.y + zone->dimension.y) {
-                // HIT !
-                Mouse.setMode(SCMouse::VISOR);
+static int groupMouth(const std::string &lip_text, uint32_t elapsed) {
+    static const char *lip_table = "04302500000340143000353000";
+    size_t index = elapsed / 100;
+    if (index >= lip_text.size()) {
+        return -1;
+    }
+    char c = lip_text[index];
+    if (c < 'a' || c > 'z') {
+        return -1;
+    }
+    return lip_table[c - 'a'] - '0' + 1;
+}
 
-                // If the mouse button has just been released: trigger action.
-                if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
-                    Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
-                    zone->onAction();
-                }
-                    
-                Point2D p = {160 - ((int32_t)(zone->label->length() / 2) * 8), 180};
-                VGA.getFrameBuffer()->printText(
-                    FontManager.GetFont(""), &p, (char *)zone->label->c_str(), 64, 0,
-                    static_cast<uint32_t>(zone->label->length()), 3, 5
-                );
+static void drawAnchored(FrameBuffer *fb, RLEShape *shape, Point2D anchor) {
+    Point2D saved = shape->position;
+    Point2D position;
+    position.x = anchor.x - shape->GetLeft();
+    position.y = anchor.y + CONV_TOP_BAR_HEIGHT + 1 - shape->GetTop();
+    shape->SetPosition(&position);
+    fb->drawShape(shape);
+    shape->SetPosition(&saved);
+}
 
-                return;
-            }
+void SCConvPlayer::drawGroupScene(void) {
+    ConvFrame *frame = this->current_frame;
+    for (size_t i = 0; i < frame->participants.size(); i++) {
+        CharFigure *participant = frame->participants[i];
+        Point2D anchor = frame->participant_positions[i];
+        drawAnchored(VGA.getFrameBuffer(), participant->appearances->GetShape(participant->image_offset), anchor);
+        if (static_cast<int>(i) != frame->talker) {
+            continue;
+        }
+        int mouth = groupMouth(frame->lip_text, SDL_GetTicks() - frame->creationTime);
+        if (mouth >= 0) {
+            drawAnchored(VGA.getFrameBuffer(), participant->appearances->GetShape(participant->image_offset + mouth),
+                         anchor);
         }
     }
+    for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT + 1; i++) {
+        VGA.getFrameBuffer()->fillLineColor(i, 0x00);
+    }
+    for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++) {
+        VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    }
 }
+
+void SCConvPlayer::applyFacePalette(void) {
+    PakEntry *entry = convPals.GetEntry(this->current_frame->facePaletteID);
+    ByteStream paletteReader;
+    paletteReader.Set(entry->data, entry->size);
+    this->palette.ReadPatch(&paletteReader);
+    VGA.setPalette(&this->palette);
+}
+
+void SCConvPlayer::drawCloseUpFace(int mouth) {
+    ConvFrame *frame = this->current_frame;
+    auto found = faces_shape.find(frame->face_expression);
+    if (found == faces_shape.end()) {
+        return;
+    }
+    bool blink = this->blinking && (frame->face_expression <= 20 || frame->face_expression == 255);
+    for (size_t k = 0; k < found->second.size(); k++) {
+        uint8_t image = found->second[k];
+        if (image == kFaceMouthSlot) {
+            if (blink && frame->face_expression == 255) {
+                drawAnchored(VGA.getFrameBuffer(), frame->face->appearances->GetShape(kFaceBlink), frame->face_position);
+            }
+            if (mouth >= 0) {
+                drawAnchored(VGA.getFrameBuffer(), frame->face->appearances->GetShape(mouth + 1), frame->face_position);
+            }
+            continue;
+        }
+        if (k == 1 && blink) {
+            image = kFaceBlink;
+        }
+        drawAnchored(VGA.getFrameBuffer(), frame->face->appearances->GetShape(image), frame->face_position);
+    }
+}
+
+void SCConvPlayer::drawCloseUp(bool lips) {
+    ConvFrame *frame = this->current_frame;
+    if (frame->face != nullptr) {
+        int mouth = -1;
+        if (lips) {
+            mouth = closeUpMouth(frame->lip_text, (SDL_GetTicks() - frame->creationTime) / 100);
+        }
+        this->drawCloseUpFace(mouth);
+    }
+    for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT + 1; i++) {
+        VGA.getFrameBuffer()->fillLineColor(i, 0x00);
+    }
+    for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++) {
+        VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    }
+}
+
+// Voix de la réplique courante. Fichier introuvable : réplique sans voix, comme le jeu quand les voix sont
+// absentes (CONV_SYSTEM.md § 8.2) ; le texte reste affiché pendant sa durée.
+void SCConvPlayer::startVoice(void) {
+    ConvFrame *frame = this->current_frame;
+    if (frame->sound_file_name == nullptr || frame->sound_file_name->length() == 0) {
+        return;
+    }
+    std::string filename = "F:" + *frame->sound_file_name + ".VOC";
+    std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
+    TreEntry *sound_entry = Assets.GetEntryByName(filename.c_str());
+    if (sound_entry == nullptr) {
+        printf("CONV %d: voix %s introuvable, replique sans voix (%u ms)\n", this->conversationID, filename.c_str(),
+               frame->duration > 0 ? frame->duration : 5000);
+        delete frame->sound_file_name;
+        frame->sound_file_name = nullptr;
+        return;
+    }
+    printf("CONV %d: voix %s\n", this->conversationID, filename.c_str());
+    Mixer.playSoundVoc(sound_entry->data, sound_entry->size, 6);
+}
+
+int SCConvPlayer::layerOffset(size_t index) {
+    ConvFrame *frame = this->current_frame;
+    if (!frame->game_positions || frame->bgYs == nullptr || frame->bgYs->empty()) {
+        return 0;
+    }
+    // Question : la scène passe en plein écran, seuls le dernier élément du décor et la tête descendent de 24
+    // lignes (ils restent en place à l'écran). Équipiers : les éléments suivants sont des enfants du premier.
+    if (frame->mode == ConvFrame::CONV_CONTRACT_CHOICE && index + 1 < frame->bgLayers->size()) {
+        return -(CONV_TOP_BAR_HEIGHT + 1);
+    }
+    if (frame->mode == ConvFrame::CONV_WINGMAN_CHOICE && index > 0) {
+        return (*frame->bgYs)[0];
+    }
+    return 0;
+}
+
+static SCZone *rectangleZone(uint8_t id, const std::string &label, int x1, int y1, int x2, int y2) {
+    SCZone *zone = new SCZone();
+    zone->id = id;
+    zone->label = new std::string(label);
+    zone->quad = new std::vector<Point2D *>();
+    Point2D *p1 = new Point2D();
+    p1->x = x1;
+    p1->y = y1;
+    Point2D *p2 = new Point2D();
+    p2->x = x2 + 1;
+    p2->y = y1;
+    Point2D *p3 = new Point2D();
+    p3->x = x2 + 1;
+    p3->y = y2 + 1;
+    Point2D *p4 = new Point2D();
+    p4->x = x1;
+    p4->y = y2 + 1;
+    zone->quad->push_back(p1);
+    zone->quad->push_back(p2);
+    zone->quad->push_back(p3);
+    zone->quad->push_back(p4);
+    return zone;
+}
+
+void SCConvPlayer::clearZones(void) {
+    for (SCZone *zone : this->zones) {
+        if (zone->quad != nullptr) {
+            for (Point2D *point : *zone->quad) {
+                delete point;
+            }
+            delete zone->quad;
+        }
+        delete zone->label;
+        delete zone;
+    }
+    this->zones.clear();
+}
+
+// Zones de la question (CONV_SYSTEM.md § 7.5) : les bornes du jeu sont en unités de souris (x de 0 à 639), soit
+// x 59 à 139 à l'écran, sur la main ; partout ailleurs, refus. CheckZones s'arrête à la première zone trouvée.
+void SCConvPlayer::addContractChoiceZones(void) {
+    SCZone *accept = rectangleZone(1, "Accept Mission", 59, 113, 139, 199);
+    accept->onclick = std::bind(&SCConvPlayer::clicked, this, std::placeholders::_1, std::placeholders::_2);
+    this->zones.push_back(accept);
+    SCZone *reject = rectangleZone(2, "Reject Mission", 0, 0, 319, 199);
+    reject->onclick = std::bind(&SCConvPlayer::clicked, this, std::placeholders::_1, std::placeholders::_2);
+    this->zones.push_back(reject);
+}
+
+// Zones des pilotes (CONV_SYSTEM.md § 7.6), dans l'ordre de test du jeu, pour les pilotes proposés seulement.
+// Survolé : l'image 1 du pilote (ses yeux) est dessinée par-dessus son image 0.
+void SCConvPlayer::addWingmanZones(ConvFrame *frame) {
+    static const int bounds[5][5] = {
+        {
+            1,
+            187,
+            72,
+            232,
+            191,
+        },
+        {
+            2,
+            145,
+            75,
+            187,
+            197,
+        },
+        {
+            3,
+            29,
+            68,
+            75,
+            195,
+        },
+        {
+            4,
+            84,
+            72,
+            132,
+            193,
+        },
+        {
+            5,
+            242,
+            70,
+            281,
+            199,
+        },
+    };
+    for (const auto &bound : bounds) {
+        uint8_t pilot = static_cast<uint8_t>(bound[0]);
+        auto found = std::find(frame->pilots.begin(), frame->pilots.end(), pilot);
+        if (found == frame->pilots.end()) {
+            continue;
+        }
+        size_t index = static_cast<size_t>(found - frame->pilots.begin());
+        CharFigure *figure = frame->participants[index];
+        SCZone *zone = rectangleZone(pilot, "Select " + kPilotNames[pilot], bound[1], bound[2], bound[3], bound[4]);
+        zone->onclick = std::bind(&SCConvPlayer::selectWingMan, this, std::placeholders::_1, std::placeholders::_2);
+        zone->hover_shape = figure->appearances->GetShape(figure->image_offset + 1);
+        zone->hover_shape->uncompressed = false;
+        Point2D anchor = frame->participant_positions[index];
+        zone->hover_position.x = anchor.x - zone->hover_shape->GetLeft();
+        zone->hover_position.y = anchor.y + CONV_TOP_BAR_HEIGHT + 1 - zone->hover_shape->GetTop();
+        this->zones.push_back(zone);
+    }
+}
+
+void SCConvPlayer::prepareZones(void) {
+    this->clearZones();
+    if (this->current_frame->mode == ConvFrame::CONV_CONTRACT_CHOICE) {
+        this->addContractChoiceZones();
+    } else if (this->current_frame->mode == ConvFrame::CONV_WINGMAN_CHOICE) {
+        this->addWingmanZones(this->current_frame);
+    }
+}
+
+void SCConvPlayer::clicked(void *none, uint8_t id) {
+    if (this->current_frame->choice >= 0) {
+        return;
+    }
+    this->current_frame->choice = id == 1 ? 1 : 0;
+    this->current_frame->choice_time = SDL_GetTicks();
+    printf("CONV %d: clic, %s\n", this->conversationID, id == 1 ? "Accept Mission" : "Reject Mission");
+}
+
+void SCConvPlayer::selectWingMan(void *none, uint8_t id) {
+    if (this->current_frame->choice >= 0) {
+        return;
+    }
+    this->current_frame->choice = id;
+    this->current_frame->choice_time = SDL_GetTicks();
+    printf("CONV %d: clic, pilote %d\n", this->conversationID, id);
+}
+
+SCZone *SCConvPlayer::CheckZones(void) {
+    SCZone *hit = nullptr;
+    for (SCZone *zone : this->zones) {
+        zone->hovered = false;
+        if (hit == nullptr && zone->quad != nullptr && isPointInQuad(Mouse.getPosition(), zone->quad)) {
+            hit = zone;
+        }
+    }
+    if (hit == nullptr) {
+        Mouse.setMode(SCMouse::CURSOR);
+        return nullptr;
+    }
+    hit->hovered = true;
+    Mouse.setMode(SCMouse::VISOR);
+    if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
+        Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
+        hit->onAction();
+    }
+    Point2D p;
+    p.x = 160 - static_cast<int32_t>(hit->label->length() / 2) * 8;
+    p.y = 175;
+    VGA.getFrameBuffer()->printText(FontManager.GetFont("..\\..\\DATA\\FONTS\\OPTFONT.SHP"), &p,
+                                    (char *)hit->label->c_str(), 64, 0, static_cast<uint32_t>(hit->label->length()), 3, 5);
+    return hit;
+}
+
+void SCConvPlayer::runChoice(void) {
+    ConvFrame *frame = this->current_frame;
+    uint32_t now = SDL_GetTicks();
+    uint32_t ticks = (now - frame->creationTime) * 60 / 1000;
+    bool opened = ticks >= 24;
+
+    if (frame->mode == ConvFrame::CONV_CONTRACT_CHOICE) {
+        this->applyFacePalette();
+        if (frame->face != nullptr) {
+            static const uint8_t kQuestionImages[4] = {
+                kFaceHead,
+                54,
+                kFaceHair,
+                kFaceClothes,
+            };
+            for (uint8_t image : kQuestionImages) {
+                drawAnchored(VGA.getFrameBuffer(), frame->face->appearances->GetShape(image), frame->face_position);
+            }
+        }
+    } else {
+        if (!frame->participants.empty()) {
+            PakEntry *entry = convPals.GetEntry(frame->participants[0]->paletteID);
+            ByteStream paletteReader;
+            paletteReader.Set(entry->data, entry->size);
+            this->palette.ReadPatch(&paletteReader);
+            VGA.setPalette(&this->palette);
+        }
+        for (size_t i = 0; i < frame->participants.size(); i++) {
+            CharFigure *participant = frame->participants[i];
+            RLEShape *body = participant->appearances->GetShape(participant->image_offset);
+            body->uncompressed = false;
+            drawAnchored(VGA.getFrameBuffer(), body, frame->participant_positions[i]);
+        }
+    }
+
+    if (frame->choice < 0 && opened) {
+        this->CheckZones();
+    } else {
+        for (SCZone *zone : this->zones) {
+            zone->hovered = false;
+        }
+    }
+    for (SCZone *zone : this->zones) {
+        zone->draw();
+    }
+
+    int top = 0;
+    int bottom = 0;
+    if (frame->choice >= 0) {
+        uint32_t closing = (now - frame->choice_time) * 60 / 1000;
+        if (closing >= 24) {
+            if (frame->mode == ConvFrame::CONV_CONTRACT_CHOICE) {
+                this->answerQuestion(frame->choice == 1);
+            } else {
+                GameState.wingman = pilotWingmanName(static_cast<uint8_t>(frame->choice));
+                printf("CONV %d: equipier choisi %s\n", this->conversationID, GameState.wingman.c_str());
+            }
+            frame->SetExpired(true);
+            closing = 24;
+        }
+        top = static_cast<int>(closing);
+        bottom = 2 * static_cast<int>(closing);
+    } else if (!opened) {
+        top = 24 - static_cast<int>(ticks);
+        bottom = 48 - 2 * static_cast<int>(ticks);
+    }
+    for (int i = 0; i < top; i++) {
+        VGA.getFrameBuffer()->fillLineColor(i, 0x00);
+    }
+    for (int i = 0; i < bottom; i++) {
+        VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    }
+    Mouse.draw();
+}
+
 /**
  * Runs a single frame of the conversation player, updating the game state and rendering the graphics.
  *
@@ -802,14 +1386,8 @@ void SCConvPlayer::runFrame(void) {
         this->current_frame = this->conversation_frames[0];
         this->current_frame->creationTime       = SDL_GetTicks();
         this->current_frame->SetExpired(false);
-        if (this->current_frame->sound_file_name != NULL && this->current_frame->sound_file_name->length() > 0) {
-            std::string filename = "F:"+*this->current_frame->sound_file_name+".VOC";
-            std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
-            TreEntry *sound_entry = Assets.GetEntryByName(filename.c_str());
-            if (sound_entry != nullptr) {
-                Mixer.playSoundVoc(sound_entry->data, sound_entry->size,6);
-            }
-        }
+        this->startVoice();
+        this->prepareZones();
     }
     // If frame needs to be update
     if (this->current_frame->mode != ConvFrame::CONV_CONTRACT_CHOICE && this->current_frame->mode != ConvFrame::CONV_WINGMAN_CHOICE) {
@@ -826,14 +1404,8 @@ void SCConvPlayer::runFrame(void) {
         }
         this->current_frame = this->conversation_frames[0];
         this->current_frame->creationTime       = SDL_GetTicks();
-        if (this->current_frame->sound_file_name != NULL && this->current_frame->sound_file_name->length() > 0) {
-            std::string filename = "F:"+*this->current_frame->sound_file_name+".VOC";
-            std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
-            TreEntry *sound_entry = Assets.GetEntryByName(filename.c_str());
-            if (sound_entry != nullptr) {
-                Mixer.playSoundVoc(sound_entry->data, sound_entry->size,6);
-            }
-        }
+        this->startVoice();
+        this->prepareZones();
     }
     
     checkButtons();
@@ -850,12 +1422,15 @@ void SCConvPlayer::runFrame(void) {
         VGA.setPalette(&this->palette);
         for (size_t i = 0; i < this->current_frame->bgLayers->size(); i++) {
             RLEShape *shape = (*this->current_frame->bgLayers)[i];
-
-            if (shape->leftDist < 0) {
-                Point2D pos = {-shape->leftDist, -shape->topDist};
-                shape->SetPosition(&pos);
+            int offset = this->layerOffset(i);
+            Point2D saved = shape->position;
+            if (offset != 0) {
+                Point2D moved = saved;
+                moved.y += offset;
+                shape->SetPosition(&moved);
             }
             VGA.getFrameBuffer()->drawShape(shape);
+            shape->SetPosition(&saved);
         }
     }
     
@@ -864,9 +1439,24 @@ void SCConvPlayer::runFrame(void) {
     
     
 
+    uint32_t scene_tick = SDL_GetTicks() / 100;
+    if (scene_tick != this->blink_tick) {
+        this->blink_tick = scene_tick;
+        this->blinking = std::rand() % 30 == 0;
+    }
     switch (this->current_frame->mode) {
         case ConvFrame::CONV_SHOW_TEXT:
         {
+            if (this->current_frame->face == NULL && this->current_frame->group_scene) {
+                this->applyGroupPalette();
+                this->drawGroupScene();
+                break;
+            }
+            if (this->current_frame->game_positions) {
+                this->applyFacePalette();
+                this->drawCloseUp(false);
+                break;
+            }
             for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT + 1; i++)
             VGA.getFrameBuffer()->fillLineColor(i, 0x00);
 
@@ -887,8 +1477,8 @@ void SCConvPlayer::runFrame(void) {
 
             if (this->current_frame->face != NULL) {
                 RLEShape *s = nullptr;
-                if (faces_shape.find(this->current_frame->face_expression) != faces_shape.end()) {
-                    for (auto shape : faces_shape[this->current_frame->face_expression]) {
+                if (legacy_faces_shape.find(this->current_frame->face_expression) != legacy_faces_shape.end()) {
+                    for (auto shape : legacy_faces_shape[this->current_frame->face_expression]) {
                         s = this->current_frame->face->appearances->GetShape(shape);
                         s->SetPositionX(pos);
                         VGA.getFrameBuffer()->drawShape(s);
@@ -919,6 +1509,11 @@ void SCConvPlayer::runFrame(void) {
         break;
         case ConvFrame::CONV_CLOSEUP:
         {
+            if (this->current_frame->game_positions) {
+                this->applyFacePalette();
+                this->drawCloseUp(true);
+                break;
+            }
             for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT + 1; i++)
             VGA.getFrameBuffer()->fillLineColor(i, 0x00);
 
@@ -941,8 +1536,8 @@ void SCConvPlayer::runFrame(void) {
 
             if (this->current_frame->face != NULL) {
                 RLEShape *s = nullptr;
-                if (faces_shape.find(this->current_frame->face_expression) != faces_shape.end()) {
-                    for (auto shape : faces_shape[this->current_frame->face_expression]) {
+                if (legacy_faces_shape.find(this->current_frame->face_expression) != legacy_faces_shape.end()) {
+                    for (auto shape : legacy_faces_shape[this->current_frame->face_expression]) {
                         s = this->current_frame->face->appearances->GetShape(shape);
                         s->SetPositionX(pos);
                         VGA.getFrameBuffer()->drawShape(s);
@@ -958,92 +1553,24 @@ void SCConvPlayer::runFrame(void) {
         break;
         case ConvFrame::CONV_WIDE:
         {
-            for (size_t i = 0; i < this->current_frame->participants.size(); i++) {
-                CharFigure *participant = this->current_frame->participants[i];
-
-                if (i == 0) {
-                    ByteStream paletteReader;
-                    paletteReader.Set(convPals.GetEntry(participant->paletteID)->data, convPals.GetEntry(participant->paletteID)->size);
-                    this->palette.ReadPatch(&paletteReader);
-                    VGA.setPalette(&this->palette);
-                }
-                
-                RLEShape *s = participant->appearances->GetShape(0);
-                Point2D position = {participant->x, participant->y};
-                s->SetPosition(&position);
-                VGA.getFrameBuffer()->drawShape(s);
-                if (participant->appearances->GetNumImages() > 1) {
-                    s = participant->appearances->GetShape(1);
-                    s->SetPosition(&position);
-                    VGA.getFrameBuffer()->drawShape(s);
-                }
-                position.x += s->GetWidth();
+            if (this->current_frame->group_scene) {
+                this->applyGroupPalette();
+                this->drawGroupScene();
+                break;
             }
-
-            for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT; i++)
+            for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT; i++) {
                 VGA.getFrameBuffer()->fillLineColor(i, 0x00);
-
-            for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++)
-                VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
-        }
-        break;
-        case  ConvFrame::CONV_WINGMAN_CHOICE:
-        {
-            Point2D position = {0, 0};
-            for (size_t i = 0; i < this->current_frame->participants.size(); i++) {
-                CharFigure *participant = this->current_frame->participants[i];
-                ByteStream paletteReader;
-                paletteReader.Set(convPals.GetEntry(participant->paletteID)->data, convPals.GetEntry(participant->paletteID)->size);
-                this->palette.ReadPatch(&paletteReader);
-                VGA.setPalette(&this->palette);
-                RLEShape *s = participant->appearances->GetShape(0);
-                s->SetPosition(&position);
-                s->uncompressed = false;
-                VGA.getFrameBuffer()->drawShape(s);
-                if (participant->appearances->GetNumImages() > 1) {
-                    s = participant->appearances->GetShape(1);
-                    s->uncompressed = false;
-                    s->SetPosition(&position);
-                    VGA.getFrameBuffer()->drawShape(s);
-                }
-                position.x += s->GetWidth();
             }
-            CheckZones();
-            Mouse.draw();
+            for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++) {
+                VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+            }
         }
         break;
+        case ConvFrame::CONV_WINGMAN_CHOICE:
         case ConvFrame::CONV_CONTRACT_CHOICE:
         {
-            ByteStream paletteReader;
-            paletteReader.Set(convPals.GetEntry(this->current_frame->facePaletteID)->data, convPals.GetEntry(this->current_frame->facePaletteID)->size);
-            this->palette.ReadPatch(&paletteReader);
-            VGA.setPalette(&this->palette);
-            int32_t pos = 0;
-
-            if (this->current_frame->mode == ConvFrame::CONV_CLOSEUP) {
-                if (this->current_frame->facePosition == ConvFrame::FACE_LEFT)
-                    pos = -30;
-
-                if (this->current_frame->facePosition == ConvFrame::FACE_RIGHT)
-                    pos = 30;
-            }
-
-            if (this->current_frame->face != NULL) {
-                RLEShape *s = nullptr;
-                if (faces_shape.find(this->current_frame->face_expression) != faces_shape.end()) {
-                    for (auto shape : faces_shape[this->current_frame->face_expression]) {
-                        s = this->current_frame->face->appearances->GetShape(shape);
-                        s->SetPositionX(pos);
-                        VGA.getFrameBuffer()->drawShape(s);
-                    }
-                }
-                s = this->current_frame->face->appearances->GetShape(54);
-                s->SetPositionX(pos);
-                VGA.getFrameBuffer()->drawShape(s);
-            }
-            CheckZones();
-            Mouse.draw();
-        }   
+            this->runChoice();
+        }
         break;
     }
     

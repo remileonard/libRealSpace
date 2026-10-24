@@ -38,12 +38,14 @@ typedef struct CharFigure {
     RSImageSet *appearances;
     size_t paletteID;
     uint16_t x{0}, y{0};
+    int image_offset{1};
 
 } CharFigure;
 
 typedef struct ConvBackGround {
     std::vector<RLEShape *> layers;
     std::vector<uint8_t *> palettes;
+    std::vector<int16_t> ys;
     std::string name;
 } ConvBackGround;
 
@@ -77,6 +79,7 @@ private:
 public:
     std::unordered_map<std::string, CharFace *> faces;
     std::unordered_map<std::string, FacePalette *> facePalettes;
+    std::unordered_map<std::string, FacePalette *> figurePalettes;
     std::unordered_map<std::string, ConvBackGround *> backgrounds;
     std::unordered_map<std::string, CharFigure *> figures;
     PakArchive convShps;
@@ -105,6 +108,7 @@ public:
     CharFigure *GetFigure(std::string name);
 
     uint8_t GetFacePaletteID(std::string name);
+    uint8_t GetFigurePaletteID(std::string name);
     std::string conv_file_name;
 
 };

@@ -130,6 +130,13 @@ uint8_t ConvAssetManager::GetFacePaletteID(std::string name) {
     return 0;
 }
 
+uint8_t ConvAssetManager::GetFigurePaletteID(std::string name) {
+    if (this->figurePalettes.count(name) > 0) {
+        return this->figurePalettes[name]->index;
+    }
+    return 0;
+}
+
 /**
  * Parse a single layer of a ConvBackGround.
  *
@@ -152,6 +159,7 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
     uint8_t type = dataReader.ReadByte();
     uint8_t shapeID = dataReader.ReadByte();
     uint8_t paletteID = dataReader.ReadByte();
+    int16_t y = dataReader.ReadShort();
 
     PakArchive *shapeArchive = NULL;
     PakArchive *paletteArchive = NULL;
@@ -195,24 +203,27 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
                 delete set;
                 */
                 s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
-                if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
-                    Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
-                    s->SetPosition(&pos);
-                }
-                
+                Point2D pos;
+                pos.x = -s->GetLeft();
+                pos.y = y + CONV_TOP_BAR_HEIGHT + 1 - s->GetTop();
+                s->SetPosition(&pos);
+
             }
         } else {
             s->init(subPAK.GetEntry(0)->data, subPAK.GetEntry(0)->size);
-            if (s->GetHeight() < 199) {                     //  If this is not a background, we need to move down
-                Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
-                s->SetPosition(&pos);
-            }
+            Point2D pos;
+            pos.x = -s->GetLeft();
+            pos.y = y + CONV_TOP_BAR_HEIGHT + 1 - s->GetTop();
+            s->SetPosition(&pos);
         }
     }
     
 
+    printf("ConvAssetManager: decor %s, element %zu, image %d, palette %d, y %d\n", back->name.c_str(), layerID, shapeID,
+           paletteID, y);
     back->layers.push_back(s);
     back->palettes.push_back(paletteArchive->GetEntry(paletteID)->data);
+    back->ys.push_back(y);
 }
 
 /**
@@ -366,8 +377,10 @@ void ConvAssetManager::parseFIGR_DATA(uint8_t *data, size_t size) {
     pak->InitFromRAM("FIGR", entry->data, entry->size);
     if (pak->GetNumEntries()>0) {
         shape->InitFromSubPakEntry(pak);
+        figr->image_offset = 0;
     } else {
         shape->InitFromPakEntry(entry);
+        figr->image_offset = 1;
     }
 
     Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
@@ -421,5 +434,11 @@ void ConvAssetManager::parseFGPL(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 void ConvAssetManager::parseFGPL_DATA(uint8_t *data, size_t size) {
-    
+    if (size < 9) {
+        return;
+    }
+    FacePalette *pal = new FacePalette();
+    pal->name = std::string((char *)data, strnlen((char *)data, 8));
+    pal->index = *(data + 8);
+    this->figurePalettes[pal->name] = pal;
 }
