@@ -102,6 +102,7 @@ protected:
     bool weapon_loadout_requested{false};
     void applyMissionReport(void);
     void setMusic(uint8_t track);
+    void openTest(bool *executeStack, bool *elseEncountered, int &ifDepth, int maxDepth, bool result, const char *name);
     void clicked(std::vector<EFCT *> *script, uint8_t id);
     void loadGame(std::string filename);
     void saveGame(std::string filename);

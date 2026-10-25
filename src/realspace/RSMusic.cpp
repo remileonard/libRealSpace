@@ -35,36 +35,12 @@ void RSMusic::init() {
     }
     this->loadTimbres(sound + this->sfx_timbre_file, this->sfx_timbres, this->sfx_timbre_data);
 
-    // banque 0 : AMUSIC.PAK / MMUSIC.PAK / RMUSIC.PAK (pistes a plat, pas de .dat)
-    std::vector<RSMusicSet *> amusic = LoadMusicFile((mid + this->midgames_pak).c_str());
-
-    if (!amusic.empty()) {
-        SetBank(0, amusic[0]);
-        midgames_musics[0] = amusic[0]->tracks;
-    }
-
+    // banque 0 : AMUSIC.PAK / MMUSIC.PAK / RMUSIC.PAK (pas de .dat)
+    LoadBank(0, (mid + this->midgames_pak).c_str());
     // banque 1 : GAMEFLOW.ADL / GAMEFLOW.MID, transitions de GAMEFLOW.DAT
-    std::vector<RSMusicSet *> gameflow =
-        LoadMusicFile((sound + "GAMEFLOW." + ext).c_str(), (sound + "GAMEFLOW.DAT").c_str());
-    this->gameflow_sets = gameflow;
-    for (size_t i = 0; i < gameflow.size(); i++) {
-        if (i > 0) {
-            gameflow_musics[i] = gameflow_musics[0];
-        }
-        for (MemMusic *m : gameflow[i]->tracks) {
-            musics[1].push_back(m);
-            gameflow_musics[i].push_back(m);
-        }
-    }
-
-    // banque 2 : COMBAT.ADL / COMBAT.MID, Transitionen aus COMBAT.DAT (fuer alle Varianten gleich)
-    std::vector<RSMusicSet *> combat = LoadMusicFile((sound + "COMBAT." + ext).c_str(), (sound + "COMBAT.DAT").c_str());
-    for (size_t i = 0; i < combat.size(); i++) {
-        combat_musics[i] = combat[i]->tracks;
-    }
-    if (!combat.empty()) {
-        SetBank(2, combat[0]);
-    }
+    LoadBank(1, (sound + "GAMEFLOW." + ext).c_str(), (sound + "GAMEFLOW.DAT").c_str());
+    // banque 2 : COMBAT.ADL / COMBAT.MID, transitions de COMBAT.DAT
+    LoadBank(2, (sound + "COMBAT." + ext).c_str(), (sound + "COMBAT.DAT").c_str());
 
     // effets : SOUNDFX.ADL ou SOUNDFX.ROL (pas de version General MIDI)
     std::vector<RSMusicSet *> soundfx = LoadMusicFile((sound + "SOUNDFX." + this->sfx_ext).c_str());
@@ -231,14 +207,50 @@ void RSMusic::SetBank(uint8_t bank, RSMusicSet *set) {
     musics[bank] = set->tracks;
 }
 
-void RSMusic::SetGameflowSet(size_t index) {
-    if (index >= this->gameflow_sets.size()) {
-        printf("RSMusic: jeu %zu absent de GAMEFLOW (%zu jeux)\n", index, this->gameflow_sets.size());
+void RSMusic::LoadBank(uint8_t bank, const char *file, const char *datFile) {
+    this->bank_files[bank] = LoadMusicFile(file, datFile);
+    printf("RSMusic: banque %d = %s, %zu jeux\n", bank, file, this->bank_files[bank].size());
+    SelectSet(bank, 0);
+}
+
+void RSMusic::SelectSet(uint8_t bank, size_t index) {
+    auto found = this->bank_files.find(bank);
+    if (found == this->bank_files.end() || index >= found->second.size()) {
+        printf("RSMusic: banque %d, jeu %zu absent\n", bank, index);
         return;
     }
-    SetBank(1, this->gameflow_sets[index]);
-    printf("RSMusic: banque 1 = jeu %zu de GAMEFLOW, %zu pistes, transitions %d\n", index,
-           this->gameflow_sets[index]->tracks.size(), this->gameflow_sets[index]->hasDat);
+    RSMusicSet *base = found->second[0];
+    RSMusicSet *active = found->second[index];
+    // Jeu 0 dont le .dat annonce plus de pistes qu'il n'en a (GAMEFLOW : 7 pistes, 10 dans le .dat) : le jeu actif
+    // est le jeu 0 complete par les pistes du jeu 'index', avec les transitions du jeu 0.
+    if (index > 0 && base->hasDat && (int)base->tracks.size() < base->data.trackCount) {
+        active = composeSet(bank, index, base, found->second[index]);
+    }
+    SetBank(bank, active);
+    printf("RSMusic: banque %d, jeu %zu actif, %zu pistes, transitions %d\n", bank, index, active->tracks.size(),
+           active->hasDat);
+}
+
+RSMusicSet *RSMusic::composeSet(uint8_t bank, size_t index, RSMusicSet *base, RSMusicSet *extra) {
+    std::pair<uint8_t, size_t> key(bank, index);
+    auto cached = this->composed_sets.find(key);
+    if (cached != this->composed_sets.end()) {
+        return cached->second;
+    }
+    RSMusicSet *set = newSet();
+    set->data = base->data;
+    for (const std::vector<uint8_t> &t : extra->data.tracks) {
+        set->data.tracks.push_back(t);
+    }
+    for (std::vector<uint8_t> &t : set->data.tracks) {
+        MemMusic *music = new MemMusic();
+        music->data = t.data();
+        music->size = t.size();
+        set->tracks.push_back(music);
+    }
+    set->hasDat = base->hasDat;
+    this->composed_sets[key] = set;
+    return set;
 }
 
 void RSMusic::SwitchBank(uint8_t bank) {

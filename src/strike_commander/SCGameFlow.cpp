@@ -58,7 +58,7 @@ void SCGameFlow::clicked(std::vector<EFCT *> *script, uint8_t id) {
     VGA.fadeOut(30, 6);
     if (this->scen->sceneOpts->foreground->sprites[id]->tune != nullptr) {        
         Mixer.switchBank(1);
-        Mixer.playMusic(Mixer.music->gameflow_musics[GameState.tune_modifier][this->scen->sceneOpts->foreground->sprites[id]->tune->ID],1);
+        Mixer.playMusic(this->scen->sceneOpts->foreground->sprites[id]->tune->ID, 1);
         
     }
     this->runEffect();
@@ -243,6 +243,8 @@ void SCGameFlow::runEffect() {
             case EFECT_OPT_IF_NOT_FLAG:
             case EFFCT_OPT_IF_MISS_SUCCESS:
             case EFECT_IF_LAST_MISS_SUCCESS:
+            case EFECT_OPT_IF_TRUE:
+            case EFECT_OPT_IF_PLANES_LOST:
                 // Pour les if imbriqués dans un bloc ignoré
                 ifDepth++;
                 if (ifDepth < MAX_IF_DEPTH) {
@@ -263,7 +265,7 @@ void SCGameFlow::runEffect() {
         case EFECT_OPT_CONV: {
             this->playConv(instruction->value);
         } break;
-        case EFECT_OPT_U10: {
+        case EFECT_OPT_SHOW_KILL_MARKS: {
             // SHOW_KILL_MARKS : marques de victoires si le joueur en a eu pendant le dernier vol et n'est pas mort.
             MissionReport &report = GameState.mission_report;
             int kills = report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] +
@@ -278,7 +280,53 @@ void SCGameFlow::runEffect() {
         case EFECT_OPT_SET_MUSIC: {
             this->setMusic(instruction->value);
         } break;
-        case EFECT_OPT_U14: {
+        case EFECT_OPT_NOP_4:
+        case EFECT_OPT_NOP_11:
+            break;
+        case EFECT_OPT_SELECT_MISSION_ALT: {
+            printf("GAMEFLOW: SELECT_MISSION_ALT %d\n", instruction->value);
+            this->playFlyMission(instruction->value);
+        } break;
+        case EFECT_OPT_START_FLIGHT: {
+            printf("GAMEFLOW: START_FLIGHT, mission %s\n", this->missionToFly != nullptr ? this->missionToFly : "(aucune)");
+            if (this->missionToFly != nullptr) {
+                this->flyMission(0);
+            }
+        } break;
+        case EFECT_OPT_REMOVE_PILOT: {
+            printf("GAMEFLOW: REMOVE_PILOT %d\n", instruction->value);
+            if (instruction->value < 8) {
+                GameState.pilot_roaster[instruction->value] = 0;
+            }
+        } break;
+        case EFECT_OPT_OR_GROUP: {
+            // Absent des données ; l'effet exact n'est pas un « ou » (GAMEFLOW_SYSTEM.md § 5.1) : pas porté.
+            printf("GAMEFLOW: OR_GROUP %d ignore\n", instruction->value);
+        } break;
+        case EFECT_OPT_IF_TRUE:
+            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, true, "IF_TRUE");
+            break;
+        case EFECT_OPT_IF_PLANES_LOST:
+            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH,
+                           GameState.mission_report.planes_lost != 0, "IF_PLANES_LOST");
+            break;
+        case EFECT_OPT_IF_RESULT_4:
+            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, GameState.mission_report.results[3] != 0,
+                           "IF_RESULT_4");
+            break;
+        case EFECT_OPT_IF_RESULT_5:
+            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, GameState.mission_report.results[4] != 0,
+                           "IF_RESULT_5");
+            break;
+        case EFECT_OPT_IF_RESULT_6:
+            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, GameState.mission_report.results[5] != 0,
+                           "IF_RESULT_6");
+            break;
+        case EFECT_OPT_IF_LOADED_FLAG:
+            // Octet posé par le chargement d'une partie dans la version CD, rôle non établi : test considéré faux.
+            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, false, "IF_LOADED_FLAG");
+            break;
+        case EFECT_OPT_PLANES_LOST_CONV: {
             // PLANES_LOST_CONV : avion perdu au dernier vol, joueur éjecté (mort : cinématique 33 au retour).
             printf("GAMEFLOW: PLANES_LOST_CONV, %d avions perdus au dernier vol, mort %d\n",
                    GameState.mission_report.planes_lost, GameState.player_dead);
@@ -449,9 +497,7 @@ void SCGameFlow::runEffect() {
             break;
         case EFECT_OPT_TUNE_MODIFIER:
             GameState.tune_modifier = instruction->value;
-            if (instruction->value > 0) {
-                Mixer.music->SetGameflowSet(instruction->value - 1);
-            }
+            Mixer.music->SelectSet(1, instruction->value);
             break;
         case EFECT_OPT_APPLY_CHANGE:
             if (this->gameFlowParser.game.stat[instruction->value] != nullptr) {
@@ -572,9 +618,7 @@ void SCGameFlow::runEffectAfterLoad() {
         switch (instruction->opcode) {
         case EFECT_OPT_TUNE_MODIFIER:
             GameState.tune_modifier = instruction->value;
-            if (instruction->value > 0) {
-                Mixer.music->SetGameflowSet(instruction->value - 1);
-            }
+            Mixer.music->SelectSet(1, instruction->value);
             break;
         default:
             break;
@@ -738,6 +782,17 @@ RSImageSet *SCGameFlow::getShape(uint8_t shpid) {
  *
  * @throws None
  */
+// Ouvre un test du script : le bloc qui suit est joué si result est vrai (GAMEFLOW_SYSTEM.md § 5.1).
+void SCGameFlow::openTest(bool *executeStack, bool *elseEncountered, int &ifDepth, int maxDepth, bool result,
+                          const char *name) {
+    printf("GAMEFLOW: %s -> %d\n", name, result);
+    ifDepth++;
+    if (ifDepth < maxDepth) {
+        executeStack[ifDepth] = result;
+        elseEncountered[ifDepth] = false;
+    }
+}
+
 // SET_MUSIC : piste n du jeu de musique du déroulement (banque 1), jouée par le séquenceur avec ses liaisons ; 255 = rien.
 void SCGameFlow::setMusic(uint8_t track) {
     printf("GAMEFLOW: SET_MUSIC %d\n", track);

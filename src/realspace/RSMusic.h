@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <map>
 
 struct MemMusic {
     uint8_t *data;
@@ -52,9 +53,6 @@ private:
 
 public:
     uint8_t bank{ 0 };
-    std::unordered_map<uint8_t, std::vector<MemMusic *>> midgames_musics;
-    std::unordered_map<uint8_t, std::vector<MemMusic *>> combat_musics;
-    std::unordered_map<uint8_t, std::vector<MemMusic *>> gameflow_musics;
     std::unordered_map<uint8_t, std::vector<MemMusic *>> musics;
     std::unordered_map<uint8_t, std::vector<MemMusic *>> soundfx_musics;
 
@@ -77,9 +75,12 @@ public:
     std::vector<RSMusicSet *> LoadMusicFile(const char *file, const char *datFile = nullptr);
     // La banque 'bank' sert les pistes du jeu 'set' (GetMusic) ; ses transitions si set->hasDat.
     void SetBank(uint8_t bank, RSMusicSet *set);
-    // Jeux de GAMEFLOW.ADL / GAMEFLOW.DAT ; la banque 1 sert le jeu 'index' (PLAY_GAMEFLOW_TUNE).
-    std::vector<RSMusicSet *> gameflow_sets;
-    void SetGameflowSet(size_t index);
+    // Jeux du fichier charge dans chaque banque ; la banque sert le jeu actif (pistes, et transitions s'il a un .dat).
+    std::unordered_map<uint8_t, std::vector<RSMusicSet *>> bank_files;
+    void LoadBank(uint8_t bank, const char *file, const char *datFile = nullptr);
+    void SelectSet(uint8_t bank, size_t index);
+    std::map<std::pair<uint8_t, size_t>, RSMusicSet *> composed_sets;
+    RSMusicSet *composeSet(uint8_t bank, size_t index, RSMusicSet *base, RSMusicSet *extra);
     // Fichiers d'un appareil : extension des musiques (ADL, ROL, MID), pak des cinematiques,
     // bibliotheque de timbres (vide : aucune), extension et bibliotheque des effets SOUNDFX.
     RSMusic(const std::string &music_ext, const std::string &midgames_pak, const std::string &timbre_file,

@@ -1588,6 +1588,13 @@ void SCStrike::findTarget() {
  * flag to false, setting the mission to "TEMPLATE.IFF", initializing the
  * cockpit object, and setting the pilot's lookat position to the origin.
  */
+void SCStrike::start(void) {
+    IActivity::start();
+    if (this->current_mission != nullptr) {
+        this->current_mission->startMusic();
+    }
+}
+
 void SCStrike::init(void) {
     this->mouse_control = false;
     Game->direct_mouse_control = true;
@@ -1624,11 +1631,6 @@ RSEntity * SCStrike::loadWeapon(std::string name) {
  * @param[in] missionName The name of the mission file to load.
  */
 void SCStrike::setMission(char const *missionName) {
-    if (Mixer.isSoundPlaying(5)) {
-        Mixer.stopSound(5);
-    }
-    Mixer.stopMusic();
-    
     if (this->current_mission != nullptr) {
         this->current_mission->cleanup();
         delete this->current_mission;

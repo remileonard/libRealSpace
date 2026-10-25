@@ -185,6 +185,7 @@ public:
      * @brief Initializes the game
      */
     void init();
+    void start(void) override;
     /**
      * @brief Sets the current mission
      * @param missionName The name of the mission to load

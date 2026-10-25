@@ -67,6 +67,7 @@ protected:
     MessageBus &messageBus = MessageBus::getInstance();
     void onEvent(const EventMessage &event);
 public:
+    void startMusic();
     std::vector<SCMissionScene *> scenes;
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;

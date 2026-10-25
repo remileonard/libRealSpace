@@ -396,6 +396,13 @@ void SCMission::loadMission() {
     if (this->player != nullptr && this->player->plane != nullptr) {
         this->camera_director->init(this->world, this->player);
     }
+}
+
+// Musique de la mission : au départ du vol (SCStrike::start), pas au chargement de la mission.
+void SCMission::startMusic() {
+    if (Mixer.isSoundPlaying(5)) {
+        Mixer.stopSound(5);
+    }
     this->Mixer.switchBank(2);
     this->musicRequest(this->mission->mission_data.tune, "TUNE de la mission");
 }

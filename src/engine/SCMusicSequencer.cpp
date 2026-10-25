@@ -82,6 +82,9 @@ void SCMusicSequencer::chanPlay(Channel &c, const std::vector<uint8_t> *b, int i
     c.isLink = isLink;
     c.index = index;
     if (!b || b->empty()) {
+        std::printf("SCMusicSequencer: %s %d absente ou vide (jeu actif : %zu pistes, %zu liaisons, %d pistes dans le .dat)\n",
+                    isLink ? "liaison" : "piste", index, set ? set->tracks.size() : 0, set ? set->linkTracks.size() : 0,
+                    set ? set->trackCount : 0);
         error = 3;
         return;
     }
