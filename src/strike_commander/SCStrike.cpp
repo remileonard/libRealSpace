@@ -1675,7 +1675,8 @@ void SCStrike::setMission(char const *missionName) {
         this->player_plane->vz = -20;
         this->player_plane->Simulate();
     }
-    if (GameState.weapon_load_out.size()>1) {
+    // MissionScenario_LoadFromIFF_A8C44 : sans PLYR, l'avion garde les armes de son fichier.
+    if (this->player_loadout && GameState.weapon_load_out.size() > 1) {
         this->player_plane->object->entity->weaps.clear();
         std::unordered_map<weapon_type_shp_id, std::string> weapon_names = {
             {AIM9J, "SWINDERJ"},
@@ -1705,9 +1706,10 @@ void SCStrike::setMission(char const *missionName) {
             this->player_plane->object->entity->weaps.push_back(weap);
             loaded[weapon_type_shp_id(GameState.weapon_load_out[i])] = true;
         }
+        // Chargement PLYR : remplace l'emport posé au chargement de la mission (WeaponSys_LoadFormWEAP_9EF74).
+        this->player_plane->InitLoadout();
     }
-    
-    this->player_plane->InitLoadout();
+    this->current_mission->takeTeamWeaponsFromStock(this->player_loadout);
     this->player_prof = this->current_mission->player->profile;
     this->cockpit = new SCCockpit();
     this->cockpit->player_plane = this->player_plane;

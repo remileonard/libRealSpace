@@ -13,7 +13,8 @@
 struct MissionReport {
     uint8_t exit_code{0};                                                    // EXIT (2 = joueur mort)
     std::string mission_name;                                                // INFO
-    std::unordered_map<uint8_t, int16_t> weapons_left;                       // WPNS
+    std::unordered_map<uint8_t, int16_t> weapons_left;                       // WPNS : nouveau stock, par weapon_ids
+    bool weapons_reported{false};                                            // WPNS ecrit (stock pris au depart)
     int16_t planes_lost{0};                                                  // JETS
     std::array<int16_t, 8> results{};                                        // STAT, par numéro de valeur
     std::unordered_map<uint8_t, std::unordered_map<uint8_t, int16_t>> kills; // KILL : PilotsId, KillBoardType

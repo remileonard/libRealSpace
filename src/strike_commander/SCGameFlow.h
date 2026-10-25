@@ -105,6 +105,7 @@ protected:
     bool isGameOver{false};
     bool mission_report_pending{false};
     bool weapon_loadout_requested{false};
+    bool player_loadout_pending{false};
     uint8_t weapon_loadout_id{ 255 };
     void applyMissionReport(void);
     void setMusic(uint8_t track);

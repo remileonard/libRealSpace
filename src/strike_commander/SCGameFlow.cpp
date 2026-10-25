@@ -122,6 +122,8 @@ void SCGameFlow::flyOrReturnFromScene(std::vector<EFCT *> *script, uint8_t id) {
         this->createScen();
         break;
     default:
+        // Départ de l'écran d'armement : OPTEST écrit le chunk PLYR ([partie+238] = 1).
+        this->player_loadout_pending = true;
         this->flyMission(0);
         break;
     }
@@ -129,6 +131,8 @@ void SCGameFlow::flyOrReturnFromScene(std::vector<EFCT *> *script, uint8_t id) {
 void SCGameFlow::flyMission(uint8_t missionid) {
     SCStrike *fly = new SCStrike();
     fly->init();
+    fly->player_loadout = this->player_loadout_pending;
+    this->player_loadout_pending = false;
     fly->setMission(this->missionToFly);
     this->missionToFly = nullptr;
     fly_mission.push(fly);
@@ -478,7 +482,13 @@ void SCGameFlow::runEffect() {
             break;
         }
         case EFECT_OPT_CHECK_BALANCE:
-            if (GameState.cash < 0) {
+            // CHECK_GAME_OVER (Gameflow_CheckLossConversations_50645) : plus de 16 avions perdus, puis argent < 0.
+            printf("GAMEFLOW: CHECK_GAME_OVER, avions perdus %d, argent %d\n", GameState.lost_aircraft,
+                   GameState.proj_cash);
+            if (GameState.lost_aircraft > 16) {
+                this->playConv(GAMOVER_NO_INSURANCE);
+                this->isGameOver = true;
+            } else if (GameState.proj_cash < 0) {
                 this->playConv(GAMEOVER_NO_MONEY);
                 this->isGameOver = true;
             }
@@ -810,6 +820,14 @@ void SCGameFlow::setMusic(uint8_t track) {
 void SCGameFlow::applyMissionReport(void) {
     MissionReport &report = GameState.mission_report;
     GameState.missions_flags.assign(report.results.begin(), report.results.end());
+    // WPNS : le stock d'armes est remplacé par le compte rendu (Gameflow_ReadMissionResult_4B544).
+    if (report.weapons_reported) {
+        for (auto &weapon : report.weapons_left) {
+            printf("GAMEFLOW: stock arme %d : %d -> %d\n", weapon.first, GameState.weapon_inventory[weapon.first],
+                   weapon.second);
+            GameState.weapon_inventory[weapon.first] = weapon.second;
+        }
+    }
     GameState.mission_flyed_success[GameState.mission_flyed] = report.results[0] > 0;
     GameState.air_kills += report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL];
     GameState.ground_kills += report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];

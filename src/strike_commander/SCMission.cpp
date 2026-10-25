@@ -289,7 +289,21 @@ void SCMission::loadMission() {
                     actor->plane->yaw = (360 - part->azymuth) * 10.0f;
                     actor->plane->simple_simulation = false;
                     actor->plane->yaw = (360 - part->azymuth) * (float) M_PI / 180.0f;
+                    // PartEntry_ResolveSpawnPositionAndActivate_51EDC : PART +0x12 non vide = emport imposé
+                    // (WeaponSys_LoadFromFile_9EFBE), pour le joueur comme pour les autres avions.
+                    part->weapon_load.shrink_to_fit();
+                    if (part->weapon_load.size() > 0) {
+                        std::string weapon_path_name = Assets.object_root_path + part->weapon_load + ".IFF";
+                        std::transform(weapon_path_name.begin(), weapon_path_name.end(), weapon_path_name.begin(),
+                                       ::toupper);
+                        TreEntry *weapon_entry = Assets.GetEntryByName(weapon_path_name.c_str());
+                        part->entity->weaps.clear();
+                        part->entity->weaps.shrink_to_fit();
+                        part->entity->parseREAL_OBJT_JETP(weapon_entry->data, weapon_entry->size);
+                        printf("MISSION: emport impose du joueur %s\n", part->weapon_load.c_str());
+                    }
                     actor->plane->object = part;
+                    actor->plane->InitLoadout();
                     actor->plane->pilot = actor;
                     this->actors.push_back(actor);
                     this->player = actor;
@@ -535,6 +549,48 @@ void SCMission::setExitCode(uint8_t code, const char *reason) {
     }
 }
 
+// Chargement de la mission (MissionScenario_LoadAndDecodeField_A9CC3, MissionScenario_DecodeFieldA_A9B14) : le stock
+// de la campagne est toujours copié ; s'il y a un chargement PLYR, chaque participant TEAM y prend ses armes, au plus
+// ce qui reste ; le canon n'est pas pris. Sans PLYR, aucun prélèvement (saut de la boucle dans le jeu).
+void SCMission::takeTeamWeaponsFromStock(bool take_from_stock) {
+    this->stock_left.clear();
+    for (size_t i = 0; i < 9; i++) {
+        weapon_ids id = optest_weapon_ids[i];
+        this->stock_left[id] = GameState.weapon_inventory[id];
+    }
+    this->stock_taken = true;
+    if (!take_from_stock) {
+        printf("STOCK: pas de chargement PLYR, aucun prelevement\n");
+        return;
+    }
+    for (auto member : this->team) {
+        if (member->plane == nullptr) {
+            continue;
+        }
+        for (auto hardpoint : member->plane->weaps_load) {
+            if (hardpoint == nullptr || hardpoint->objct == nullptr || hardpoint->objct->wdat == nullptr) {
+                continue;
+            }
+            uint8_t weapon_id = hardpoint->objct->wdat->weapon_id;
+            if (weapon_id == ID_20MM) {
+                continue;
+            }
+            int available = 0;
+            auto stock = this->stock_left.find(weapon_id);
+            if (stock != this->stock_left.end()) {
+                available = stock->second;
+            }
+            int taken = (std::min)(hardpoint->nb_weap, available);
+            printf("STOCK: %s, arme %d, demande %d, disponible %d, pris %d\n", member->actor_name.c_str(), weapon_id,
+                   hardpoint->nb_weap, available, taken);
+            hardpoint->nb_weap = taken;
+            if (stock != this->stock_left.end()) {
+                stock->second -= taken;
+            }
+        }
+    }
+}
+
 // Compte rendu de vol MISN2OP.IFF (Mission_WriteResultReport_A8F22) ; le score n'est pas porte.
 MissionReport SCMission::buildReport(const std::string &report_name) {
     MissionReport report;
@@ -549,6 +605,11 @@ MissionReport SCMission::buildReport(const std::string &report_name) {
     if (std::find(this->team.begin(), this->team.end(), this->player) == this->team.end()) {
         printf("REPORT: le joueur n'est pas dans TEAM (%zu participants)\n", this->team.size());
     }
+    // WPNS : stock non emporte, puis armes restantes des avions revenus.
+    if (this->stock_taken) {
+        report.weapons_left = this->stock_left;
+        report.weapons_reported = true;
+    }
     for (auto member : this->team) {
         bool destroyed = !member->object->alive;
         // Contrat conserve : l'avion du joueur ejecte compte comme perdu.
@@ -557,11 +618,16 @@ MissionReport SCMission::buildReport(const std::string &report_name) {
         if (lost && f16) {
             report.planes_lost++;
         }
-        bool created = member->is_active || member == this->player;
-        if (!lost && created && member->plane != nullptr) {
+        // MissionScenario_DispatchDecodeB_AA04B : les armes restantes d'un avion revenu retournent au stock.
+        bool returned = this->stock_taken && !lost && member->plane != nullptr;
+        if (returned) {
             for (auto hardpoint : member->plane->weaps_load) {
-                if (hardpoint != nullptr && hardpoint->objct != nullptr && hardpoint->objct->wdat != nullptr) {
-                    report.weapons_left[hardpoint->objct->wdat->weapon_id] += hardpoint->nb_weap;
+                if (hardpoint == nullptr || hardpoint->objct == nullptr || hardpoint->objct->wdat == nullptr) {
+                    continue;
+                }
+                auto stock = report.weapons_left.find(hardpoint->objct->wdat->weapon_id);
+                if (stock != report.weapons_left.end()) {
+                    stock->second += hardpoint->nb_weap;
                 }
             }
         }
@@ -578,8 +644,8 @@ MissionReport SCMission::buildReport(const std::string &report_name) {
         }
         report.kills[pilot_id][KillBoardType::AIR_KILL] += member->plane_down;
         report.kills[pilot_id][KillBoardType::GROUND_KILL] += member->ground_down;
-        printf("REPORT: TEAM %s (%s), detruit %d perdu %d F-16 %d cree %d, pilote %d, victoires %d air %d sol\n",
-               member->actor_name.c_str(), member->object->member_name.c_str(), destroyed, lost, f16, created, pilot_id,
+        printf("REPORT: TEAM %s (%s), detruit %d perdu %d F-16 %d armes rendues %d, pilote %d, victoires %d air %d sol\n",
+               member->actor_name.c_str(), member->object->member_name.c_str(), destroyed, lost, f16, returned, pilot_id,
                member->plane_down, member->ground_down);
     }
     // DIED : noms d'ailiers venus de la campagne (TEAM d'OP2MISN.IFF), premier objet du CAST qui porte ce nom.

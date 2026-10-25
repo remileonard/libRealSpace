@@ -13,6 +13,8 @@ DebugGameFlow::~DebugGameFlow() {}
 void DebugGameFlow::flyMission(uint8_t missionid) {
     SCStrike *fly = new DebugStrike();
     fly->init();
+    fly->player_loadout = this->player_loadout_pending;
+    this->player_loadout_pending = false;
     fly->setMission(this->missionToFly);
     this->missionToFly = nullptr;
     fly_mission.push(fly);

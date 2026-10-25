@@ -173,6 +173,8 @@ protected:
     SCSimulatedObject* ejected_object{nullptr};
 public:
     float verticalOffset{0.45f};
+    // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).
+    bool player_loadout{false};
     /**
      * @brief Constructor
      */

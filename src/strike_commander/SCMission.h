@@ -81,6 +81,8 @@ public:
     bool mission_ended{false};
     uint8_t exit_code{ 0 };              // byte_706AF : chunk EXIT de MISN2OP.IFF
     std::vector<SCMissionActors *> team; // participants du chunk TEAM, dans l'ordre
+    std::unordered_map<uint8_t, int16_t> stock_left; // stock de la campagne non emporte (table WPNS de STRIKE.EXE)
+    bool stock_taken{false};
     uint8_t current_area_id{0};
     SCMissionActors *player{nullptr};
     RSArea *area{nullptr};
@@ -111,6 +113,7 @@ public:
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
     void setExitCode(uint8_t code, const char *reason);
+    void takeTeamWeaponsFromStock(bool take_from_stock);
     MissionReport buildReport(const std::string &report_name);
     uint32_t tps{0};
     float scene_wait_timer{0.0f};   // dword_706B0 : minuteur WAIT des scripts de scene

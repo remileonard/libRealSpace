@@ -1798,11 +1798,12 @@ void SCPlane::InitLoadout() {
             }
             
             nbweap -= weap->nb_weap;
+            int per_side = weap->nb_weap;
             int second_hpt_id = (int)this->object->entity->hpts.size()-hpt_id;
             if (second_hpt_id != hpt_id && second_hpt_id < this->weaps_load.size()) {
                 weap = new SCWeaponLoadoutHardPoint();
                 weap->objct = loadout->objct;
-                weap->nb_weap = loadout->nb_weap / 2;
+                weap->nb_weap = per_side;
                 weap->hpts_type = this->object->entity->hpts[second_hpt_id]->id;
                 weap->name = loadout->name;
                 weap->position = {
@@ -1812,14 +1813,9 @@ void SCPlane::InitLoadout() {
                 };
                 weap->hud_pos = {0, 0};
                 this->weaps_load[second_hpt_id] = weap;
+                nbweap -= weap->nb_weap;
             }
             // fin affectation symétrique
-            //
-            maxloadout = max_load_out[loadout->objct->wdat->weapon_id][weap->hpts_type];
-            if (weap->nb_weap > maxloadout) {
-                weap->nb_weap = maxloadout;
-            }
-            nbweap -= weap->nb_weap;
         }
     }
 }
