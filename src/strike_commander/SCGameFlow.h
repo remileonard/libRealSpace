@@ -100,6 +100,7 @@ protected:
     bool isGameOver{false};
     bool mission_report_pending{false};
     bool weapon_loadout_requested{false};
+    uint8_t weapon_loadout_id{ 255 };
     void applyMissionReport(void);
     void setMusic(uint8_t track);
     void openTest(bool *executeStack, bool *elseEncountered, int &ifDepth, int maxDepth, bool result, const char *name);

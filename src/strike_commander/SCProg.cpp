@@ -307,8 +307,19 @@ void SCProg::execute() {
                     work_register = this->mission->mission->mission_data.flags[prog.arg];
                 break;
                 case OP_SAVE_VALUE_TO_GAMFLOW_REGISTER:
-                    this->mission->gameflow_registers[prog.arg] = work_register;
-                break;
+                    // Expr_VM_Interpreter_51106 cas 0x14 : STAT[n], 8 valeurs (n < 8)
+                    if (prog.arg < 8) {
+                        auto stat = this->mission->gameflow_registers.find(prog.arg);
+                        if (stat == this->mission->gameflow_registers.end() || stat->second != (int16_t)work_register) {
+                            printf("PROG %d: STAT[%d] = %d\n", this->prog_id, prog.arg, work_register);
+                        }
+                        this->mission->gameflow_registers[prog.arg] = (int16_t)work_register;
+                    }
+                    break;
+                case OP_SET_EXIT_CODE:
+                    // Expr_VM_Interpreter_51106 cas 0x0F : byte_706AF = n
+                    this->mission->setExitCode((uint8_t)prog.arg, "script de mission");
+                    break;
                 case OP_MOVE_WORK_REGISTER_TO_FLAG:
                     this->mission->mission->mission_data.flags[prog.arg] = (uint8_t) work_register;
                 break;

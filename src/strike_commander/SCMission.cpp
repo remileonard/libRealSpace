@@ -363,10 +363,14 @@ void SCMission::loadMission() {
         this->actors.push_back(actor);
     }
     for (auto member: this->mission->mission_data.team) {
-        int id = this->mission->mission_data.parts[member]->id;
+        MISN_PART *part = this->mission->mission_data.parts[member];
+        int id = part->id;
         for (auto actor: this->actors) {
             if (actor->actor_id == id) {
                 this->friendlies.push_back(actor);
+            }
+            if (actor->object == part) {
+                this->team.push_back(actor);
             }
         }
     }
@@ -516,12 +520,90 @@ void SCMission::update() {
         }        
     }
     this->in_combat = false;
-    
-    if (this->player->plane->landed) {
+
+    if (this->player->plane->landed && this->exit_code == 0) {
+        this->setExitCode(1, "joueur arrete au sol (Landing_Phase5_Stop_76E67)");
+    }
+}
+
+// byte_706AF : une valeur non nulle termine la mission (STRIKE_EXE_MAIN_LOOP).
+void SCMission::setExitCode(uint8_t code, const char *reason) {
+    printf("MISSION: code de sortie %d (%s), precedent %d\n", code, reason, this->exit_code);
+    this->exit_code = code;
+    if (code != 0) {
         this->mission_ended = true;
     }
 }
 
+// Compte rendu de vol MISN2OP.IFF (Mission_WriteResultReport_A8F22) ; le score n'est pas porte.
+MissionReport SCMission::buildReport(const std::string &report_name) {
+    MissionReport report;
+    report.exit_code = this->exit_code;
+    report.mission_name = report_name;
+    for (size_t i = 0; i < report.results.size(); i++) {
+        auto found = this->gameflow_registers.find(static_cast<uint16_t>(i));
+        if (found != this->gameflow_registers.end()) {
+            report.results[i] = found->second;
+        }
+    }
+    if (std::find(this->team.begin(), this->team.end(), this->player) == this->team.end()) {
+        printf("REPORT: le joueur n'est pas dans TEAM (%zu participants)\n", this->team.size());
+    }
+    for (auto member : this->team) {
+        bool destroyed = !member->object->alive;
+        // Contrat conserve : l'avion du joueur ejecte compte comme perdu.
+        bool lost = destroyed || (member == this->player && member->plane != nullptr && member->plane->ejected);
+        bool f16 = member->object->member_name.rfind("F-16", 0) == 0;
+        if (lost && f16) {
+            report.planes_lost++;
+        }
+        bool created = member->is_active || member == this->player;
+        if (!lost && created && member->plane != nullptr) {
+            for (auto hardpoint : member->plane->weaps_load) {
+                if (hardpoint != nullptr && hardpoint->objct != nullptr && hardpoint->objct->wdat != nullptr) {
+                    report.weapons_left[hardpoint->objct->wdat->weapon_id] += hardpoint->nb_weap;
+                }
+            }
+        }
+        uint8_t pilot_id = PilotsId::PLAYER;
+        if (member != this->player) {
+            auto pilot = pilot_profile.find(member->actor_name);
+            if (pilot == pilot_profile.end()) {
+                printf("REPORT: TEAM %s (%s), detruit %d perdu %d, pas de pilote de campagne, victoires %d air %d sol\n",
+                       member->actor_name.c_str(), member->object->member_name.c_str(), destroyed, lost,
+                       member->plane_down, member->ground_down);
+                continue;
+            }
+            pilot_id = pilot->second;
+        }
+        report.kills[pilot_id][KillBoardType::AIR_KILL] += member->plane_down;
+        report.kills[pilot_id][KillBoardType::GROUND_KILL] += member->ground_down;
+        printf("REPORT: TEAM %s (%s), detruit %d perdu %d F-16 %d cree %d, pilote %d, victoires %d air %d sol\n",
+               member->actor_name.c_str(), member->object->member_name.c_str(), destroyed, lost, f16, created, pilot_id,
+               member->plane_down, member->ground_down);
+    }
+    // DIED : noms d'ailiers venus de la campagne (TEAM d'OP2MISN.IFF), premier objet du CAST qui porte ce nom.
+    const std::string &wingman = GameState.wingman;
+    if (!wingman.empty()) {
+        for (auto actor : this->actors) {
+            if (actor->actor_name == wingman) {
+                printf("REPORT: ailier %s, detruit %d\n", wingman.c_str(), !actor->object->alive);
+                if (!actor->object->alive) {
+                    report.died.push_back(wingman);
+                }
+                break;
+            }
+        }
+    }
+    for (auto &weapon : report.weapons_left) {
+        printf("REPORT: arme %d, reste %d\n", weapon.first, weapon.second);
+    }
+    printf("REPORT: %s, sortie %d, F-16 perdus %d, morts %zu, resultats %d %d %d %d %d %d %d %d\n",
+           report.mission_name.c_str(), report.exit_code, report.planes_lost, report.died.size(), report.results[0],
+           report.results[1], report.results[2], report.results[3], report.results[4], report.results[5],
+           report.results[6], report.results[7]);
+    return report;
+}
 
 void SCMission::musicRequest(int tune, const char *reason) {
     printf("MUSIC request %d (%s) current=%u requested=%u\n", tune, reason, this->Mixer.getMusicID(),

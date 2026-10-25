@@ -764,6 +764,12 @@ SCStrike::SCStrike() {
 
 SCStrike::~SCStrike() {
     Game->direct_mouse_control = false;
+    if (this->current_mission != nullptr) {
+        printf("STRIKE: destruction de la mission %s\n", this->miss_file_name.c_str());
+        this->current_mission->cleanup();
+        delete this->current_mission;
+        this->current_mission = nullptr;
+    }
 }
 void SCStrike::registerSimulatorInputs() {
     
@@ -980,7 +986,10 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
-        this->current_mission->mission_ended = true;
+        // Code du jeu pour cette touche non etabli ; regle conservee : ecrasement = 2.
+        if (this->current_mission->exit_code == 0) {
+            this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
+        }
         Mixer.stopSound();
         Mixer.stopSound(5);
     }
@@ -1093,10 +1102,15 @@ void SCStrike::checkKeyboard(void) {
             int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 +1;
             int next_weapon = (this->player_plane->selected_weapon + 1) % nb_hardpoint;
             if (this->air_weapons_mode) {
-                while (this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_20MM &&
-                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM120 &&
-                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM9J &&
-                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM9M) {
+                while (true) {
+                    SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[next_weapon];
+                    if (station != nullptr) {
+                        int weapon_id = station->objct->wdat->weapon_id;
+                        if (weapon_id == weapon_ids::ID_20MM || weapon_id == weapon_ids::ID_AIM120 ||
+                            weapon_id == weapon_ids::ID_AIM9J || weapon_id == weapon_ids::ID_AIM9M) {
+                            break;
+                        }
+                    }
                     next_weapon = (next_weapon + 1) % nb_hardpoint;
                     if (next_weapon == this->player_plane->selected_weapon) {
                         break;
@@ -1139,8 +1153,7 @@ void SCStrike::checkKeyboard(void) {
                     }
                 }
             }
-            
-            
+
             this->mfd_timeout = 400;
         } else {
             this->cockpit->show_weapons = !this->cockpit->show_weapons;
@@ -1482,11 +1495,11 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1))) {
         this->current_mission->gameflow_registers[0] = 1;
         this->current_mission->gameflow_registers[1] = 2;
-        this->current_mission->mission_ended = true;
+        this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_1");
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_2))) {
         this->current_mission->gameflow_registers[0] = 0;
-        this->current_mission->mission_ended = true;
+        this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_2");
     }
     float lx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X)); 
     float ly = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y)); 
@@ -1878,33 +1891,8 @@ void SCStrike::runFrame(void) {
         this->player_plane->Simulate();
         this->current_mission->update();
         if (this->current_mission->mission_ended) {
-            // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu) : valeurs brutes du vol seulement.
-            MissionReport report;
-            report.exit_code = this->player_plane->crached ? 2 : 1;
-            report.mission_name = this->miss_file_name;
-            report.planes_lost = this->player_plane->ejected ? 1 : 0;
-            for (size_t i = 0; i < report.results.size(); i++) {
-                auto found = this->current_mission->gameflow_registers.find(static_cast<uint16_t>(i));
-                if (found != this->current_mission->gameflow_registers.end()) {
-                    report.results[i] = found->second;
-                }
-            }
-            report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] = this->current_mission->player->plane_down;
-            report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = this->current_mission->player->ground_down;
-            for (auto team: this->current_mission->friendlies) {
-                if (team->is_active) {
-                    auto pilot = pilot_profile.find(team->actor_name);
-                    if (team->plane != nullptr && team->actor_name != "PLAYER" && pilot != pilot_profile.end()) {
-                        report.kills[pilot->second][KillBoardType::AIR_KILL] += team->plane_down;
-                        report.kills[pilot->second][KillBoardType::GROUND_KILL] += team->ground_down;
-                    }
-                }
-            }
-            GameState.mission_report = report;
-            printf("STRIKE: compte rendu de vol %s, sortie %d, avions perdus %d, resultats %d %d %d %d %d %d %d %d\n",
-                   report.mission_name.c_str(), report.exit_code, report.planes_lost, report.results[0], report.results[1],
-                   report.results[2], report.results[3], report.results[4], report.results[5], report.results[6],
-                   report.results[7]);
+            // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu).
+            GameState.mission_report = this->current_mission->buildReport(this->miss_file_name);
             Renderer.clear();
             Screen->refresh();
             Renderer.clear();

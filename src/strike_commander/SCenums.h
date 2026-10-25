@@ -102,6 +102,18 @@ static std::unordered_map<weapon_ids, std::string> weapon_names = {
     {weapon_ids::ID_GBU15, "GBU-15"},
     {weapon_ids::ID_AIM120, "AIM-120"}
 };
+// Numero d'arme d'OPTEST.EXE (stock de la partie, chunks LOAD de GAMEFLOW.IFF) -> weapon_ids.
+static const weapon_ids optest_weapon_ids[9] = {
+    ID_AIM9J,
+    ID_AIM9M,
+    ID_AGM65D,
+    ID_DURANDAL,
+    ID_MK20,
+    ID_MK82,
+    ID_GBU15,
+    ID_LAU3,
+    ID_AIM120,
+};
 enum weapon_radar_type {
     WCAT_NONE = 0,
     WCAT_IR = 1,
@@ -123,6 +135,7 @@ enum prog_op {
     OP_EXEC_SUB_PROG = 2,
     OP_SET_LABEL = 8,
     OP_SPOT_DATA = 9,
+    OP_SET_EXIT_CODE = 15,
     OP_MOVE_VALUE_TO_WORK_REGISTER = 16,
     OP_MOVE_FLAG_TO_WORK_REGISTER = 17,
     OP_SAVE_VALUE_TO_GAMFLOW_REGISTER = 20,
@@ -176,6 +189,7 @@ static std::unordered_map<prog_op, std::string> prog_op_names = {
     {OP_EXEC_SUB_PROG, "OP_EXEC_SUB_PROG"},
     {OP_SET_LABEL, "OP_SET_LABEL"},
     {OP_SPOT_DATA, "OP_SPOT_DATA"},
+    {OP_SET_EXIT_CODE, "OP_SET_EXIT_CODE"},
     {OP_MOVE_VALUE_TO_WORK_REGISTER, "OP_MOVE_VALUE_TO_WORK_REGISTER"},
     {OP_MOVE_FLAG_TO_WORK_REGISTER, "OP_MOVE_FLAG_TO_WORK_REGISTER"},
     {OP_SAVE_VALUE_TO_GAMFLOW_REGISTER, "OP_SAVE_VALUE_TO_GAMFLOW_REGISTER"},

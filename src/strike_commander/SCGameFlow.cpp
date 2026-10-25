@@ -346,6 +346,7 @@ void SCGameFlow::runEffect() {
             break;
         case EFECT_OPT_END_MISS: {
             // WEAPON_LOADOUT : écran d'armement, ouvert en fin de script ; le départ en vol (sprite 12) lance la mission.
+            this->weapon_loadout_id = instruction->value;
             this->playEndMission();
         } break;
         case EFECT_OPT_MIS2:
@@ -582,7 +583,7 @@ void SCGameFlow::runEffect() {
     }
     if (this->weapon_loadout_requested) {
         this->weapon_loadout_requested = false;
-        printf("GAMEFLOW: WEAPON_LOADOUT, ecran d'armement pour %s\n",
+        printf("GAMEFLOW: WEAPON_LOADOUT %d, ecran d'armement pour %s\n", this->weapon_loadout_id,
                this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
         if (this->scen != nullptr) {
             delete this->scen;
@@ -591,11 +592,14 @@ void SCGameFlow::runEffect() {
         }
         this->next_miss = 0;
         if (this->gameFlowParser.game.game[this->current_miss]->scen.size() > 0) {
-            this->scen = new WeaponLoadoutScene(&this->optShps, &this->optPals);
-            this->zones = this->scen->init(
+            WeaponLoadoutScene *loadout = new WeaponLoadoutScene(&this->optShps, &this->optPals);
+            this->scen = loadout;
+            this->zones = loadout->init(
                 this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[15],
-                std::bind(&SCGameFlow::flyOrReturnFromScene, this, std::placeholders::_1, std::placeholders::_2)
-            );
+                std::bind(&SCGameFlow::flyOrReturnFromScene, this, std::placeholders::_1, std::placeholders::_2));
+            if (this->zones != nullptr) {
+                loadout->applyDefaultLoadout(this->gameFlowParser.game.load, this->weapon_loadout_id);
+            }
         } else {
             this->flyMission(0);
         }

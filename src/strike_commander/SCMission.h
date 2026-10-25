@@ -79,6 +79,8 @@ public:
     bool success{false};
     bool failure{false};
     bool mission_ended{false};
+    uint8_t exit_code{ 0 };              // byte_706AF : chunk EXIT de MISN2OP.IFF
+    std::vector<SCMissionActors *> team; // participants du chunk TEAM, dans l'ordre
     uint8_t current_area_id{0};
     SCMissionActors *player{nullptr};
     RSArea *area{nullptr};
@@ -108,6 +110,8 @@ public:
     uint8_t getAreaID(Vector3D position);
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
+    void setExitCode(uint8_t code, const char *reason);
+    MissionReport buildReport(const std::string &report_name);
     uint32_t tps{0};
     float scene_wait_timer{0.0f};   // dword_706B0 : minuteur WAIT des scripts de scene
     int32_t difficulty{0};
