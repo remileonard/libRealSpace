@@ -89,11 +89,16 @@ protected:
     std::vector<EFCT *> *efect;
     std::vector<SCZone *> *zones;
 
-    std::queue<SCConvPlayer *> convs;
-    std::queue<SCShot *> cutsenes;
+    // Plans, cartes, cinematiques et conversations, joues dans l'ordre du script (Gameflow_RunScriptPairs_36CF).
+    std::queue<IActivity *> pending_activities;
+    // Le vol part a la fin du script (Gameflow_MainLoop_3D2E, etat 1).
     std::queue<SCStrike *> fly_mission;
-    std::queue<SCAnimationPlayer *> mid_games;
-    
+    // Etat des tests du script suspendu, garde jusqu'a sa reprise.
+    static constexpr int MAX_IF_DEPTH = 10;
+    bool script_execute[MAX_IF_DEPTH]{};
+    bool script_else_seen[MAX_IF_DEPTH]{};
+    int script_if_depth{ 0 };
+
     RLEShape *test_shape{nullptr};
     SCScene *scen{nullptr};
     SCFileRequester *frequest{nullptr};

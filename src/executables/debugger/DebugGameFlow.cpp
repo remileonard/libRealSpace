@@ -22,7 +22,7 @@ void DebugGameFlow::playConv(uint8_t convId) {
     SCConvPlayer *conv = new DebugConvPlayer();
     conv->init();
     conv->SetID(convId);
-    this->convs.push(conv);
+    this->pending_activities.push(conv);
 }
 void DebugGameFlow::renderConvPlayer() {
     ImGui::Begin("Convert Player", &conv_player);
@@ -33,7 +33,7 @@ void DebugGameFlow::renderConvPlayer() {
                 SCConvPlayer *conv = new DebugConvPlayer();
                 conv->init();
                 conv->SetID(i);
-                this->convs.push(conv);
+                this->pending_activities.push(conv);
             }
         }
         ImGui::EndCombo();
@@ -161,7 +161,7 @@ void DebugGameFlow::renderMenu() {
                     SCShot *sht = new SCShot();
                     sht->init();
                     sht->SetShotId(shot.first);
-                    this->cutsenes.push(sht);
+                    this->pending_activities.push(sht);
                 }
             }
             ImGui::EndCombo();

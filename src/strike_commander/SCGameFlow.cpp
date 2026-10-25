@@ -184,7 +184,7 @@ void SCGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {
     MapShot *map = new MapShot();
     map->init();
     map->SetPoints(points);
-    this->cutsenes.push(map);
+    this->pending_activities.push(map);
 }
 /**
  * Runs the current effect based on the efect vector and currentOptCode.
@@ -198,13 +198,20 @@ void SCGameFlow::runEffect() {
     if (this->efect == nullptr) {
         return;
     }
-    // Structure de contrôle simplifiée
-    const int MAX_IF_DEPTH = 10;  // Profondeur maximale des conditions imbriquées
-    bool executeStack[MAX_IF_DEPTH] = {true};  // Pile d'exécution (par défaut: true)
-    bool elseEncountered[MAX_IF_DEPTH] = {false};  // Suivi des else
-    int ifDepth = 0;  // Niveau d'imbrication actuel
+    // Etat des tests gardé dans SCGameFlow : un script suspendu par une activité reprend dans le même bloc.
+    bool *executeStack = this->script_execute;
+    bool *elseEncountered = this->script_else_seen;
+    int &ifDepth = this->script_if_depth;
+    if (this->currentOptCode == 0) {
+        for (int depth = 0; depth < MAX_IF_DEPTH; depth++) {
+            executeStack[depth] = false;
+            elseEncountered[depth] = false;
+        }
+        executeStack[0] = true;
+        ifDepth = 0;
+        this->weapon_loadout_requested = false;
+    }
     int i = 0;
-    this->weapon_loadout_requested = false;
     
     for (auto instruction : *this->efect) {
         if (i < this->currentOptCode) {
@@ -274,7 +281,7 @@ void SCGameFlow::runEffect() {
             if (kills > 0 && !GameState.player_dead) {
                 EndMissionScene *end = new EndMissionScene(&this->optShps, &this->optPals);
                 end->init();
-                this->cutsenes.push(end);
+                this->pending_activities.push(end);
             }
         } break;
         case EFECT_OPT_SET_MUSIC: {
@@ -370,13 +377,6 @@ void SCGameFlow::runEffect() {
             GameState.requierd_flags[instruction->value] = false;
             break;
         case EFECT_OPT_MISS_ACCEPTED:
-            if (this->convs.size() > 0) {
-                SCConvPlayer *conv = this->convs.front();
-                this->convs.pop();
-                Game->addActivity(conv);
-                this->currentOptCode = i;
-                return;
-            }
             ifDepth++;
             if (ifDepth < MAX_IF_DEPTH) {
                 executeStack[ifDepth] = (GameState.mission_accepted == true);
@@ -385,13 +385,6 @@ void SCGameFlow::runEffect() {
             break;
             
         case EFECT_OPT_MISS_REJECTED:
-            if (this->convs.size() > 0) {
-                SCConvPlayer *conv = this->convs.front();
-                this->convs.pop();
-                Game->addActivity(conv);
-                this->currentOptCode = i;
-                return;
-            }
             ifDepth++;
             if (ifDepth < MAX_IF_DEPTH) {
                 executeStack[ifDepth] = (GameState.mission_accepted == false);
@@ -580,6 +573,12 @@ void SCGameFlow::runEffect() {
             break;
         };
         i++;
+        // Une commande jouée (plan, carte, cinématique, conversation) suspend le script jusqu'à sa fin.
+        if (!this->pending_activities.empty()) {
+            this->currentOptCode = i;
+            printf("GAMEFLOW: script suspendu avant l'instruction %d\n", i);
+            return;
+        }
     }
     if (this->weapon_loadout_requested) {
         this->weapon_loadout_requested = false;
@@ -697,9 +696,9 @@ void SCGameFlow::createMiss() {
         this->zones->clear();
     }
     this->layers.clear();
-    this->convs = std::queue<SCConvPlayer *>();
-    this->cutsenes = std::queue<SCShot *>();
+    this->pending_activities = std::queue<IActivity *>();
     this->fly_mission = std::queue<SCStrike *>();
+    this->currentOptCode = 0;
     if (this->gameFlowParser.game.game[this->current_miss]->efct != nullptr) {
         this->efect = this->gameFlowParser.game.game[this->current_miss]->efct;
     }
@@ -715,9 +714,9 @@ void SCGameFlow::loadMiss() {
         this->zones->clear();
     }
     this->layers.clear();
-    this->convs = std::queue<SCConvPlayer *>();
-    this->cutsenes = std::queue<SCShot *>();
+    this->pending_activities = std::queue<IActivity *>();
     this->fly_mission = std::queue<SCStrike *>();
+    this->currentOptCode = 0;
     this->createScen();
 }
 
@@ -837,7 +836,7 @@ void SCGameFlow::applyMissionReport(void) {
     printf("GAMEFLOW: compte rendu applique, mission %d %s, succes %d, gain %d milliers, mort %d, ejecte %d, argent %d\n",
            GameState.mission_flyed, report.mission_name.c_str(), report.results[0] > 0, report.results[1],
            GameState.player_dead, GameState.player_ejected, GameState.cash);
-    // Joueur mort (code de sortie 2) : cinématique 33 puis fin du déroulement, sans script (runFrame, file mid_games).
+    // Joueur mort (code de sortie 2) : cinématique 33 puis fin du déroulement, sans script (runFrame, file pending_activities).
     if (GameState.player_dead) {
         this->playMidGame(33);
     }
@@ -853,28 +852,20 @@ void SCGameFlow::runFrame(void) {
         this->mission_report_pending = false;
         this->applyMissionReport();
     }
-    if (this->cutsenes.size() > 0) {
-        SCShot *c = this->cutsenes.front();
-        this->cutsenes.pop();
+    if (!this->pending_activities.empty()) {
+        IActivity *c = this->pending_activities.front();
+        this->pending_activities.pop();
         Game->addActivity(c);
-        return;
-    }
-    if (this->mid_games.size() > 0) {
-        SCAnimationPlayer *c = this->mid_games.front();
-        this->mid_games.pop();
-        Game->addActivity(c);
-        if (GameState.player_dead) {
+        if (GameState.player_dead && dynamic_cast<SCAnimationPlayer *>(c) != nullptr) {
+            this->stop();
+        }
+        if (isGameOver && dynamic_cast<SCConvPlayer *>(c) != nullptr) {
             this->stop();
         }
         return;
     }
-    if (this->convs.size() > 0) {
-        SCConvPlayer *c = this->convs.front();
-        this->convs.pop();
-        Game->addActivity(c);
-        if (isGameOver) {
-            this->stop();
-        }
+    if (this->currentOptCode > 0 && this->efect != nullptr) {
+        this->runEffect();
         return;
     }
     if (this->fly_mission.size() > 0) {
@@ -889,10 +880,6 @@ void SCGameFlow::runFrame(void) {
         this->next_miss = 0;
         this->current_scen = 0;
         this->createMiss();
-        return;
-    }
-    if (this->currentOptCode > 0 && this->efect != nullptr) {
-        this->runEffect();
         return;
     }
     int fpsupdate = 0;
@@ -925,13 +912,13 @@ void SCGameFlow::playShot(uint8_t shotId) {
     SCShot *sht = new SCShot();
     sht->init();
     sht->SetShotId(shotId);
-    this->cutsenes.push(sht);
+    this->pending_activities.push(sht);
 }
 void SCGameFlow::playConv(uint8_t convId) {
     SCConvPlayer *conv = new SCConvPlayer();
     conv->init();
     conv->SetID(convId);
-    this->convs.push(conv);
+    this->pending_activities.push(conv);
 }
 
 void SCGameFlow::playMidGame(uint8_t midGameId) {
@@ -948,6 +935,7 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
         {12, "./assets/MID_12.IFF"},
         {14, "./assets/MID_14.IFF"},
         {15, "./assets/MID_15.IFF"},
+        {16, "./assets/MID_16.IFF"},
         {17, "./assets/MID_17.IFF"},
         {20, "./assets/MID_20.IFF"},
         {33, "./assets/MID_33.IFF"},
@@ -960,7 +948,7 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
             for (auto shot : shots) {
                 midgame->resetShot(shot);
             }
-            this->mid_games.push(midgame);
+            this->pending_activities.push(midgame);
             printf("Animation loaded from %s\n", filepath.c_str());
         } else {
             printf("Failed to load animation from %s\n", filepath.c_str());

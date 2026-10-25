@@ -26,7 +26,7 @@ void DebugPSGameFlow::playConv(uint8_t convId) {
     SCConvPlayer *conv = new DebugPSConvPlayer();
     conv->init();
     conv->SetID(convId);
-    DebugGameFlow::convs.push(conv);
+    this->pending_activities.push(conv);
 }
 void DebugPSGameFlow::playShot(uint8_t shotId) {}
 void DebugPSGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {}
@@ -48,7 +48,7 @@ void DebugPSGameFlow::renderConvPlayer() {
                 SCConvPlayer *conv = new DebugPSConvPlayer();
                 conv->init();
                 conv->SetID(i);
-                DebugGameFlow::convs.push(conv);
+                this->pending_activities.push(conv);
             }
         }
         ImGui::EndCombo();

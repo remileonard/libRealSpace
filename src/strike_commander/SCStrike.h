@@ -184,7 +184,7 @@ public:
     /**
      * @brief Initializes the game
      */
-    void init();
+    void init() override;
     void start(void) override;
     /**
      * @brief Sets the current mission
@@ -204,7 +204,7 @@ public:
     /**
      * @brief Runs the game simulation
      */
-    void runFrame(void);
+    void runFrame(void) override;
 };
 
 #endif /* defined(__libRealSpace__SCStrike__) */
