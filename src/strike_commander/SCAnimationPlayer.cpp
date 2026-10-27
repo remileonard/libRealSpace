@@ -865,7 +865,7 @@ void SCAnimationPlayer::runFrame(void){
         for (int i = 0; i < MIDGAME_BAND_TOP; i++) {
             VGA.getFrameBuffer()->fillLineColor(i, 0x00);
         }
-        for (int i = MIDGAME_BAND_BOTTOM + 1; i < 200; i++) {
+        for (int i = MIDGAME_BAND_BOTTOM - 5; i < 200; i++) {
             VGA.getFrameBuffer()->fillLineColor(i, 0x00);
         }
     }
