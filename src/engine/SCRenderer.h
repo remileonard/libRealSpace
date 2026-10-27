@@ -97,6 +97,10 @@ public:
     float verticalOffset{0.45f};
     float fov{45.0f};
     int max_view_distance{160000};
+    // [Video] overlay_offset / overlay_offset_distance: polygon offset units of the runway overlay = base + distance / divisor
+    // (the depth buffer resolution drops with the square of the distance, a fixed offset flickers from far away)
+    int overlay_offset{200};
+    int overlay_offset_distance{250};
     bool show_fog{true};
     
     bool show_textured{true};
