@@ -90,6 +90,123 @@ void SCMission::onEvent(const EventMessage &event) {
         this->onActorDestroyed(destroyed_event->actor);
     }
 }
+// Scene_EnsureUnitsSpawned_530FF : un participant détruit est recréé à l'activation de sa scène, à partir des données
+// de son PART : l'acteur reprend son état de création, son avion et son pilote sont recréés.
+void SCMission::respawnActor(SCMissionActors *actor) {
+    printf("MISSION: %s#%d remis à l'état de création par la scène\n", actor->actor_name.c_str(), actor->actor_id);
+    *actor->object = actor->creation_part;
+    MISN_PART *part = actor->object;
+    actor->is_destroyed = false;
+    actor->health = part->entity->health;
+    actor->team_id = part->team;
+    actor->target = nullptr;
+    actor->attacker = nullptr;
+    actor->last_hit_by = nullptr;
+    actor->weapon_shooted_at_me = nullptr;
+    actor->current_target = SCMissionActors::NO_TARGET;
+    actor->current_command = prog_op::OP_NOOP;
+    actor->current_command_arg = 0;
+    actor->current_command_arg2 = 0xFF;
+    actor->current_command_executed = false;
+    actor->prog_executed = false;
+    actor->taken_off = false;
+    actor->executed_opcodes.clear();
+    actor->wait_timer = 0.0f;
+    delete actor->smoke;
+    actor->smoke = nullptr;
+    /*if (actor->brain != nullptr) {
+        delete actor->brain;
+        actor->brain = new SCAIBrain(actor);
+    }*/
+    if (actor->plane == nullptr) {
+        return;
+    }
+    for (auto weapon : actor->plane->weaps_object) {
+        this->onWeaponRemoved(weapon);
+    }
+    delete actor->plane;
+    actor->plane = nullptr;
+    delete actor->pilot;
+    actor->pilot = nullptr;
+    this->createAiPlane(actor);
+}
+// Pilote et avion d'un acteur IA, à partir des données de son PART : chargement de la mission et recréation par une
+// scène (respawnActor).
+void SCMission::createAiPlane(SCMissionActors *actor) {
+    MISN_PART *part = actor->object;
+    actor->pilot = new SCPilot();
+    actor->pilot->actor = actor;
+    BoudingBox *bb = actor->object->entity->GetBoudingBpx();
+
+    actor->plane = new SCJetpPlane(
+        actor->object->entity->jdyn->max_g,
+        -(float)actor->object->entity->jdyn->max_g / 2.0f,
+        40.0f,
+        60.0f,
+        (float)actor->object->entity->jdyn->pitch_rate_limit_dps / 2.0f,
+        (float)actor->object->entity->jdyn->rate_limit_dps / 2.0f,
+        actor->object->entity->wing_area,
+        (float)actor->object->entity->weight_in_kg,
+        (float)actor->object->entity->jdyn->fuel_capacity,
+        (float)actor->object->entity->thrust_in_newton,
+        sqrtf(actor->object->entity->wing_area / ((float)M_PI * 0.83f * actor->object->entity->jdyn->induced_drag_k)),
+        actor->object->entity->jdyn->induced_drag_k,
+        (int)actor->object->entity->jdyn->stall_speed_ms,
+        this->area,
+        part->position.x,
+        part->position.y,
+        part->position.z);
+    actor->plane->yaw = (360 - part->azymuth) * 10.0f;
+    for (auto &sys : actor->object->entity->sysm) {
+        for (auto &subsys : sys.second) {
+            actor->plane->system_health[sys.first][subsys.first] = subsys.second;
+        }
+    }
+    part->weapon_load.shrink_to_fit();
+    if (part->weapon_load.size() > 0) {
+        std::string weapon_path_name = Assets.object_root_path + part->weapon_load + ".IFF";
+        std::transform(weapon_path_name.begin(), weapon_path_name.end(), weapon_path_name.begin(), ::toupper);
+        TreEntry *weapon_entry = Assets.GetEntryByName(weapon_path_name.c_str());
+        part->entity->weaps.clear();
+        part->entity->weaps.shrink_to_fit();
+        part->entity->parseREAL_OBJT_JETP(weapon_entry->data, weapon_entry->size);
+    }
+    actor->plane->object = part;
+    actor->plane->InitLoadout();
+    actor->plane->pilot = actor;
+    // Vitesse initiale PART (octets 43-44, m/s) : un avion à 0 commence au sol, train sorti
+    // (PartEntry_ResolveSpawnPositionAndActivate_51EDC : catégorie 6 et vitesse nulle -> au sol, JDYN +0x75 |= 4).
+    if (abs(this->area->getY(part->position.x, part->position.z) - part->position.y) <= 10) {
+        part->position.y = this->area->getY(part->position.x, part->position.z);
+    }
+    actor->plane->on_ground = part->speed == 0;
+    if (part->position.y < this->area->getY(part->position.x, part->position.z)) {
+        actor->plane->on_ground = true;
+    }
+    if (actor->plane->on_ground) {
+        if (actor->plane->GetWheel() == 0) {
+            actor->plane->SetWheel();
+        }
+    }
+    if (!actor->plane->on_ground) {
+        actor->plane->SetThrottle(100);
+        actor->pilot->target_climb = (int)(part->position.y);
+        actor->plane->vz = -20;
+        // Vitesse le long du nez (AIAircraft_SpawnAndConditionalLoadProfile_53363 : nez × vitesse).
+        float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
+        float spawn_speed = (float)part->speed;
+        actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
+        actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
+        actor->pilot->target_speed = -20;
+    } else {
+        actor->plane->SetThrottle(0);
+        actor->pilot->target_climb = 0;
+        actor->plane->vz = 0;
+        actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
+        actor->pilot->target_speed = 0;
+    }
+    actor->pilot->plane = actor->plane;
+}
 void SCMission::loadMission() {
     
     this->difficulty = Config::getInstance().getInt("Gameplay", "difficulty", 0);
@@ -161,6 +278,7 @@ void SCMission::loadMission() {
                 actor->actor_name = cast->actor;
                 actor->actor_id = part->id;
                 actor->object = part;
+                actor->creation_part = *part;
                 actor->health = part->entity->health;
                 actor->profile = this->LoadProfile(cast->actor);
                 actor->mission = this;
@@ -188,79 +306,7 @@ void SCMission::loadMission() {
                 if (actor->profile != nullptr && actor->profile->ai.isAI) {
                     actor->brain = new SCAIBrain(actor);
                     if (actor->profile->ai.goal.size() > 0) {
-                        actor->pilot = new SCPilot();
-                        actor->pilot->actor = actor;
-                        BoudingBox *bb = actor->object->entity->GetBoudingBpx();
-                        
-                        actor->plane = new SCJetpPlane(
-                            actor->object->entity->jdyn->max_g,
-                            -(float) actor->object->entity->jdyn->max_g/2.0f,
-                            40.0f,
-                            60.0f,
-                            (float) actor->object->entity->jdyn->pitch_rate_limit_dps/2.0f,
-                            (float) actor->object->entity->jdyn->rate_limit_dps/2.0f,
-                            actor->object->entity->wing_area,
-                            (float) actor->object->entity->weight_in_kg,
-                            (float) actor->object->entity->jdyn->fuel_capacity,
-                            (float) actor->object->entity->thrust_in_newton,
-                            sqrtf(actor->object->entity->wing_area / ((float)M_PI * 0.83f * actor->object->entity->jdyn->induced_drag_k)),
-                            actor->object->entity->jdyn->induced_drag_k,
-                            (int) actor->object->entity->jdyn->stall_speed_ms,
-                            this->area,
-                            part->position.x,
-                            part->position.y,
-                            part->position.z
-                        );
-                        actor->plane->yaw = (360 - part->azymuth) * 10.0f;
-                        for (auto &sys: actor->object->entity->sysm) {
-                            for (auto &subsys: sys.second) {
-                                actor->plane->system_health[sys.first][subsys.first] = subsys.second;
-                            }
-                        }
-                        part->weapon_load.shrink_to_fit();
-                        if (part->weapon_load.size() > 0) {
-                            std::string weapon_path_name = Assets.object_root_path + part->weapon_load + ".IFF";
-                            std::transform(weapon_path_name.begin(), weapon_path_name.end(), weapon_path_name.begin(), ::toupper);
-                            TreEntry *weapon_entry = Assets.GetEntryByName(weapon_path_name.c_str());
-                            part->entity->weaps.clear();
-                            part->entity->weaps.shrink_to_fit();
-                            part->entity->parseREAL_OBJT_JETP(weapon_entry->data, weapon_entry->size);   
-                        }
-                        actor->plane->object = part;
-                        actor->plane->InitLoadout();
-                        actor->plane->pilot = actor;
-                        // Vitesse initiale PART (octets 43-44, m/s) : un avion à 0 commence au sol, train sorti
-                        // (PartEntry_ResolveSpawnPositionAndActivate_51EDC : catégorie 6 et vitesse nulle -> au sol, JDYN +0x75 |= 4).
-                        if (abs(this->area->getY(part->position.x, part->position.z)-part->position.y) <= 10 ) {
-                            part->position.y = this->area->getY(part->position.x, part->position.z);
-                        }
-                        actor->plane->on_ground = part->speed == 0;
-                        if (part->position.y < this->area->getY(part->position.x, part->position.z)) {
-                            actor->plane->on_ground = true;
-                        }
-                        if (actor->plane->on_ground) {
-                            if (actor->plane->GetWheel() == 0) {
-                                actor->plane->SetWheel();
-                            }
-                        }
-                        if (!actor->plane->on_ground) {
-                            actor->plane->SetThrottle(100);
-                            actor->pilot->target_climb = (int) (part->position.y);
-                            actor->plane->vz = -20;
-                            // Vitesse le long du nez (AIAircraft_SpawnAndConditionalLoadProfile_53363 : nez × vitesse).
-                            float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
-                            float spawn_speed = (float) part->speed;
-                            actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
-                            actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
-                            actor->pilot->target_speed = -20;
-                        } else {
-                            actor->plane->SetThrottle(0);
-                            actor->pilot->target_climb = 0;
-                            actor->plane->vz = 0;
-                            actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
-                            actor->pilot->target_speed = 0;
-                        }
-                        actor->pilot->plane = actor->plane;
+                        this->createAiPlane(actor);
                     }
                     this->actors.push_back(actor);
                 } else if (actor->profile != nullptr && cast->actor == "PLAYER") {

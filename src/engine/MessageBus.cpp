@@ -23,6 +23,7 @@ MessageBus::SubscriptionId MessageBus::subscribeEvent(EventCallback callback) {
 
 void MessageBus::unsubscribe(SubscriptionId id) {
     std::lock_guard<std::mutex> lock(subscriptions_mutex);
+    removed_during_dispatch.insert(id);
     for (auto it = input_callbacks.begin(); it != input_callbacks.end(); ++it) {
         if (it->id == id) {
             input_callbacks.erase(it);
@@ -66,12 +67,21 @@ void MessageBus::processEvents() {
     {
         std::lock_guard<std::mutex> lock(subscriptions_mutex);
         subscriptions = event_callbacks;
+        removed_during_dispatch.clear();
     }
 
     while (!messages.empty()) {
         const EventMessage& message = *messages.front();
 
         for (const EventSubscription& subscription : subscriptions) {
+            bool removed = false;
+            {
+                std::lock_guard<std::mutex> lock(subscriptions_mutex);
+                removed = removed_during_dispatch.count(subscription.id) > 0;
+            }
+            if (removed) {
+                continue;
+            }
             subscription.callback(message);
         }
 

@@ -22,6 +22,7 @@ public:
     std::vector<PROG> override_progs;
     std::vector<SCSimulatedObject *> weapons_shooted;
     MISN_PART *object{nullptr};
+    MISN_PART creation_part; // PART tel qu'il est au chargement de la mission
     SCPlane *plane{nullptr};
     SCPilot *pilot{nullptr};
     SCAIBrain *brain{nullptr};

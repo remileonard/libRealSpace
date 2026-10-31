@@ -592,6 +592,9 @@ SCPlane::SCPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELE
     
 }
 SCPlane::~SCPlane() {
+    if (this->subscription_id != -1) {
+        MessageBus::getInstance().unsubscribe(this->subscription_id);
+    }
     delete this->smoke_set;
     if (this->weapon_predictor) {
         delete this->weapon_predictor;

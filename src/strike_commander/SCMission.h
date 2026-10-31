@@ -115,6 +115,8 @@ public:
     SCMissionScene *findSceneAt(Vector3D position);
     void startScenes();
     void placeRelativeToPlayer(SCMissionActors *actor);
+    void respawnActor(SCMissionActors *actor);
+    void createAiPlane(SCMissionActors *actor);
     void finishScenes();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();

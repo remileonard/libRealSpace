@@ -207,7 +207,10 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
  */
 bool SCMissionActors::activateTarget(uint8_t arg) {
     for (auto actor: this->mission->actors) {
-        if (actor->actor_id == arg && actor->is_active == false && actor->is_destroyed == false) {
+        if (actor->actor_id == arg && actor->is_active == false) {
+            if (actor->is_destroyed) {
+                this->mission->respawnActor(actor);
+            }
             actor->is_active = true;
             actor->is_hidden = false;
             Vector3D correction = {0.0f, 0.0f, 0.0f};

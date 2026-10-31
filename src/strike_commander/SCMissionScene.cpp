@@ -46,8 +46,10 @@ void SCMissionScene::runLeaving() {
 
 void SCMissionScene::activate() {
     MISN_SCEN *scene = this->scene;
-    printf("SCENE: activation, zone %d, %zu objets, script %d\n", scene->area_id, scene->cast.size(),
-           scene->on_is_activated);
+    if (scene->has_been_activated) {
+        return;
+    }
+    printf("SCENE: activation, zone %d, %zu objets, script %d\n", scene->area_id, scene->cast.size(), scene->on_is_activated);
     RSMission *mission = this->mission->mission;
     SCMission *sc_mission = this->mission;
     for (auto cast: scene->cast) {
@@ -58,7 +60,10 @@ void SCMissionScene::activate() {
                     if (actor->actor_name == "PLAYER") {
                         continue;
                     }
-                    if (actor->actor_id == part->id && actor->is_active == false) {
+                    if (actor->actor_id == part->id && (actor->is_active == false)) {
+                        if (actor->is_destroyed) {
+                            sc_mission->respawnActor(actor);
+                        }
                         actor->is_active = true;
                         actor->is_hidden = false;
                         if (scene->area_id != -1 || actor->object->placement != 0) {
