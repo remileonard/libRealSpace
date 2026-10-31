@@ -124,6 +124,7 @@ protected:
     virtual void playShot(uint8_t shotId);
     virtual void playConv(uint8_t convId);
     virtual void playMidGame(uint8_t midGameId);
+    void playCredits(bool the_end_only, bool wait_music_end = false);
     virtual void playShowMap(uint8_t mapId);
     virtual void playEndMission();
     virtual bool playFlyMission(uint8_t flyMissionId);

@@ -479,17 +479,24 @@ void SCGameFlow::runEffect() {
         case EFECT_OPT_PLAY_MIDGAME:
         {
             this->playMidGame(instruction->value);
+            if (instruction->value == 36) {
+                this->playCredits(false);
+                this->isGameOver = true;
+            }
             break;
         }
         case EFECT_OPT_CHECK_BALANCE:
             // CHECK_GAME_OVER (Gameflow_CheckLossConversations_50645) : plus de 16 avions perdus, puis argent < 0.
             printf("GAMEFLOW: CHECK_GAME_OVER, avions perdus %d, argent %d\n", GameState.lost_aircraft,
                    GameState.proj_cash);
+            // Conversation de fin, puis « THE END » (Credits_Play_BDE10 avec 1).
             if (GameState.lost_aircraft > 16) {
                 this->playConv(GAMOVER_NO_INSURANCE);
+                this->playCredits(true);
                 this->isGameOver = true;
             } else if (GameState.proj_cash < 0) {
                 this->playConv(GAMEOVER_NO_MONEY);
+                this->playCredits(true);
                 this->isGameOver = true;
             }
             break;
@@ -857,6 +864,8 @@ void SCGameFlow::applyMissionReport(void) {
     // Joueur mort (code de sortie 2) : cinématique 33 puis fin du déroulement, sans script (runFrame, file pending_activities).
     if (GameState.player_dead) {
         this->playMidGame(33);
+        this->playCredits(true, true);
+        this->isGameOver = true;
     }
 }
 
@@ -874,13 +883,9 @@ void SCGameFlow::runFrame(void) {
         IActivity *c = this->pending_activities.front();
         this->pending_activities.pop();
         Game->addActivity(c);
-        if (GameState.player_dead && dynamic_cast<SCAnimationPlayer *>(c) != nullptr) {
-            this->stop();
-        }
-        if (isGameOver && dynamic_cast<SCConvPlayer *>(c) != nullptr) {
-            this->stop();
-        }
         return;
+    } else if (isGameOver) {
+        this->stop();
     }
     if (this->currentOptCode > 0 && this->efect != nullptr) {
         this->runEffect();
@@ -972,7 +977,15 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
             printf("Failed to load animation from %s\n", filepath.c_str());
         }
     }
+}
 
+void SCGameFlow::playCredits(bool the_end_only, bool wait_music_end) {
+    SCCredit *credits = new SCCredit();
+    credits->the_end_only = the_end_only;
+    credits->wait_music_end = wait_music_end;
+    credits->init();
+    this->pending_activities.push(credits);
+    printf("GAMEFLOW: générique en file (%s)\n", the_end_only ? "THE END seul" : "déroulant");
 }
 
 void SCGameFlow::playShowMap(uint8_t mapId) {}

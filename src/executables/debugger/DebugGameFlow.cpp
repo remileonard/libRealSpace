@@ -71,6 +71,12 @@ void DebugGameFlow::renderMenu() {
         ImGui::MenuItem("Info", NULL, &show_scene_window);
         ImGui::MenuItem("GameState", NULL, &show_gamestate);
         ImGui::MenuItem("Music Player", NULL, &show_music_player);
+        if (ImGui::MenuItem("Credits")) {
+            this->playCredits(false);
+        }
+        if (ImGui::MenuItem("Credits THE END")) {
+            this->playCredits(true);
+        }
         ImGui::EndMenu();
     }
     int sceneid = -1;
