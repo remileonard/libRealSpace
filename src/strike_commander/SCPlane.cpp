@@ -1651,7 +1651,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
                 sound = this->pilot->mission->sound.sounds[SoundEffectIds::AIM9_SHOOT];
                 Mixer.playSoundVoc(sound->data, sound->size);
             }
-            weap = new SCSimulatedObject();
+            weap = new AgmSimulatedObject();
             weap->target = target;
             weap->guidance = true;
             weap->no_gravity = false;

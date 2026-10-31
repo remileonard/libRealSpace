@@ -720,6 +720,290 @@ void GuidedBombSimulatedObject::Simulate(int tps) {
     this->z = position.z;
 }
 
+void AgmSimulatedObject::dropTarget(const char *reason) {
+    printf("AGM %s t=%.2fs cible %s perdue : %s\n", this->obj->name.c_str(), (float)this->run_iterations / (float)this->tps,
+           this->target->actor_name.c_str(), reason);
+    this->target->weapon_shooted_at_me = nullptr;
+    this->target = nullptr;
+    this->guidance = false;
+}
+
+void AgmSimulatedObject::explode(Vector3D position) {
+    this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
+    if (this->mission->sound.sounds.size() > 0) {
+        MemSound *sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
+        Mixer.playSoundVoc(sound->data, sound->size);
+    }
+}
+
+// MissileBody_GuidanceTick_42A4E : poursuite avec anticipation (MissileBody_SteerToTarget_42738), propulsion jusqu'à la
+// vitesse maximale (MissileBody_BoostPhase_42632) puis croisière dans l'axe du nez (MissileBody_SetCruiseVelocity_42A1B),
+// vol balistique sans cible.
+std::tuple<Vector3D, Vector3D> AgmSimulatedObject::ComputeTrajectory(int tps) {
+    this->tps = tps;
+    float deltaTime = 1.0f / (float)tps;
+    Vector3D position = {
+        this->x,
+        this->y,
+        this->z
+    };
+    Vector3D velocity = {
+        this->vx * tps,
+        this->vy * tps,
+        this->vz * tps
+    };
+    Vector3D world_up = {
+        0.0f,
+        1.0f,
+        0.0f
+    };
+    auto *miss = this->obj->dynn_miss;
+    float phi = 0.0f;
+    float theta = 0.0f;
+    if (this->run_iterations == 0) {
+        cartesianToPolar(velocity, &phi, &theta);
+        this->azimuthf = phi - (float)M_PI_2;
+        this->elevationf = (float)M_PI_2 - theta;
+        this->missile_roll = 0.0f;
+        printf("AGM %s lancement : vitesse %.1f m/s, vitesse maximale %.1f m/s -> %s, cible %s\n",
+               this->obj->name.c_str(), velocity.Length(), miss->velovity_m_per_sec,
+               velocity.Length() < miss->velovity_m_per_sec ? "propulsion" : "croisière immédiate",
+               this->target != nullptr ? this->target->actor_name.c_str() : "aucune");
+    }
+    float heading = this->azimuthf + (float)M_PI_2;
+    Vector3D nose = {
+        cosf(this->elevationf) * sinf(heading),
+        sinf(this->elevationf),
+        cosf(this->elevationf) * cosf(heading)
+    };
+    Vector3D level_right = nose.CrossProduct(&world_up);
+    level_right.Normalize();
+    Vector3D level_up = level_right.CrossProduct(&nose);
+    Vector3D up = level_up * cosf(this->missile_roll) + level_right * sinf(this->missile_roll);
+    Vector3D right = nose.CrossProduct(&up);
+
+    if (this->target != nullptr && this->guidance) {
+        Vector3D delta = this->target->object->position - position;
+        float dist = delta.Length();
+        float speed = velocity.Length();
+        float lead = 1.0f;
+        if (speed != 0.0f) {
+            lead = dist / speed;
+        }
+        if (lead > 1.0f) {
+            lead = 1.0f;
+        }
+        if (this->target->plane != nullptr) {
+            delta = delta + this->target->plane->worldVelocity() * lead;
+        }
+        float roll = atan2f(delta.DotProduct(&right), delta.DotProduct(&up));
+        up = up * cosf(roll) + right * sinf(roll);
+        right = nose.CrossProduct(&up);
+        float forward = delta.DotProduct(&nose);
+        float normal = delta.DotProduct(&up);
+        float pitch = (float)M_PI_2;
+        if (forward != 0.0f) {
+            pitch = atanf(normal / forward);
+        } else if (normal < 0.0f) {
+            pitch = (float)-M_PI_2;
+        }
+        if (forward < 0.0f) {
+            pitch = (float)M_PI - std::fabs(pitch);
+        }
+        float max_pitch = miss->turn_degre_per_sec * deltaTime * (float)M_PI / 180.0f;
+        if (pitch > max_pitch) {
+            pitch = max_pitch;
+        }
+        Vector3D old_nose = nose;
+        nose = nose * cosf(pitch) + up * sinf(pitch);
+        up = up * cosf(pitch) - old_nose * sinf(pitch);
+        nose.Normalize();
+        right = nose.CrossProduct(&up);
+        up = right.CrossProduct(&nose);
+        up.Normalize();
+        right.Normalize();
+    }
+
+    Vector3D cruise = right * miss->cruise_lateral + nose * miss->velovity_m_per_sec + up * miss->cruise_normal;
+    if (!this->no_thrust) {
+        if (velocity.Length() < miss->velovity_m_per_sec) {
+            float along = velocity.DotProduct(&nose) + miss->acceleration * deltaTime;
+            velocity = nose * along;
+        } else {
+            velocity = cruise;
+            this->no_thrust = true;
+            printf("AGM %s t=%.2fs fin de la propulsion : croisière à %.1f m/s\n", this->obj->name.c_str(),
+                   (float)this->run_iterations / (float)tps, miss->velovity_m_per_sec);
+        }
+    } else if (this->target != nullptr) {
+        velocity = cruise;
+    } else {
+        velocity.y -= GRAVITY * deltaTime;
+        nose = velocity;
+        nose.Normalize();
+        right = nose.CrossProduct(&up);
+        up = right.CrossProduct(&nose);
+        up.Normalize();
+    }
+
+    cartesianToPolar(nose, &phi, &theta);
+    this->azimuthf = phi - (float)M_PI_2;
+    this->elevationf = (float)M_PI_2 - theta;
+    level_right = nose.CrossProduct(&world_up);
+    level_right.Normalize();
+    level_up = level_right.CrossProduct(&nose);
+    this->missile_roll = atan2f(up.DotProduct(&level_right), up.DotProduct(&level_up));
+
+    if (this->run_iterations % tps == 0 && this->target != nullptr) {
+        Vector3D delta = this->target->object->position - position;
+        printf("AGM %s t=%.1fs vitesse %.1f m/s %s cible %s à %.0f m, %.1f° du nez\n", this->obj->name.c_str(),
+               (float)this->run_iterations / (float)tps, velocity.Length(), this->no_thrust ? "croisière" : "propulsion",
+               this->target->actor_name.c_str(), delta.Length(), nose.AngleBetween(delta));
+    }
+    this->run_iterations++;
+    Vector3D step = velocity * deltaTime;
+    position = position + step;
+    return { position, step };
+}
+
+// Missile_UpdateSeekerAndFuse_42458 : durée de vol, chercheur une image sur 5 (aspect 5 : cible gardée à target_range
+// au plus et dans le cône tracking_cone du nez), touché ; traînée allumée pendant tout le vol
+// (SmokeTrail_EnableIfModelHasSmok_3D566 au lancement).
+void AgmSimulatedObject::Simulate(int tps) {
+    this->tps = tps;
+    Vector3D current = {
+        this->x,
+        this->y,
+        this->z
+    };
+    if ((float)(this->run_iterations + 1) / (float)tps >= (float)this->obj->missile_flight_time) {
+        printf("AGM %s t=%.2fs fin de la durée de vol (%d s)\n", this->obj->name.c_str(),
+               (float)this->run_iterations / (float)tps, this->obj->missile_flight_time);
+        if (!this->is_simulated) {
+            this->explode(current);
+        }
+        this->alive = false;
+        if (this->target != nullptr) {
+            this->target->weapon_shooted_at_me = nullptr;
+        }
+        return;
+    }
+    if (this->target != nullptr) {
+        bool target_active = this->target->is_active || this->target == this->mission->player;
+        if (!target_active) {
+            this->dropTarget("cible inactive");
+        } else if (!this->target->object->alive) {
+            this->dropTarget("cible détruite");
+        }
+    }
+    if (!this->is_simulated && this->target != nullptr && (this->run_iterations + 1) % 5 == 0) {
+        float heading = this->azimuthf + (float)M_PI_2;
+        Vector3D nose = {
+            cosf(this->elevationf) * sinf(heading),
+            sinf(this->elevationf),
+            cosf(this->elevationf) * cosf(heading)
+        };
+        Vector3D own_velocity = Vector3D(this->vx, this->vy, this->vz) * (float)tps;
+        SCSimulatedObject *decoy = nullptr;
+        SCMissionActors *chosen =
+            SCPlane::SeekerChoose(this->obj, this->target, nullptr, this->mission, current, nose, own_velocity, &decoy);
+        if (chosen == nullptr) {
+            Vector3D delta = this->target->object->position - current;
+            char reason[160];
+            snprintf(reason, sizeof(reason), "chercheur, %.0f m (portée %u m), %.1f° du nez (cône %u°)", delta.Length(),
+                     this->obj->wdat->target_range, nose.AngleBetween(delta),
+                     this->obj->wdat->tracking_cone);
+            this->dropTarget(reason);
+        }
+    }
+    this->guidance = this->target != nullptr;
+
+    Vector3D position;
+    Vector3D velocity;
+    std::tie(position, velocity) = this->ComputeTrajectory(tps);
+    if (this->target != nullptr) {
+        this->target->weapon_shooted_at_me = this;
+    }
+    if (this->target != nullptr && !this->is_simulated) {
+        if (this->CheckCollision(this->target)) {
+            printf("AGM %s t=%.2fs touche %s\n", this->obj->name.c_str(), (float)this->run_iterations / (float)tps,
+                   this->target->actor_name.c_str());
+            auto hit_event = std::make_unique<MissionEventActorHit>();
+            hit_event->attacker = this->shooter;
+            hit_event->target = this->target;
+            hit_event->weapon = this;
+            hit_event->mission = this->mission;
+            MessageBus::getInstance().publish(std::move(hit_event));
+            return;
+        }
+    } else {
+        for (auto entity : this->mission->actors) {
+            if (this->CheckCollision(entity)) {
+                printf("AGM %s t=%.2fs touche %s (sans cible)\n", this->obj->name.c_str(),
+                       (float)this->run_iterations / (float)tps, entity->actor_name.c_str());
+                entity->hasBeenHit(this, this->shooter);
+                this->alive = false;
+                if (entity->object->alive == true) {
+                    this->explode(position);
+                }
+                break;
+            }
+        }
+    }
+    float dist = (this->shooter->plane->position - current).Length();
+    float dt = 1.0f / (float)tps;
+    if (dist > 30 && this->obj->smoke.present) {
+        if (this->smoke_set.getModel() != this->obj->smoke.type) {
+            this->smoke_set.setModel(this->obj->smoke.type);
+        }
+        Vector3D orientation = {
+            this->azimuthf,
+            this->elevationf,
+            0.0f
+        };
+        Vector3D local = {
+            this->obj->smoke.x,
+            this->obj->smoke.y,
+            this->obj->smoke.z
+        };
+        this->smoke_set.spawnAlongSegment(smokeEmissionPoint(position, orientation, local),
+                                          smokeEmissionPoint(current, orientation, local), dt);
+    }
+    this->smoke_set.update(dt);
+
+    this->vx = velocity.x;
+    this->vy = velocity.y;
+    this->vz = velocity.z;
+    this->last_px = this->x;
+    this->last_py = this->y;
+    this->last_pz = this->z;
+    this->x = position.x;
+    this->y = position.y;
+    this->z = position.z;
+    Vector3D length_vect = {
+        this->x - this->last_px,
+        this->y - this->last_py,
+        this->z - this->last_pz
+    };
+    this->distance += length_vect.Length();
+    if (this->y < this->mission->area->getY(this->x, this->z)) {
+        printf("AGM %s t=%.2fs impact au sol\n", this->obj->name.c_str(), (float)this->run_iterations / (float)tps);
+        if (!this->is_simulated) {
+            this->explode(position);
+            for (auto entity : this->mission->actors) {
+                if (this->CheckCollision(entity)) {
+                    printf("AGM %s : %s dans le rayon de l'impact\n", this->obj->name.c_str(), entity->actor_name.c_str());
+                    entity->hasBeenHit(this, this->shooter);
+                }
+            }
+        }
+        this->alive = false;
+        if (this->target != nullptr) {
+            this->target->weapon_shooted_at_me = nullptr;
+        }
+    }
+}
+
 EjectionSeatSimulatedObject::EjectionSeatSimulatedObject() {
     AssetManager &Assets = AssetManager::getInstance();
     std::string path = "..\\..\\DATA\\OBJECTS\\EJECSEAT.IFF";

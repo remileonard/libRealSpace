@@ -89,6 +89,16 @@ public:
     std::tuple<Vector3D, Vector3D> ComputeTrajectory(int tps);
 };
 
+// AGM-65D : instance MISS (Missile_UpdateSeekerAndFuse_42458) et corps MISS (MissileBody_GuidanceTick_42A4E).
+class AgmSimulatedObject : public SCSimulatedObject {
+    void dropTarget(const char *reason);
+    void explode(Vector3D position);
+
+public:
+    void Simulate(int tps);
+    std::tuple<Vector3D, Vector3D> ComputeTrajectory(int tps);
+};
+
 class EjectionSeatSimulatedObject : public SCSimulatedObject {
     RSEntity *ejection_seat_obj{nullptr};
     RSEntity *pilot_obj{nullptr};

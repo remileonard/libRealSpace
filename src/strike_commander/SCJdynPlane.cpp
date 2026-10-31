@@ -26,7 +26,6 @@ SCJdynPlane::SCJdynPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, f
     this->az = 0.0f;
     this->weaps_load.reserve(9);
     this->weaps_load.resize(9);
-    this->alive = 0;
     this->status = 0;
     this->x = 0.0f;
     this->y = 0.0f;
