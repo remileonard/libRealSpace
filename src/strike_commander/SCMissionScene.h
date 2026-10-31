@@ -6,6 +6,8 @@ class SCMission;
 
 class SCMissionScene {
 private:
+    MessageBus::SubscriptionId subscription_id{ -1 };
+    void onEvent(const EventMessage &event);
     void runProg(int16_t prog_id);
 public:
     SCMissionScene(SCMission *mission, MISN_SCEN *scene);

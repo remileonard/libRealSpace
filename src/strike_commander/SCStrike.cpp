@@ -797,14 +797,49 @@ void SCStrike::autopilotCompute() {
                 continue;
             }
             printf("check collision with Areas: %s\n", area->AreaName);
-            // Assume each area is represented as an axis-aligned rectangle in the X-Z plane.
-            // Compute rectangle boundaries.
-            float halfWidth  = area->AreaWidth / 2.0f;
-            float halfHeight = area->AreaHeight / 2.0f;
-            float left   = area->position.x - halfWidth;
-            float right  = area->position.x + halfWidth;
-            float top    = area->position.z - halfHeight;
-            float bottom = area->position.z + halfHeight;
+            // Trajet a l'altitude d'arrivee (dest_y) : la zone n'est traversee que si cette altitude est dans sa plage,
+            // comme AREA::contains ; une sphere y est coupee en un disque.
+            float flight_y = dest_y;
+            float circle_radius = area->radius;
+            if (area->AreaType == 'S') {
+                float dy = flight_y - area->position.y;
+                if (fabs(dy) > area->radius) {
+                    printf("Area %s: altitude %.0f hors de la sphere\n", area->AreaName, flight_y);
+                    continue;
+                }
+                circle_radius = sqrtf(area->radius * area->radius - dy * dy);
+            } else if (flight_y < area->position.y || flight_y > area->position.y + area->height) {
+                printf("Area %s: altitude %.0f hors de %.0f .. %.0f\n", area->AreaName, flight_y, area->position.y,
+                       area->position.y + area->height);
+                continue;
+            }
+            if (area->AreaType != 'B') {
+                float dx = destination.x - origine.x;
+                float dz = destination.y - origine.y;
+                float fx = origine.x - area->position.x;
+                float fz = origine.y - area->position.z;
+                float c = fx * fx + fz * fz - circle_radius * circle_radius;
+                if (c <= 0.0f) {
+                    printf("We are in area: %s\n", area->AreaName);
+                    continue;
+                }
+                float a = dx * dx + dz * dz;
+                float b = 2.0f * (fx * dx + fz * dz);
+                float discriminant = b * b - 4.0f * a * c;
+                if (a > 0.0f && discriminant >= 0.0f) {
+                    float t = (-b - sqrtf(discriminant)) / (2.0f * a);
+                    if (t >= 0.0f && t <= 1.0f) {
+                        printf("Collision detected with area: %s\n", area->AreaName);
+                        path.push_back(Vector2D{ origine.x + t * dx, origine.y + t * dz });
+                    }
+                }
+                continue;
+            }
+            // Boite : de X - ouest a X + est, de Z - nord a Z + sud (le nord est vers -Z).
+            float left   = area->position.x - area->west;
+            float right  = area->position.x + area->east;
+            float top    = area->position.z - area->north;
+            float bottom = area->position.z + area->south;
 
             // Lambda to test if a point is inside the rectangle.
             auto pointInRect = [&](const Vector2D &pt) -> bool {
@@ -815,11 +850,6 @@ void SCStrike::autopilotCompute() {
                 printf("We are in area: %s\n", area->AreaName);
                 continue;
             }
-            // If either endpoint is inside, we have a collision.
-            /*if (pointInRect(origine) || pointInRect(destination)) {
-                printf("Collision detected with area: %s\n", area->AreaName);
-                continue;
-            }*/
 
             auto doLinesIntersect = [&](const Vector2D &p1, const Vector2D &p2,
                                             const Vector2D &p3, const Vector2D &p4) -> std::optional<Vector2D> {
@@ -859,7 +889,6 @@ void SCStrike::autopilotCompute() {
                 i4 != std::nullopt)
             {
                 printf("Collision detected with area: %s\n", area->AreaName);
-                //continue;
             }
             if (i1 != std::nullopt) {
                 path.push_back(i1.value());
@@ -887,9 +916,16 @@ void SCStrike::autopilotCompute() {
                 selectedPoint = pt;
             }
         }
+        // Un metre au-dela du bord, vers la destination : le point est dans la zone malgre l'arrondi (AREA::contains).
+        float to_x = destination.x - selectedPoint.x;
+        float to_z = destination.y - selectedPoint.y;
+        float to_length = sqrtf(to_x * to_x + to_z * to_z);
+        if (to_length > 1.0f) {
+            selectedPoint.x += to_x / to_length;
+            selectedPoint.y += to_z / to_length;
+        }
         printf("Selected point: (%.3f, %.3f)\n", selectedPoint.x, selectedPoint.y);
-        
-        
+
         this->player_plane->x = selectedPoint.x;
         this->player_plane->z = selectedPoint.y;
         

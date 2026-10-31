@@ -42,6 +42,16 @@ public:
     MISN_SCEN *scene{nullptr};
     SCMission *mission{nullptr};
 };
+class MissionEventSceneUpdate : public EventMessage {
+public:
+    MISN_SCEN *scene{ nullptr };
+    SCMission *mission{ nullptr };
+};
+class MissionEventSceneLeft : public EventMessage {
+public:
+    MISN_SCEN *scene{ nullptr };
+    SCMission *mission{ nullptr };
+};
 class PlaneControlEvent: public EventMessage {
 public:
     SCPlane *plane{nullptr};

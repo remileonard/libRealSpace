@@ -345,24 +345,26 @@ void RSMission::parseMISN_PLAY_SCEN(uint8_t *data, size_t size) {
     scen->is_active = stream.ReadByte();
     scen->area_id = stream.ReadShort();
     int16_t prog_id = 0;
-    for (int i = 0 ; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
         prog_id = stream.ReadShort();
         scen->progs_id.push_back(prog_id);
     }
-    // Ordre du fichier : activation, à chaque image (Scene_RunUpdateScript_531F2), sortie de scène et fin de
-    // mission (Scene_RunLeavingScript_53211).
     scen->on_is_activated = scen->progs_id[0];
     scen->on_mission_update = scen->progs_id[1];
     scen->on_leaving = scen->progs_id[2];
-    scen->is_coord_on_area = stream.ReadByte();
-    for (int i = 0; i < 14; i++) {
-        scen->unknown_bytes.push_back(stream.ReadByte());
-    }
+    // MissionScene_ParseRecord_AA3A5, lu par Autopilot_JumpSequence_7A054
+    scen->has_arrival_point = stream.ReadByte() != 0;
+    scen->arrival_heading = stream.ReadShort();
+    int32_t c0 = stream.ReadInt32LE();
+    int32_t c1 = stream.ReadInt32LE();
+    int32_t c2 = stream.ReadInt32LE();
+    scen->arrival_position.x = c0 / 256.0f;
+    scen->arrival_position.y = c2 / 256.0f;
+    scen->arrival_position.z = -c1 / 256.0f;
     size_t read = 24;
     while (read < size) {
-        scen->cast.push_back(stream.ReadByte());
-        stream.ReadByte();
-        read+=2;
+        scen->cast.push_back(stream.ReadUShort());
+        read += 2;
     }
     this->mission_data.scenes.push_back(scen);
 }

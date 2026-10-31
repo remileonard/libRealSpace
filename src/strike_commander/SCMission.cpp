@@ -535,7 +535,10 @@ void SCMission::update() {
     // MAIN_GAME_TICK : script de mise à jour de la scène globale, changement de scène courante
     // (Scene_DetectAndActivateChange_532EA), script de mise à jour de la scène courante.
     if (this->global_scene != nullptr) {
-        this->global_scene->runMissionUpdate();
+        MissionEventSceneUpdate global_update;
+        global_update.scene = this->global_scene->scene;
+        global_update.mission = this;
+        this->messageBus.publish(std::make_unique<MissionEventSceneUpdate>(global_update));
     }
     Vector3D player_position = {
         this->player->plane->x,
@@ -544,16 +547,29 @@ void SCMission::update() {
     };
     SCMissionScene *found = this->findSceneAt(player_position);
     if (found != this->current_scene) {
+        printf("MISSION: scene courante, zone %d -> %d, joueur %.0f %.0f %.0f\n",
+               this->current_scene != nullptr ? this->current_scene->scene->area_id : -1,
+               found != nullptr ? found->scene->area_id : -1, player_position.x, player_position.y,
+               player_position.z);
         if (this->current_scene != nullptr) {
-            this->current_scene->runLeaving();
+            MissionEventSceneLeft left;
+            left.scene = this->current_scene->scene;
+            left.mission = this;
+            this->messageBus.publish(std::make_unique<MissionEventSceneLeft>(left));
         }
         if (found != nullptr) {
-            found->activate();
+            MissionEventSceneActivated activated;
+            activated.scene = found->scene;
+            activated.mission = this;
+            this->messageBus.publish(std::make_unique<MissionEventSceneActivated>(activated));
         }
         this->current_scene = found;
     }
     if (this->current_scene != nullptr) {
-        this->current_scene->runMissionUpdate();
+        MissionEventSceneUpdate current_update;
+        current_update.scene = this->current_scene->scene;
+        current_update.mission = this;
+        this->messageBus.publish(std::make_unique<MissionEventSceneUpdate>(current_update));
     }
     this->in_combat = false;
 
@@ -996,7 +1012,10 @@ void SCMission::startScenes() {
         }
     }
     if (this->global_scene != nullptr) {
-        this->global_scene->activate();
+        MissionEventSceneActivated global_activated;
+        global_activated.scene = this->global_scene->scene;
+        global_activated.mission = this;
+        this->messageBus.publish(std::make_unique<MissionEventSceneActivated>(global_activated));
     }
     if (this->player != nullptr && this->player->plane != nullptr) {
         Vector3D player_position = {
@@ -1006,7 +1025,10 @@ void SCMission::startScenes() {
         };
         this->current_scene = this->findSceneAt(player_position);
         if (this->current_scene != nullptr) {
-            this->current_scene->activate();
+            MissionEventSceneActivated current_activated;
+            current_activated.scene = this->current_scene->scene;
+            current_activated.mission = this;
+            this->messageBus.publish(std::make_unique<MissionEventSceneActivated>(current_activated));
         }
     }
 }
