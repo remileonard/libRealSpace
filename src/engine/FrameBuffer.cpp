@@ -264,6 +264,7 @@ void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t colo
         }
         x += this->textGlyphAdvance(font, c) + spacing;
     }
+    coo->x = x;
 }
 
 int FrameBuffer::textGlyphAdvance(RSFont *font, char c) {
