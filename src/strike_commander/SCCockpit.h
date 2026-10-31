@@ -120,7 +120,7 @@ public:
     int frame{0};
     SCCockpit();
     ~SCCockpit();
-    void init( );
+    virtual void init();
     void Update();
     void Render(CockpitFace face);
     void RenderHUD();
