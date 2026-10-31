@@ -542,25 +542,25 @@ void SCCockpit::RenderTargetingReticle(FrameBuffer *fb, CHUD_SHAPE *reticleShape
     if (debug_print) {
         Point2D debugPos = {5, 10};
         std::string debugTxt5 = "Angular speed: " + std::to_string(this->player_plane->angular_velocity.x) + ", " + std::to_string(this->player_plane->angular_velocity.y) + ", " + std::to_string(this->player_plane->angular_velocity.z);
-        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt5.c_str(), 0, 0, (uint32_t)debugTxt5.length(), 2, 2);
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt5.c_str(), 0, 0, (uint32_t)debugTxt5.length(), 1, 2);
 
         std::string debugTxt = "TOF: " + std::to_string(timeOfFlight) + "s nbsteps: " + std::to_string(nbsteps);
         debugPos.x = 5;
         debugPos.y += 8;
-        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt.c_str(), 0, 0, (uint32_t)debugTxt.length(), 2, 2);
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt.c_str(), 0, 0, (uint32_t)debugTxt.length(), 1, 2);
         std::string debugTxt2 = "Dist: " + std::to_string((int)target_distance) + "m predict: " + std::to_string((int)newDist) + "m";
         debugPos.x = 5;
         debugPos.y += 8;
-        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt2.c_str(), 0, 0, (uint32_t)debugTxt2.length(), 2, 2);
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt2.c_str(), 0, 0, (uint32_t)debugTxt2.length(), 1, 2);
         std::string debugTxt3 = "Debug TOF: " + std::to_string(debutTimeOfFlight) + "s";
         debugPos.x = 5;
         debugPos.y += 8;
-        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt3.c_str(), 0, 0, (uint32_t)debugTxt3.length(), 2, 2);
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt3.c_str(), 0, 0, (uint32_t)debugTxt3.length(), 1, 2);
         float predictedImpactDistance = (this->targetImpactPointWorld - avion_pos).Length();
         std::string debugTxt4 = "Predicted Impact Dist: " + std::to_string((int)predictedImpactDistance) + "m bullet speed: " + std::to_string((int)projectile_speed_world) + " m/s after shot: " + std::to_string((int)bulletSpeedAfterShot) + " m/s";
         debugPos.x = 5;
         debugPos.y += 8;
-        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt4.c_str(), 0, 0, (uint32_t)debugTxt4.length(), 2, 2);
+        debug_framebuffer->printText(this->big_font, &debugPos, (char *)debugTxt4.c_str(), 0, 0, (uint32_t)debugTxt4.length(), 1, 2);
     }
     delete weap;
 }
@@ -774,8 +774,7 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
     Point2D pmfd_right_center = {pmfd_right.x + this->cockpit->MONI.SHAP.GetWidth() / 2,
                                  pmfd_right.y + this->cockpit->MONI.SHAP.GetHeight() / 2};
     Point2D pmfd_right_weapon = {pmfd_right_center.x - this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
-                                 pmfd_right_center.y - 10 -
-                                     this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetHeight() / 2};
+                                 pmfd_right_center.y - 10 - this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetHeight() / 2};
     this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->SetPosition(&pmfd_right_weapon);
     fb->drawShape(this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0));
     std::unordered_map<int, int> weapons_shape = {
@@ -809,9 +808,9 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
                 fb->drawShape(shape);
                 txt = std::to_string(nb_weap);
                 Point2D pmfd_right_weapon_hp_text = {pmfd_right_weapon_hp.x + s_width / 2 + 1,
-                                                     pmfd_right_weapon_hp.y + s_height + 6};
+                                                     pmfd_right_weapon_hp.y + s_height};
                 fb->printText(this->big_font, &pmfd_right_weapon_hp_text, (char *)txt.c_str(), 0, 0,
-                              (uint32_t)txt.length(), 2, 2);
+                              (uint32_t)txt.length(), 1, 2);
             }
             if (this->player_plane->weaps_load[this->player_plane->object->entity->hpts.size() - indice] == nullptr) {
                 continue;
@@ -826,9 +825,9 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
                 fb->drawShape(shape);
                 txt = std::to_string(nb_weap);
                 Point2D pmfd_right_weapon_hp_text_left = {pmfd_right_weapon_hp_left.x + s_width / 2 - 1,
-                                                          pmfd_right_weapon_hp_left.y + s_height + 6};
+                                                          pmfd_right_weapon_hp_left.y + s_height};
                 fb->printText(this->big_font, &pmfd_right_weapon_hp_text_left, (char *)txt.c_str(), 0, 0,
-                              (uint32_t)txt.length(), 2, 2);
+                              (uint32_t)txt.length(), 1, 2);
             }
         }
     }
@@ -844,32 +843,28 @@ void SCCockpit::RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb = nullptr) 
         }
     }
 
-    Point2D pmfd_right_weapon_gun{pmfd_right_weapon.x - 8 +
-                                      this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
-                                  pmfd_right_weapon.y + 6};
+    Point2D pmfd_right_weapon_gun{pmfd_right_weapon.x - 8 + this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
+                                  pmfd_right_weapon.y};
     txt = std::to_string(sel_nb_weap);
-    fb->printText(this->big_font, &pmfd_right_weapon_gun, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_gun, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 1, 2);
 
-    Point2D pmfd_right_weapon_radar{pmfd_right_weapon.x, pmfd_right_weapon.y + 5};
-    fb->printText(this->big_font, &pmfd_right_weapon_radar, const_cast<char *>("NORM"), 0, 0, 4, 2, 2);
+    Point2D pmfd_right_weapon_radar{pmfd_right_weapon.x, pmfd_right_weapon.y};
+    fb->printText(this->big_font, &pmfd_right_weapon_radar, const_cast<char *>("NORM"), 0, 0, 4, 1, 2);
 
-    Point2D pmfd_right_weapon_selected{pmfd_right_weapon.x + 12 +
-                                           this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
-                                       pmfd_right_weapon.y + 5};
-    fb->printText(this->big_font, &pmfd_right_weapon_selected, (char *)weapon_names[static_cast<weapon_ids>(sel_weapon_id)].c_str(), 0, 0,
-                  (uint32_t)weapon_names[static_cast<weapon_ids>(sel_weapon_id)].length(), 2, 2);
+    Point2D pmfd_right_weapon_selected{pmfd_right_weapon.x + 12 + this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
+                                       pmfd_right_weapon.y};
+    fb->printText(this->big_font, &pmfd_right_weapon_selected, (char *)weapon_names[static_cast<weapon_ids>(sel_weapon_id)].c_str(), 0, 0, (uint32_t)weapon_names[static_cast<weapon_ids>(sel_weapon_id)].length(), 1, 2);
 
-    Point2D pmfd_right_weapon_chaff{pmfd_right_weapon.x - 7 +
-                                        this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
-                                    pmfd_right_weapon.y + 4 * 9};
+    Point2D pmfd_right_weapon_chaff{pmfd_right_weapon.x - 7 + this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
+                                    pmfd_right_weapon.y * 9};
     std::string chaff_count = "C:"+std::to_string(this->player_plane->chaffs);
     std::string flare_count = "F:"+std::to_string(this->player_plane->flares);
-    fb->printText(this->big_font, &pmfd_right_weapon_chaff, (char *)chaff_count.c_str(), 0, 0, 4, 2, 2);
+    fb->printText(this->big_font, &pmfd_right_weapon_chaff, (char *)chaff_count.c_str(), 0, 0, 4, 1, 2);
 
     Point2D pmfd_right_weapon_flare{pmfd_right_weapon.x - 7 +
                                         this->cockpit->MONI.MFDS.WEAP.ARTS.GetShape(0)->GetWidth() / 2,
-                                    pmfd_right_weapon.y + 5 * 9};
-    fb->printText(this->big_font, &pmfd_right_weapon_flare, (char *)flare_count.c_str(), 0, 0, 4, 2, 2);
+                                    pmfd_right_weapon.y * 9};
+    fb->printText(this->big_font, &pmfd_right_weapon_flare, (char *)flare_count.c_str(), 0, 0, 4, 1, 2);
 }
 
 void SCCockpit::RenderMFDSRadar(Point2D pmfd_left, float range, int mode, FrameBuffer *fb = nullptr) {
@@ -945,11 +940,10 @@ void SCCockpit::RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, flo
         rzoom_str = "10";
         break;
     }
-    fb->printText(this->big_font, &pmfd_text, (char *)rzoom_str.c_str(), 0, 0, 2, 2, 2);
+    fb->printText(this->big_font, &pmfd_text, (char *)rzoom_str.c_str(), 0, 0, 2, 1, 2);
 
     std::string mode_text = " " + std::string(mode_name) + " ";
-    fb->printText(this->big_font, &pmfd_text, const_cast<char *>(mode_text.c_str()), 0, 0, (int)mode_text.length(), 2,
-                  2);
+    fb->printText(this->big_font, &pmfd_text, const_cast<char *>(mode_text.c_str()), 0, 0, (int)mode_text.length(), 2, 2);
 
     // Position du joueur comme centre du radar
     Vector2D center = {this->player->position.x, this->player->position.z};
@@ -1080,7 +1074,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         rzoom_str = "10";
         break;
     }
-    fb->printText(this->big_font, &pmfd_text, (char *)rzoom_str.c_str(), 0, 0, 2, 2, 2);
+    fb->printText(this->big_font, &pmfd_text, (char *)rzoom_str.c_str(), 0, 0, 2, 1, 2);
 
     std::string mode_text = " " + std::string(mode_name) + " ";
     fb->printText(this->big_font, &pmfd_text, const_cast<char *>(mode_text.c_str()), 0, 0, (int)mode_text.length(), 2,
@@ -1088,7 +1082,7 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
 
     // Affiche le "360" uniquement en mode air
     if (air_mode) {
-        fb->printText(this->big_font, &pmfd_text, const_cast<char *>("360"), 0, 0, 3, 2, 2);
+        fb->printText(this->big_font, &pmfd_text, const_cast<char *>("360"), 0, 0, 3, 1, 2);
     }
 
     // Position du joueur comme centre du radar
@@ -1351,10 +1345,10 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
     Vector2D center = {this->player->position.x, this->player->position.y};
     Point2D pmfd_text = {pmfd_left.x + 20, pmfd_left.y + 20};
     Point2D pfmd_title = {pmfd_text.x + 12, pmfd_text.y};
-    fb->printText(this->big_font, &pfmd_title, const_cast<char *>("Comm mode:"), 120, 0, 10, 2, 2);
+    fb->printText(this->big_font, &pfmd_title, const_cast<char *>("Comm mode:"), 120, 0, 10, 1, 2);
     pfmd_title.y += 10;
     pfmd_title.x = pmfd_left.x + 20;
-    fb->printText(this->big_font, &pfmd_title, const_cast<char *>("Select frequency"), 0, 0, 16, 2, 2);
+    fb->printText(this->big_font, &pfmd_title, const_cast<char *>("Select frequency"), 0, 0, 16, 1, 2);
     pmfd_text.y += 20;
     if (mode == 0) {
         int cpt = 1;
@@ -1367,7 +1361,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
                 std::string name_str = std::to_string(cpt) + ". " + ai->actor_name;
                 Point2D pfmd_entry = {pmfd_text.x, pmfd_text.y};
                 fb->printText(this->big_font, &pfmd_entry, (char *)name_str.c_str(), 120, 0,
-                              (uint32_t)name_str.length(), 2, 2);
+                              (uint32_t)name_str.length(), 1, 2);
                 pmfd_text.y += 10;
                 cpt++;
             }
@@ -1375,7 +1369,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
         if (cpt == 1) {
             pfmd_title.y += 25;
             pfmd_title.x = pmfd_left.x + 32;
-            fb->printText(this->big_font, &pfmd_title, const_cast<char *>("NO RECIVER"), 120, 0, 10, 2, 2);
+            fb->printText(this->big_font, &pfmd_title, const_cast<char *>("NO RECIVER"), 120, 0, 10, 1, 2);
         }
     } else if (mode > 0) {
         int cpt = 1;
@@ -1388,7 +1382,7 @@ void SCCockpit::RenderMFDSComm(Point2D pmfd_left, int mode, FrameBuffer *fb = nu
                 Point2D pfmd_entry = {pmfd_text.x, pmfd_text.y};
                 std::string asks_str = std::to_string(cpt_message) + ". " + request;
                 fb->printText(this->big_font, &pfmd_entry, (char *)asks_str.c_str(), 124, 0,
-                              (uint32_t)asks_str.length(), 2, 2);
+                              (uint32_t)asks_str.length(), 1, 2);
                 pmfd_text.y += 6;
                 cpt_message++;
             }
@@ -1708,7 +1702,7 @@ void SCCockpit::Update() {
             if (this->current_target != nullptr) {
                 RSEntity *weapon = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
                 Vector3D dist_to_target = this->current_target->position - this->player_plane->object->position;
-                this->target_in_range = dist_to_target.Length() <= (float) weapon->wdat->effective_range;
+                this->target_in_range = dist_to_target.Length() <= (float) weapon->wdat->target_range;
             } else {
                 this->target_in_range = false;
             }
@@ -1974,12 +1968,12 @@ bool SCCockpit::RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb) {
         RLEShape *background_message = this->cockpit->PLAQ.shapes.GetShape(2);
         Point2D b_message_pos = {pmfd_text.x, pmfd_text.y - background_message->GetHeight() - 1};
         background_message->SetPosition(&b_message_pos);
-        Point2D radio_text = {4, b_message_pos.y + 9};
+        Point2D radio_text = {4, b_message_pos.y+3};
         fb->drawShape(background_message);
         RSFont *fnt = this->cockpit->PLAQ.fonts[1].font;
         std::string radio_message = this->current_mission->radio_messages[0]->message;
         std::transform(radio_message.begin(), radio_message.end(), radio_message.begin(), ::toupper);
-        fb->printText(fnt, &radio_text, (char *)radio_message.c_str(), 0, 0, (uint32_t)radio_message.size(), 2, 2);
+        fb->printText(fnt, &radio_text, (char *)radio_message.c_str(), 0, 0, (uint32_t)radio_message.size(), 1, 2);
         if (this->radio_mission_timer > 0) {
             this->radio_mission_timer--;
         }
@@ -2095,12 +2089,12 @@ void SCCockpit::SetCommActorTarget(int target) {
     }
 }
 void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font) {
-    Point2D tag_pos = {pos.x+tag.x, pos.y+tag.y+font->GetShapeForChar('0')->GetHeight()};
+    Point2D tag_pos = {pos.x+tag.x, pos.y+tag.y};
     if (tag.z == 0) {
         return;
     }
     std::string value = this->hud_text_tags[name];
-    fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 2, 2);
+    fb->printText(font, &tag_pos, (char *)value.c_str(), 0, 0, (uint32_t)value.size(), 1, 2);
 }
 void SCCockpit::RenderMissileHud(Point2D position, FrameBuffer *fb, CHUD *hud, Point2D hudTopLeft, Point2D hudBottomRight, Point2D hudCenter) {
     if (!fb) {
@@ -2372,7 +2366,7 @@ void SCCockpit::RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFon
         std::string txt = oss.str();
         Point2D label = {alti_top_left.x + 6, iy};
         if (iy >= alti_top_left.y && iy <= bottom_right.y) {
-            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 1, 2);
         }
     }
     // Flèche centrale (altitude courante)
@@ -2407,7 +2401,7 @@ void SCCockpit::RenderSpeedBandRoll(Point2D speed_top_left, FrameBuffer *fb, RSF
         std::string txt = std::to_string(grad_knots/10);
         Point2D label = {speed_top_left.x, iy};
         if (iy >= speed_top_left.y && iy <= bottom_right.y) {
-            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 1, 2);
         }
     }
 
@@ -2424,7 +2418,7 @@ void SCCockpit::RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, R
 
     // Plage de degrés visible depuis le centre jusqu'au bord
     float half_view_deg = ((float)heading_size.x / 2.0f) * (10.0f / heading_band->step);
-    int txt_height = sfont->GetShapeForChar('0')->GetHeight();
+    int txt_height = -1;
     int first_grad = (int)ceilf((current_heading + half_view_deg) / 10.0f) * 10;
 
     for (int grad_deg = first_grad; grad_deg >= (int)(current_heading - half_view_deg) - 10; grad_deg -= 10) {
@@ -2444,7 +2438,7 @@ void SCCockpit::RenderHeadingCompas(Point2D heading_top_left, FrameBuffer *fb, R
         
         Point2D label = {ix - (int)(txt.length()) * 2, heading_top_left.y + heading_band->SHAP->GetHeight() + txt_height};
         if (ix >= heading_top_left.x && ix <= bottom_right.x) {
-            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(sfont, &label, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 1, 2);
         }
     }
 
@@ -2547,7 +2541,7 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
                 (int)(lStart.x + outX * (spacer + txt_w * 0.5f) - txt_w * 0.5f),
                 (int)(lStart.y + outY * (spacer + char_h * 0.5f) - char_h * 0.5f)
             };
-            fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 1, 2);
         }
         // Label droit : direction sortante = +dir
         if (rEnd.x > bx1 && rEnd.x < bx2 && rEnd.y > by1 && rEnd.y < by2) {
@@ -2556,7 +2550,7 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
                 (int)(rEnd.x + outX * (spacer + txt_w * 0.5f) - txt_w * 0.5f),
                 (int)(rEnd.y + outY * (spacer + char_h * 0.5f) - char_h * 0.5f)
             };
-            fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 2, 2);
+            fb->printText(ft, &p, (char *)txt.c_str(), 0, 0, (uint32_t)txt.length(), 1, 2);
         }
         
     }

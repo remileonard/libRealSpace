@@ -29,17 +29,16 @@ void PSGameFlowParser::parseOpCode(uint8_t *data, size_t size, std::vector<EFCT 
         {GameFlowOpCode::EFFCT_OPT_IF_MISS_SUCCESS      ,1},
         {GameFlowOpCode::EFECT_OPT_APPLY_CHANGE         ,1},
         {GameFlowOpCode::EFECT_OPT_TUNE_MODIFIER        ,1},
-        {GameFlowOpCode::EFECT_OPT_U8                   ,1},
-        {GameFlowOpCode::EFECT_OPT_U10                  ,1},
-        {GameFlowOpCode::EFECT_OPT_U11                  ,1},
+        {GameFlowOpCode::EFECT_OPT_SET_MUSIC                  ,1},
+        {GameFlowOpCode::EFECT_OPT_SHOW_KILL_MARKS                  ,1},
+        {GameFlowOpCode::EFECT_OPT_REMOVE_PILOT                  ,1},
         {GameFlowOpCode::EFECT_OPT_CHECK_BALANCE        ,1},
-        {GameFlowOpCode::EFECT_OPT_U14                  ,2},
+        {GameFlowOpCode::EFECT_OPT_PLANES_LOST_CONV                  ,2},
         {GameFlowOpCode::EFECT_IF_LAST_MISS_SUCCESS      ,1},
-        {GameFlowOpCode::EFECT_OPT_U16                  ,1},
-        {GameFlowOpCode::EFFCT_OPT_U17                  ,2},
-        {GameFlowOpCode::EFFCT_OPT_U18                  ,1},
-        {GameFlowOpCode::EFFCT_OPT_U19                  ,1},
-        {GameFlowOpCode::EFFCT_OPT_U20                  ,1}
+        {GameFlowOpCode::EFECT_OPT_IF_PLANES_LOST                  ,2},
+        {GameFlowOpCode::EFECT_OPT_NOP_11                  ,1},
+        {GameFlowOpCode::EFECT_OPT_IF_RESULT_5                  ,1},
+        {GameFlowOpCode::EFECT_OPT_START_FLIGHT                  ,1}
     };
     if (size < 2) {
         return;

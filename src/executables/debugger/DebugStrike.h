@@ -8,6 +8,7 @@ protected:
     virtual void simConfig();
     virtual void loadPlane();
     virtual void showActorDetails(SCMissionActors* actor);
+    void renderAreaShape(AREA *area);
     virtual void showOffCamera();
     virtual void showTextures();
     virtual void renderMissionLoadingDialog(bool &show_mission);

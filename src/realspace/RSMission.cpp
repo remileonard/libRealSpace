@@ -1,5 +1,6 @@
 #include "RSMission.h"
 #include "block_def.h"
+#include <cmath>
 
 void missionstrtoupper(char *src) {
     int i = 0;
@@ -105,123 +106,95 @@ void RSMission::parseMISN_WRLD_FILE(uint8_t *data, size_t size) {
     this->mission_data.world_filename = stream.ReadStringNoSize(size);
 }
 void RSMission::parseMISN_AREA(uint8_t *data, size_t size) {
-    ByteStream stream(data, size);
-
-    size_t read = 0;
-    uint8_t buffer;
+    size_t offset = 0;
     int cpt = 0;
-    while (stream.IsEndOfStream() == false) {
-        buffer = stream.ReadByte();
+    while (offset < size) {
+        unsigned char shape = data[offset];
+        size_t length = 0;
+        if (shape == 'S') {
+            length = 49;
+        } else if (shape == 'C') {
+            length = 53;
+        } else if (shape == 'B') {
+            length = 65;
+        }
+        if (length == 0 || offset + length > size) {
+            if (length == 0 && offset + 1 < size) {
+                printf("ERROR IN PARSING AREA\n");
+            }
+            break;
+        }
+        ByteStream stream(data + offset, length);
         AREA *tmparea = new AREA();
-
         tmparea->id = ++cpt;
-        tmparea->AreaType = '\0';
-        switch (buffer) {
-        case 'S':
-            tmparea->AreaType = 'S';
-            for (int k = 0; k < 33; k++) {
-                tmparea->AreaName[k] = stream.ReadByte();
-            }
-            missionstrtoupper(tmparea->AreaName);
-            tmparea->position.x = stream.ReadInt24LE() * BLOCK_COORD_SCALE;
-            tmparea->position.z = -stream.ReadInt24LE() * BLOCK_COORD_SCALE;
-            tmparea->position.y = stream.ReadInt24LE() * HEIGH_MAP_SCALE;
-
-            tmparea->AreaWidth = stream.ReadUShort();
+        tmparea->AreaType = stream.ReadByte();
+        for (int k = 0; k < 32; k++) {
+            tmparea->AreaName[k] = stream.ReadByte();
+        }
+        tmparea->AreaName[32] = '\0';
+        missionstrtoupper(tmparea->AreaName);
+        float c0 = stream.ReadFixedFloatLE();
+        float c1 = stream.ReadFixedFloatLE();
+        float c2 = stream.ReadFixedFloatLE();
+        tmparea->position.x = c0 * BLOCK_COORD_SCALE;
+        tmparea->position.z = -c1 * BLOCK_COORD_SCALE;
+        tmparea->position.y = c2 * HEIGH_MAP_SCALE;
+        if (shape == 'S') {
+            tmparea->radius = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            tmparea->AreaWidth = (unsigned int) tmparea->radius;
             tmparea->AreaHeight = tmparea->AreaWidth;
-            tmparea->unknown_bytes.push_back(stream.ReadByte());
-            break;
-        case 'C':
-            tmparea->AreaType = 'C';
-            for (int k = 0; k < 33; k++) {
-                tmparea->AreaName[k] = stream.ReadByte();
-            }
-            missionstrtoupper(tmparea->AreaName);
-            tmparea->position.x = stream.ReadInt24LE() * BLOCK_COORD_SCALE;
-            tmparea->position.z = -stream.ReadInt24LE() * BLOCK_COORD_SCALE;
-            tmparea->position.y = stream.ReadInt24LE() * HEIGH_MAP_SCALE;
-
-            
-            tmparea->AreaWidth = stream.ReadUShort() * (uint16_t)(BLOCK_COORD_SCALE);
-
-            // unsigned int Blank0; // off 48-49
-            tmparea->unknown_bytes.push_back(stream.ReadByte());
-            tmparea->unknown_bytes.push_back(stream.ReadByte());
-            tmparea->AreaHeight = stream.ReadUShort() * (int) HEIGH_MAP_SCALE;
-            // unsigned char Blank1; // off 52
-            tmparea->unknown_bytes.push_back(stream.ReadByte());
-            break;
-        case 'B':
-            tmparea->AreaType = 'B';
-            for (int k = 0; k < 33; k++) {
-                tmparea->AreaName[k] = stream.ReadByte();
-            }
-            missionstrtoupper(tmparea->AreaName);
-            tmparea->position.x = stream.ReadInt24LE() * BLOCK_COORD_SCALE;
-            tmparea->position.z = -stream.ReadInt24LE() * BLOCK_COORD_SCALE;
-            tmparea->position.y = stream.ReadInt24LE() * HEIGH_MAP_SCALE;
-
-            tmparea->AreaWidth = stream.ReadUShort() * (uint16_t)(BLOCK_COORD_SCALE);
-
-            // unsigned char Blank0[10]; // off 48-59
-            for (int k = 0; k < 10; k++) {
-                tmparea->unknown_bytes.push_back(stream.ReadByte());
-            }
-            // unsigned int AreaHeight; // off 60-61
-            tmparea->AreaHeight = stream.ReadUShort()  * (int) HEIGH_MAP_SCALE;
-
-            // unsigned char Unknown[5]; // off 62-67
-            for (int k = 0; k < 5; k++) {
-                tmparea->unknown_bytes.push_back(stream.ReadByte());
-            }
-            break;
-        default:
-            stream.ReadByte();
-            printf("ERROR IN PARSING AREA\n");
-            break;
+        } else if (shape == 'C') {
+            tmparea->height = stream.ReadFixedFloatLE() * HEIGH_MAP_SCALE;
+            tmparea->radius = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            tmparea->AreaWidth = (unsigned int) tmparea->height;
+            tmparea->AreaHeight = (unsigned int) tmparea->radius;
+        } else {
+            tmparea->east = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            tmparea->west = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            tmparea->north = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            tmparea->south = stream.ReadFixedFloatLE() * BLOCK_COORD_SCALE;
+            tmparea->height = stream.ReadFixedFloatLE() * HEIGH_MAP_SCALE;
+            tmparea->AreaWidth = (unsigned int) tmparea->east;
+            tmparea->AreaHeight = (unsigned int) tmparea->south;
         }
-        if (tmparea->AreaType != '\0') {
-            this->mission_data.areas.push_back(tmparea);
-        }
+        this->mission_data.areas.push_back(tmparea);
+        offset += length;
     }
 }
-int32_t ReadInt24LE_fromVec(std::vector<uint8_t>data, int offset) {
-    int32_t i = 0;
-    uint8_t buffer[4];
-    buffer[0] = data[offset];
-    buffer[1] = data[offset+1];
-    buffer[2] = data[offset+2];
-    buffer[3] = data[offset+3];
-    i = (buffer[2] << 16) | (buffer[1] << 8) | (buffer[0] << 0);
-    if (buffer[2] & 0x80) {
-        i = (0xff << 24) | i;
+bool AREA::contains(const Vector3D &point) const {
+    if (this->AreaType == 'S') {
+        float dx = point.x - this->position.x;
+        float dy = point.y - this->position.y;
+        float dz = point.z - this->position.z;
+        return std::sqrt(dx * dx + dy * dy + dz * dz) <= this->radius;
     }
-    return i;
+    if (point.y < this->position.y || point.y > this->position.y + this->height) {
+        return false;
+    }
+    if (this->AreaType == 'C') {
+        float dx = point.x - this->position.x;
+        float dz = point.z - this->position.z;
+        return std::sqrt(dx * dx + dz * dz) <= this->radius;
+    }
+    if (this->AreaType == 'B') {
+        return point.x >= this->position.x - this->west && point.x <= this->position.x + this->east &&
+               point.z >= this->position.z - this->north && point.z <= this->position.z + this->south;
+    }
+    return false;
 }
 void RSMission::parseMISN_SPOT(uint8_t *data, size_t size) {
-    size_t numParts = size / 14;
-    ByteStream stream(data, size);
-    for (int i = 0; i < numParts; i++) {
+    size_t numSpots = size / 14;
+    for (size_t i = 0; i < numSpots; i++) {
+        ByteStream stream(data + i * 14, 14);
         SPOT *spt = new SPOT();
-        if (spt != NULL) {
-            spt->id = i;
-            spt->area_id = 0;
-            spt->area_id |= stream.ReadByte() << 0;
-            spt->area_id |= stream.ReadByte() << 8;
-
-            spt->unknown1 = stream.ReadByte();
-            int32_t x, z;
-            int16_t y;
-            x = stream.ReadInt24LE();
-            z = stream.ReadInt24LE();
-            y = 0;
-            y |= stream.ReadByte() << 0;
-            y |= stream.ReadByte() << 8;
-            spt->position = Vector3D(x * BLOCK_COORD_SCALE, y * HEIGH_MAP_SCALE, -z * BLOCK_COORD_SCALE);
-            
-            spt->unknown2 = stream.ReadByte();
-            this->mission_data.spots.push_back(spt);
-        }
+        spt->id = (int) i;
+        // Index de zone sur 16 bits (PtrList_GetAt_53034) ; 65535 donne -1.
+        spt->area_id = (short) stream.ReadUShort();
+        float c0 = stream.ReadFixedFloatLE();
+        float c1 = stream.ReadFixedFloatLE();
+        float c2 = stream.ReadFixedFloatLE();
+        spt->position = Vector3D(c0 * BLOCK_COORD_SCALE, c2 * HEIGH_MAP_SCALE, -c1 * BLOCK_COORD_SCALE);
+        this->mission_data.spots.push_back(spt);
     }
 }
 void RSMission::parseMISN_NUMS(uint8_t *data, size_t size) {
@@ -306,41 +279,38 @@ void RSMission::parseMISN_PROG(uint8_t *data, size_t size) {
     this->paseMissionScript(data, size);
 }
 void RSMission::parseMISN_PART(uint8_t *data, size_t size) {
-    ByteStream stream(data, size);
     size_t numParts = size / 62;
-    for (int i = 0; i < numParts; i++) {
+    for (size_t i = 0; i < numParts; i++) {
+        ByteStream stream(data + i * 62, 62);
         MISN_PART *prt = new MISN_PART();
-        prt->id = 0;
-        prt->id |= stream.ReadByte() << 0;
-        prt->id |= stream.ReadByte() << 8;
+        prt->id = (uint8_t) stream.ReadUShort();
         prt->member_name = stream.ReadString(8);
         std::transform(prt->member_name.begin(), prt->member_name.end(), prt->member_name.begin(), ::toupper);
         prt->member_name_destroyed = stream.ReadString(8);
         std::transform(prt->member_name_destroyed.begin(), prt->member_name_destroyed.end(), prt->member_name_destroyed.begin(), ::toupper);
         prt->weapon_load = stream.ReadString(8);
         std::transform(prt->weapon_load.begin(), prt->weapon_load.end(), prt->weapon_load.begin(), ::toupper);
-        
-        prt->area_id = stream.ReadByte();
-        prt->unknown1 = stream.ReadByte();
-        prt->unknown2 = 0;
-        prt->unknown2 |= stream.ReadByte() << 0;
-        prt->unknown2 |= stream.ReadByte() << 8;
-        int32_t x, z;
-        int16_t y;
-        x = stream.ReadInt24LE();
-        z = stream.ReadInt24LE();
-        y = 0;
-        y |= stream.ReadByte() << 0;
-        y |= stream.ReadByte() << 8;
-        prt->position = Vector3D(x * BLOCK_COORD_SCALE, y * HEIGH_MAP_SCALE, -z * BLOCK_COORD_SCALE);
 
-        prt->unknown3 = stream.ReadByte();
-        prt->azymuth = 0;
-        prt->azymuth |= stream.ReadByte() << 0;
-        prt->azymuth |= stream.ReadByte() << 8;
-        for (int k = 0; k < 11; k++) {
-            prt->unknown_bytes.push_back(stream.ReadByte());
-        }
+        uint16_t area_index = stream.ReadUShort();
+        prt->area_id = area_index >= 255 ? 255 : (uint8_t) area_index;
+        prt->placement = stream.ReadByte() != 0 ? 1 : 0;
+        float c0 = stream.ReadFixedFloatLE();
+        float c1 = stream.ReadFixedFloatLE();
+        float c2 = stream.ReadFixedFloatLE();
+        prt->position = Vector3D(c0 * BLOCK_COORD_SCALE, c2 * HEIGH_MAP_SCALE, -c1 * BLOCK_COORD_SCALE);
+        prt->azymuth = stream.ReadUShort();
+        prt->relative_position = prt->position;
+        prt->relative_azymuth = prt->azymuth;
+
+        prt->speed = stream.ReadShort();
+        prt->team = stream.ReadByte();
+        prt->follow_ally = stream.ReadByte();
+        // Octet 47 : pas recopié par le chargeur, rôle non établi.
+        prt->unknown_byte_47 = stream.ReadByte();
+        prt->formation_side = stream.ReadShort();
+        prt->formation_ahead = stream.ReadShort();
+        prt->formation_up = stream.ReadShort();
+
         for (int k = 0; k < 4; k++) {
             prt->progs_id.push_back(stream.ReadByte());
             stream.ReadByte();
@@ -375,28 +345,48 @@ void RSMission::parseMISN_PLAY_SCEN(uint8_t *data, size_t size) {
     scen->is_active = stream.ReadByte();
     scen->area_id = stream.ReadShort();
     int16_t prog_id = 0;
-    for (int i = 0 ; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
         prog_id = stream.ReadShort();
         scen->progs_id.push_back(prog_id);
     }
     scen->on_is_activated = scen->progs_id[0];
-    scen->on_leaving = scen->progs_id[1];
-    scen->on_mission_update = scen->progs_id[2];
-    scen->is_coord_on_area = stream.ReadByte();
-    for (int i = 0; i < 14; i++) {
-        scen->unknown_bytes.push_back(stream.ReadByte());
-    }
+    scen->on_mission_update = scen->progs_id[1];
+    scen->on_leaving = scen->progs_id[2];
+    // MissionScene_ParseRecord_AA3A5, lu par Autopilot_JumpSequence_7A054
+    scen->has_arrival_point = stream.ReadByte() != 0;
+    scen->arrival_heading = stream.ReadShort();
+    int32_t c0 = stream.ReadInt32LE();
+    int32_t c1 = stream.ReadInt32LE();
+    int32_t c2 = stream.ReadInt32LE();
+    scen->arrival_position.x = c0 / 256.0f;
+    scen->arrival_position.y = c2 / 256.0f;
+    scen->arrival_position.z = -c1 / 256.0f;
     size_t read = 24;
     while (read < size) {
-        scen->cast.push_back(stream.ReadByte());
-        stream.ReadByte();
-        read+=2;
+        scen->cast.push_back(stream.ReadUShort());
+        read += 2;
     }
     this->mission_data.scenes.push_back(scen);
 }
 void RSMission::parseMISN_LOAD(uint8_t *data, size_t size) {
-    
+    size_t count = size / 9;
+    for (size_t i = 0; i < count; i++) {
+        ByteStream stream(data + i * 9, 9);
+        MISN_LOAD *load = new MISN_LOAD();
+        load->name = stream.ReadString(8);
+        std::transform(load->name.begin(), load->name.end(), load->name.begin(), ::toupper);
+        load->flag = stream.ReadByte();
+        this->mission_data.load.push_back(load);
+    }
 }
 void RSMission::parseMISN_CACH(uint8_t *data, size_t size) {
-    
+    size_t count = size / 10;
+    for (size_t i = 0; i < count; i++) {
+        ByteStream stream(data + i * 10, 10);
+        MISN_CACH *cache = new MISN_CACH();
+        cache->name = stream.ReadString(8);
+        std::transform(cache->name.begin(), cache->name.end(), cache->name.begin(), ::toupper);
+        cache->count = stream.ReadUShort();
+        this->mission_data.cache.push_back(cache);
+    }
 }

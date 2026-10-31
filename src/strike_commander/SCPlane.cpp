@@ -592,10 +592,10 @@ SCPlane::SCPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELE
     
 }
 SCPlane::~SCPlane() {
-    for (auto smoke: this->smoke_set->textures) {
-        glDeleteTextures(1, &smoke->id);
-        smoke->initialized = false;
+    if (this->subscription_id != -1) {
+        MessageBus::getInstance().unsubscribe(this->subscription_id);
     }
+    delete this->smoke_set;
     if (this->weapon_predictor) {
         delete this->weapon_predictor;
         this->weapon_predictor = nullptr;
@@ -658,8 +658,11 @@ void SCPlane::init() {
     this->control_stick_y = 0;
     this->ptw.Clear();
     this->incremental.Clear();
-    this->smoke_set = new SCSmokeSet();
-    this->smoke_set->init();
+    if (this->smoke_set == nullptr) {
+        this->smoke_set = new SCSmokeSet();
+    }
+    this->smoke_set->init(&RSSmokeSet::getInstance(), 6, (uint32_t)(uintptr_t)this);
+    this->smoke_falling = false;
 }
 
 void SCPlane::Simulate() {
@@ -742,28 +745,7 @@ void SCPlane::Simulate() {
     this->object->entity->position.x = this->x;
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
-    const float rise_speed = 1.0f; // Adjust this value to control the rise speed of the smoke
-    if (this->object->alive == false) {
-        Vector3D smoke_position = {this->x, this->y, this->z};
-
-        this->smoke_positions.insert(this->smoke_positions.begin(), smoke_position);
-        if (this->smoke_anim_counters.size() < this->smoke_set->smoke_textures.size() + 10) {
-            this->smoke_anim_counters.insert(this->smoke_anim_counters.begin(), 0);
-        }
-        if (this->smoke_positions.size() > this->smoke_set->smoke_textures.size() + 10) {
-            this->smoke_positions.pop_back();
-            if (this->smoke_anim_counters.size() > this->smoke_set->smoke_textures.size() + 10) {
-                this->smoke_anim_counters.pop_back();
-            }
-        }
-
-        // fait monter chaque puff indépendamment de l'ordre d'insertion/suppression
-        if (this->crached) {
-            for (auto &pos : this->smoke_positions) {
-                pos.y += rise_speed;
-            }
-        }
-    }
+    this->updateSmoke();
     this->tick_counter++;
     this->azimuthf = this->yaw;
     this->elevationf = this->pitch;
@@ -1391,48 +1373,50 @@ void SCPlane::Render() {
         }
     }
 }
-void SCPlane::RenderSmoke() {
-    int cpt = 0;
-    const int MAX_SMOKE=7;
-    std::map<int, int> anim_map = {
-        {0, 0}, {1, 1}, {2, 3}, {3, 2}, {4, 4}, {5, 2}, {6, 4}
-    };
-    
-
-    // Ensure we don't divide by zero
-    int frames_per_tick = this->tps / 12;
-    if (frames_per_tick < 1) frames_per_tick = 1;
-    this->anim_ticks++;
-    int anim_frame = 0;
-    int nb_smoke = (int) this->smoke_positions.size();
-    for (auto pos: this->smoke_positions) {
-        int id_anim = 4;
-        if (cpt < 5) {
-            cpt++;
-            continue;
+// Avion abattu : traînée du modèle de chute (JINF) depuis le point du chunk SMOK (Aircraft_OnDestroyed_9D770). Au sol,
+// l'épave fume sur place et les particules montent de 1 m par tick.
+void SCPlane::updateSmoke() {
+    int rate = this->tps > 0 ? this->tps : 25;
+    float dt = 1.0f / (float)rate;
+    if (this->object->alive == false) {
+        RSEntity *entity = this->object->entity;
+        if (!this->smoke_falling) {
+            this->smoke_falling = true;
+            this->smoke_set->setModel(entity->fall_smoke);
+            printf("[SMOKE] avion abattu : modèle %d (JINF %u), chunk SMOK %s, point (%.2f, %.2f, %.2f)\n",
+                   this->smoke_set->getModel(), entity->fall_smoke, entity->smoke.present ? "présent" : "absent",
+                   entity->smoke.x, entity->smoke.y, entity->smoke.z);
         }
-        
-        int id_map = (cpt - 5);
-        if (id_map >= anim_map.size()-1) {
-            id_map = (int) (anim_map.size()-1)-(cpt % 2);
+        Vector3D position = {
+            this->x,
+            this->y,
+            this->z
+        };
+        if (this->crached) {
+            Vector3D rise = {
+                0.0f,
+                (float)rate,
+                0.0f
+            };
+            this->smoke_set->spawn(position, rise);
+        } else {
+            Vector3D orientation = {
+                tenthOfDegreeToRad(this->yaw + 900),
+                tenthOfDegreeToRad(this->pitch),
+                -tenthOfDegreeToRad(this->roll)
+            };
+            Vector3D local = {
+                entity->smoke.x,
+                entity->smoke.y,
+                entity->smoke.z
+            };
+            this->smoke_set->emitTrail(smokeEmissionPoint(position, orientation, local), this->worldVelocity(), dt);
         }
-        id_anim = anim_map[id_map];
-        int frame = 0;
-        if (id_anim < 0 || id_anim >= this->smoke_set->smoke_textures.size()) {
-            continue;
-        }
-        if (this->smoke_set->smoke_textures[id_anim].size() > 0) {
-            if (this->anim_ticks % frames_per_tick == 0) {
-                this->smoke_anim_counters[cpt] = (this->smoke_anim_counters[cpt]+1) % (this->smoke_set->smoke_textures[id_anim].size());
-            }
-            float alpha = ((nb_smoke-5) - (cpt-5)) / ((float) nb_smoke-5.0f);
-            Texture *tex = this->smoke_set->smoke_textures[id_anim][this->smoke_anim_counters[cpt]];
-            if (tex != nullptr) {
-                Renderer.drawBillboard(pos, tex, 10, alpha);
-            }
-        }
-        cpt++;
     }
+    this->smoke_set->update(dt);
+}
+void SCPlane::RenderSmoke() {
+    this->smoke_set->render(Renderer.camera.getPosition());
 }
 void SCPlane::RenderSimulatedObject() {
     for (auto sim_obj: this->weaps_object) {
@@ -1663,6 +1647,18 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
             weap->no_gravity = false;
             weap->target = target;
         break;
+        case ID_AGM65D:
+            initial_trust = this->getWeaponIntialVector(1.0f);
+            initial_trust.Scale(1.0f/(float)tps);
+            if (this->pilot->mission->sound.sounds.size() > 0) {
+                sound = this->pilot->mission->sound.sounds[SoundEffectIds::AIM9_SHOOT];
+                Mixer.playSoundVoc(sound->data, sound->size);
+            }
+            weap = new AgmSimulatedObject();
+            weap->target = target;
+            weap->guidance = true;
+            weap->no_gravity = false;
+        break;
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
@@ -1798,11 +1794,12 @@ void SCPlane::InitLoadout() {
             }
             
             nbweap -= weap->nb_weap;
+            int per_side = weap->nb_weap;
             int second_hpt_id = (int)this->object->entity->hpts.size()-hpt_id;
             if (second_hpt_id != hpt_id && second_hpt_id < this->weaps_load.size()) {
                 weap = new SCWeaponLoadoutHardPoint();
                 weap->objct = loadout->objct;
-                weap->nb_weap = loadout->nb_weap / 2;
+                weap->nb_weap = per_side;
                 weap->hpts_type = this->object->entity->hpts[second_hpt_id]->id;
                 weap->name = loadout->name;
                 weap->position = {
@@ -1812,14 +1809,9 @@ void SCPlane::InitLoadout() {
                 };
                 weap->hud_pos = {0, 0};
                 this->weaps_load[second_hpt_id] = weap;
+                nbweap -= weap->nb_weap;
             }
             // fin affectation symétrique
-            //
-            maxloadout = max_load_out[loadout->objct->wdat->weapon_id][weap->hpts_type];
-            if (weap->nb_weap > maxloadout) {
-                weap->nb_weap = maxloadout;
-            }
-            nbweap -= weap->nb_weap;
         }
     }
 }

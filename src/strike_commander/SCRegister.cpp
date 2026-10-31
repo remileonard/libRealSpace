@@ -213,9 +213,9 @@ void SCRegister::runFrame(void) {
     std::string callsignDisplay  = (m_activeEditor==2) ? m_editorCallsign->getDisplayText()
                                                        : GameState.player_callsign;
 
-    fb->printText(this->font, {172,104}, firstNameDisplay, 0);
-    fb->printText(this->font, {88,104},  nameDisplay, 0);
-    fb->printText(this->font, {122,110}, callsignDisplay, 0);
+    fb->printText(this->font, {172,98}, firstNameDisplay, 0);
+    fb->printText(this->font, {88,98},  nameDisplay, 0);
+    fb->printText(this->font, {122,104}, callsignDisplay, 0);
 
     Mouse.draw();
 

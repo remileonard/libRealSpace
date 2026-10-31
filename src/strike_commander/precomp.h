@@ -57,6 +57,7 @@
 #include "SCRegister.h"
 
 #include "SCNavMap.h"
+#include "SCCredit.h"
 #include "SCCockpit.h"
 #include "SCStrike.h"
 #include "SCObjectViewer.h"

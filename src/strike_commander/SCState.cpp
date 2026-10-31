@@ -48,11 +48,19 @@ void SCState::Load(std::string filename) {
     this->proj_cash = (0 | (buffer[0x18A] << 8) | buffer[0x189]) * 1000;
     this->cash = this->proj_cash;
     this->over_head = (0 | (buffer[0x18E] << 8) | buffer[0x18D]) * 1000;
-    
+    /*
+        0191 - 0194 - Achats du catalogue pas encore payes, en milliers (Gameflow_SaveGameFile_4DAE8 : dword [partie+643])
+    */
+    this->weapons_costs = (buffer[0x191] | (buffer[0x192] << 8) | (buffer[0x193] << 16) | (buffer[0x194] << 24)) * 1000;
+
     /*
         024D - 024E - Current Score
     */
     this->score = 0 | (buffer[0x24E] << 8) | buffer[0x24D];
+    /*
+        0205 - 0206 - Total des avions perdus (Gameflow_SaveGameFile_4DAE8 : mot [partie+980])
+    */
+    this->lost_aircraft = (buffer[0x206] << 8) | buffer[0x205];
     /*
         019B - # of ground kills
         0199 - # of Air Kills
@@ -140,6 +148,11 @@ void SCState::Save(std::string filename) {
     buffer[0x18A] = ((this->proj_cash / 1000) >> 8) & 0xFF;
     buffer[0x18D] = (this->over_head / 1000) & 0xFF;
     buffer[0x18E] = ((this->over_head / 1000) >> 8) & 0xFF;
+    int32_t purchases = this->weapons_costs / 1000;
+    buffer[0x191] = purchases & 0xFF;
+    buffer[0x192] = (purchases >> 8) & 0xFF;
+    buffer[0x193] = (purchases >> 16) & 0xFF;
+    buffer[0x194] = (purchases >> 24) & 0xFF;
 
     // Kills
     buffer[0x19B] = this->ground_kills;
@@ -185,6 +198,8 @@ void SCState::Save(std::string filename) {
               this->wingman.length() > 19 ? this->wingman.begin() + 19 : this->wingman.end(), 
               buffer.begin() + 0x208);
 
+    buffer[0x205] = this->lost_aircraft & 0xFF;
+    buffer[0x206] = (this->lost_aircraft >> 8) & 0xFF;
     buffer[0x24C] = this->tune_modifier;
     // Score
     buffer[0x24D] = this->score & 0xFF;
@@ -218,4 +233,6 @@ void SCState::Reset() {
     this->tune_modifier = 1;
     this->player_dead = false;
     this->player_ejected = false;
+    this->lost_aircraft = 0;
+    this->weapons_costs = 0;
 }

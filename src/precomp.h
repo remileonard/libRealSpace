@@ -81,6 +81,7 @@ extern "C" {
     #include "RSHud.h"
     #include "RSCockpit.h"
     #include "RSNavMap.h"
+    #include "RSCredits.h"
     #include "RSWorld.h"
     #include "RSMission.h"
     

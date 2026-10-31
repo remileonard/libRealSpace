@@ -13,6 +13,8 @@ DebugGameFlow::~DebugGameFlow() {}
 void DebugGameFlow::flyMission(uint8_t missionid) {
     SCStrike *fly = new DebugStrike();
     fly->init();
+    fly->player_loadout = this->player_loadout_pending;
+    this->player_loadout_pending = false;
     fly->setMission(this->missionToFly);
     this->missionToFly = nullptr;
     fly_mission.push(fly);
@@ -22,7 +24,7 @@ void DebugGameFlow::playConv(uint8_t convId) {
     SCConvPlayer *conv = new DebugConvPlayer();
     conv->init();
     conv->SetID(convId);
-    this->convs.push(conv);
+    this->pending_activities.push(conv);
 }
 void DebugGameFlow::renderConvPlayer() {
     ImGui::Begin("Convert Player", &conv_player);
@@ -33,7 +35,7 @@ void DebugGameFlow::renderConvPlayer() {
                 SCConvPlayer *conv = new DebugConvPlayer();
                 conv->init();
                 conv->SetID(i);
-                this->convs.push(conv);
+                this->pending_activities.push(conv);
             }
         }
         ImGui::EndCombo();
@@ -69,6 +71,12 @@ void DebugGameFlow::renderMenu() {
         ImGui::MenuItem("Info", NULL, &show_scene_window);
         ImGui::MenuItem("GameState", NULL, &show_gamestate);
         ImGui::MenuItem("Music Player", NULL, &show_music_player);
+        if (ImGui::MenuItem("Credits")) {
+            this->playCredits(false);
+        }
+        if (ImGui::MenuItem("Credits THE END")) {
+            this->playCredits(true);
+        }
         ImGui::EndMenu();
     }
     int sceneid = -1;
@@ -161,7 +169,7 @@ void DebugGameFlow::renderMenu() {
                     SCShot *sht = new SCShot();
                     sht->init();
                     sht->SetShotId(shot.first);
-                    this->cutsenes.push(sht);
+                    this->pending_activities.push(sht);
                 }
             }
             ImGui::EndCombo();

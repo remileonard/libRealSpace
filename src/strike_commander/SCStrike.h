@@ -209,6 +209,8 @@ protected:
     SCSimulatedObject* ejected_object{nullptr};
 public:
     float verticalOffset{0.45f};
+    // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).
+    bool player_loadout{false};
     /**
      * @brief Constructor
      */
@@ -220,7 +222,8 @@ public:
     /**
      * @brief Initializes the game
      */
-    void init();
+    void init() override;
+    void start(void) override;
     /**
      * @brief Sets the current mission
      * @param missionName The name of the mission to load
@@ -247,7 +250,7 @@ public:
     /**
      * @brief Runs the game simulation
      */
-    void runFrame(void);
+    void runFrame(void) override;
 };
 
 #endif /* defined(__libRealSpace__SCStrike__) */

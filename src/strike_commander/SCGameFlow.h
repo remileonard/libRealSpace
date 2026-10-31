@@ -89,15 +89,27 @@ protected:
     std::vector<EFCT *> *efect;
     std::vector<SCZone *> *zones;
 
-    std::queue<SCConvPlayer *> convs;
-    std::queue<SCShot *> cutsenes;
+    // Plans, cartes, cinematiques et conversations, joues dans l'ordre du script (Gameflow_RunScriptPairs_36CF).
+    std::queue<IActivity *> pending_activities;
+    // Le vol part a la fin du script (Gameflow_MainLoop_3D2E, etat 1).
     std::queue<SCStrike *> fly_mission;
-    std::queue<SCAnimationPlayer *> mid_games;
-    
+    // Etat des tests du script suspendu, garde jusqu'a sa reprise.
+    static constexpr int MAX_IF_DEPTH = 10;
+    bool script_execute[MAX_IF_DEPTH]{};
+    bool script_else_seen[MAX_IF_DEPTH]{};
+    int script_if_depth{ 0 };
+
     RLEShape *test_shape{nullptr};
     SCScene *scen{nullptr};
     SCFileRequester *frequest{nullptr};
     bool isGameOver{false};
+    bool mission_report_pending{false};
+    bool weapon_loadout_requested{false};
+    bool player_loadout_pending{false};
+    uint8_t weapon_loadout_id{ 255 };
+    void applyMissionReport(void);
+    void setMusic(uint8_t track);
+    void openTest(bool *executeStack, bool *elseEncountered, int &ifDepth, int maxDepth, bool result, const char *name);
     void clicked(std::vector<EFCT *> *script, uint8_t id);
     void loadGame(std::string filename);
     void saveGame(std::string filename);
@@ -112,6 +124,7 @@ protected:
     virtual void playShot(uint8_t shotId);
     virtual void playConv(uint8_t convId);
     virtual void playMidGame(uint8_t midGameId);
+    void playCredits(bool the_end_only, bool wait_music_end = false);
     virtual void playShowMap(uint8_t mapId);
     virtual void playEndMission();
     virtual bool playFlyMission(uint8_t flyMissionId);

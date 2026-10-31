@@ -9,4 +9,5 @@ public:
     PSStrike();
     ~PSStrike();
     void setMission(char const *missionName);
+    void start(void) override;
 };

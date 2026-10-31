@@ -7,6 +7,20 @@
 //
 
 #pragma once
+#include <array>
+
+// Compte rendu de vol transmis de SCStrike à SCGameFlow : contenu de misn2op.iff (GAMEFLOW_SYSTEM.md § 6).
+struct MissionReport {
+    uint8_t exit_code{0};                                                    // EXIT (2 = joueur mort)
+    std::string mission_name;                                                // INFO
+    std::unordered_map<uint8_t, int16_t> weapons_left;                       // WPNS : nouveau stock, par weapon_ids
+    bool weapons_reported{false};                                            // WPNS ecrit (stock pris au depart)
+    int16_t planes_lost{0};                                                  // JETS
+    std::array<int16_t, 8> results{};                                        // STAT, par numéro de valeur
+    std::unordered_map<uint8_t, std::unordered_map<uint8_t, int16_t>> kills; // KILL : PilotsId, KillBoardType
+    std::vector<std::string> died;                                           // DIED
+    int32_t score{0};                                                        // SCOR
+};
 
 class SCState {
 private:
@@ -42,6 +56,7 @@ public:
     bool player_dead{false};
     bool player_ejected{false};
     int32_t lost_aircraft{0};
+    MissionReport mission_report;
 
     static SCState& getInstance() {
         if (!SCState::hasInstance()) {

@@ -207,11 +207,17 @@ bool SCMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
  */
 bool SCMissionActors::activateTarget(uint8_t arg) {
     for (auto actor: this->mission->actors) {
-        if (actor->actor_id == arg && actor->is_active == false && actor->is_destroyed == false) {
+        if (actor->actor_id == arg && actor->is_active == false) {
+            if (actor->is_destroyed) {
+                this->mission->respawnActor(actor);
+            }
             actor->is_active = true;
             actor->is_hidden = false;
             Vector3D correction = {0.0f, 0.0f, 0.0f};
-            if (actor->object->area_id != 255 && actor->object->unknown2 == 0) {
+            if (actor->object->placement != 0) {
+                // Repère de l'avion du joueur : décalage tourné, cap = cap du joueur + cap du fichier.
+                this->mission->placeRelativeToPlayer(actor);
+            } else if (actor->object->area_id != 255) {
                 bool spot_found = false;
                 for (auto spot: this->mission->mission->mission_data.spots) {
                     if (spot->area_id == actor->object->area_id) {
@@ -223,21 +229,14 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                 if (!spot_found) {
                     correction = this->mission->mission->mission_data.areas[actor->object->area_id]->position;
                 }
-            } else {
-                correction = {
-                    this->mission->player->plane->x,
-                    this->mission->player->plane->y,
-                    this->mission->player->plane->z
-                };
-            }
-            if ((actor->object->area_id != 255) || (actor->object->area_id == 255 && actor->object->unknown2 == 1)) {
                 actor->object->position += correction;
             }
             float ground_y = this->mission->area->getY(actor->object->position.x, actor->object->position.z);
             if (actor->object->position.y < ground_y) {
                 actor->object->position.y = ground_y;
             } else {
-                if (actor->plane != nullptr) {
+                // Vitesse initiale nulle : l'avion reste au sol (PartEntry_ResolveSpawnPositionAndActivate_51EDC).
+                if (actor->plane != nullptr && actor->object->speed != 0) {
                     actor->pilot->target_climb = (int) (actor->object->position.y);
                     actor->pilot->target_speed = -20;
                     actor->plane->vz = -20;
@@ -248,7 +247,12 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                     actor->object->position.y = ground_y+10.0f;
                     actor->plane->on_ground = true;
                 } else {
-                    actor->plane->on_ground = false;
+                    actor->plane->on_ground = actor->object->speed == 0;
+                }
+                if (actor->plane->on_ground) {
+                    if (actor->plane->GetWheel() == 0) {
+                        actor->plane->SetWheel();
+                    }
                 }
                 actor->plane->x = actor->object->position.x;
                 actor->plane->y = actor->object->position.y;
@@ -438,9 +442,37 @@ SCMissionActors::SCMissionActors() {
 }
 SCMissionActors::~SCMissionActors() {
     delete this->brain;
+    delete this->smoke;
     if (subscription_id != -1) {
         MessageBus::getInstance().unsubscribe(subscription_id);
     }
+}
+void SCMissionActors::startSmokeGenerator() {
+    RSEntity *entity = this->object->entity;
+    if (this->plane != nullptr || this->smoke != nullptr || !entity->has_smoke_generator) {
+        return;
+    }
+    this->smoke = new SCSmokeSet();
+    this->smoke->init(&RSSmokeSet::getInstance(), entity->smoke_generator.type, (uint32_t)(uintptr_t)this);
+    this->smoke->startGenerator(entity->smoke_generator);
+    printf("[SMOKE] %s : générateur SMKG, modèle %u, durée %.2f s, montée %.2f m/s, intervalle %.3f s, chance %u, "
+           "suppression %u -> %s\n",
+           this->actor_name.c_str(), entity->smoke_generator.type, entity->smoke_generator.duration,
+           entity->smoke_generator.rise, entity->smoke_generator.interval, entity->smoke_generator.chance,
+           entity->smoke_generator.removeAtEnd, this->smoke->isGeneratorActive() ? "actif" : "inactif (tirage)");
+}
+void SCMissionActors::updateSmoke(float dt) {
+    if (this->smoke == nullptr) {
+        return;
+    }
+    bool was_active = this->smoke->isGeneratorActive();
+    if (!this->smoke->emitGenerator(this->object->position, dt)) {
+        this->is_hidden = true;
+        printf("[SMOKE] %s : fin du générateur SMKG, objet supprimé\n", this->actor_name.c_str());
+    } else if (was_active && !this->smoke->isGeneratorActive()) {
+        printf("[SMOKE] %s : fin du générateur SMKG, émission arrêtée\n", this->actor_name.c_str());
+    }
+    this->smoke->update(dt);
 }
 void SCMissionActors::onEvent(const EventMessage &event) {
     if (auto eventData = dynamic_cast<const MissionEventActorHit*>(&event)) {
@@ -453,6 +485,10 @@ void SCMissionActors::onEvent(const EventMessage &event) {
     }
     if (auto eventData = dynamic_cast<const AIRefreshEvent*>(&event)) {
         this->onAIRefresh(*eventData);
+        return;
+    }
+    if (auto eventData = dynamic_cast<const MissionEventActorDestroyed*>(&event)) {
+        this->onActorDestroyed(*eventData);
         return;
     }
 }
@@ -492,28 +528,6 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         destroyed_event.actor = ai_actor;
         destroyed_event.mission = mission;
         this->messageBus.publish(std::make_unique<MissionEventActorDestroyed>(destroyed_event));
-        if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane == nullptr) {
-            ai_actor->is_active = false;
-            SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, mission, ai_actor->object->on_is_destroyed);
-            p->execute();
-            delete p;
-        }
-        if (ai_actor->object->member_name_destroyed != "") {
-            RSEntity *entity = mission->LoadEntity(ai_actor->object->member_name_destroyed);
-            if (entity != nullptr && ai_actor->object->entity->jdyn == nullptr) {
-                ai_actor->object->entity = entity;
-            }
-        }
-        if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
-            if (ai_actor->object->entity->jdyn == nullptr) {
-                ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
-            }
-        }
-        if (ai_actor->target != nullptr) {
-            if (ai_actor->target->attacker == ai_actor) {
-                ai_actor->target->attacker = nullptr;
-            }
-        }
     }
     for (auto weapon: ai_actor->weapons_shooted) {
         if (weapon) {
@@ -546,7 +560,6 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         return;
     }
 
-    // tant qu'un ordre radio est en cours (onAIRefresh), le script de mission ne reprend pas la main
     if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
         mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
         SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
@@ -554,7 +567,6 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         delete p;
     }
 
-    // l'avion du joueur est simule par SCStrike, y compris sous cerveau IA de test (DebugStrike)
     if (ai_actor->pilot == nullptr || ai_actor == mission->player) {
         return;
     }
@@ -563,7 +575,6 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     }
     
     ai_actor->plane->Simulate();
-    // Update attack position offset based on plane's yaw to keep it behind the plane
     
 
     ai_actor->pilot->FlyTo();
@@ -580,11 +591,6 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     if (ai_actor->is_destroyed == true && ai_actor->object->position.y < mission->area->getY(ai_actor->object->position.x, ai_actor->object->position.z)) {
         ai_actor->object->alive = false;
         ai_actor->is_active = false;
-        if (ai_actor->on_is_destroyed.size() > 0 && ai_actor->plane != nullptr) {
-            SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, mission, ai_actor->object->on_is_destroyed);
-            p->execute();
-            delete p;
-        }
         mission->explosions.push_back(new SCExplosion(ai_actor->object->entity->explos->objct, ai_actor->object->position));
         if (mission->sound.sounds.size() > 0) {
             RSMixer &Mixer = RSMixer::getInstance();
@@ -629,6 +635,42 @@ void SCMissionActors::onAIRefresh(const AIRefreshEvent &event) {
         }
     }
     this->brain->tick();
+}
+void SCMissionActors::onActorDestroyed(const MissionEventActorDestroyed &event) {
+    SCMissionActors *ai_actor = this;
+    SCMission *mission = event.mission;
+    if (ai_actor != event.actor) {
+        return;
+    }
+
+    if (ai_actor->plane != nullptr) {
+        printf("Actor's plane is destroyed\n");
+    }
+    if (ai_actor->on_is_destroyed.size() > 0) {
+        SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, mission, ai_actor->object->on_is_destroyed);
+        p->execute();
+        delete p;
+    }
+    if (ai_actor->plane == nullptr) {
+        ai_actor->is_active = false;
+    }
+    if (ai_actor->object->member_name_destroyed != "") {
+        RSEntity *entity = mission->LoadEntity(ai_actor->object->member_name_destroyed);
+        if (entity != nullptr && ai_actor->object->entity->jdyn == nullptr) {
+            ai_actor->object->entity = entity;
+        }
+    }
+    if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
+        if (ai_actor->object->entity->jdyn == nullptr) {
+            ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
+        }
+    }
+    ai_actor->startSmokeGenerator();
+    if (ai_actor->target != nullptr) {
+        if (ai_actor->target->attacker == ai_actor) {
+            ai_actor->target->attacker = nullptr;
+        }
+    }
 }
 /**
  * SCMissionActorsPlayer::takeOff

@@ -218,12 +218,11 @@ void SCProg::execute() {
                     uint8_t leader_arg = (uint8_t) prog.arg;
                     MISN_PART *part = this->actor->object;
                     if (leader_arg == 0xFF && part != nullptr) {
-                        leader_arg = part->unknown_bytes[3];
+                        leader_arg = part->follow_ally;
                     }
                     this->task_state = this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, leader_arg) ? 1 : 0;
                     if (part != nullptr && this->actor->current_command == OP_SET_OBJ_FOLLOW_ALLY && this->actor->current_command_arg == leader_arg) {
-                        std::vector<uint8_t> &b = part->unknown_bytes;
-                        this->actor->follow_slot = Vector3D((float) (int16_t) (b[5] | (b[6] << 8)), (float) (int16_t) (b[7] | (b[8] << 8)), (float) (int16_t) (b[9] | (b[10] << 8)));
+                        this->actor->follow_slot = Vector3D((float) part->formation_side, (float) part->formation_ahead, (float) part->formation_up);
                         this->actor->follow_slot_set = true;
                     }
                 }
@@ -307,8 +306,19 @@ void SCProg::execute() {
                     work_register = this->mission->mission->mission_data.flags[prog.arg];
                 break;
                 case OP_SAVE_VALUE_TO_GAMFLOW_REGISTER:
-                    this->mission->gameflow_registers[prog.arg] = work_register;
-                break;
+                    // Expr_VM_Interpreter_51106 cas 0x14 : STAT[n], 8 valeurs (n < 8)
+                    if (prog.arg < 8) {
+                        auto stat = this->mission->gameflow_registers.find(prog.arg);
+                        if (stat == this->mission->gameflow_registers.end() || stat->second != (int16_t)work_register) {
+                            printf("PROG %d: STAT[%d] = %d\n", this->prog_id, prog.arg, work_register);
+                        }
+                        this->mission->gameflow_registers[prog.arg] = (int16_t)work_register;
+                    }
+                    break;
+                case OP_SET_EXIT_CODE:
+                    // Expr_VM_Interpreter_51106 cas 0x0F : byte_706AF = n
+                    this->mission->setExitCode((uint8_t)prog.arg, "script de mission");
+                    break;
                 case OP_MOVE_WORK_REGISTER_TO_FLAG:
                     this->mission->mission->mission_data.flags[prog.arg] = (uint8_t) work_register;
                 break;
@@ -417,8 +427,12 @@ void SCProg::execute() {
                 case OP_IS_TARGET_ACTIVE:
                     for (auto test_actor: this->mission->actors) {
                         if (test_actor->actor_id == prog.arg) {
-                            if ((test_actor->is_active) || (test_actor->actor_name == "PLAYER")) {
+                            if (test_actor->actor_name == "PLAYER") {
                                 compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+                            } else if ((test_actor->is_active) && (test_actor->is_destroyed == false)) {
+                                compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+                            } else if ((test_actor->is_active) && (test_actor->is_destroyed == true)) {
+                                compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
                             } else {
                                 compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
                             }

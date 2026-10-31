@@ -59,7 +59,7 @@ void PSMission::loadMission() {
                 SCMissionActors *actor = new SCMissionActors();
                 if (cast->actor == "PLAYER") {
                     actor = new SCMissionActorsPlayer();
-                    if (part->area_id != 255 && part->unknown2 == 0) {
+                    if (part->area_id != 255 && part->placement == 0) {
                         Vector3D correction = this->mission->mission_data.areas[part->area_id]->position;
                         part->position.x += correction.x;
                         part->position.y += correction.y;
@@ -71,7 +71,7 @@ void PSMission::loadMission() {
                 if (cast->actor == "TEAM0") {
                     cast->actor = GameState.wingman;
                 }
-                actor->team_id = part->unknown_bytes[2];
+                actor->team_id = part->team;
                 actor->actor_name = cast->actor;
                 actor->actor_id = part->id;
                 actor->object = part;
@@ -253,7 +253,8 @@ void PSMission::loadMission() {
     }
     for (auto spot: this->mission->mission_data.spots) {
         spot->origin = {spot->position.x, spot->position.y, spot->position.z};
-        if (spot->area_id != -1) {
+        // AreaRelPos_ToWorld_50EEB : zone absente ou hors liste -> décalage absolu.
+        if (spot->area_id >= 0 && (size_t) spot->area_id < this->mission->mission_data.areas.size()) {
             AREA *ar = this->mission->mission_data.areas[spot->area_id];
             spot->position += ar->position;
         }

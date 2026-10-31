@@ -26,7 +26,6 @@ SCJdynPlane::SCJdynPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, f
     this->az = 0.0f;
     this->weaps_load.reserve(9);
     this->weaps_load.resize(9);
-    this->alive = 0;
     this->status = 0;
     this->x = 0.0f;
     this->y = 0.0f;
@@ -177,28 +176,7 @@ void SCJdynPlane::Simulate() {
     this->object->entity->position.x = this->x;
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
-    const float rise_speed = 1.0f; // Adjust this value to control the rise speed of the smoke
-    if (this->object->alive == false) {
-        Vector3D smoke_position = {this->x, this->y, this->z};
-
-        this->smoke_positions.insert(this->smoke_positions.begin(), smoke_position);
-        if (this->smoke_anim_counters.size() < this->smoke_set->smoke_textures.size() + 10) {
-            this->smoke_anim_counters.insert(this->smoke_anim_counters.begin(), 0);
-        }
-        if (this->smoke_positions.size() > this->smoke_set->smoke_textures.size() + 10) {
-            this->smoke_positions.pop_back();
-            if (this->smoke_anim_counters.size() > this->smoke_set->smoke_textures.size() + 10) {
-                this->smoke_anim_counters.pop_back();
-            }
-        }
-
-        // fait monter chaque puff indépendamment de l'ordre d'insertion/suppression
-        if (this->crached) {
-            for (auto &pos : this->smoke_positions) {
-                pos.y += rise_speed;
-            }
-        }
-    }
+    this->updateSmoke();
     this->tick_counter++;
     this->azimuthf = this->yaw;
     this->elevationf = this->pitch;

@@ -7,64 +7,6 @@
 //
 #include "precomp.h"
 
-namespace {
-    struct LabelBox {
-        int x,y,w,h;
-    };
-    static std::vector<LabelBox> g_labelBoxes;
-
-    inline bool intersects(const LabelBox &a, const LabelBox &b) {
-        return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-    }
-
-    Point2D placeLabel(int anchorX, int anchorY, int w, int h) {
-        // Positions candidates (dx, dy appliqués au point d’ancrage)
-        static const std::vector<std::pair<int,int>> candidates = {
-            { 0, 0},
-            { 0,-h },
-            { 0, h },
-            { 0, h},
-            { w, 0 },
-            { w,-h },
-            { w, h },
-            { -w, 0},
-            { -w,-h },
-            { -w, h }
-        };
-        for (auto &c : candidates) {
-            LabelBox box { anchorX + c.first, anchorY + c.second, w, h };
-            bool clash = false;
-            for (auto &b : g_labelBoxes) {
-                if (intersects(box, b)) { clash = true; break; }
-            }
-            if (!clash) {
-                g_labelBoxes.push_back(box);
-                return Point2D{ box.x, box.y };
-            }
-        }
-        // Fallback : empiler vers le bas
-        int yOff = 6;
-        while (yOff < 60) {
-            LabelBox box { anchorX - w/2, anchorY + yOff, w, h };
-            bool clash = false;
-            for (auto &b : g_labelBoxes) {
-                if (intersects(box, b)) { clash = true; break; }
-            }
-            if (!clash) {
-                g_labelBoxes.push_back(box);
-                return Point2D{ box.x, box.y };
-            }
-            yOff += h + 2;
-        }
-        // Dernier recours : ne pas enregistrer (risque chevauchement)
-        return Point2D{ anchorX - w/2, anchorY + 4 };
-    }
-
-    inline void ResetLabelBoxes() {
-        g_labelBoxes.clear();
-    }
-}
-
 SCNavMap::SCNavMap(){
     this->navMap = nullptr;
     if (Game == nullptr) {
@@ -201,13 +143,7 @@ void SCNavMap::runFrame(void) {
     VGA.upscale = false;
     VGA.activate();
     VGA.getFrameBuffer()->clear();
-    ResetLabelBoxes();
     VGA.setPalette(&this->palette);
-    
-    //Draw static
-    used_areas.clear();
-    float center = BLOCK_WIDTH * 9.0f;
-    float map_width = BLOCK_WIDTH * 18.0f;
     RLEShape *map_shape = nullptr;
     if (this->navMap != nullptr && this->name != nullptr) {
         if (this->navMap->maps.count(*this->name)>0) {
@@ -217,17 +153,24 @@ void SCNavMap::runFrame(void) {
         }
     }
     if (map_shape != nullptr) {
+        // GlyphObject_MeasureAndDraw_7F587 : la carte, ce qui est dessus (NavMap_DrawMissionObjects_7EDCA), le cadre,
+        // puis le panneau de droite.
         VGA.getFrameBuffer()->drawShape(map_shape);
+        this->label_boxes.clear();
+        if (show_waypoint) {
+            this->drawAreaOutlines();
+        }
+        if (show_obj) {
+            this->drawObjects();
+        }
+        if (show_waypoint) {
+            this->drawAreaNames();
+        }
         RLEShape *shape = this->navMap->background;
         if (shape != nullptr) {
             VGA.getFrameBuffer()->drawShape(shape);
         }
-        Point2D pos = map_shape->position;
-        int w = 238;
-        int h = 155;
-        int t = 18;
-        int l = 6;
-        
+
         std::string leader = "solo";
         if (this->mission->friendlies.size() > 0) {
             leader = this->mission->friendlies[0]->profile->radi.info.callsign;
@@ -306,9 +249,6 @@ void SCNavMap::runFrame(void) {
             int cpt = 0;
             
             for (auto wp: this->mission->waypoints) {
-                int newx = (int) (((wp->spot->position.x+center)/map_width)*w)+l;
-                int newy = (int) (((wp->spot->position.z+center)/map_width)*h)+t;
-                int c = 134;
                 if (cpt == *this->current_nav_point) {
                     int msg_newx = 252;
                     int msg_newy = 80;
@@ -374,66 +314,8 @@ void SCNavMap::runFrame(void) {
                             true, false
                         );
                     }
-                    c = 255;
-                    if (wp->spot->area_id >= 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
-                        newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
-                        newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
-                        if (newx>0 && newx<320 && newy>0 && newy<200) {
-                            VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
-                            VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
-                        }
-                        this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
-                    }   
-                    
-                } else {
-                    if (wp->spot->area_id != 255 && wp->spot->area_id >= 0 && wp->spot->area_id < this->missionObj->mission_data.areas.size()) {
-                        newx = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.x+center)/map_width)*w)+l;
-                        newy = (int) (((this->missionObj->mission_data.areas[wp->spot->area_id]->position.z+center)/map_width)*h)+t;
-                        if (used_areas.find(wp->spot->area_id) == used_areas.end()) {
-                            
-                            if (newx>0 && newx<320 && newy>0 && newy<200) {
-                                VGA.getFrameBuffer()->plot_pixel(newx, newy, 128);
-                                VGA.getFrameBuffer()->circle_slow(newx, newy, 3, 1);
-                            }
-                            this->showArea(this->missionObj->mission_data.areas[wp->spot->area_id], center, map_width, w, h, t, l, c);
-                        }                    
-                    }
-                    
                 }
                 cpt++;
-            }
-        }
-        if (show_obj) {
-            // NavMap_DrawMissionObjects_7EDCA : objets marques (bit 4 de +0x39), couleur selon le camp
-            for (auto friends : this->mission->actors) {
-                if (!friends->on_nav_map) continue;
-                if (friends->is_active == 0 && friends->actor_name != "PLAYER") continue;
-                int newx = (int) (((friends->object->position.x+center)/map_width)*w)+l;
-                int newy = (int) (((friends->object->position.z+center)/map_width)*h)+t;
-                if (newx>0 && newx<320 && newy>0 && newy<200) {
-                    
-
-                    std::string name = (friends->profile != nullptr) ? friends->profile->radi.info.callsign : "FRIEND";
-                    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-
-                    int glyphW = this->navMap->font->GetShapeForChar('A')->GetWidth();
-                    int glyphH = this->navMap->font->GetShapeForChar('A')->GetHeight();
-                    int labelW = (int)name.size() * (glyphW + 1);
-                    int labelH = glyphH;
-
-                    Point2D obj_pos = placeLabel(newx-labelW, newy+glyphH, labelW, labelH);
-                    VGA.getFrameBuffer()->printText_SM(
-                        this->navMap->font,
-                        &obj_pos,
-                        (char*) name.c_str(),
-                        34,
-                        0,
-                        (int32_t)name.size(),1,glyphW,true,false
-                    );
-                    uint8_t color = friends == this->mission->player ? 0xC7 : friends->team_id == 255 ? 0xE6 : 0x1F;
-                    VGA.getFrameBuffer()->plot_pixel(newx, newy, color);
-                    VGA.getFrameBuffer()->circle_slow(newx, newy, 2, color);
-                }
             }
         }
     }
@@ -443,50 +325,286 @@ void SCNavMap::runFrame(void) {
     VGA.upscale = upscaled;
 }
 
-void SCNavMap::showArea(AREA *area, float center, float map_width, int w, int h, int t, int l, int c) {
-    int newx = (int) (((area->position.x+center)/map_width)*w)+l;
-    int newy = (int) (((area->position.z+center)/map_width)*h)+t;
-    int neww = (int) ((area->AreaWidth / map_width) * w);
-    int newh = neww;
-    bool isCircle = true;
-    if (area->AreaWidth != area->AreaHeight && area->AreaType != 'S') {
-        newh = (int) ((area->AreaHeight / map_width) * h);
-        isCircle = false;
-    }
-    if (newx>0 && newx<320 && newy>0 && newy<200) {
-        int txtw = (int) strlen(area->AreaName) * (this->navMap->font->GetShapeForChar('A')->GetWidth()+1);
-        int txtl = (int) strlen(area->AreaName);
-        Point2D *p1 = new Point2D({newx-(txtw/2)<0?newx:newx-(txtw/2), newy});
-        if (isCircle) {
-            VGA.getFrameBuffer()->circle_slow(newx, newy, neww, c);
-        } else if (area->AreaType != 'C') {
-            VGA.getFrameBuffer()->plot_pixel(newx, newy, 1);
-            VGA.getFrameBuffer()->line(newx-neww, newy-newh, newx+neww, newy-newh, c);
-            VGA.getFrameBuffer()->line(newx-neww, newy+newh, newx+neww, newy+newh, c);
-            VGA.getFrameBuffer()->line(newx-neww, newy-newh, newx-neww, newy+newh, c);
-            VGA.getFrameBuffer()->line(newx+neww, newy-newh, newx+neww, newy+newh, c);
-        } else if (area->AreaType == 'C') {
-            VGA.getFrameBuffer()->circle_slow(newx, newy, newh+1, c);
-        }
-        int glyphW = this->navMap->font->GetShapeForChar('A')->GetWidth();
-        int glyphH = this->navMap->font->GetShapeForChar('A')->GetHeight();
-        int labelW = (int)strlen(area->AreaName) * (glyphW + 1);
-        int labelH = glyphH;
+// GlyphObject_Helper3_7E72B : x = gauche + (c0 + demi-taille) / échelle X, y = haut + hauteur - (c1 + demi-taille) /
+// échelle Y, avec échelle X = demi-taille / (largeur / 2), échelle Y = demi-taille / (hauteur / 2) et c1 = -z.
+Point2D SCNavMap::worldToMap(float x, float z) {
+    float half = this->navMap->world_half_size;
+    float scale_x = half / (float)(this->navMap->map_width / 2);
+    float scale_y = half / (float)(this->navMap->map_height / 2);
+    Point2D p;
+    p.x = this->navMap->map_left + (int)floorf((x + half) / scale_x);
+    p.y = this->navMap->map_top + this->navMap->map_height - (int)floorf((half - z) / scale_y);
+    return p;
+}
 
-        Point2D area_pos;
-        if (used_areas.find(area->id-1) != used_areas.end()) {
-            area_pos = used_areas[area->id-1];
-        } else {
-            area_pos = placeLabel(p1->x, p1->y, labelW, labelH);
-            used_areas[area->id-1]=area_pos;
+// Zone d'une scène tracée sur la carte : scène active, zone présente, nom qui ne commence pas par « . ».
+AREA *SCNavMap::sceneArea(MISN_SCEN *scene) {
+    std::vector<AREA *> &areas = this->missionObj->mission_data.areas;
+    if (scene->is_active == 0) {
+        return nullptr;
+    }
+    uint16_t area_index = (uint16_t)scene->area_id;
+    if (area_index >= areas.size()) {
+        return nullptr;
+    }
+    AREA *area = areas[area_index];
+    if (area->AreaName[0] == '.') {
+        return nullptr;
+    }
+    return area;
+}
+
+// Expr_ResolveStringEntry_7F5D5 : pour un ordre de navigation, zone du SPOT de l'ordre ; ici, celle du point de
+// navigation courant.
+AREA *SCNavMap::objectiveArea() {
+    std::vector<AREA *> &areas = this->missionObj->mission_data.areas;
+    if (*this->current_nav_point >= this->mission->waypoints.size()) {
+        return nullptr;
+    }
+    SCMissionWaypoint *wp = this->mission->waypoints[*this->current_nav_point];
+    if (wp->spot == nullptr || wp->spot->area_id < 0 || wp->spot->area_id >= (int)areas.size()) {
+        return nullptr;
+    }
+    return areas[wp->spot->area_id];
+}
+
+// Liste lue par Parser_FindDuplicateSymbol (scénario +104) : ici, les zones des points de navigation.
+bool SCNavMap::isNavigationArea(AREA *area) {
+    std::vector<AREA *> &areas = this->missionObj->mission_data.areas;
+    for (auto wp : this->mission->waypoints) {
+        if (wp->spot == nullptr || wp->spot->area_id < 0 || wp->spot->area_id >= (int)areas.size()) {
+            continue;
         }
-        VGA.getFrameBuffer()->printText(
-            this->navMap->font,
-            &area_pos,
-            area->AreaName,
-            c,
-            0,
-            txtl,1,this->navMap->font->GetShapeForChar('A')->GetWidth()
-        );
+        if (areas[wp->spot->area_id] == area) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// GlyphObject_Helper5_7EB1C : rectangle occupé, 32 au plus.
+void SCNavMap::reserveBox(int left, int top, int width, int height) {
+    if (this->label_boxes.size() >= 32) {
+        return;
+    }
+    LabelBox box;
+    box.left = left;
+    box.top = top;
+    box.right = left + width - 1;
+    box.bottom = top + height - 1;
+    this->label_boxes.push_back(box);
+}
+
+// GlyphObject_Helper7_7EBCA : dans la fenêtre des textes (x 25 à 241, y 23 à 177) et sans recouvrement, bornes
+// incluses.
+bool SCNavMap::boxIsFree(int left, int top, int width, int height) {
+    int right = left + width - 1;
+    int bottom = top + height - 1;
+    if (left < 25 || right > 241 || top < 23 || bottom > 177) {
+        return false;
+    }
+    for (auto &box : this->label_boxes) {
+        if (box.right >= left && box.left <= right && box.bottom >= top && box.top <= bottom) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// GlyphObject_Helper6_7EB72 : le rectangle est ramené dans la fenêtre des textes.
+void SCNavMap::clampBox(int &left, int &top, int width, int height) {
+    if (left + width - 1 > 241) {
+        left = 241 - width + 1;
+    }
+    if (top + height - 1 > 177) {
+        top = 177 - height + 1;
+    }
+    if (left < 25) {
+        left = 25;
+    }
+    if (top < 23) {
+        top = 23;
+    }
+}
+
+// GlyphObject_Helper8_7EC45 : six places autour du point (x, y), la première libre est gardée et réservée ; avec
+// label_first_try_only, seule la première est essayée et rien n'est écrit si elle est prise ; sinon, la dernière
+// place est prise sans contrôle. Le texte est en majuscules (lettre de base « A » de la police).
+void SCNavMap::drawLabel(int x, int y, std::string text, uint8_t label_color) {
+    std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    RSFont *font = this->navMap->font;
+    int width = fb->getJustifiedTextWidth(font, text, 0);
+    int height = font->GetShapeForChar('A')->GetHeight() + 1;
+    int half_width = width / 2;
+    int left = 0;
+    int top = 0;
+    for (int attempt = 0;; attempt++) {
+        bool forced = false;
+        switch (attempt) {
+        case 0:
+            left = x - half_width;
+            top = y + height / 2 / 2;
+            break;
+        case 1:
+            left = x - half_width;
+            top = y - height - height / 2 / 2;
+            break;
+        case 2:
+            left = x + 3;
+            top = y - height / 2;
+            break;
+        case 3:
+            left = x - width - 3;
+            top = y - height / 2;
+            break;
+        case 4:
+            left = x - half_width;
+            top = y + height;
+            break;
+        case 5:
+            left = x - half_width;
+            top = y - 2 * height;
+            break;
+        default:
+            left = x + 3;
+            top = y - height / 2;
+            forced = true;
+            break;
+        }
+        if (forced) {
+            break;
+        }
+        this->clampBox(left, top, width, height);
+        if (this->boxIsFree(left, top, width, height)) {
+            this->reserveBox(left, top, width, height);
+            break;
+        }
+        if (this->label_first_try_only) {
+            return;
+        }
+    }
+    Point2D origin;
+    origin.x = left;
+    origin.y = top;
+    fb->printText(font, &origin, (char *)text.c_str(), label_color, 0, (uint32_t)text.size(), 0, 0,
+                  TEXT_JUSTIFY_LEFT, 320);
+    this->label_first_try_only = false;
+}
+
+// NavMap_DrawMissionObjects_7EDCA, 1re boucle : pour chaque scène tracée, point de référence et contour, couleur 215,
+// 238 pour la zone de l'objectif. Sphère et cylindre : ellipse (Render_DrawEllipseOutline_61612) ; boîte : 4 traits
+// d'ouest en est et du nord au sud (Render_FillClippedRect_61960).
+void SCNavMap::drawAreaOutlines() {
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    float half = this->navMap->world_half_size;
+    float scale_x = half / (float)(this->navMap->map_width / 2);
+    float scale_y = half / (float)(this->navMap->map_height / 2);
+    AREA *objective = this->objectiveArea();
+    for (auto scene : this->missionObj->mission_data.scenes) {
+        AREA *area = this->sceneArea(scene);
+        if (area == nullptr) {
+            continue;
+        }
+        uint8_t outline = area == objective ? 238 : 215;
+        Point2D p = this->worldToMap(area->position.x, area->position.z);
+        fb->plot_pixel(p.x, p.y, outline);
+        if (area->AreaType == 'B') {
+            int west = (int)floorf(area->west / scale_x);
+            int east = (int)floorf(area->east / scale_x);
+            int north = (int)floorf(area->north / scale_y);
+            int south = (int)floorf(area->south / scale_y);
+            fb->line(p.x - west, p.y - north, p.x + east, p.y - north, outline);
+            fb->line(p.x - west, p.y + south, p.x + east, p.y + south, outline);
+            fb->line(p.x - west, p.y - north, p.x - west, p.y + south, outline);
+            fb->line(p.x + east, p.y - north, p.x + east, p.y + south, outline);
+        } else {
+            int rx = (int)floorf(area->radius / scale_x);
+            int ry = (int)floorf(area->radius / scale_y);
+            fb->ellipse(p.x, p.y, rx, ry, outline);
+        }
+    }
+}
+
+// NavMap_DrawMissionObjects_7EDCA, 2e boucle : objets marqués (bit 4 de +0x39) déjà créés. Point de couleur 199 pour
+// le joueur, 230 pour un ennemi, 31 sinon, qui réserve 3 x 3 pixels ; second point à droite, ou pour un avion point
+// noir à l'opposé de sa vitesse (seuil 0,25) ; nom en couleur 31.
+void SCNavMap::drawObjects() {
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    for (auto actor : this->mission->actors) {
+        if (!actor->on_nav_map) {
+            continue;
+        }
+        if (actor->is_active == 0 && actor != this->mission->player) {
+            continue;
+        }
+        Point2D p = this->worldToMap(actor->object->position.x, actor->object->position.z);
+        uint8_t marker = 31;
+        if (actor == this->mission->player) {
+            marker = 199;
+        } else if (actor->team_id == 255) {
+            marker = 230;
+        }
+        fb->plot_pixel(p.x, p.y, marker);
+        this->reserveBox(p.x - 1, p.y - 1, 3, 3);
+        int tail_x = 1;
+        int tail_y = 0;
+        uint8_t tail = marker;
+        if (actor->plane != nullptr) {
+            Vector3D velocity = actor->plane->worldVelocity();
+            float east = velocity.x;
+            float north = -velocity.z;
+            tail_x = 0;
+            if (east > 0.25f) {
+                tail_x = -1;
+            } else if (east < -0.25f) {
+                tail_x = 1;
+            }
+            tail_y = 0;
+            if (north > 0.25f) {
+                tail_y = 1;
+            } else if (north < -0.25f) {
+                tail_y = -1;
+            }
+            tail = 0;
+        }
+        fb->plot_pixel(p.x + tail_x, p.y + tail_y, tail);
+        std::string name = (actor->profile != nullptr) ? actor->profile->radi.info.callsign : "FRIEND";
+        this->label_first_try_only = false;
+        this->drawLabel(p.x, p.y, name, 34);
+    }
+}
+
+// NavMap_DrawMissionObjects_7EDCA, 3e boucle : nom de chaque zone tracée, couleur 223, 237 pour une zone de point de
+// navigation, 199 pour celle de l'objectif ; première place sous le point, puis 10 pixels plus bas, puis 10 plus haut,
+// puis toutes les places (byte_6D5DE).
+void SCNavMap::drawAreaNames() {
+    AREA *objective = this->objectiveArea();
+    for (auto scene : this->missionObj->mission_data.scenes) {
+        AREA *area = this->sceneArea(scene);
+        if (area == nullptr) {
+            continue;
+        }
+        uint8_t name_color = 134;
+        if (this->isNavigationArea(area)) {
+            name_color = 134;
+        }
+        if (area == objective) {
+            name_color = 0;
+        }
+        Point2D p = this->worldToMap(area->position.x, area->position.z);
+        std::string name = area->AreaName;
+        this->label_first_try_only = true;
+        this->drawLabel(p.x, p.y, name, name_color);
+        if (this->label_first_try_only) {
+            this->drawLabel(p.x, p.y + 10, name, name_color);
+        }
+        if (this->label_first_try_only) {
+            this->drawLabel(p.x, p.y - 10, name, name_color);
+        }
+        if (this->label_first_try_only) {
+            this->label_first_try_only = false;
+            this->drawLabel(p.x, p.y, name, name_color);
+        }
     }
 }

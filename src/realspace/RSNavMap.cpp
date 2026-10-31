@@ -4,12 +4,22 @@ void RSNavMap::parseNMAP(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    handlers["INFO"] = std::bind(&RSNavMap::parseNMAP_INFO, this, std::placeholders::_1, std::placeholders::_2);
     handlers["MAPS"] = std::bind(&RSNavMap::parseNMAP_MAPS, this, std::placeholders::_1, std::placeholders::_2);
     handlers["FONT"] = std::bind(&RSNavMap::parseNMAP_FONT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["TEXT"] = std::bind(&RSNavMap::parseNMAP_TEXT, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SHAP"] = std::bind(&RSNavMap::parseNMAP_SHAP, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
+}
+// 4 mots : gauche, haut, largeur, hauteur de la fenêtre (pixels) ; un int32 24.8 : demi-taille du monde.
+void RSNavMap::parseNMAP_INFO(uint8_t *data, size_t size) {
+    ByteStream stream(data, size);
+    this->map_left = stream.ReadShort();
+    this->map_top = stream.ReadShort();
+    this->map_width = stream.ReadShort();
+    this->map_height = stream.ReadShort();
+    this->world_half_size = stream.ReadInt32LE() / 256.0f * BLOCK_COORD_SCALE;
 }
 void RSNavMap::parseNMAP_MAPS(uint8_t *data, size_t size) {
     ByteStream stream(data, size);

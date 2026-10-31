@@ -765,6 +765,12 @@ SCStrike::SCStrike() {
 
 SCStrike::~SCStrike() {
     Game->direct_mouse_control = false;
+    if (this->current_mission != nullptr) {
+        printf("STRIKE: destruction de la mission %s\n", this->miss_file_name.c_str());
+        this->current_mission->cleanup();
+        delete this->current_mission;
+        this->current_mission = nullptr;
+    }
 }
 void SCStrike::registerSimulatorInputs() {
     
@@ -792,14 +798,49 @@ void SCStrike::autopilotCompute() {
                 continue;
             }
             printf("check collision with Areas: %s\n", area->AreaName);
-            // Assume each area is represented as an axis-aligned rectangle in the X-Z plane.
-            // Compute rectangle boundaries.
-            float halfWidth  = area->AreaWidth / 2.0f;
-            float halfHeight = area->AreaHeight / 2.0f;
-            float left   = area->position.x - halfWidth;
-            float right  = area->position.x + halfWidth;
-            float top    = area->position.z - halfHeight;
-            float bottom = area->position.z + halfHeight;
+            // Trajet a l'altitude d'arrivee (dest_y) : la zone n'est traversee que si cette altitude est dans sa plage,
+            // comme AREA::contains ; une sphere y est coupee en un disque.
+            float flight_y = dest_y;
+            float circle_radius = area->radius;
+            if (area->AreaType == 'S') {
+                float dy = flight_y - area->position.y;
+                if (fabs(dy) > area->radius) {
+                    printf("Area %s: altitude %.0f hors de la sphere\n", area->AreaName, flight_y);
+                    continue;
+                }
+                circle_radius = sqrtf(area->radius * area->radius - dy * dy);
+            } else if (flight_y < area->position.y || flight_y > area->position.y + area->height) {
+                printf("Area %s: altitude %.0f hors de %.0f .. %.0f\n", area->AreaName, flight_y, area->position.y,
+                       area->position.y + area->height);
+                continue;
+            }
+            if (area->AreaType != 'B') {
+                float dx = destination.x - origine.x;
+                float dz = destination.y - origine.y;
+                float fx = origine.x - area->position.x;
+                float fz = origine.y - area->position.z;
+                float c = fx * fx + fz * fz - circle_radius * circle_radius;
+                if (c <= 0.0f) {
+                    printf("We are in area: %s\n", area->AreaName);
+                    continue;
+                }
+                float a = dx * dx + dz * dz;
+                float b = 2.0f * (fx * dx + fz * dz);
+                float discriminant = b * b - 4.0f * a * c;
+                if (a > 0.0f && discriminant >= 0.0f) {
+                    float t = (-b - sqrtf(discriminant)) / (2.0f * a);
+                    if (t >= 0.0f && t <= 1.0f) {
+                        printf("Collision detected with area: %s\n", area->AreaName);
+                        path.push_back(Vector2D{ origine.x + t * dx, origine.y + t * dz });
+                    }
+                }
+                continue;
+            }
+            // Boite : de X - ouest a X + est, de Z - nord a Z + sud (le nord est vers -Z).
+            float left   = area->position.x - area->west;
+            float right  = area->position.x + area->east;
+            float top    = area->position.z - area->north;
+            float bottom = area->position.z + area->south;
 
             // Lambda to test if a point is inside the rectangle.
             auto pointInRect = [&](const Vector2D &pt) -> bool {
@@ -810,11 +851,6 @@ void SCStrike::autopilotCompute() {
                 printf("We are in area: %s\n", area->AreaName);
                 continue;
             }
-            // If either endpoint is inside, we have a collision.
-            /*if (pointInRect(origine) || pointInRect(destination)) {
-                printf("Collision detected with area: %s\n", area->AreaName);
-                continue;
-            }*/
 
             auto doLinesIntersect = [&](const Vector2D &p1, const Vector2D &p2,
                                             const Vector2D &p3, const Vector2D &p4) -> std::optional<Vector2D> {
@@ -854,7 +890,6 @@ void SCStrike::autopilotCompute() {
                 i4 != std::nullopt)
             {
                 printf("Collision detected with area: %s\n", area->AreaName);
-                //continue;
             }
             if (i1 != std::nullopt) {
                 path.push_back(i1.value());
@@ -882,9 +917,16 @@ void SCStrike::autopilotCompute() {
                 selectedPoint = pt;
             }
         }
+        // Un metre au-dela du bord, vers la destination : le point est dans la zone malgre l'arrondi (AREA::contains).
+        float to_x = destination.x - selectedPoint.x;
+        float to_z = destination.y - selectedPoint.y;
+        float to_length = sqrtf(to_x * to_x + to_z * to_z);
+        if (to_length > 1.0f) {
+            selectedPoint.x += to_x / to_length;
+            selectedPoint.y += to_z / to_length;
+        }
         printf("Selected point: (%.3f, %.3f)\n", selectedPoint.x, selectedPoint.y);
-        
-        
+
         this->player_plane->x = selectedPoint.x;
         this->player_plane->z = selectedPoint.y;
         
@@ -980,8 +1022,11 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION)) && this->confirmEndMission()) {
-        this->current_mission->mission_ended = true;
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
+        // Code du jeu pour cette touche non etabli ; regle conservee : ecrasement = 2.
+        if (this->current_mission->exit_code == 0) {
+            this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
+        }
         Mixer.stopSound();
         Mixer.stopSound(5);
     }
@@ -1094,10 +1139,15 @@ void SCStrike::checkKeyboard(void) {
             int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 +1;
             int next_weapon = (this->player_plane->selected_weapon + 1) % nb_hardpoint;
             if (this->air_weapons_mode) {
-                while (this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_20MM &&
-                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM120 &&
-                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM9J &&
-                       this->player_plane->weaps_load[next_weapon]->objct->wdat->weapon_id != weapon_ids::ID_AIM9M) {
+                while (true) {
+                    SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[next_weapon];
+                    if (station != nullptr) {
+                        int weapon_id = station->objct->wdat->weapon_id;
+                        if (weapon_id == weapon_ids::ID_20MM || weapon_id == weapon_ids::ID_AIM120 ||
+                            weapon_id == weapon_ids::ID_AIM9J || weapon_id == weapon_ids::ID_AIM9M) {
+                            break;
+                        }
+                    }
                     next_weapon = (next_weapon + 1) % nb_hardpoint;
                     if (next_weapon == this->player_plane->selected_weapon) {
                         break;
@@ -1140,8 +1190,7 @@ void SCStrike::checkKeyboard(void) {
                     }
                 }
             }
-            
-            
+
             this->mfd_timeout = 400;
         } else {
             this->cockpit->show_weapons = !this->cockpit->show_weapons;
@@ -1483,11 +1532,11 @@ void SCStrike::checkKeyboard(void) {
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1))) {
         this->current_mission->gameflow_registers[0] = 1;
         this->current_mission->gameflow_registers[1] = 2;
-        this->current_mission->mission_ended = true;
+        this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_1");
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_2))) {
         this->current_mission->gameflow_registers[0] = 0;
-        this->current_mission->mission_ended = true;
+        this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_2");
     }
     float lx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X)); 
     float ly = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y)); 
@@ -1589,6 +1638,13 @@ void SCStrike::findTarget() {
  * flag to false, setting the mission to "TEMPLATE.IFF", initializing the
  * cockpit object, and setting the pilot's lookat position to the origin.
  */
+void SCStrike::start(void) {
+    IActivity::start();
+    if (this->current_mission != nullptr) {
+        this->current_mission->startMusic();
+    }
+}
+
 void SCStrike::init(void) {
     this->mouse_control = false;
     Game->direct_mouse_control = true;
@@ -1631,11 +1687,6 @@ SCMission *SCStrike::createMission(char const *missionName) {
     return new SCMission(missionName, &object_cache);
 }
 void SCStrike::setMission(char const *missionName) {
-    if (Mixer.isSoundPlaying(5)) {
-        Mixer.stopSound(5);
-    }
-    Mixer.stopMusic();
-    
     if (this->current_mission != nullptr) {
         this->current_mission->cleanup();
         delete this->current_mission;
@@ -1667,7 +1718,8 @@ void SCStrike::setMission(char const *missionName) {
         this->player_plane->vz = -20;
         this->player_plane->Simulate();
     }
-    if (GameState.weapon_load_out.size()>1) {
+    // MissionScenario_LoadFromIFF_A8C44 : sans PLYR, l'avion garde les armes de son fichier.
+    if (this->player_loadout && GameState.weapon_load_out.size() > 1) {
         this->player_plane->object->entity->weaps.clear();
         std::unordered_map<weapon_type_shp_id, std::string> weapon_names = {
             {AIM9J, "SWINDERJ"},
@@ -1697,9 +1749,10 @@ void SCStrike::setMission(char const *missionName) {
             this->player_plane->object->entity->weaps.push_back(weap);
             loaded[weapon_type_shp_id(GameState.weapon_load_out[i])] = true;
         }
+        // Chargement PLYR : remplace l'emport posé au chargement de la mission (WeaponSys_LoadFormWEAP_9EF74).
+        this->player_plane->InitLoadout();
     }
-    
-    this->player_plane->InitLoadout();
+    this->current_mission->takeTeamWeaponsFromStock(this->player_loadout);
     this->player_prof = this->current_mission->player->profile;
     this->cockpit = this->createCockpit();
     this->cockpit->player_plane = this->player_plane;
@@ -1884,40 +1937,8 @@ void SCStrike::runFrame(void) {
         this->player_plane->Simulate();
         this->current_mission->update();
         if (this->current_mission->mission_ended) {
-            GameState.missions_flags.clear();
-            GameState.missions_flags.shrink_to_fit();
-            // @TODO Rework this part when we will be dealing with the mission funds bonus
-            for (auto flags: this->current_mission->gameflow_registers) {
-                GameState.missions_flags.push_back(flags.second);
-            }
-            //GameState.cash = GameState.proj_cash + this->current_mission->gameflow_registers[1]*1000;
-            
-            GameState.mission_flyed_success[GameState.mission_flyed] = this->current_mission->gameflow_registers[0]>0;
-            //GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] += this->current_mission->player->plane_down;
-            //GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] += this->current_mission->player->ground_down;
-            GameState.air_kills += this->current_mission->player->plane_down;
-            GameState.ground_kills += this->current_mission->player->ground_down;
-            GameState.kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] =GameState.air_kills;
-            GameState.kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = GameState.ground_kills;
-            if (this->player_plane->crached) {
-                GameState.player_dead = true;
-            }
-            if (this->player_plane->ejected) {
-                GameState.player_ejected = true;
-                GameState.f16_replacements += 500000;
-                GameState.lost_aircraft += 1;
-            }
-            GameState.cash = GameState.proj_cash - GameState.over_head;
-            GameState.proj_cash = GameState.cash + this->current_mission->gameflow_registers[1]*1000 - GameState.weapons_costs - GameState.f16_replacements  ;
-            GameState.weapons_costs = 0;
-            for (auto team: this->current_mission->friendlies) {
-                if (team->is_active) {
-                    if (team->plane != nullptr && team->actor_name != "PLAYER") {
-                        GameState.kill_board[pilot_profile[team->actor_name]][KillBoardType::AIR_KILL] += team->plane_down;
-                        GameState.kill_board[pilot_profile[team->actor_name]][KillBoardType::GROUND_KILL] += team->ground_down;
-                    }
-                }
-            }
+            // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu).
+            GameState.mission_report = this->current_mission->buildReport(this->miss_file_name);
             Renderer.clear();
             Screen->refresh();
             Renderer.clear();
@@ -2281,6 +2302,9 @@ void SCStrike::runFrame(void) {
                     continue; // Skip rendering if the object is too far away
                 }
                 Renderer.drawModel(actor->object->entity, Renderer.lodLevel, actor_position, actor_orientation);
+                if (actor->smoke != nullptr) {
+                    actor->smoke->render(Renderer.camera.getPosition());
+                }
                 if (this->show_bbox) {
                     if (actor->aiming_vector.x != 0.0f || actor->aiming_vector.y != 0.0f || actor->aiming_vector.z != 0.0f) {
                         Vector3D aim_pos = {actor->aiming_vector.x, actor->aiming_vector.y, actor->aiming_vector.z};
