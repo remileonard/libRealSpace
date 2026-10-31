@@ -69,6 +69,8 @@ protected:
 public:
     void startMusic();
     std::vector<SCMissionScene *> scenes;
+    SCMissionScene *global_scene{nullptr};  // MissionScenario+78 : première scène sans zone
+    SCMissionScene *current_scene{nullptr}; // MissionScenario+80 : scène de la zone où est le joueur
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;
     std::vector<SCMissionActors *> friendlies;
@@ -110,6 +112,10 @@ public:
     virtual void update();
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
+    SCMissionScene *findSceneAt(Vector3D position);
+    void startScenes();
+    void placeRelativeToPlayer(SCMissionActors *actor);
+    void finishScenes();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
     void setExitCode(uint8_t code, const char *reason);

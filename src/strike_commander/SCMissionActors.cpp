@@ -211,7 +211,10 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             actor->is_active = true;
             actor->is_hidden = false;
             Vector3D correction = {0.0f, 0.0f, 0.0f};
-            if (actor->object->area_id != 255 && actor->object->unknown2 == 0) {
+            if (actor->object->placement != 0) {
+                // Repère de l'avion du joueur : décalage tourné, cap = cap du joueur + cap du fichier.
+                this->mission->placeRelativeToPlayer(actor);
+            } else if (actor->object->area_id != 255) {
                 bool spot_found = false;
                 for (auto spot: this->mission->mission->mission_data.spots) {
                     if (spot->area_id == actor->object->area_id) {
@@ -223,21 +226,14 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                 if (!spot_found) {
                     correction = this->mission->mission->mission_data.areas[actor->object->area_id]->position;
                 }
-            } else {
-                correction = {
-                    this->mission->player->plane->x,
-                    this->mission->player->plane->y,
-                    this->mission->player->plane->z
-                };
-            }
-            if ((actor->object->area_id != 255) || (actor->object->area_id == 255 && actor->object->unknown2 == 1)) {
                 actor->object->position += correction;
             }
             float ground_y = this->mission->area->getY(actor->object->position.x, actor->object->position.z);
             if (actor->object->position.y < ground_y) {
                 actor->object->position.y = ground_y;
             } else {
-                if (actor->plane != nullptr) {
+                // Vitesse initiale nulle : l'avion reste au sol (PartEntry_ResolveSpawnPositionAndActivate_51EDC).
+                if (actor->plane != nullptr && actor->object->speed != 0) {
                     actor->pilot->target_climb = (int) (actor->object->position.y);
                     actor->pilot->target_speed = -20;
                     actor->plane->vz = -20;
@@ -248,7 +244,12 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
                     actor->object->position.y = ground_y+10.0f;
                     actor->plane->on_ground = true;
                 } else {
-                    actor->plane->on_ground = false;
+                    actor->plane->on_ground = actor->object->speed == 0;
+                }
+                if (actor->plane->on_ground) {
+                    if (actor->plane->GetWheel() == 0) {
+                        actor->plane->SetWheel();
+                    }
                 }
                 actor->plane->x = actor->object->position.x;
                 actor->plane->y = actor->object->position.y;

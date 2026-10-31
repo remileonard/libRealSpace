@@ -218,12 +218,11 @@ void SCProg::execute() {
                     uint8_t leader_arg = (uint8_t) prog.arg;
                     MISN_PART *part = this->actor->object;
                     if (leader_arg == 0xFF && part != nullptr) {
-                        leader_arg = part->unknown_bytes[3];
+                        leader_arg = part->follow_ally;
                     }
                     this->task_state = this->actor->setObjective(OP_SET_OBJ_FOLLOW_ALLY, leader_arg) ? 1 : 0;
                     if (part != nullptr && this->actor->current_command == OP_SET_OBJ_FOLLOW_ALLY && this->actor->current_command_arg == leader_arg) {
-                        std::vector<uint8_t> &b = part->unknown_bytes;
-                        this->actor->follow_slot = Vector3D((float) (int16_t) (b[5] | (b[6] << 8)), (float) (int16_t) (b[7] | (b[8] << 8)), (float) (int16_t) (b[9] | (b[10] << 8)));
+                        this->actor->follow_slot = Vector3D((float) part->formation_side, (float) part->formation_ahead, (float) part->formation_up);
                         this->actor->follow_slot_set = true;
                     }
                 }

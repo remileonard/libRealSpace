@@ -1,60 +1,38 @@
 #include "precomp.h"
 #include "SCMissionScene.h"
 
-void SCMissionScene::onEvent(const EventMessage &event) {
-    if (const MissionUpdateEvent *mission_update_event = dynamic_cast<const MissionUpdateEvent*>(&event)) {
-        this->onMissionUpdate(*mission_update_event);
+// Lance un script PROG de la scène (-1 = aucun).
+void SCMissionScene::runProg(int16_t prog_id) {
+    if (prog_id < 0 || prog_id >= (int16_t) this->mission->mission->mission_data.prog.size()) {
         return;
     }
-    if (const MissionEventSceneActivated *scene_activated_event = dynamic_cast<const MissionEventSceneActivated*>(&event)) {
-        this->onSceneActivated(*scene_activated_event);
-        return;
+    std::vector<PROG> prog;
+    for (auto prg: *this->mission->mission->mission_data.prog[prog_id]) {
+        prog.push_back(prg);
     }
+    SCProg *p = new SCProg(this->mission->player, prog, this->mission, prog_id);
+    p->scene_script = true;
+    p->execute();
+    delete p;
 }
 
-void SCMissionScene::onMissionUpdate(const MissionUpdateEvent &event) {
-    if (event.area_id == scene->area_id + 1 || scene->area_id == -1) {
-        if (scene->is_active == 0) {
-            if (scene->on_mission_update != -1) {
-                if (scene->on_mission_update < this->mission->mission->mission_data.prog.size()) {
-                    std::vector<PROG> prog;
-                    for (auto prg: *this->mission->mission->mission_data.prog[scene->on_mission_update]) {
-                        prog.push_back(prg);
-                    }
-                    SCProg *p = new SCProg(this->mission->player, prog, this->mission, scene->on_mission_update);
-                    p->scene_script = true;
-                    p->execute();
-                    delete p;
-                    prog.clear();
-                    prog.shrink_to_fit();
-                }
-            }
-            if (scene->on_leaving != -1) {
-                if (scene->on_leaving < this->mission->mission->mission_data.prog.size()) {
-                    std::vector<PROG> prog;
-                    for (auto prg: *this->mission->mission->mission_data.prog[scene->on_leaving]) {
-                        prog.push_back(prg);
-                    }
-                    SCProg *p = new SCProg(this->mission->player, prog, this->mission, scene->on_leaving);
-                    p->scene_script = true;
-                    p->execute();
-                    delete p;
-                    prog.clear();
-                    prog.shrink_to_fit();
-                }
-            }
-        }
-    }
+// Scene_RunUpdateScript_531F2 : à chaque image, pour la scène globale et la scène courante (MAIN_GAME_TICK).
+void SCMissionScene::runMissionUpdate() {
+    this->runProg(this->scene->on_mission_update);
 }
 
-void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
-    MISN_SCEN *scene = event.scene;
-    if (scene != this->scene) {
-        return;
-    }
-    uint8_t area_id = event.mission->current_area_id;
-    RSMission *mission = event.mission->mission;
-    SCMission *sc_mission = event.mission;
+// Scene_RunLeavingScript_53211 : quand la scène cesse d'être courante, et en fin de mission.
+void SCMissionScene::runLeaving() {
+    this->runProg(this->scene->on_leaving);
+}
+
+// Scene_TriggerActivation_531CD : quand la scène devient la scène courante (ou au chargement pour la scène
+// globale) : apparition des objets de la scène qui ne sont pas déjà là (Scene_EnsureUnitsSpawned_530FF), puis
+// script d'activation. Le jeu relance ce script à chaque fois que la scène redevient courante.
+void SCMissionScene::activate() {
+    MISN_SCEN *scene = this->scene;
+    RSMission *mission = this->mission->mission;
+    SCMission *sc_mission = this->mission;
     for (auto cast: scene->cast) {
         int i=0;
         for (auto part: mission->mission_data.parts) {
@@ -66,19 +44,13 @@ void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
                     if (actor->actor_id == part->id && actor->is_active == false) {
                         actor->is_active = true;
                         actor->is_hidden = false;
-                        if (scene->area_id != -1) {
-                            Vector3D correction;
-                            if (actor->object->unknown2 == 0) {
-                                correction = sc_mission->mission->mission_data.areas[scene->area_id]->position;
-                            } else if (actor->object->unknown2 == 1) {
-                                correction = {
-                                    sc_mission->player->plane->x,
-                                    sc_mission->player->plane->y,
-                                    sc_mission->player->plane->z
-                                };
-                            }
-                            if (actor->object->area_id != 255) {
-                                actor->object->position += correction;
+                        // Le mode de placement ne dépend ni de la zone de l'objet ni de celle de la scène.
+                        if (scene->area_id != -1 || actor->object->placement != 0) {
+                            if (actor->object->placement != 0) {
+                                // Repère de l'avion du joueur : décalage tourné, cap = cap du joueur + cap du fichier.
+                                sc_mission->placeRelativeToPlayer(actor);
+                            } else if (actor->object->area_id != 255) {
+                                actor->object->position += sc_mission->mission->mission_data.areas[scene->area_id]->position;
                             }
                             float ground_y = sc_mission->area->getY(actor->object->position.x, actor->object->position.z);
                             
@@ -89,9 +61,13 @@ void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
                                 actor->plane->z = actor->object->position.z;
                                 if (abs(ground_y - actor->object->position.y) <= 10 ) {
                                     actor->object->position.y = ground_y;
-                                    actor->plane->on_ground = true;
-                                } else {
-                                    actor->plane->on_ground = false;
+                                }
+                                // Vitesse initiale nulle : au sol, train sorti (PartEntry_ResolveSpawnPositionAndActivate_51EDC).
+                                actor->plane->on_ground = actor->object->speed == 0;
+                                if (actor->plane->on_ground) {
+                                    if (actor->plane->GetWheel() == 0) {
+                                        actor->plane->SetWheel();
+                                    }
                                 }
                                 if (actor->object->position.y < ground_y) {
                                     actor->plane->position.y += ground_y;
@@ -147,32 +123,14 @@ void SCMissionScene::onSceneActivated(const MissionEventSceneActivated &event) {
             i++;
         }
     }
-    if (scene->on_is_activated != -1) {
-        if (scene->on_is_activated < sc_mission->mission->mission_data.prog.size() && scene->has_been_activated == 0) {
-            std::vector<PROG> prog;
-            for (auto prg: *sc_mission->mission->mission_data.prog[scene->on_is_activated]) {
-                prog.push_back(prg);
-            }
-            SCProg *p = new SCProg(sc_mission->player, prog, sc_mission, scene->on_is_activated);
-            p->scene_script = true;
-            p->execute();
-            scene->has_been_activated = 1;
-            delete p;
-            prog.clear();
-            prog.shrink_to_fit();
-        }
-    }
-    scene->is_active = 0;
+    this->runProg(scene->on_is_activated);
+    scene->has_been_activated = 1;
 }
 
 SCMissionScene::SCMissionScene(SCMission *mission, MISN_SCEN *scene) {
     this->mission = mission;
     this->scene = scene;
-    subscription_id = MessageBus::getInstance().subscribeEvent(std::bind(&SCMissionScene::onEvent, this, std::placeholders::_1));
 }
 
 SCMissionScene::~SCMissionScene() {
-    if (subscription_id != -1) {
-        MessageBus::getInstance().unsubscribe(subscription_id);
-    }
 }

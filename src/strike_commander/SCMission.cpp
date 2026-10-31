@@ -143,7 +143,7 @@ void SCMission::loadMission() {
                 SCMissionActors *actor = new SCMissionActors();
                 if (cast->actor == "PLAYER") {
                     actor = new SCMissionActorsPlayer();
-                    if (part->area_id != 255 && part->unknown2 == 0) {
+                    if (part->area_id != 255 && part->placement == 0) {
                         Vector3D correction = this->mission->mission_data.areas[part->area_id]->position;
                         part->position.x += correction.x;
                         part->position.y += correction.y;
@@ -157,7 +157,7 @@ void SCMission::loadMission() {
                 if (cast->actor == "TEAM0") {
                     cast->actor = GameState.wingman;
                 }
-                actor->team_id = part->unknown_bytes[2];
+                actor->team_id = part->team;
                 actor->actor_name = cast->actor;
                 actor->actor_id = part->id;
                 actor->object = part;
@@ -229,21 +229,27 @@ void SCMission::loadMission() {
                         actor->plane->object = part;
                         actor->plane->InitLoadout();
                         actor->plane->pilot = actor;
+                        // Vitesse initiale PART (octets 43-44, m/s) : un avion à 0 commence au sol, train sorti
+                        // (PartEntry_ResolveSpawnPositionAndActivate_51EDC : catégorie 6 et vitesse nulle -> au sol, JDYN +0x75 |= 4).
                         if (abs(this->area->getY(part->position.x, part->position.z)-part->position.y) <= 10 ) {
                             part->position.y = this->area->getY(part->position.x, part->position.z);
-                            actor->plane->on_ground = true;
-                        } else {
-                            actor->plane->on_ground = false;
                         }
+                        actor->plane->on_ground = part->speed == 0;
                         if (part->position.y < this->area->getY(part->position.x, part->position.z)) {
                             actor->plane->on_ground = true;
+                        }
+                        if (actor->plane->on_ground) {
+                            if (actor->plane->GetWheel() == 0) {
+                                actor->plane->SetWheel();
+                            }
                         }
                         if (!actor->plane->on_ground) {
                             actor->plane->SetThrottle(100);
                             actor->pilot->target_climb = (int) (part->position.y);
                             actor->plane->vz = -20;
+                            // Vitesse le long du nez (AIAircraft_SpawnAndConditionalLoadProfile_53363 : nez × vitesse).
                             float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
-                            float spawn_speed = (float) actor->object->entity->jdyn->ai_speed_cruise;
+                            float spawn_speed = (float) part->speed;
                             actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
                             actor->pilot->target_azimut = actor->plane->azimuthf / 10.0f;
                             actor->pilot->target_speed = -20;
@@ -286,9 +292,10 @@ void SCMission::loadMission() {
                             actor->plane->system_health[sys.first][subsys.first] = subsys.second;
                         }
                     }
+                    // Cap en dixièmes de degré, comme SCStrike : le placement dans le repère du joueur le lit dès startScenes
+                    // (l'ancienne 2e affectation, en radians, l'écrasait).
                     actor->plane->yaw = (360 - part->azymuth) * 10.0f;
                     actor->plane->simple_simulation = false;
-                    actor->plane->yaw = (360 - part->azymuth) * (float) M_PI / 180.0f;
                     // PartEntry_ResolveSpawnPositionAndActivate_51EDC : PART +0x12 non vide = emport imposé
                     // (WeaponSys_LoadFromFile_9EFBE), pour le joueur comme pour les autres avions.
                     part->weapon_load.shrink_to_fit();
@@ -405,7 +412,8 @@ void SCMission::loadMission() {
     }
     for (auto spot: this->mission->mission_data.spots) {
         spot->origin = {spot->position.x, spot->position.y, spot->position.z};
-        if (spot->area_id != -1) {
+        // AreaRelPos_ToWorld_50EEB : zone absente ou hors liste -> décalage absolu.
+        if (spot->area_id >= 0 && (size_t) spot->area_id < this->mission->mission_data.areas.size()) {
             AREA *ar = this->mission->mission_data.areas[spot->area_id];
             spot->position += ar->position;
         }
@@ -414,6 +422,7 @@ void SCMission::loadMission() {
     if (this->player != nullptr && this->player->plane != nullptr) {
         this->camera_director->init(this->world, this->player);
     }
+    this->startScenes();
 }
 
 // Musique de la mission : au départ du vol (SCStrike::start), pas au chargement de la mission.
@@ -523,15 +532,28 @@ void SCMission::update() {
         this->musicRequest(20, "atterrissage");
     }
 
-    for (auto scene: this->mission->mission_data.scenes) {
-        if (scene->area_id == area_id - 1 || scene->area_id == -1) {
-            if (scene->is_active == 1) {
-                MissionEventSceneActivated scene_activated_event;
-                scene_activated_event.scene = scene;
-                scene_activated_event.mission = this;
-                this->messageBus.publish(std::make_unique<MissionEventSceneActivated>(scene_activated_event));
-            }
-        }        
+    // MAIN_GAME_TICK : script de mise à jour de la scène globale, changement de scène courante
+    // (Scene_DetectAndActivateChange_532EA), script de mise à jour de la scène courante.
+    if (this->global_scene != nullptr) {
+        this->global_scene->runMissionUpdate();
+    }
+    Vector3D player_position = {
+        this->player->plane->x,
+        this->player->plane->y,
+        this->player->plane->z
+    };
+    SCMissionScene *found = this->findSceneAt(player_position);
+    if (found != this->current_scene) {
+        if (this->current_scene != nullptr) {
+            this->current_scene->runLeaving();
+        }
+        if (found != nullptr) {
+            found->activate();
+        }
+        this->current_scene = found;
+    }
+    if (this->current_scene != nullptr) {
+        this->current_scene->runMissionUpdate();
     }
     this->in_combat = false;
 
@@ -545,6 +567,9 @@ void SCMission::setExitCode(uint8_t code, const char *reason) {
     printf("MISSION: code de sortie %d (%s), precedent %d\n", code, reason, this->exit_code);
     this->exit_code = code;
     if (code != 0) {
+        if (!this->mission_ended) {
+            this->finishScenes();
+        }
         this->mission_ended = true;
     }
 }
@@ -874,15 +899,124 @@ uint8_t SCMission::getAreaID(Vector3D position) {
     float smallest_area_width = (std::numeric_limits<float>::max)();
     
     for (auto ar: this->mission->mission_data.areas) {
-        if (ar->position.x - ar->AreaWidth / 2 <= position.x && ar->position.x + ar->AreaWidth / 2 >= position.x) {
-            if (ar->position.z - ar->AreaWidth / 2 <= position.z && ar->position.z + ar->AreaWidth / 2 >= position.z) {
-                if (area_id == 255 || ar->AreaWidth <= smallest_area_width) {
-                    smallest_area_width = ar->AreaWidth;
-                    area_id = ar->id;
-                }
+        if (ar->contains(position)) {
+            if (area_id == 255 || ar->AreaWidth <= smallest_area_width) {
+                smallest_area_width = ar->AreaWidth;
+                area_id = ar->id;
             }
         }
     }
     
     return area_id;
+}
+// Scene_FindMatchingByAreaContainment_53236 : première scène active, dans l'ordre du fichier, dont la zone
+// contient le point. Une scène sans zone (index -1 ou hors liste) n'est jamais choisie ici.
+SCMissionScene *SCMission::findSceneAt(Vector3D position) {
+    std::vector<AREA *> &areas = this->mission->mission_data.areas;
+    for (auto sc_scene: this->scenes) {
+        MISN_SCEN *scene = sc_scene->scene;
+        if (scene->is_active == 0) {
+            continue;
+        }
+        uint16_t area_index = (uint16_t) scene->area_id;
+        if (area_index >= areas.size()) {
+            continue;
+        }
+        if (areas[area_index]->contains(position)) {
+            return sc_scene;
+        }
+    }
+    return nullptr;
+}
+// MissionScenario_LoadMainRecord_A8331 : la scène globale (Scene_FindByArea_532AD avec une zone nulle) est
+// activée, puis la scène où se trouve le joueur.
+// Objet de mode de placement non nul (PartEntry_ResolveSpawnPositionAndActivate_51EDC, cmp byte ptr es:[bx+1Ch], 0) :
+// le décalage du fichier est exprimé dans le repère de l'avion du joueur. Le jeu ajoute à la position du joueur
+// côté × aile droite + avant × nez + haut × dessus de l'avion (les trois lignes de sa matrice d'orientation), et le cap
+// de l'objet vaut le cap du nez du joueur (Math_HeadingAngle_553CF) + le cap du fichier. L'objet reste à plat.
+// Dans libRealSpace, le décalage lu (x = côté, y = haut, z = -avant) s'applique tel quel aux lignes de la matrice de
+// l'avion (ligne 0 = droite, ligne 1 = haut, ligne 2 = arrière), construite comme SCJetpPlane la construit.
+void SCMission::placeRelativeToPlayer(SCMissionActors *actor) {
+    if (this->player == nullptr || this->player->plane == nullptr) {
+        return;
+    }
+    SCPlane *player_plane = this->player->plane;
+    MISN_PART *part = actor->object;
+    Matrix orientation;
+    orientation.Identity();
+    orientation.rotateM(tenthOfDegreeToRad(player_plane->yaw), 0, 1, 0);
+    orientation.rotateM(tenthOfDegreeToRad(player_plane->pitch), 1, 0, 0);
+    orientation.rotateM(tenthOfDegreeToRad(player_plane->roll), 0, 0, 1);
+    Vector3D offset = part->relative_position;
+    Vector3D position = {
+        player_plane->x,
+        player_plane->y,
+        player_plane->z
+    };
+    position.x += offset.x * orientation.v[0][0] + offset.y * orientation.v[1][0] + offset.z * orientation.v[2][0];
+    position.y += offset.x * orientation.v[0][1] + offset.y * orientation.v[1][1] + offset.z * orientation.v[2][1];
+    position.z += offset.x * orientation.v[0][2] + offset.y * orientation.v[1][2] + offset.z * orientation.v[2][2];
+    part->position = position;
+
+    // Cap du nez du joueur dans la convention des fichiers (degrés, depuis le nord vers l'est) : atan2(x, -z) du nez.
+    float nose_x = -orientation.v[2][0];
+    float nose_z = -orientation.v[2][2];
+    float heading = radToDegree(atan2f(nose_x, -nose_z)) + (float) part->relative_azymuth;
+    heading = fmodf(heading, 360.0f);
+    if (heading < 0.0f) {
+        heading += 360.0f;
+    }
+    part->azymuth = (uint16_t) roundf(heading) % 360;
+
+    if (actor->plane != nullptr) {
+        actor->plane->x = position.x;
+        actor->plane->y = position.y;
+        actor->plane->z = position.z;
+        actor->plane->yaw = norm3600((360.0f - heading) * 10.0f);
+        // Vitesse initiale le long du nouveau nez (AIAircraft_SpawnAndConditionalLoadProfile_53363).
+        if (part->speed != 0) {
+            float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
+            float spawn_speed = (float) part->speed;
+            actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
+        }
+        if (actor->pilot != nullptr) {
+            actor->pilot->target_azimut = actor->plane->yaw / 10.0f;
+        }
+    }
+}
+
+void SCMission::startScenes() {
+    std::vector<AREA *> &areas = this->mission->mission_data.areas;
+    this->global_scene = nullptr;
+    this->current_scene = nullptr;
+    for (auto sc_scene: this->scenes) {
+        if ((uint16_t) sc_scene->scene->area_id >= areas.size()) {
+            this->global_scene = sc_scene;
+            break;
+        }
+    }
+    if (this->global_scene != nullptr) {
+        this->global_scene->activate();
+    }
+    if (this->player != nullptr && this->player->plane != nullptr) {
+        Vector3D player_position = {
+            this->player->plane->x,
+            this->player->plane->y,
+            this->player->plane->z
+        };
+        this->current_scene = this->findSceneAt(player_position);
+        if (this->current_scene != nullptr) {
+            this->current_scene->activate();
+        }
+    }
+}
+// Fin de mission (STRIKE_EXE_MAIN_LOOP en sortie de boucle, puis MissionScenario_RecomputeFields_A9382) : script de
+// sortie de la scène globale (le bilan, qui écrit les variables de résultat), puis de la scène courante.
+void SCMission::finishScenes() {
+    if (this->global_scene != nullptr) {
+        this->global_scene->runLeaving();
+    }
+    if (this->current_scene != nullptr && this->current_scene != this->global_scene) {
+        this->current_scene->runLeaving();
+    }
 }

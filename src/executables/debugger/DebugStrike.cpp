@@ -2381,8 +2381,6 @@ void DebugStrike::renderMenu() {
                     ImGui::Text("Spot area_id %d", spot->area_id);
                     ImGui::Text("Spot x %.0f y %.0f z %.0f", spot->position.x, spot->position.y, spot->position.z);
                     ImGui::Text("Spot from file x %.0f y %.0f z %.0f", spot->origin.x, spot->origin.y, spot->origin.z);
-                    ImGui::Text("u1 %d", spot->unknown1);
-                    ImGui::Text("u2 %d", spot->unknown2);
                     ImGui::TreePop();
                 }
             }
@@ -2450,16 +2448,15 @@ void DebugStrike::renderMenu() {
         if (ImGui::TreeNode("Parts")) {
             for (auto part : this->current_mission->mission->mission_data.parts) {
                 if (ImGui::TreeNode((void *)(intptr_t)part->id, "Parts id %d, area id %d", part->id, part->area_id)) {
-                    ImGui::Text("u1 %d", part->unknown1);
-                    ImGui::Text("u2 %d", part->unknown2);
+                    ImGui::Text("placement %d", part->placement);
                     ImGui::Text("x %.0f y %.0f z %.0f", part->position.x, part->position.y, part->position.z);
                     ImGui::Text("azymuth %d", part->azymuth);
-                    ImGui::Text("u3 %d", part->unknown3);
                     ImGui::Text("Name %s", part->member_name.c_str());
                     ImGui::Text("Destroyed %s", part->member_name_destroyed.c_str());
-                    for (auto obj : part->unknown_bytes) {
-                        ImGui::Text("ub %d", obj);
-                    }
+                    ImGui::Text("speed %d", part->speed);
+                    ImGui::Text("team %d", part->team);
+                    ImGui::Text("follow ally %d", part->follow_ally);
+                    ImGui::Text("formation %d %d %d", part->formation_side, part->formation_ahead, part->formation_up);
                     ImGui::Text("Weapon load %s", part->weapon_load.c_str());
                     if (ImGui::TreeNode("RS ENTITY")) {
                         ImGui::Text("weight %d", part->entity->weight_in_kg);
@@ -2611,8 +2608,6 @@ void DebugStrike::renderUI() {
                     ImGui::Text("Origin: (%.0f, %.0f, %.0f)", this->debug_spot->origin.x, this->debug_spot->origin.y,
                                 this->debug_spot->origin.z);
                     ImGui::Text("Area ID: %d", this->debug_spot->area_id);
-                    ImGui::Text("Unknown1: %d", this->debug_spot->unknown1);
-                    ImGui::Text("Unknown2: %d", this->debug_spot->unknown2);
                 } else {
                     ImGui::Text("No spot selected");
                 }
