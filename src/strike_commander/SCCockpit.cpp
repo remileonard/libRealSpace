@@ -1708,7 +1708,7 @@ void SCCockpit::Update() {
             if (this->current_target != nullptr) {
                 RSEntity *weapon = this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct;
                 Vector3D dist_to_target = this->current_target->position - this->player_plane->object->position;
-                this->target_in_range = dist_to_target.Length() <= (float) weapon->wdat->effective_range;
+                this->target_in_range = dist_to_target.Length() <= (float) weapon->wdat->target_range;
             } else {
                 this->target_in_range = false;
             }
@@ -1974,7 +1974,7 @@ bool SCCockpit::RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb) {
         RLEShape *background_message = this->cockpit->PLAQ.shapes.GetShape(2);
         Point2D b_message_pos = {pmfd_text.x, pmfd_text.y - background_message->GetHeight() - 1};
         background_message->SetPosition(&b_message_pos);
-        Point2D radio_text = {4, b_message_pos.y + 9};
+        Point2D radio_text = {4, b_message_pos.y+3};
         fb->drawShape(background_message);
         RSFont *fnt = this->cockpit->PLAQ.fonts[1].font;
         std::string radio_message = this->current_mission->radio_messages[0]->message;
