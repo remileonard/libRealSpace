@@ -505,9 +505,12 @@ void SCMission::onWeaponRemoved(SCSimulatedObject *weapon) {
         }
     }
 }
+RSEntity *SCMission::createEntity() {
+    return new RSEntity();
+}
 RSEntity * SCMission::LoadEntity(std::string name) {
     std::string tmpname = Assets.object_root_path + name + ".IFF";
-    RSEntity *objct = new RSEntity();
+    RSEntity *objct = this->createEntity();
     TreEntry *entry = Assets.GetEntryByName((char *)tmpname.c_str());
     if (entry != nullptr) {
         objct->InitFromRAM(entry->data, entry->size, tmpname);

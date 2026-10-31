@@ -1167,12 +1167,18 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     
     float ambientLamber = 0.4f;
 
+    float MV[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
+    float eyeDistance = sqrtf(MV[12] * MV[12] + MV[13] * MV[13] + MV[14] * MV[14]);
+    currentLodLevel = object->selectLod(currentLodLevel, eyeDistance);
+    if (currentLodLevel >= object->NumLods()) {
+        currentLodLevel = object->NumLods() - 1;
+    }
+
     Lod *lod = &object->lods[currentLodLevel];
     std::vector<Vector3D> &vertexNormals = this->objectNormals(object);
 
     // Prépare les matrices pour faire l’éclairage en espace œil
-    float MV[16];
-    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
     const float* V = camera.getViewMatrix()->ToGL();
     Vector3D lightWorld{light.x, light.y, light.z};
     Vector3D lightEye = TransformPointCM(V, lightWorld);
@@ -1200,6 +1206,20 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+}
+
+int SCRenderer::nearestPaletteColour(int r, int g, int b) {
+    int best_idx = 0, best_d = 1 << 30;
+    for (int i = 0; i < 256; i++) {
+        const Texel *t = this->palette.GetRGBColor((uint8_t)i);
+        int dr = t->r - r, dg = t->g - g, db = t->b - b;
+        int d = dr * dr + dg * dg + db * db;
+        if (d < best_d) {
+            best_d = d;
+            best_idx = i;
+        }
+    }
+    return best_idx;
 }
 
 void SCRenderer::setLight(Point3D *l) { this->light = *l; }
@@ -2241,4 +2261,44 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size, float alp
     glEnable(GL_CULL_FACE);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
+}
+
+unsigned int SCRenderer::createTexture(int w, int h, const unsigned char *rgba, bool repeatT) {
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, repeatT ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+    return tex;
+}
+
+void SCRenderer::drawTriangles(const EffectVertex *vertices, size_t count, unsigned int texture, BlendMode blend,
+                               bool depthWrite) {
+    if (vertices == nullptr || count < 3) {
+        return;
+    }
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(depthWrite ? GL_TRUE : GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, blend == BlendMode::Additive ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glBegin(GL_TRIANGLES);
+    for (size_t i = 0; i < count - count % 3; i++) {
+        const EffectVertex &v = vertices[i];
+        glColor4f(v.r, v.g, v.b, v.a);
+        glTexCoord2f(v.u, v.v);
+        glVertex3f(v.x, v.y, v.z);
+    }
+    glEnd();
+    glPopAttrib();
 }
