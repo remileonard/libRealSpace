@@ -193,6 +193,10 @@ public:
      * @param missionName The name of the mission to load
      */
     void setMission(char const *missionName);
+    /**
+     * @brief Creates the mission object for setMission, derived activities return their own mission type
+     */
+    virtual SCMission *createMission(char const *missionName);
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();
