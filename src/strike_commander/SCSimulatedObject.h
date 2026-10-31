@@ -13,11 +13,10 @@ protected:
     float last_pz{0.0f};
 
     int tps{30};
-    std::vector<Vector3D> smoke_positions;
+    SCSmokeSet smoke_set;
     int run_iterations{0};
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
-    SCSmokeSet &SmokeSet = SCSmokeSet::getInstance();
     float missile_roll{0.0f};
 public:
     bool is_simulated{false};

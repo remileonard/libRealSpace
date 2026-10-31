@@ -487,6 +487,9 @@ void SCMission::update() {
     mission_update_event.area_id = area_id;
     mission_update_event.mission = this;
     this->messageBus.publish(std::make_unique<MissionUpdateEvent>(mission_update_event));
+    for (auto actor : this->actors) {
+        actor->updateSmoke(mission_update_event.delta_time);
+    }
 
     // Cadence IA fixe (~25 fps d'origine) : eviter un rattrapage explosif
     // apres un hoquet en plafonnant l'accumulateur avant de vider le retard.

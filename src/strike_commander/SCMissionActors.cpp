@@ -439,9 +439,41 @@ SCMissionActors::SCMissionActors() {
 }
 SCMissionActors::~SCMissionActors() {
     delete this->brain;
+    delete this->smoke;
     if (subscription_id != -1) {
         MessageBus::getInstance().unsubscribe(subscription_id);
     }
+}
+// SmokeGen_SpawnInstance_A5F20 et SmokeGen_InitInstance_A6048 : l'objet qui remplace l'actif détruit est de classe
+// SMKG.
+void SCMissionActors::startSmokeGenerator() {
+    RSEntity *entity = this->object->entity;
+    if (this->plane != nullptr || this->smoke != nullptr || !entity->has_smoke_generator) {
+        return;
+    }
+    this->smoke = new SCSmokeSet();
+    this->smoke->init(&RSSmokeSet::getInstance(), entity->smoke_generator.type, (uint32_t)(uintptr_t)this);
+    this->smoke->startGenerator(entity->smoke_generator);
+    printf("[SMOKE] %s : générateur SMKG, modèle %u, durée %.2f s, montée %.2f m/s, intervalle %.3f s, chance %u, "
+           "suppression %u -> %s\n",
+           this->actor_name.c_str(), entity->smoke_generator.type, entity->smoke_generator.duration,
+           entity->smoke_generator.rise, entity->smoke_generator.interval, entity->smoke_generator.chance,
+           entity->smoke_generator.removeAtEnd, this->smoke->isGeneratorActive() ? "actif" : "inactif (tirage)");
+}
+// SmokeGen_Tick_4C057 : une particule toutes les « intervalle » secondes à la position de l'objet ; à la fin de la
+// durée avec suppression, l'objet n'est plus dessiné.
+void SCMissionActors::updateSmoke(float dt) {
+    if (this->smoke == nullptr) {
+        return;
+    }
+    bool was_active = this->smoke->isGeneratorActive();
+    if (!this->smoke->emitGenerator(this->object->position, dt)) {
+        this->is_hidden = true;
+        printf("[SMOKE] %s : fin du générateur SMKG, objet supprimé\n", this->actor_name.c_str());
+    } else if (was_active && !this->smoke->isGeneratorActive()) {
+        printf("[SMOKE] %s : fin du générateur SMKG, émission arrêtée\n", this->actor_name.c_str());
+    }
+    this->smoke->update(dt);
 }
 void SCMissionActors::onEvent(const EventMessage &event) {
     if (auto eventData = dynamic_cast<const MissionEventActorHit*>(&event)) {
@@ -510,6 +542,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
                 ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
             }
         }
+        ai_actor->startSmokeGenerator();
         if (ai_actor->target != nullptr) {
             if (ai_actor->target->attacker == ai_actor) {
                 ai_actor->target->attacker = nullptr;

@@ -50,6 +50,9 @@ public:
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
     float wait_timer{0.0f};   // objet de mission +0x3A (opcode WAIT)
+    SCSmokeSet *smoke{ nullptr }; // générateur SMKG de l'épave posée à la destruction
+    void startSmokeGenerator();
+    void updateSmoke(float dt);
     virtual bool deactivate(uint8_t arg);
     virtual bool setMessage(uint8_t arg);
     virtual bool ifTargetInSameArea(uint8_t arg);

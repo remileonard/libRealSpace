@@ -2292,6 +2292,9 @@ void SCStrike::runFrame(void) {
                     continue; // Skip rendering if the object is too far away
                 }
                 Renderer.drawModel(actor->object->entity, Renderer.lodLevel, actor_position, actor_orientation);
+                if (actor->smoke != nullptr) {
+                    actor->smoke->render(Renderer.camera.getPosition());
+                }
                 if (this->show_bbox) {
                     if (actor->aiming_vector.x != 0.0f || actor->aiming_vector.y != 0.0f || actor->aiming_vector.z != 0.0f) {
                         Vector3D aim_pos = {actor->aiming_vector.x, actor->aiming_vector.y, actor->aiming_vector.z};

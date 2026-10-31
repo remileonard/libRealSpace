@@ -13,10 +13,8 @@ SCSimulatedObject::SCSimulatedObject() {
 
     this->azimuthf = 0.0f;
     this->elevationf = 0.0f;
-    
-    this->smoke_positions.clear();
-    this->smoke_positions.reserve(20);
 
+    this->smoke_set.init(&RSSmokeSet::getInstance(), 0, (uint32_t)(uintptr_t)this);
 }
 SCSimulatedObject::~SCSimulatedObject() {
 
@@ -28,20 +26,8 @@ void SCSimulatedObject::Render() {
     Vector3D orientaton = { this->azimuthf, this->elevationf, 0.0f };
     
     Renderer.drawModel(this->obj, position, orientaton);
-    
-    if (this->obj->dynn_miss != nullptr && this->no_thrust == false) {
-        int cpt=0;
-        int nb_smoke = (int) this->smoke_positions.size();
-        int cpt_smoke = 0;
-        for (auto pos: this->smoke_positions) {
-            float alpha = (nb_smoke - cpt_smoke) / ((float) nb_smoke);
-            cpt_smoke++;
-            if (cpt > this->SmokeSet.missile_smoke_textures.size()-1) {
-                cpt = 0;
-            }
-            Renderer.drawBillboard(pos, this->SmokeSet.missile_smoke_textures[cpt], 10, alpha);
-        }
-    }
+
+    this->smoke_set.render(Renderer.camera.getPosition());
 }
 
 void SCSimulatedObject::GetPosition(Vector3D *position) {
@@ -341,15 +327,28 @@ void SCSimulatedObject::Simulate(int tps) {
     } else {
         dist = (this->shooter->object->position - pos).Length();
     }
-    
-    if (dist > 30 && this->no_thrust == false) {
-        this->smoke_positions.insert(this->smoke_positions.begin(), position);
+
+    // Traînée du chunk SMOK, du point d'émission de cette image vers celui de l'image précédente.
+    float dt = 1.0f / (float)tps;
+    if (dist > 30 && this->no_thrust == false && this->obj->smoke.present) {
+        if (this->smoke_set.getModel() != this->obj->smoke.type) {
+            this->smoke_set.setModel(this->obj->smoke.type);
+        }
+        Vector3D orientation = {
+            this->azimuthf,
+            this->elevationf,
+            0.0f
+        };
+        Vector3D local = {
+            this->obj->smoke.x,
+            this->obj->smoke.y,
+            this->obj->smoke.z
+        };
+        this->smoke_set.spawnAlongSegment(smokeEmissionPoint(position, orientation, local),
+                                          smokeEmissionPoint(pos, orientation, local), dt);
     }
-    if (this->smoke_positions.size() > 20) {
-        this->smoke_positions.pop_back();
-    }
-    
-    
+    this->smoke_set.update(dt);
+
     float azimut = 0.0f;
     float elevation = 0.0f;
     if (this->obj->dynn_miss == nullptr) {
