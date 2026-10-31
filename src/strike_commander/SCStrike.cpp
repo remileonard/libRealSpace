@@ -1643,6 +1643,9 @@ RSEntity * SCStrike::loadWeapon(std::string name) {
  *
  * @param[in] missionName The name of the mission file to load.
  */
+SCMission *SCStrike::createMission(char const *missionName) {
+    return new SCMission(missionName, &object_cache);
+}
 void SCStrike::setMission(char const *missionName) {
     if (this->current_mission != nullptr) {
         this->current_mission->cleanup();
@@ -1650,7 +1653,7 @@ void SCStrike::setMission(char const *missionName) {
         this->current_mission = nullptr;
     } 
     this->miss_file_name = missionName;
-    this->current_mission = new SCMission(missionName, &object_cache);
+    this->current_mission = this->createMission(missionName);
     ai_planes.clear();
     ai_planes.shrink_to_fit();
     
@@ -2242,6 +2245,7 @@ void SCStrike::runFrame(void) {
                         Renderer.renderBBox(position, bb->min, bb->max);
                     } else {
                         actor->plane->Render();
+                        this->afterPlaneRendered(actor->plane, Vector3D(actor->plane->x, actor->plane->y, actor->plane->z), actor->plane->getThrust());
                     }
                 }
             } else if (actor->object->entity != nullptr) {
@@ -2314,6 +2318,7 @@ void SCStrike::runFrame(void) {
         case View::FOLLOW:
             if (!this->show_bbox) {
                 this->player_plane->Render();
+                this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
             } else {
                 this->player_plane->renderPlaneLined();
             }
@@ -2367,6 +2372,7 @@ void SCStrike::runFrame(void) {
         case View::EJECT_VIEW_P2:
         case View::EJECT_VIEW_P3:
             this->player_plane->Render();
+            this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
             break;
         case View::EYE_ON_TARGET:
         case View::REAL:
