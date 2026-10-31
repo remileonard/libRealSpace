@@ -36,15 +36,49 @@ DebugStrike::DebugStrike() : SCStrike() {}
 
 DebugStrike::~DebugStrike() {}
 
-void DebugStrike::setMission(std::string mission_name) { 
-    if (this->current_mission != nullptr) {
+
+void DebugStrike::setMission(std::string mission_name) {
+    bool reload = this->current_mission != nullptr;
+    if (reload) {
+        printf("DEBUG: nettoyage de la mission %s avant %s\n", this->miss_file_name.c_str(), mission_name.c_str());
         this->disablePlayerAI();
+        target = nullptr;
+        this->debug_entity_mode = DebugEntityMode::Actor;
+        this->debug_entity = nullptr;
+        this->debug_scene = nullptr;
+        this->debug_area = nullptr;
+        this->debug_spot = nullptr;
+        this->debug_order_command = prog_op::OP_NOOP;
+        this->debug_order_arg = 0;
+        this->debug_order_arg2 = 0xFF;
+        this->debug_order_executed = false;
+        this->debug_order_target = nullptr;
+        this->saved_target = nullptr;
+        this->player_ai_accumulator = 0.0f;
+        this->maneuver_test = false;
+        this->bench_active = false;
+        this->bench_trace.clear();
+        this->decision_trace_active = false;
+        this->decision_actor_id = -1;
+        this->decision_last.clear();
+        this->decision_lines.clear();
+        for (auto object : this->simulated_objects) {
+            delete object;
+        }
+        this->simulated_objects.clear();
+        this->ejected_object = nullptr;
     }
-    target = nullptr;
-    SCStrike::setMission(mission_name.c_str()); 
+    SCStrike::setMission(mission_name.c_str());
+    if (reload) {
+        printf("DEBUG: musique arretee (%u), musique de la nouvelle mission\n", Mixer.getMusicID());
+        Mixer.stopMusic();
+        this->current_mission->startMusic();
+    }
 }
 
-void DebugStrike::init() { SCStrike::init();}
+void DebugStrike::init() {
+    SCStrike::init();
+}
 void DebugStrike::runFrame(void) {
     SCMissionActors *player = this->current_mission->player;
     if (player->brain != nullptr && !this->pause_simu && this->camera_mode != View::AUTO_PILOT) {

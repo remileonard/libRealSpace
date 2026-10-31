@@ -204,17 +204,19 @@ void SCFileRequester::draw(FrameBuffer *fb) {
     }
     Point2D textPos = {
         (320-shape->GetWidth())/2+34, 
-        (200-shape->GetHeight())/2+40
+        (200-shape->GetHeight())/2+42
     };
-    fb->printText(this->font, {textPos.x,textPos.y-5}, this->current_file, this->color_offset);
+    fb->printText(this->font, {textPos.x,textPos.y}, this->current_file, this->color_offset);
     int min_y = textPos.y;
-    int max_y = textPos.y+6*8;
+    int max_y = textPos.y*8;
+
     for (auto file: this->files) {
-        textPos.y+=8;
-        if (textPos.y+texte_x < min_y+6 || textPos.y+texte_x > max_y) {
+        
+        if (textPos.y+texte_x < min_y || textPos.y+texte_x > max_y) {
             continue;
         }
-        fb->printText(this->font, {textPos.x, textPos.y+texte_x}, file, this->color_offset);
+        fb->printText(this->font, {textPos.x, textPos.y}, file, this->color_offset);
+        textPos.y+=8;
     }
     textPos.y = min_y;
     int selected = 0;
@@ -232,7 +234,7 @@ void SCFileRequester::draw(FrameBuffer *fb) {
                         0
                     );
                 }
-                fb->printText(this->font, {textPos.x, z->position.y+texte_x+7}, this->files[z->id], this->color_offset+selected);
+                fb->printText(this->font, {textPos.x, z->position.y+texte_x}, this->files[z->id], this->color_offset+selected);
             }
             break;
         }

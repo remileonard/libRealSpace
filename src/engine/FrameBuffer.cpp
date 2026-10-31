@@ -141,11 +141,50 @@ void FrameBuffer::rect_slow(int left, int top, int right, int bottom, uint8_t co
     line(left, bottom, right, bottom, color);
 }
 
-/**************************************************************************
- *  circle_slow                                                           *
- *    Draws a circle by using floating point numbers and math fuctions.   *
- **************************************************************************/
-
+void FrameBuffer::ellipse(int x, int y, int rx, int ry, uint8_t color) {
+    if (rx <= 0 || ry <= 0) {
+        this->plot_pixel(x, y, color);
+        return;
+    }
+    long rx2 = (long)rx * rx;
+    long ry2 = (long)ry * ry;
+    long px = 0;
+    long py = 2 * rx2 * ry;
+    int ex = 0;
+    int ey = ry;
+    long decision = ry2 - rx2 * ry + rx2 / 4;
+    while (px < py) {
+        this->plot_pixel(x + ex, y + ey, color);
+        this->plot_pixel(x - ex, y + ey, color);
+        this->plot_pixel(x + ex, y - ey, color);
+        this->plot_pixel(x - ex, y - ey, color);
+        ex++;
+        px += 2 * ry2;
+        if (decision < 0) {
+            decision += ry2 + px;
+        } else {
+            ey--;
+            py -= 2 * rx2;
+            decision += ry2 + px - py;
+        }
+    }
+    decision = (long)(ry2 * (ex + 0.5) * (ex + 0.5) + rx2 * (long)(ey - 1) * (ey - 1) - rx2 * ry2);
+    while (ey >= 0) {
+        this->plot_pixel(x + ex, y + ey, color);
+        this->plot_pixel(x - ex, y + ey, color);
+        this->plot_pixel(x + ex, y - ey, color);
+        this->plot_pixel(x - ex, y - ey, color);
+        ey--;
+        py -= 2 * rx2;
+        if (decision > 0) {
+            decision += rx2 - py;
+        } else {
+            ex++;
+            px += 2 * ry2;
+            decision += rx2 - py + px;
+        }
+    }
+}
 void FrameBuffer::circle_slow(int x, int y, int radius, uint8_t color) {
     float n = 0, invradius = 1 / (float)radius;
     int dx = 0, dy = radius - 1;
@@ -189,46 +228,23 @@ void FrameBuffer::circle_slow(int x, int y, int radius, uint8_t color) {
     }
 }
 void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize, int justify, int zoneWidth) {
-    if (justify == TEXT_JUSTIFY_LEGACY) {
-        this->printText_SM(font, coo, text, color, start, size, interLetterSpace, spaceSize, true, false);
-        return;
-    }
-    this->printTextJustified(font, *coo, text, color, start, size, interLetterSpace, justify, zoneWidth);
-}
-
-// Avance d'un caractère dans le moteur de texte du jeu (GlyphObject_MeasureChar_31312) : étendue à droite du point
-// d'ancrage + 1, soit rightDist ; l'espace prend celle du tiret.
-static int textGlyphAdvance(RSFont *font, char c) {
-    RLEShape *shape = font->GetShapeForChar(c == ' ' ? '-' : c);
-    if (shape == nullptr) {
-        return 0;
-    }
-    return shape->rightDist;
-}
-
-// Une ligne comme le moteur de texte du jeu (Widget_RenderComplexLayout_31810, CONV_SYSTEM.md § 7.7) : origin = haut
-// gauche de la zone de la ligne ; largeur = somme des avances + espacement entre caractères ; chaque caractère au-dessus
-// de 31 est posé par son point d'ancrage à origin.y + topDist(« A ») + 1 ; couleur 255 = couleurs propres de la
-// police, sinon caractère plein de cette couleur (Render_DrawTextString_32A58).
-void FrameBuffer::printTextJustified(RSFont *font, Point2D origin, char *text, uint8_t color, size_t start,
-                                     uint32_t size, size_t interLetterSpace, int justify, int zoneWidth) {
     if (text == nullptr || size == 0) {
         return;
     }
     int spacing = static_cast<int>(interLetterSpace);
     int textWidth = 0;
     for (size_t i = 0; i < size; i++) {
-        textWidth += textGlyphAdvance(font, text[start + i]);
+        textWidth += this->textGlyphAdvance(font, text[start + i]);
     }
     textWidth += (static_cast<int>(size) - 1) * spacing;
-    int x = origin.x;
+    int x = coo->x;
     if (justify == TEXT_JUSTIFY_CENTER) {
         x += (zoneWidth - textWidth) / 2;
     } else if (justify == TEXT_JUSTIFY_RIGHT) {
         x += zoneWidth - textWidth;
     }
     RLEShape *letter = font->GetShapeForChar('A');
-    int anchorY = origin.y + 1;
+    int anchorY = coo->y + 1;
     if (letter != nullptr) {
         anchorY += letter->topDist;
     }
@@ -241,17 +257,34 @@ void FrameBuffer::printTextJustified(RSFont *font, Point2D origin, char *text, u
             position.x = x - shape->leftDist;
             position.y = anchorY - shape->topDist;
             shape->SetPosition(&position);
-            shape->SetColorOffset(0);
-            if (color != 255) {
-                shape->SetColorReplacement(color);
-            }
+            shape->SetColorOffset(color);
             drawShape(shape);
-            shape->SetColorReplacement(0);
+            shape->SetColorOffset(0);
             shape->SetPosition(&saved);
         }
-        x += textGlyphAdvance(font, c) + spacing;
+        x += this->textGlyphAdvance(font, c) + spacing;
     }
 }
+
+int FrameBuffer::textGlyphAdvance(RSFont *font, char c) {
+    RLEShape *shape = font->GetShapeForChar(c == ' ' ? '-' : c);
+    if (shape == nullptr) {
+        return 0;
+    }
+    return shape->rightDist;
+}
+
+int32_t FrameBuffer::getJustifiedTextWidth(RSFont *font, const std::string &text, int interLetterSpace) {
+    int32_t width = 0;
+    for (char c : text) {
+        width += this->textGlyphAdvance(font, c);
+    }
+    if (!text.empty()) {
+        width += ((int32_t)text.size() - 1) * interLetterSpace;
+    }
+    return width;
+}
+
 void FrameBuffer::printTextFixedWidth(RSFont *font, Point2D coo, std::string text, uint8_t color) {
     int32_t width;
     RLEShape *shape = font->GetShapeForChar('A');
@@ -304,7 +337,7 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
         if (s == nullptr) continue;
         curW += fixedWidth ? s->GetHeight() : (s->GetWidth() + (int)interLetterSpace - 1);
     }
-    lineWidths.push_back(curW); // dernière ligne
+    lineWidths.push_back(curW);
 
     int maxWidth = *std::max_element(lineWidths.begin(), lineWidths.end());
     int lineIndex = 0;
@@ -321,7 +354,7 @@ void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t c
             continue;
         }
         shape->SetColorOffset(color);
-        // Adjust height
+        
         int32_t lineHeight = coo->y;
         coo->y -= shape->GetHeight();
 
@@ -432,14 +465,11 @@ void FrameBuffer::blitWithMaskAndOffset(uint8_t *srcBuffer, int x, int y, int wi
         }
     }
 }
-void FrameBuffer::blitLargeBuffer(uint8_t *srcBuffer, int srcWidth, int srcHeight, int srcX, int srcY, int destX,
-                                  int destY, int width, int height) {
-    // Clipping combiné src + dst sur les colonnes
+void FrameBuffer::blitLargeBuffer(uint8_t *srcBuffer, int srcWidth, int srcHeight, int srcX, int srcY, int destX, int destY, int width, int height) {
     int startCol = (std::max)({0, -srcX, -destX});
     int endCol   = (std::min)({width, srcWidth - srcX, this->width - destX});
     if (endCol <= startCol) return;
 
-    // Clipping combiné src + dst sur les lignes
     int startRow = (std::max)({0, -srcY, -destY});
     int endRow   = (std::min)({height, srcHeight - srcY, this->height - destY});
 
@@ -466,10 +496,8 @@ Texel *FrameBuffer::getTexture(VGAPalette *palette) {
     return texture;    
 }
 
-int32_t FrameBuffer::getTextWidth(RSFont *font, std::string &text) {
-    int32_t spaceWidth = font->GetShapeForChar('A')
-                             ? font->GetShapeForChar('A')->GetWidth()
-                             : font->GetShapeForChar('0')->GetWidth();
+int32_t FrameBuffer::getTextWidth(RSFont *font, std::string &text) { 
+    int32_t spaceWidth = font->GetShapeForChar('A') ? font->GetShapeForChar('A')->GetWidth() : font->GetShapeForChar('0')->GetWidth();
     int w = 0;
     spaceWidth -= 2;
     for (char c : text) {

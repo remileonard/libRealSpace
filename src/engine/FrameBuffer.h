@@ -2,14 +2,16 @@
 #include "precomp.h"
 #include "../realspace/RLEShape.h"
 
-// Justification de printText : LEGACY = rendu historique de libRealSpace ; les autres valeurs suivent le
-// moteur de texte du jeu (code %J : 0 gauche, 1 droite, 2 centré dans la zone).
-constexpr int TEXT_JUSTIFY_LEGACY = -1;
-constexpr int TEXT_JUSTIFY_LEFT = 0;
-constexpr int TEXT_JUSTIFY_RIGHT = 1;
-constexpr int TEXT_JUSTIFY_CENTER = 2;
+
+enum TextJustify {
+    TEXT_JUSTIFY_LEFT = 0,
+    TEXT_JUSTIFY_RIGHT = 1,
+    TEXT_JUSTIFY_CENTER = 2
+};
 
 class FrameBuffer {
+private:
+    int textGlyphAdvance(RSFont *font, char c);
 public:
     uint8_t *framebuffer{nullptr};
     int width{0};
@@ -31,8 +33,9 @@ public:
                              int skip);
     void rect_slow(int left, int top, int right, int bottom, uint8_t color);
     void circle_slow(int x, int y, int radius, uint8_t color);
+    void ellipse(int x, int y, int rx, int ry, uint8_t color);
     void printText(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size,
-                   size_t interLetterSpace, size_t spaceSize, int justify = TEXT_JUSTIFY_LEGACY,
+                   size_t interLetterSpace, size_t spaceSize, int justify = TEXT_JUSTIFY_LEFT,
                    int zoneWidth = 320);
     void printTextFixedWidth(
         RSFont *font, Point2D coo, std::string text, uint8_t color
@@ -47,6 +50,5 @@ public:
                          int width, int height);
     Texel* getTexture(VGAPalette* palette);
     int32_t getTextWidth(RSFont *font, std::string &text);
-    void printTextJustified(RSFont *font, Point2D origin, char *text, uint8_t color, size_t start, uint32_t size,
-                            size_t interLetterSpace, int justify, int zoneWidth);
+    int32_t getJustifiedTextWidth(RSFont *font, const std::string &text, int interLetterSpace);
 };
