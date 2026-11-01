@@ -1,7 +1,7 @@
 /*****************************************************************************/
 /* explode.c                              Copyright (c) Ladislav Zezula 2003 */
 /*---------------------------------------------------------------------------*/
-/* Implode function of PKWARE Data Compression library                       */
+/* Explode function of PKWARE Data Compression library                       */
 /*---------------------------------------------------------------------------*/
 /*   Date    Ver   Who  Comment                                              */
 /* --------  ----  ---  -------                                              */
