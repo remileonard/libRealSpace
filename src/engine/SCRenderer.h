@@ -106,6 +106,17 @@ public:
     int lodLevel{0};
     GLuint texture{0};
 
+    // [Video] terrain_detail: 0 = off (default), 1..100 = strength of a fine detail texture on the untextured terrain
+    int terrain_detail{0};
+    GLuint detail_tex{0};
+    void ensureDetailTexture();
+    void renderTerrainDetail(RSArea *area, int LOD, const std::vector<int> &blocks);
+
+    // [Video] water_waves: 0 = off (default), 1..100 = strength of two drifting wave layers on the water
+    int water_waves{0};
+    GLuint wave_tex{0};
+    void ensureWaveTexture();
+    void renderWaterWaves(RSArea *area, int LOD, const std::vector<int> &blocks);
     // [Video] texture_filter: 0 = bilinear (default), 1 = mipmaps (trilinear), 2 = mipmaps + anisotropic
     int texture_filter{0};
     float max_anisotropy{1.0f};
