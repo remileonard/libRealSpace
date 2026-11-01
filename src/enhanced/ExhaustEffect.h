@@ -14,7 +14,7 @@ public:
      * @param thrust  throttle 0..100
      * @param view    modelview matrix (world -> eye) of the current camera
      */
-    void draw(const void *key, const Mat4 &model, Vec3 nozzle, int thrust, const float *view);
+    void draw(const void *key, const Mat4 &model, Vector3D nozzle, int thrust, const float *view);
 
 private:
     void addStrip(float length, float width, float swell, Color c, float repeat, float speed, float phase);
@@ -22,17 +22,17 @@ private:
     void addDiamond(float x, float halfLength, float halfWidth, float alpha);
     void addHotGas();
     void addAfterburner();
-    Vec3 toWorld(float x, float y, float z) const;
-    Vec3 sideAxis(float x, float *facing) const;
+    Vector3D toWorld(float x, float y, float z) const;
+    Vector3D sideAxis(float x, float *facing) const;
     void traceStage(const void *key, int thrust);
 
     static const float NOZZLE_RADIUS;
 
     Mat4 model;
-    Vec3 nozzle;
-    Vec3 eye;
-    Vec3 camRight;
-    Vec3 camUp;
+    Vector3D nozzle;
+    Vector3D eye;
+    Vector3D camRight;
+    Vector3D camUp;
     float time{0.0f};
     float flicker{1.0f};
     float dry{0.0f};

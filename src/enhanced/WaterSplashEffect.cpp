@@ -82,7 +82,7 @@ void WaterSplashEffect::scan(SCMission *mission) {
         }
         explosion->is_finished = true;
         Splash splash;
-        splash.position = vec3(p.x, mission->area->getY(p.x, p.z), p.z);
+        splash.position = Vector3D(p.x, mission->area->getY(p.x, p.z), p.z);
         splash.start = now;
         splash.scale = 1.0f;
         splash.seed = (uint32_t)(p.x * 31.0f) * 73856093u ^ (uint32_t)(p.z * 17.0f) * 19349663u ^ (uint32_t)(now * 1000.0f);
@@ -137,17 +137,17 @@ unsigned int WaterSplashEffect::puffTexture() {
     return this->puff;
 }
 
-void WaterSplashEffect::addBillboard(Batch &batch, Vec3 center, float size, Color c) const {
-    Vec3 look = this->eye - center;
-    const float ll = length(look);
+void WaterSplashEffect::addBillboard(Batch &batch, Vector3D center, float size, Color c) const {
+    Vector3D look = this->eye - center;
+    const float ll = look.Length();
     if (ll < 1e-4f) {
         return;
     }
     look = look * (1.0f / ll);
-    const Vec3 right = normalized(vec3(look.z, 0.0f, -look.x), vec3(1.0f, 0.0f, 0.0f));
-    const Vec3 up = cross(look, right);
-    const Vec3 rx = right * size;
-    const Vec3 ux = up * size;
+    const Vector3D right = Vector3D(look.z, 0.0f, -look.x).Normalized(Vector3D(1.0f, 0.0f, 0.0f));
+    const Vector3D up = Vector3D::Cross(look, right);
+    const Vector3D rx = right * size;
+    const Vector3D ux = up * size;
     batch.quad(vert(center - rx - ux, 0.0f, 0.0f, c), vert(center + rx - ux, 1.0f, 0.0f, c),
                vert(center + rx + ux, 1.0f, 1.0f, c), vert(center - rx + ux, 0.0f, 1.0f, c));
 }
@@ -157,9 +157,9 @@ void WaterSplashEffect::addRing(Batch &batch, const Splash &splash, float age) c
     const float radius = (3.0f + 26.0f * powf(t, 0.6f)) * splash.scale;
     const float alpha = 0.55f * (1.0f - smooth(0.0f, 1.0f, t)) * smooth(0.0f, 0.06f, t);
     const Color c = color(0.90f, 0.96f, 1.0f, alpha);
-    const Vec3 p = vec3(splash.position.x, splash.position.y + 0.3f, splash.position.z);
-    batch.quad(vert(vec3(p.x - radius, p.y, p.z - radius), 0.0f, 0.0f, c), vert(vec3(p.x + radius, p.y, p.z - radius), 1.0f, 0.0f, c),
-               vert(vec3(p.x + radius, p.y, p.z + radius), 1.0f, 1.0f, c), vert(vec3(p.x - radius, p.y, p.z + radius), 0.0f, 1.0f, c));
+    const Vector3D p = Vector3D(splash.position.x, splash.position.y + 0.3f, splash.position.z);
+    batch.quad(vert(Vector3D(p.x - radius, p.y, p.z - radius), 0.0f, 0.0f, c), vert(Vector3D(p.x + radius, p.y, p.z - radius), 1.0f, 0.0f, c),
+               vert(Vector3D(p.x + radius, p.y, p.z + radius), 1.0f, 1.0f, c), vert(Vector3D(p.x - radius, p.y, p.z + radius), 0.0f, 1.0f, c));
 }
 
 // puffs of spray are thrown up, grow and fall back
@@ -174,7 +174,7 @@ void WaterSplashEffect::addSpray(Batch &batch, const Splash &splash, float age) 
         if (y < 0.0f && t > 0.1f) {
             continue;
         }
-        const Vec3 pos = vec3(splash.position.x + cosf(angle) * speed * t, splash.position.y + std::max(0.0f, y),
+        const Vector3D pos = Vector3D(splash.position.x + cosf(angle) * speed * t, splash.position.y + std::max(0.0f, y),
                               splash.position.z + sinf(angle) * speed * t);
         const float life = age / LIFE;
         const float size = (1.6f + 4.2f * life) * splash.scale * (0.7f + 0.6f * hash01(splash.seed, 70 + k));
@@ -194,7 +194,7 @@ void WaterSplashEffect::addDroplets(Batch &batch, const Splash &splash, float ag
         if (y < 0.0f && t > 0.1f) {
             continue;
         }
-        const Vec3 pos = vec3(splash.position.x + cosf(angle) * speed * t, splash.position.y + std::max(0.0f, y),
+        const Vector3D pos = Vector3D(splash.position.x + cosf(angle) * speed * t, splash.position.y + std::max(0.0f, y),
                               splash.position.z + sinf(angle) * speed * t);
         this->addBillboard(batch, pos, 0.45f * splash.scale, color(0.85f, 0.94f, 1.0f, 0.9f));
     }

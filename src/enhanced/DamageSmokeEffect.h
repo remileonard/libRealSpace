@@ -13,14 +13,14 @@ public:
      * @param burning   aircraft is on fire: flames and embers along the first part of the trail
      * @param view      modelview matrix (world -> eye)
      */
-    void draw(const std::vector<Vec3> &points, float intensity, bool burning, const float *view);
+    void draw(const std::vector<Vector3D> &points, float intensity, bool burning, const float *view);
 
 private:
-    void addBillboard(Batch &batch, Vec3 center, float size, float rotation, Color c) const;
-    void addSmoke(const std::vector<Vec3> &points, float intensity);
-    void addFire(const std::vector<Vec3> &points, float intensity);
+    void addBillboard(Batch &batch, Vector3D center, float size, float rotation, Color c) const;
+    void addSmoke(const std::vector<Vector3D> &points, float intensity);
+    void addFire(const std::vector<Vector3D> &points, float intensity);
 
-    Vec3 eye;
+    Vector3D eye;
     float time{0.0f};
 };
 

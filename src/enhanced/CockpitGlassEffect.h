@@ -13,7 +13,7 @@ public:
      * @param sunDir world space direction towards the sun
      * @param damage 0 (intact) .. 1 (destroyed)
      */
-    void draw(const float *view, const float *proj, Vec3 sunDir, float damage);
+    void draw(const float *view, const float *proj, Vector3D sunDir, float damage);
 
 private:
     struct Impact {
@@ -27,7 +27,7 @@ private:
     void updateImpacts(float damage);
     struct ViewContext {
         CameraBasis cam;
-        Vec3 forward;
+        Vector3D forward;
         const float *proj;
         float distance;
         float aspectFix;
@@ -43,7 +43,7 @@ private:
         float bandWidth;
     };
 
-    Vec3 screenPoint(const ViewContext &v, float nx, float ny) const;
+    Vector3D screenPoint(const ViewContext &v, float nx, float ny) const;
     void addScreenQuad(Batch &batch, const ViewContext &v, float cx, float cy, float hx, float hy, float rotation, Color c) const;
     void addDome(Batch &batch, const ViewContext &v, const DomeStyle &style) const;
 

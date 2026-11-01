@@ -124,6 +124,19 @@ public:
         };
     };
 
+    static float Dot(const Vector3D& v1, const Vector3D& v2) {
+        return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+    };
+
+    /** Exact unit vector, or fallback when the length is (near) zero. */
+    inline Vector3D Normalized(const Vector3D& fallback) const {
+        float l = Length();
+        if (l < 1e-6f) {
+            return fallback;
+        }
+        return *this * (1.0f / l);
+    };
+
     inline void Normalize(void){
         float ilength;
         ilength = DotProduct(this);

@@ -88,8 +88,8 @@ void EnhancedStrike::updateSmoke(SCPlane *plane, Vector3D position, float now, c
     if (now - trail.lastSample >= 1.0f / 30.0f) {
         trail.lastSample = now;
         if (emitting) {
-            Vec3 p = vec3(position.x, position.y, position.z);
-            if (!trail.points.empty() && length(trail.points.front() - p) > 60.0f) {
+            const Vector3D &p = position;
+            if (!trail.points.empty() && (trail.points.front() - p).Length() > 60.0f) {
                 trail.points.clear();
             }
             trail.points.insert(trail.points.begin(), p);
@@ -119,7 +119,7 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
 
     this->forgetOldTrails(now);
     if (this->enhancedModel && plane->object->alive && !entity->chld.empty()) {
-        Vec3 nozzle = vec3((float)entity->chld[0]->z / 250.0f, (float)entity->chld[0]->y / 250.0f, (float)entity->chld[0]->x / 250.0f);
+        Vector3D nozzle((float)entity->chld[0]->z / 250.0f, (float)entity->chld[0]->y / 250.0f, (float)entity->chld[0]->x / 250.0f);
         this->exhaust.draw(plane, model, nozzle, thrust, view);
     }
     this->vortices.draw(plane, entity, model, view, plane->g_load);
@@ -366,7 +366,7 @@ void EnhancedStrike::afterCockpitSceneRendered() {
     if (!this->glassEnabled) {
         return;
     }
-    this->cockpitGlass.draw(view, proj, vec3(light.x, light.y, light.z), this->damageLevel(this->player_plane));
+    this->cockpitGlass.draw(view, proj, light, this->damageLevel(this->player_plane));
 }
 
 bool EnhancedStrike::confirmEndMission() {

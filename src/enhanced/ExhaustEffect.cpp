@@ -5,19 +5,19 @@ namespace enhanced {
 
 const float ExhaustEffect::NOZZLE_RADIUS = 1.0f;
 
-Vec3 ExhaustEffect::toWorld(float x, float y, float z) const {
-    return model.point(vec3(nozzle.x + x, nozzle.y + y, nozzle.z + z));
+Vector3D ExhaustEffect::toWorld(float x, float y, float z) const {
+    return model.point(Vector3D(nozzle.x + x, nozzle.y + y, nozzle.z + z));
 }
 
 // Unit vector across the plume, facing the camera (in the nozzle frame); *facing = how much we look from the side (0..1)
-Vec3 ExhaustEffect::sideAxis(float x, float *facing) const {
+Vector3D ExhaustEffect::sideAxis(float x, float *facing) const {
     float wl = sqrtf(eye.z * eye.z + eye.y * eye.y);
     float vl = sqrtf((eye.x - x) * (eye.x - x) + eye.y * eye.y + eye.z * eye.z);
     *facing = vl > 1e-6f ? wl / vl : 0.0f;
     if (wl > 1e-6f) {
-        return vec3(0.0f, eye.z / wl, -eye.y / wl);
+        return Vector3D(0.0f, eye.z / wl, -eye.y / wl);
     }
-    return vec3(0.0f, 1.0f, 0.0f);
+    return Vector3D(0.0f, 1.0f, 0.0f);
 }
 
 // Camera-facing strip about the (-x) axis with soft edges and scrolling turbulence from the noise texture
@@ -29,7 +29,7 @@ void ExhaustEffect::addStrip(float length, float width, float swell, Color c, fl
         float u = (float)i / SEGMENTS;
         float x = -u * length;
         float facing;
-        Vec3 w = sideAxis(x, &facing);
+        Vector3D w = sideAxis(x, &facing);
         float r = NOZZLE_RADIUS * width * (1.0f + swell * sqrtf(u)) * (1.0f - powf(u, 1.7f)) + 0.02f;
         float a = c.a * powf(1.0f - u, 1.1f) * std::min(1.0f, 0.35f + u * 14.0f) * smooth(0.04f, 0.40f, facing);
         float cool = 1.0f - 0.38f * u;
@@ -54,7 +54,7 @@ void ExhaustEffect::addSprite(float x, float radius, Color c) {
     for (int k = 0; k < 4; k++) {
         float sx = (k == 0 || k == 3) ? -1.0f : 1.0f;
         float sy = (k < 2) ? -1.0f : 1.0f;
-        Vec3 off = (camRight * sx + camUp * sy) * radius;
+        Vector3D off = (camRight * sx + camUp * sy) * radius;
         q[k] = vert(toWorld(x + off.x, off.y, off.z), sx * 0.5f + 0.5f, sy * 0.5f + 0.5f, c);
     }
     glows.quad(q[0], q[1], q[2], q[3]);
@@ -66,7 +66,7 @@ void ExhaustEffect::addDiamond(float x, float halfLength, float halfWidth, float
         return;
     }
     float facing;
-    Vec3 w = sideAxis(x, &facing);
+    Vector3D w = sideAxis(x, &facing);
     Color c = color(0.80f, 0.88f, 1.0f, std::min(1.0f, alpha * smooth(0.05f, 0.4f, facing)));
     glows.quad(vert(toWorld(x - halfLength, -w.y * halfWidth, -w.z * halfWidth), 0.0f, 0.0f, c),
                vert(toWorld(x - halfLength, w.y * halfWidth, w.z * halfWidth), 1.0f, 0.0f, c),
@@ -123,7 +123,7 @@ void ExhaustEffect::traceStage(const void *key, int thrust) {
     }
 }
 
-void ExhaustEffect::draw(const void *key, const Mat4 &modelMatrix, Vec3 nozzlePos, int thrust, const float *view) {
+void ExhaustEffect::draw(const void *key, const Mat4 &modelMatrix, Vector3D nozzlePos, int thrust, const float *view) {
     if (thrust < 8) {
         if (stages[key] != 0) {
             printf("[enhanced] exhaust %p: off (thrust %d)\n", key, thrust);
@@ -146,7 +146,7 @@ void ExhaustEffect::draw(const void *key, const Mat4 &modelMatrix, Vec3 nozzlePo
     camRight = model.invDir(cam.right);
     camUp = model.invDir(cam.up);
 
-    float vlen = length(eye);
+    float vlen = eye.Length();
     endon = vlen > 1e-6f ? 1.0f - sqrtf(eye.y * eye.y + eye.z * eye.z) / vlen : 0.0f;
     endon = smooth(0.0f, 0.6f, endon);
     if (eye.x > 0.0f) {

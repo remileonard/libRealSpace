@@ -18,7 +18,7 @@ public:
 
 private:
     struct Splash {
-        Vec3 position;
+        Vector3D position;
         float start;
         float scale;
         uint32_t seed;
@@ -28,7 +28,7 @@ private:
     static const float LIFE;
 
     bool isOpenWater(RSArea *area, float x, float z) const;
-    void addBillboard(Batch &batch, Vec3 center, float size, Color c) const;
+    void addBillboard(Batch &batch, Vector3D center, float size, Color c) const;
     void addRing(Batch &batch, const Splash &splash, float age) const;
     void addSpray(Batch &batch, const Splash &splash, float age) const;
     void addDroplets(Batch &batch, const Splash &splash, float age) const;
@@ -39,7 +39,7 @@ private:
     std::unordered_set<SCExplosion *> seen;
     unsigned int ring{0};
     unsigned int puff{0};
-    Vec3 eye{0.0f, 0.0f, 0.0f};
+    Vector3D eye{0.0f, 0.0f, 0.0f};
 };
 
 }  // namespace enhanced

@@ -45,7 +45,7 @@ const WingVortexEffect::WingTips &WingVortexEffect::wingTips(const RSEntity *ent
                 }
             }
             if (n > 0) {
-                wt.p[s] = vec3((float)(sx / n) - 0.4f, (float)(sy / n), ext);
+                wt.p[s] = Vector3D((float)(sx / n) - 0.4f, (float)(sy / n), ext);
                 wt.valid = true;
             }
         }
@@ -64,14 +64,14 @@ void WingVortexEffect::forgetOldTrails(float now) {
     }
 }
 
-void WingVortexEffect::sample(Trail &trail, const Vec3 *tipsWorld, float now, float strength) {
+void WingVortexEffect::sample(Trail &trail, const Vector3D *tipsWorld, float now, float strength) {
     if (now - trail.lastSample < 0.025f && trail.lastSample >= 0.0f) {
         return;
     }
     trail.lastSample = now;
     for (int k = 0; k < 2; k++) {
         auto &d = trail.side[k];
-        if (!d.empty() && length(d.back().p - tipsWorld[k]) > 60.0f) {
+        if (!d.empty() && (d.back().p - tipsWorld[k]).Length() > 60.0f) {
             d.clear();
         }
         Sample s;
@@ -99,20 +99,20 @@ bool WingVortexEffect::hasVisibleSamples(const Trail &trail, float strength) con
     return false;
 }
 
-void WingVortexEffect::buildFrames(const Vec3 &eye) {
+void WingVortexEffect::buildFrames(const Vector3D &eye) {
     const size_t n = points.size();
     distance.assign(n, 0.0f);
     frames.resize(n);
     for (size_t i = 1; i < n; i++) {
-        distance[i] = distance[i - 1] + length(points[i].p - points[i - 1].p);
+        distance[i] = distance[i - 1] + (points[i].p - points[i - 1].p).Length();
     }
     for (size_t i = 0; i < n; i++) {
         size_t a = i > 0 ? i - 1 : i;
         size_t b = i + 1 < n ? i + 1 : i;
-        Vec3 tangent = normalized(points[b].p - points[a].p, vec3(1.0f, 0.0f, 0.0f));
-        frames[i].s = normalized(cross(tangent, eye - points[i].p), vec3(0.0f, 1.0f, 0.0f));
-        frames[i].b1 = normalized(cross(tangent, vec3(0.0f, 1.0f, 0.0f)), vec3(0.0f, 0.0f, 1.0f));
-        frames[i].b2 = cross(tangent, frames[i].b1);
+        Vector3D tangent = (points[b].p - points[a].p).Normalized(Vector3D(1.0f, 0.0f, 0.0f));
+        frames[i].s = Vector3D::Cross(tangent, eye - points[i].p).Normalized(Vector3D(0.0f, 1.0f, 0.0f));
+        frames[i].b1 = Vector3D::Cross(tangent, Vector3D(0.0f, 1.0f, 0.0f)).Normalized(Vector3D(0.0f, 0.0f, 1.0f));
+        frames[i].b2 = Vector3D::Cross(tangent, frames[i].b1);
     }
 }
 
@@ -125,7 +125,7 @@ void WingVortexEffect::addRibbon(int side, const RibbonStyle &st, float now) {
         float u = std::min(1.0f, age / LIFE);
         float a = st.alpha * points[i].s * powf(1.0f - u, 1.4f) * smooth(0.0f, 0.12f, u + 0.02f);
         float w = st.widthStart + (st.widthEnd - st.widthStart) * sqrtf(u);
-        Vec3 c = points[i].p;
+        Vector3D c = points[i].p;
         if (st.helixRadius > 0.0f) {
             float ph = st.helixPhase + st.helixTurns * age * 6.2831853f;
             float hr = st.helixRadius * (0.4f + 1.6f * u);
@@ -144,7 +144,7 @@ void WingVortexEffect::addRibbon(int side, const RibbonStyle &st, float now) {
     batch.flush(noiseTexture, BlendMode::Alpha);
 }
 
-void WingVortexEffect::drawSide(int side, const Trail &trail, const Vec3 &tip, const Vec3 &eye, float now, float strength) {
+void WingVortexEffect::drawSide(int side, const Trail &trail, const Vector3D &tip, const Vector3D &eye, float now, float strength) {
     points.assign(trail.side[side].begin(), trail.side[side].end());
     Sample current;
     current.p = tip;
@@ -174,7 +174,7 @@ void WingVortexEffect::draw(const void *key, const RSEntity *entity, const Mat4 
     Trail &trail = trails[key];
     trail.lastSeen = now;
 
-    Vec3 tipsWorld[2];
+    Vector3D tipsWorld[2];
     tipsWorld[0] = model.point(wt.p[0]);
     tipsWorld[1] = model.point(wt.p[1]);
     sample(trail, tipsWorld, now, strength);
@@ -188,7 +188,7 @@ void WingVortexEffect::draw(const void *key, const RSEntity *entity, const Mat4 
         return;
     }
     noiseTexture = EffectTextures::get().noise;
-    Vec3 eye = CameraBasis::fromView(view).eye;
+    Vector3D eye = CameraBasis::fromView(view).eye;
     for (int side = 0; side < 2; side++) {
         drawSide(side, trail, tipsWorld[side], eye, now, strength);
     }

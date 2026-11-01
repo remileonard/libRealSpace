@@ -21,7 +21,7 @@ public:
 
 private:
     struct Sample {
-        Vec3 p;
+        Vector3D p;
         float t;
         float s;
     };
@@ -32,13 +32,13 @@ private:
         bool active{false};
     };
     struct WingTips {
-        Vec3 p[2];
+        Vector3D p[2];
         bool valid{false};
     };
     struct Frame {
-        Vec3 b1;
-        Vec3 b2;
-        Vec3 s;
+        Vector3D b1;
+        Vector3D b2;
+        Vector3D s;
     };
     struct RibbonStyle {
         float widthStart;
@@ -54,11 +54,11 @@ private:
                                  float helixTurns, Color tint);
     const WingTips &wingTips(const RSEntity *entity);
     void forgetOldTrails(float now);
-    void sample(Trail &trail, const Vec3 *tips, float now, float strength);
+    void sample(Trail &trail, const Vector3D *tips, float now, float strength);
     bool hasVisibleSamples(const Trail &trail, float strength) const;
-    void buildFrames(const Vec3 &eye);
+    void buildFrames(const Vector3D &eye);
     void addRibbon(int side, const RibbonStyle &style, float now);
-    void drawSide(int side, const Trail &trail, const Vec3 &tip, const Vec3 &eye, float now, float strength);
+    void drawSide(int side, const Trail &trail, const Vector3D &tip, const Vector3D &eye, float now, float strength);
 
     static const float LIFE;
 

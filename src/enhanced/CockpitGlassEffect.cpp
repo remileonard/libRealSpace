@@ -220,7 +220,7 @@ void CockpitGlassEffect::updateImpacts(float damage) {
     printf("[enhanced] cockpit glass: %d impacts (damage %.2f)\n", wanted, damage);
 }
 
-Vec3 CockpitGlassEffect::screenPoint(const ViewContext &v, float nx, float ny) const {
+Vector3D CockpitGlassEffect::screenPoint(const ViewContext &v, float nx, float ny) const {
     float ex = v.distance * (nx + v.proj[8]) / v.proj[0];
     float ey = v.distance * (ny + v.proj[9]) / v.proj[5];
     return v.cam.eye + v.forward * v.distance + v.cam.right * ex + v.cam.up * ey;
@@ -279,7 +279,7 @@ void CockpitGlassEffect::addDome(Batch &batch, const ViewContext &v, const DomeS
     }
 }
 
-void CockpitGlassEffect::draw(const float *view, const float *proj, Vec3 sunDir, float damage) {
+void CockpitGlassEffect::draw(const float *view, const float *proj, Vector3D sunDir, float damage) {
     if (proj[0] < 1e-4f || proj[5] < 1e-4f) {
         return;
     }
@@ -288,16 +288,16 @@ void CockpitGlassEffect::draw(const float *view, const float *proj, Vec3 sunDir,
 
     ViewContext v;
     v.cam = CameraBasis::fromView(view);
-    v.forward = vec3(-view[2], -view[6], -view[10]);
+    v.forward = Vector3D(-view[2], -view[6], -view[10]);
     v.proj = proj;
     v.distance = GLASS_DISTANCE;
     v.aspectFix = proj[0] / proj[5];
 
     // sun position relative to the view direction
-    Vec3 sun = normalized(sunDir, vec3(0.0f, 1.0f, 0.0f));
-    const float sx = dot(v.cam.right, sun);
-    const float sy = dot(v.cam.up, sun);
-    const float sz = dot(v.forward, sun);
+    Vector3D sun = sunDir.Normalized(Vector3D(0.0f, 1.0f, 0.0f));
+    const float sx = Vector3D::Dot(v.cam.right, sun);
+    const float sy = Vector3D::Dot(v.cam.up, sun);
+    const float sz = Vector3D::Dot(v.forward, sun);
     const float glare = sz > 0.0f ? powf(sz, 5.0f) * smooth(-0.05f, 0.25f, sun.y) : 0.0f;
 
     Batch batch;

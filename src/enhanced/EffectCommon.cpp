@@ -107,35 +107,35 @@ float effectTime() {
     return std::chrono::duration<float>(std::chrono::steady_clock::now() - t0).count();
 }
 
-Vec3 Mat4::point(Vec3 p) const {
-    return vec3(m[0] * p.x + m[4] * p.y + m[8] * p.z + m[12], m[1] * p.x + m[5] * p.y + m[9] * p.z + m[13],
+Vector3D Mat4::point(Vector3D p) const {
+    return Vector3D(m[0] * p.x + m[4] * p.y + m[8] * p.z + m[12], m[1] * p.x + m[5] * p.y + m[9] * p.z + m[13],
                 m[2] * p.x + m[6] * p.y + m[10] * p.z + m[14]);
 }
 
-Vec3 Mat4::invDir(Vec3 d) const {
-    return vec3(m[0] * d.x + m[1] * d.y + m[2] * d.z, m[4] * d.x + m[5] * d.y + m[6] * d.z,
+Vector3D Mat4::invDir(Vector3D d) const {
+    return Vector3D(m[0] * d.x + m[1] * d.y + m[2] * d.z, m[4] * d.x + m[5] * d.y + m[6] * d.z,
                 m[8] * d.x + m[9] * d.y + m[10] * d.z);
 }
 
-Vec3 Mat4::invPoint(Vec3 p) const {
-    return invDir(vec3(p.x - m[12], p.y - m[13], p.z - m[14]));
+Vector3D Mat4::invPoint(Vector3D p) const {
+    return invDir(Vector3D(p.x - m[12], p.y - m[13], p.z - m[14]));
 }
 
 CameraBasis CameraBasis::fromView(const float *view) {
     CameraBasis c;
-    c.right = vec3(view[0], view[4], view[8]);
-    c.up = vec3(view[1], view[5], view[9]);
+    c.right = Vector3D(view[0], view[4], view[8]);
+    c.up = Vector3D(view[1], view[5], view[9]);
     float e[3];
     for (int i = 0; i < 3; i++) {
         const float *col = &view[i * 4];
         float d = col[0] * col[0] + col[1] * col[1] + col[2] * col[2];
         e[i] = -(col[0] * view[12] + col[1] * view[13] + col[2] * view[14]) / (d > 1e-9f ? d : 1.0f);
     }
-    c.eye = vec3(e[0], e[1], e[2]);
+    c.eye = Vector3D(e[0], e[1], e[2]);
     return c;
 }
 
-EffectVertex vert(Vec3 p, float u, float v, Color c) {
+EffectVertex vert(Vector3D p, float u, float v, Color c) {
     EffectVertex out;
     out.x = p.x;
     out.y = p.y;

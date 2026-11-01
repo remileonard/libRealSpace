@@ -13,37 +13,37 @@ float hash01(uint32_t h, uint32_t k) {
     return (float)(h & 0xffff) / 65535.0f;
 }
 
-uint32_t pointHash(Vec3 p, float scale) {
+uint32_t pointHash(Vector3D p, float scale) {
     return ((uint32_t)(int)(p.x * scale)) * 73856093u ^ ((uint32_t)(int)(p.z * scale)) * 19349663u;
 }
 
 }  // namespace
 
-void DamageSmokeEffect::addBillboard(Batch &batch, Vec3 center, float size, float rotation, Color c) const {
-    Vec3 look = eye - center;
-    float ll = length(look);
+void DamageSmokeEffect::addBillboard(Batch &batch, Vector3D center, float size, float rotation, Color c) const {
+    Vector3D look = eye - center;
+    float ll = look.Length();
     if (ll < 1e-4f) {
         return;
     }
     look = look * (1.0f / ll);
-    Vec3 right = normalized(vec3(look.z, 0.0f, -look.x), vec3(1.0f, 0.0f, 0.0f));
-    Vec3 up = cross(look, right);
+    Vector3D right = Vector3D(look.z, 0.0f, -look.x).Normalized(Vector3D(1.0f, 0.0f, 0.0f));
+    Vector3D up = Vector3D::Cross(look, right);
     float cs = cosf(rotation) * size;
     float sn = sinf(rotation) * size;
-    Vec3 rx = right * cs + up * sn;
-    Vec3 ux = right * -sn + up * cs;
+    Vector3D rx = right * cs + up * sn;
+    Vector3D ux = right * -sn + up * cs;
     batch.quad(vert(center - rx - ux, 0.0f, 0.0f, c), vert(center + rx - ux, 1.0f, 0.0f, c),
                vert(center + rx + ux, 1.0f, 1.0f, c), vert(center - rx + ux, 0.0f, 1.0f, c));
 }
 
-void DamageSmokeEffect::addSmoke(const std::vector<Vec3> &points, float intensity) {
+void DamageSmokeEffect::addSmoke(const std::vector<Vector3D> &points, float intensity) {
     const size_t n = points.size();
     std::vector<size_t> order(n);
     for (size_t i = 0; i < n; i++) {
         order[i] = i;
     }
     std::sort(order.begin(), order.end(), [this, &points](size_t a, size_t b) {
-        return length(points[a] - eye) > length(points[b] - eye);
+        return (points[a] - eye).Length() > (points[b] - eye).Length();
     });
 
     Batch batch;
@@ -60,7 +60,7 @@ void DamageSmokeEffect::addSmoke(const std::vector<Vec3> &points, float intensit
             float oy = (hash01(h, 21 + k) - 0.5f) * 2.0f;
             float oz = (hash01(h, 31 + k) - 0.5f) * 2.0f;
             float spread = base * (0.10f + 0.32f * age);
-            Vec3 c = vec3(points[i].x + ox * spread, points[i].y + oy * spread * 0.8f + age * 1.5f, points[i].z + oz * spread);
+            Vector3D c = Vector3D(points[i].x + ox * spread, points[i].y + oy * spread * 0.8f + age * 1.5f, points[i].z + oz * spread);
             float size = base * (0.62f + 0.38f * hash01(h, 41 + k));
             float spin = hash01(h, 61 + k) * 0.12f + 0.10f;
             float rot = hash01(h, 51 + k) * 6.2831853f + time * spin * (k & 1 ? 1.0f : -1.0f);
@@ -71,7 +71,7 @@ void DamageSmokeEffect::addSmoke(const std::vector<Vec3> &points, float intensit
 }
 
 // flickering tongues of flame along the first part of the trail, plus flying embers (additive)
-void DamageSmokeEffect::addFire(const std::vector<Vec3> &points, float intensity) {
+void DamageSmokeEffect::addFire(const std::vector<Vector3D> &points, float intensity) {
     const float strength = 0.65f + 0.35f * intensity;
     const size_t m = std::min<size_t>(points.size(), 14);
     Batch batch;
@@ -83,7 +83,7 @@ void DamageSmokeEffect::addFire(const std::vector<Vec3> &points, float intensity
             float jx = (hash01(h, 71 + k) - 0.5f) * (1.0f + 5.0f * t);
             float jy = (hash01(h, 81 + k) - 0.5f) * (1.0f + 3.0f * t);
             float jz = (hash01(h, 91 + k) - 0.5f) * (1.0f + 5.0f * t);
-            Vec3 c = vec3(points[i].x + jx, points[i].y + jy + t * 3.0f, points[i].z + jz);
+            Vector3D c = Vector3D(points[i].x + jx, points[i].y + jy + t * 3.0f, points[i].z + jz);
             float size = (3.2f + 8.5f * t) * (0.75f + 0.5f * hash01(h, 101 + k)) * (0.85f + 0.25f * flick);
             // white-yellow core -> orange -> deep red towards the tip
             float a = powf(1.0f - t, 0.8f) * 0.60f * flick * strength;
@@ -96,7 +96,7 @@ void DamageSmokeEffect::addFire(const std::vector<Vec3> &points, float intensity
         const float t = (float)i / (float)(m - 1);
         const uint32_t h = pointHash(points[i], 5.0f);
         float sp = 1.5f + 9.0f * t;
-        Vec3 c = vec3(points[i].x + (hash01(h, 200 + e) - 0.5f) * 2.0f * sp, points[i].y + (hash01(h, 300 + e) - 0.2f) * 1.5f * sp,
+        Vector3D c = Vector3D(points[i].x + (hash01(h, 200 + e) - 0.5f) * 2.0f * sp, points[i].y + (hash01(h, 300 + e) - 0.2f) * 1.5f * sp,
                       points[i].z + (hash01(h, 400 + e) - 0.5f) * 2.0f * sp);
         float twinkle = hash01(h + tick, 500 + (uint32_t)e) > 0.35f ? 1.0f : 0.15f;
         addBillboard(batch, c, 0.55f + 0.5f * hash01(h, 600 + e), 0.0f,
@@ -105,7 +105,7 @@ void DamageSmokeEffect::addFire(const std::vector<Vec3> &points, float intensity
     batch.flush(EffectTextures::get().glow, BlendMode::Additive);
 }
 
-void DamageSmokeEffect::draw(const std::vector<Vec3> &points, float intensity, bool burning, const float *view) {
+void DamageSmokeEffect::draw(const std::vector<Vector3D> &points, float intensity, bool burning, const float *view) {
     if (points.size() < 2) {
         return;
     }

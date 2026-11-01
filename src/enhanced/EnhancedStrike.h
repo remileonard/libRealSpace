@@ -36,7 +36,7 @@ protected:
 
 private:
     struct SmokeTrail {
-        std::vector<enhanced::Vec3> points;  // newest first
+        std::vector<Vector3D> points;  // newest first
         float lastSample{-1.0f};
         float lastSeen{0.0f};
         int stage{0};                        // 0 none, 1 smoke, 2 fire
