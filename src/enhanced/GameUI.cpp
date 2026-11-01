@@ -229,7 +229,7 @@ bool GameUI::drawButton(int x, int y, int w, int h, const char *text, bool press
     std::string s = text;
     const int width = this->picture->getTextWidth(this->font, s);
     const int shift = pressed ? 1 : 0;
-    this->picture->printText(this->font, {x + (w - width) / 2 + shift, y + (h - this->capHeight) / 2 + this->capHeight - 1 + shift}, s,
+    this->picture->printText(this->font, {x + (w - width) / 2 + shift, y + 2 + shift}, s,
                              TEXT_COLOR);
     return this->mouseX >= x && this->mouseX < x + w && this->mouseY >= y && this->mouseY < y + h && this->mousePressed;
 }
