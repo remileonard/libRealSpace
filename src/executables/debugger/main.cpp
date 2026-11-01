@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         FontManager.init();
         loader->setProgress(40.0f);
         GameEngine *game = &GameEngine::instance();
-        
+        game->let_mouse_escape = true;
         loader->setProgress(100.0f);
     });
     

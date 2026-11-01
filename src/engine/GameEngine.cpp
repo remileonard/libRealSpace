@@ -247,7 +247,8 @@ void GameEngine::pumpEvents(void) {
     static int relativeMouse = -1;
     const int wantRelative = this->direct_mouse_control ? 0 : 1;
     if (relativeMouse != wantRelative) {
-        SDL_SetRelativeMouseMode(wantRelative ? SDL_TRUE : SDL_FALSE);
+        if (!let_mouse_escape)
+            SDL_SetRelativeMouseMode(wantRelative ? SDL_TRUE : SDL_FALSE);
         relativeMouse = wantRelative;
     }
 

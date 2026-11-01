@@ -136,6 +136,7 @@ public:
     static bool hasInstance() { return (bool)s_instance; }
 
     bool direct_mouse_control{false};
+    bool let_mouse_escape{false};
     GameEngine();
     ~GameEngine();
     
