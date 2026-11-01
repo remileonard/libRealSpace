@@ -69,7 +69,7 @@ void EnhancedScreen::init(int width, int height, bool fullscreen){
         msaa = 0;
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
-        m_window = SDL_CreateWindow("Neo Strike Commander",
+        m_window = SDL_CreateWindow("Enhanced Strike Commander",
                                      SDL_WINDOWPOS_UNDEFINED,
                                      SDL_WINDOWPOS_UNDEFINED,
                                      this->width,

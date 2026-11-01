@@ -11,5 +11,4 @@
 
 class EnhancedScreen : public RSScreen {
     void init(int width, int height, bool fullscreen) override;
-    
 };

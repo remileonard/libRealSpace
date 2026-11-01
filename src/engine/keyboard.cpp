@@ -87,6 +87,9 @@ void Keyboard::stopTextInput() {
     m_inputSystem->setInputMode(InputActionSystem::InputMode::NORMAL);
     m_inputSystem->stopTextInput();
 }
+bool Keyboard::isKeyPressed(SDL_Scancode key) const {
+    return EventManager::getInstance().isKeyPressed(key);
+}
 bool Keyboard::isKeyJustPressed(SDL_Scancode key) const {
     return EventManager::getInstance().isKeyJustPressed(key);
 }

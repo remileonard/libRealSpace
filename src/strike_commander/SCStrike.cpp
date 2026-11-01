@@ -1022,7 +1022,7 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION))) {
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION)) && this->confirmEndMission()) {
         // Code du jeu pour cette touche non etabli ; regle conservee : ecrasement = 2.
         if (this->current_mission->exit_code == 0) {
             this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");

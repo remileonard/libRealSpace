@@ -16,7 +16,7 @@ OptionsPanel::Action OptionsPanel::draw(const std::vector<OptionEntry> &entries,
     const int panelY = (GameUI::UI_H - panelH) / 2;
     this->ui.begin(mouseX, mouseY, logicalWidth, logicalHeight, down, pressed);
     this->ui.panel(panelX, panelY, panelW, panelH);
-    this->ui.label("OPTIONS", GameUI::UI_W / 2, panelY + 12, 2);
+    this->ui.label("OPTIONS", GameUI::UI_W / 2, panelY + 10, 2);
     Action action = Action::None;
     int y = panelY + 46;
     for (size_t i = 0; i < entries.size(); i++) {

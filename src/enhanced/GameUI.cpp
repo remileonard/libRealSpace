@@ -170,14 +170,14 @@ void GameUI::label(const char *text, int centerX, int y, int scale) {
     std::string s = text;
     const int width = this->picture->getTextWidth(this->font, s);
     if (scale <= 1) {
-        this->picture->printText(this->font, {centerX - width / 2, y + this->capHeight}, s, TEXT_COLOR);
+        this->picture->printText(this->font, {centerX - width / 2, y}, s, TEXT_COLOR);
         return;
     }
     // draw once at font size on a scratch picture, then copy every pixel as a scale x scale block
     FrameBuffer scratch(UI_W, UI_H);
     scratch.fillWithColor(TRANSPARENT_INDEX);
     const int margin = 2;
-    scratch.printText(this->font, {margin, margin + this->capHeight}, s, TEXT_COLOR);
+    scratch.printText(this->font, {margin, margin}, s, TEXT_COLOR);
     const int srcW = std::min(UI_W, width + margin * 2 + 2);
     const int srcH = std::min(UI_H, this->capHeight + margin * 2 + 4);
     const int destX = centerX - (width * scale) / 2 - margin * scale;

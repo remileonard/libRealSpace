@@ -17,7 +17,7 @@
 
 int main(int argc, char* argv[]) {
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
-    
+    SCRenderer::setInstance(std::make_unique<SCRenderer>());
     RSScreen::setInstance(std::make_unique<DebugScreen>());
     GameEngine::setInstance(std::make_unique<DebugGame>());
     RSScreen &screen = RSScreen::instance();  

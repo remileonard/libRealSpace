@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
-    
+    SCRenderer::setInstance(std::make_unique<SCRenderer>());
     RSScreen::setInstance(std::make_unique<RSScreen>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
 

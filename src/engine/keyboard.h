@@ -18,7 +18,7 @@ public:
     float getActionValue(const InputAction actionId) const;
     
     bool isKeyJustPressed(SDL_Scancode key) const;
-
+    bool isKeyPressed(SDL_Scancode key) const;
     // Création et configuration des actions
     void registerAction(const InputAction actionId);
     void bindKeyToAction(const InputAction actionId, SDL_Scancode key);

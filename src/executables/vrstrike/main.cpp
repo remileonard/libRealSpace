@@ -15,7 +15,9 @@
 int main(int argc, char* argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
+    SCRenderer::setInstance(std::make_unique<SCRenderer>());
     RSScreen::setInstance(std::make_unique<VRScreen>());
+    
     GameEngine::setInstance(std::make_unique<GameEngine>());
 
     RSScreen &screen = RSScreen::instance();

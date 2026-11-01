@@ -424,8 +424,7 @@ void EnhancedStrike::finishEndPrompt(bool end) {
 
 // ALT+O opens the options screen, the simulation stays paused while it is open
 void EnhancedStrike::handleOptionsKey() {
-    EventManager &events = EventManager::getInstance();
-    const bool alt = events.isKeyPressed(SDL_SCANCODE_LALT) || events.isKeyPressed(SDL_SCANCODE_RALT);
+    const bool alt = m_keyboard->isKeyPressed(SDL_SCANCODE_LALT) || m_keyboard->isKeyPressed(SDL_SCANCODE_RALT);
     if (!alt || !m_keyboard->isKeyJustPressed(SDL_SCANCODE_O) || this->endPrompt) {
         if (this->optionsOpen) {
             this->pause_simu = true;

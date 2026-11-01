@@ -110,7 +110,6 @@ void SCMainMenu::init(void) {
     LoadBoard();
     LoadBackgrounds();
 
-    setTitle("Neo Strike Commander");
     timer = 4200;
 }
 void SCMainMenu::LoadGame(std::string filename) {
