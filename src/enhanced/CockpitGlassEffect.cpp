@@ -306,34 +306,34 @@ void CockpitGlassEffect::draw(const float *view, const float *proj, Vec3 sunDir,
     // milky haze over the whole canopy, denser towards the bottom and the sides, stronger against the sun
     style = {color(0.60f, 0.76f, 1.0f, 0.03f + 0.25f * glare), color(0.60f, 0.76f, 1.0f, 0.06f + 0.25f * glare), 0.26f, 0, 0, 0, 0};
     this->addDome(batch, v, style);
-    batch.flush(white, SCRenderer::BlendMode::Alpha);
+    batch.flush(white, BlendMode::Alpha);
 
     // reflections of the cockpit interior: soft bright patches in the outer parts of the glass
     const float patchAlpha = 0.10f + 0.10f * glare;
     this->addScreenQuad(batch, v, -1.15f * v.aspectFix, 0.15f, 0.75f, 0.95f, 0.15f, color(0.80f, 0.90f, 1.0f, patchAlpha));
     this->addScreenQuad(batch, v, 1.20f * v.aspectFix, 0.30f, 0.65f, 0.85f, -0.2f, color(0.80f, 0.90f, 1.0f, patchAlpha * 0.8f));
-    batch.flush(EffectTextures::get().glow, SCRenderer::BlendMode::Additive);
+    batch.flush(EffectTextures::get().glow, BlendMode::Additive);
 
     // soft diagonal streak that follows the sun
     const float offset = std::max(-0.6f, std::min(0.6f, sx * 0.8f));
     style = {color(0.85f, 0.92f, 1.0f, 0.16f + 0.35f * glare), color(0.85f, 0.92f, 1.0f, 0.16f + 0.35f * glare), 0.0f, 2, 0.35f, offset, 0.12f};
     this->addDome(batch, v, style);
-    batch.flush(streak, SCRenderer::BlendMode::Additive);
+    batch.flush(streak, BlendMode::Additive);
 
     // scratches and dust: faint, lit up when looking towards the sun
     style = {color(1.0f, 0.97f, 0.9f, 0.14f + 0.85f * glare), color(1.0f, 0.97f, 0.9f, 0.14f + 0.85f * glare), 0.0f, 1, 0, 0, 0};
     this->addDome(batch, v, style);
-    batch.flush(scratches, SCRenderer::BlendMode::Additive);
+    batch.flush(scratches, BlendMode::Additive);
 
     // glare: veil over the glass and a bright halo at the sun position
     if (glare > 0.001f) {
         style = {color(1.0f, 0.95f, 0.85f, 0.30f * glare), color(1.0f, 0.95f, 0.85f, 0.30f * glare), 0.0f, 0, 0, 0, 0};
         this->addDome(batch, v, style);
-        batch.flush(white, SCRenderer::BlendMode::Additive);
+        batch.flush(white, BlendMode::Additive);
         float hx = std::max(-1.5f, std::min(1.5f, proj[0] * sx / sz));
         float hy = std::max(-1.5f, std::min(1.5f, proj[5] * sy / sz));
         this->addScreenQuad(batch, v, hx, hy, 0.7f, 0.7f, 0.0f, color(1.0f, 0.93f, 0.8f, 0.40f * glare));
-        batch.flush(EffectTextures::get().glow, SCRenderer::BlendMode::Additive);
+        batch.flush(EffectTextures::get().glow, BlendMode::Additive);
     }
 
     // impact cracks: a dark shadow slightly offset, then the bright crack lines
@@ -341,12 +341,12 @@ void CockpitGlassEffect::draw(const float *view, const float *proj, Vec3 sunDir,
         this->addScreenQuad(batch, v, (im.x + 0.004f) * v.aspectFix, im.y - 0.008f, im.size, im.size, im.rotation,
                             color(0.02f, 0.03f, 0.04f, 0.55f));
     }
-    batch.flush(cracks, SCRenderer::BlendMode::Alpha);
+    batch.flush(cracks, BlendMode::Alpha);
     for (const Impact &im : impacts) {
         this->addScreenQuad(batch, v, im.x * v.aspectFix, im.y, im.size, im.size, im.rotation,
                             color(0.88f, 0.94f, 1.0f, 0.80f + 0.20f * glare));
     }
-    batch.flush(cracks, SCRenderer::BlendMode::Alpha);
+    batch.flush(cracks, BlendMode::Alpha);
 }
 
 }  // namespace enhanced

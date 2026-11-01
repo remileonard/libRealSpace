@@ -67,7 +67,7 @@ void DamageSmokeEffect::addSmoke(const std::vector<Vec3> &points, float intensit
             addBillboard(batch, c, size, rot, color(g + tint, g + tint * 0.6f, g, std::min(1.0f, 0.95f * fade)));
         }
     }
-    batch.flush(EffectTextures::get().smoke, SCRenderer::BlendMode::Alpha);
+    batch.flush(EffectTextures::get().smoke, BlendMode::Alpha);
 }
 
 // flickering tongues of flame along the first part of the trail, plus flying embers (additive)
@@ -102,7 +102,7 @@ void DamageSmokeEffect::addFire(const std::vector<Vec3> &points, float intensity
         addBillboard(batch, c, 0.55f + 0.5f * hash01(h, 600 + e), 0.0f,
                      color(1.0f, 0.78f - 0.35f * t, 0.30f, 0.95f * twinkle * (1.0f - 0.6f * t)));
     }
-    batch.flush(EffectTextures::get().glow, SCRenderer::BlendMode::Additive);
+    batch.flush(EffectTextures::get().glow, BlendMode::Additive);
 }
 
 void DamageSmokeEffect::draw(const std::vector<Vec3> &points, float intensity, bool burning, const float *view) {

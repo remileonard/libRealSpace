@@ -10,14 +10,16 @@
 #include "../../engine/gametimer.h"
 #include "../../engine/desktoptimer.h"
 #include "../../enhanced/EnhancedMainMenu.h"
+#include "../../enhanced/EnhancedRenderer.h"
+#include "../../enhanced/EnhancedScreen.h"
 #define FLOPPY 0
 
 int main(int argc, char* argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
-    
-    RSScreen::setInstance(std::make_unique<RSScreen>());
+    SCRenderer::setInstance(std::make_unique<EnhancedRenderer>());
+    RSScreen::setInstance(std::make_unique<EnhancedScreen>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
 
     RSScreen &screen = RSScreen::instance();

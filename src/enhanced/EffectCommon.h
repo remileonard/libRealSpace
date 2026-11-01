@@ -7,7 +7,7 @@
 
 namespace enhanced {
 
-using EffectVertex = SCRenderer::EffectVertex;
+using EffectVertex = EffectVertex;
 
 struct Vec3 {
     float x;
@@ -101,7 +101,7 @@ class Batch {
 public:
     void quad(const EffectVertex &a, const EffectVertex &b, const EffectVertex &c, const EffectVertex &d);
     void stripSegment(const EffectVertex &l0, const EffectVertex &r0, const EffectVertex &l1, const EffectVertex &r1);
-    void flush(unsigned int texture, SCRenderer::BlendMode mode);
+    void flush(unsigned int texture, BlendMode mode);
 
 private:
     std::vector<EffectVertex> vertices;

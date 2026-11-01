@@ -158,8 +158,8 @@ void ExhaustEffect::draw(const void *key, const Mat4 &modelMatrix, Vec3 nozzlePo
         addAfterburner();
     }
     traceStage(key, thrust);
-    strips.flush(tex.noise, SCRenderer::BlendMode::Additive);
-    glows.flush(tex.glow, SCRenderer::BlendMode::Additive);
+    strips.flush(tex.noise, BlendMode::Additive);
+    glows.flush(tex.glow, BlendMode::Additive);
 }
 
 }  // namespace enhanced

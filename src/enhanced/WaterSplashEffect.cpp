@@ -217,7 +217,7 @@ void WaterSplashEffect::draw(const float *view) {
     for (const Splash &splash : this->splashes) {
         this->addRing(rings, splash, now - splash.start);
     }
-    rings.flush(this->ringTexture(), SCRenderer::BlendMode::Alpha);
+    rings.flush(this->ringTexture(), BlendMode::Alpha);
 
     Batch spray;
     Batch drops;
@@ -225,8 +225,8 @@ void WaterSplashEffect::draw(const float *view) {
         this->addSpray(spray, splash, now - splash.start);
         this->addDroplets(drops, splash, now - splash.start);
     }
-    spray.flush(this->puffTexture(), SCRenderer::BlendMode::Alpha);
-    drops.flush(EffectTextures::get().glow, SCRenderer::BlendMode::Additive);
+    spray.flush(this->puffTexture(), BlendMode::Alpha);
+    drops.flush(EffectTextures::get().glow, BlendMode::Additive);
 }
 
 }  // namespace enhanced

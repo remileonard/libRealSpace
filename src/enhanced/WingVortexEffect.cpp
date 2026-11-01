@@ -141,7 +141,7 @@ void WingVortexEffect::addRibbon(int side, const RibbonStyle &st, float now) {
         prevLeft = left;
         prevRight = right;
     }
-    batch.flush(noiseTexture, SCRenderer::BlendMode::Alpha);
+    batch.flush(noiseTexture, BlendMode::Alpha);
 }
 
 void WingVortexEffect::drawSide(int side, const Trail &trail, const Vec3 &tip, const Vec3 &eye, float now, float strength) {

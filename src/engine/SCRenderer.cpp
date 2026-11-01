@@ -30,8 +30,6 @@
 #define SC_TEXTURE_MAX_ANISOTROPY 0x84FE
 #define SC_MAX_TEXTURE_MAX_ANISOTROPY 0x84FF
 
-SCRenderer &Renderer = SCRenderer::getInstance();
-
 static inline GLenum DetectTerrainFrontFace(AreaBlock* blk) {
     if (!blk || blk->sideSize < 2) return GL_CCW;
     MapVertex* a = &blk->vertice[0];
@@ -766,10 +764,10 @@ void SCRenderer::drawModelWithChilds(
 
         glMultMatrixf((float *)rotation.v);
         
-        Renderer.drawModel(object, this->lodLevel);
+        this->drawModel(object, this->lodLevel);
         if (wheel_index) {
             if (object->chld.size() > wheel_index) {
-                Renderer.drawModel(object->chld[wheel_index]->objct, this->lodLevel);
+                this->drawModel(object->chld[wheel_index]->objct, this->lodLevel);
             }
         }
         if (thrust > 50) {
@@ -782,7 +780,7 @@ void SCRenderer::drawModelWithChilds(
                 };
                 glTranslatef(pos.z/250 , pos.y /250 , pos.x /250);
                 glScalef(1+thrust/100.0f,1,1);
-                Renderer.drawModel(object->chld[0]->objct, this->lodLevel);
+                this->drawModel(object->chld[0]->objct, this->lodLevel);
                 glPopMatrix();
             }
         }
@@ -796,7 +794,7 @@ void SCRenderer::drawModelWithChilds(
             
             glPushMatrix();
             glTranslatef(weaps_pos.x, weaps_pos.y, weaps_pos.z);
-            Renderer.drawModel(weaps, this->lodLevel);
+            this->drawModel(weaps, this->lodLevel);
             glPopMatrix();            
         }
         glPopMatrix();

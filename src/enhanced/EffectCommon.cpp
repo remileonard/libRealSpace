@@ -162,7 +162,7 @@ void Batch::stripSegment(const EffectVertex &l0, const EffectVertex &r0, const E
     quad(l0, r0, r1, l1);
 }
 
-void Batch::flush(unsigned int texture, SCRenderer::BlendMode mode) {
+void Batch::flush(unsigned int texture, BlendMode mode) {
     if (!vertices.empty()) {
         SCRenderer::getInstance().drawTriangles(vertices.data(), vertices.size(), texture, mode, false);
     }
