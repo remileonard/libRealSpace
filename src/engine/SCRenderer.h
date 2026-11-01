@@ -117,7 +117,8 @@ public:
     Vector3D shading_eye_local{0.0f, 0.0f, 0.0f};
     std::unordered_map<RSEntity *, std::vector<Vector3D>> object_normals;
     std::vector<Vector3D> &objectNormals(RSEntity *object);
-
+    int32_t overlay_offset{0};
+    int32_t overlay_offset_distance{0};
     SCRenderer();
     virtual ~SCRenderer();
 
