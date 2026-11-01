@@ -323,6 +323,8 @@ void SCRenderer::init(int width, int height) {
     AssetManager &assets = AssetManager::instance();
     Config &config = Config::instance();
     this->max_view_distance = config.getInt("Game", "max_view_distance", 160000);
+    this->overlay_offset = config.getInt("Video", "overlay_offset", 200);
+    this->overlay_offset_distance = std::max(1, config.getInt("Video", "overlay_offset_distance", 250));
     this->counter = 0;
 
     RSPalette palette;
@@ -2420,13 +2422,26 @@ void SCRenderer::renderMapOverlay(RSArea *area) {
     glDepthMask(GL_FALSE);            // ne pas écrire dans le depth buffer
     glDepthFunc(GL_LEQUAL);           // accepter l'égalité de profondeur
     glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(-1.0f, -1.0f);
+    glPolygonOffset(-1.0f, -(float)this->overlay_offset);
+    GLfloat overlayMV[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, overlayMV);
 
     // UV du .TRI : entiers, plage 0..125 (255 = pas de texture). 128 = carreau plein.
     const float TRI_UV_SCALE = 128.0f;
 
     for (int i = 0; i < area->objectOverlay.size(); i++) {
         AreaOverlay &ov = area->objectOverlay[i];
+        if (ov.vertices != nullptr && ov.nbTriangles > 0) {
+            // distance of the overlay to the eye, the depth offset grows with it
+            const float px = (float)ov.vertices[0].x;
+            const float py = (float)ov.vertices[0].y;
+            const float pz = (float)ov.vertices[0].z;
+            const float ex = overlayMV[0] * px + overlayMV[4] * py + overlayMV[8] * pz + overlayMV[12];
+            const float ey = overlayMV[1] * px + overlayMV[5] * py + overlayMV[9] * pz + overlayMV[13];
+            const float ez = overlayMV[2] * px + overlayMV[6] * py + overlayMV[10] * pz + overlayMV[14];
+            const float eyeDistance = sqrtf(ex * ex + ey * ey + ez * ez);
+            glPolygonOffset(-1.0f, -((float)this->overlay_offset + eyeDistance / (float)this->overlay_offset_distance));
+        }
 
         // drawList = ordre de dessin résolu depuis la grille param3
         // (ParseTriFile garantit un repli = 0..nbTriangles-1 si la grille est triviale)
