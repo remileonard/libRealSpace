@@ -378,8 +378,8 @@ void RSEntity::parseREAL_OBJT_TRCR_INFO(uint8_t *data, size_t size) {
 void RSEntity::parseREAL_OBJT_MISS_EXPL(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_SIGN(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_TRGT(uint8_t *data, size_t size){}
-void RSEntity::parseREAL_OBJT_MISS_SMOK(uint8_t *data, size_t size){
-    
+void RSEntity::parseREAL_OBJT_MISS_SMOK(uint8_t *data, size_t size) {
+    this->smoke = readObjectSmoke(data, size);
 }
 void RSEntity::parseREAL_OBJT_MISS_DAMG(uint8_t *data, size_t size){}
 void RSEntity::parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size){
@@ -652,7 +652,7 @@ void RSEntity::parseREAL_OBJT_JETP_DEST(uint8_t *data, size_t size) {
     
 }
 void RSEntity::parseREAL_OBJT_JETP_SMOK(uint8_t *data, size_t size) {
-    
+    this->smoke = readObjectSmoke(data, size);
 }
 void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
     size_t nb_child = size /32;
@@ -687,6 +687,7 @@ void RSEntity::parseREAL_OBJT_JETP_JINF(uint8_t *data, size_t size) {
     bs.ReadShort();
     bs.ReadShort();
     this->combat_class = bs.ReadByte();
+    this->fall_smoke = readJinfFallSmoke(data, size);
 }
 void RSEntity::parseREAL_OBJT_JETP_DAMG(uint8_t *data, size_t size) {
     if (size > 2) {
@@ -1501,4 +1502,13 @@ void RSEntity::parseREAL_OBJT_DEBR(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_OBJT_SMKG(uint8_t *data, size_t size) {
     this->entity_type = EntityType::destroyed_object;
+    IFFSaxLexer lexer;
+    std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> handlers;
+    handlers["INFO"] =
+        std::bind(&RSEntity::parseREAL_OBJT_SMKG_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    lexer.InitFromRAM(data, size, handlers);
+}
+void RSEntity::parseREAL_OBJT_SMKG_INFO(uint8_t *data, size_t size) {
+    this->has_smoke_generator = true;
+    this->smoke_generator = readSmokeGeneratorInfo(data, size);
 }

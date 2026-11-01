@@ -117,6 +117,10 @@ bool  SCZone::isActive(std::unordered_map<uint8_t, bool> *requierd_flags) {
     return this->active;
 }
 void SCZone::draw(void) {
+    if (this->hovered && this->hover_shape != nullptr) {
+        this->hover_shape->SetPosition(&this->hover_position);
+        VGA.getFrameBuffer()->drawShape(this->hover_shape);
+    }
     int fpsupdate = 0;
     fpsupdate = (SDL_GetTicks() / 10) - this->fps > 12;
     if (fpsupdate) {

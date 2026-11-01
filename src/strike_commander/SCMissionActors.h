@@ -22,6 +22,7 @@ public:
     std::vector<PROG> override_progs;
     std::vector<SCSimulatedObject *> weapons_shooted;
     MISN_PART *object{nullptr};
+    MISN_PART creation_part; // PART tel qu'il est au chargement de la mission
     SCPlane *plane{nullptr};
     SCPilot *pilot{nullptr};
     SCAIBrain *brain{nullptr};
@@ -50,24 +51,14 @@ public:
     Vector3D aiming_vector{0.0f, 0.0f, 0.0f};
     std::vector<uint8_t> executed_opcodes;
     float wait_timer{0.0f};   // objet de mission +0x3A (opcode WAIT)
+    SCSmokeSet *smoke{ nullptr }; // générateur SMKG de l'épave posée à la destruction
+    void startSmokeGenerator();
+    void updateSmoke(float dt);
     virtual bool deactivate(uint8_t arg);
     virtual bool setMessage(uint8_t arg);
     virtual bool ifTargetInSameArea(uint8_t arg);
     virtual bool respondToRadioMessage(int message_id, SCMission *mission, SCMissionActors *sender=nullptr);
     virtual bool activateTarget(uint8_t arg);
-    // Pose l'objectif courant (current_command/current_command_arg) sans
-    // l'executer : le script PROG (SCProg) appelle uniquement ceci, c'est
-    // SCAIBrain::executeGoalAction() qui execute reellement la commande persistee, a
-    // la cadence GOAL/AIRefresh. Ne remet current_command_executed a false
-    // que lors d'une VRAIE transition (commande ou argument different) —
-    // sinon, comme le script repasse par cet appel a chaque frame tant que
-    // l'objectif est en cours, on ecraserait en permanence le resultat
-    // calcule par le dernier passage du GOAL loop.
-    // Virtuel : le script de mission du joueur (SCMissionActorsPlayer) est
-    // une liste continue d'objectifs executee UNE SEULE FOIS au chargement
-    // (script d'initialisation, pas un etat re-evalue en continu comme pour
-    // l'IA) — sa surcharge execute donc directement la commande ici, au
-    // moment ou elle est posee.
     virtual bool setObjective(prog_op command, uint8_t arg);
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);
@@ -80,8 +71,8 @@ private:
     MessageBus &messageBus = MessageBus::getInstance();
     void onEvent(const EventMessage &event);
     void onGettingHit(const MissionEventActorHit &event);
-    // cadence IA fixe (AIRefreshEvent) : ordre radio accepte puis SCAIBrain::tick (AIEntity_MasterTick_5ACC)
     void onAIRefresh(const AIRefreshEvent &event);
+    void onActorDestroyed(const MissionEventActorDestroyed &event);
     MessageBus::SubscriptionId subscription_id{-1};
 
 protected:

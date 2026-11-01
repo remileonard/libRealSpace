@@ -21,7 +21,14 @@
 #include <unordered_map>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 #include <limits>
+
+#ifndef GL_GENERATE_MIPMAP
+#define GL_GENERATE_MIPMAP 0x8191
+#endif
+#define SC_TEXTURE_MAX_ANISOTROPY 0x84FE
+#define SC_MAX_TEXTURE_MAX_ANISOTROPY 0x84FF
 
 SCRenderer &Renderer = SCRenderer::getInstance();
 
@@ -333,6 +340,16 @@ void SCRenderer::init(int width, int height) {
     this->show_fog = config.getBool("Game", "show_fog", true);
     this->terrain_detail = config.getInt("Video", "terrain_detail", 0);
     this->water_waves = config.getInt("Video", "water_waves", 0);
+    this->texture_filter = config.getInt("Video", "texture_filter", 0);
+    if (this->texture_filter >= 2) {
+        const char *ext = (const char *)glGetString(GL_EXTENSIONS);
+        if (ext && strstr(ext, "texture_filter_anisotropic")) {
+            glGetFloatv(SC_MAX_TEXTURE_MAX_ANISOTROPY, &this->max_anisotropy);
+        }
+    }
+    if (this->texture_filter > 0) {
+        printf("[Renderer] texture_filter %d, max anisotropy %.0f\n", this->texture_filter, this->max_anisotropy);
+    }
     this->show_clouds = config.getBool("Game", "clouds_enabled", false);
     this->width = width;
     this->height = height;
@@ -379,12 +396,31 @@ void SCRenderer::createTextureInGPU(Texture *texture) {
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
     glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_ADD);
 
+    this->applyTextureFilter(texture);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, (GLsizei)texture->width, (GLsizei)texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                  texture->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+}
+
+// Must run before glTexImage2D: GL_GENERATE_MIPMAP rebuilds the mip chain on every upload.
+// Textures that are rebuilt every frame stay bilinear, mipmaps would be wasted work for them.
+void SCRenderer::applyTextureFilter(const Texture *texture) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (this->texture_filter <= 0) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        return;
+    }
+    if (texture->animated) {
+        glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        return;
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    if (this->texture_filter >= 2 && this->max_anisotropy > 1.0f) {
+        glTexParameterf(GL_TEXTURE_2D, SC_TEXTURE_MAX_ANISOTROPY, std::min(16.0f, this->max_anisotropy));
+    }
 }
 
 void SCRenderer::uploadTextureContentToGPU(Texture *texture) {
@@ -416,8 +452,7 @@ void SCRenderer::drawTexturedQuad(Vector3D pos, Vector3D orientation, std::vecto
         glBindTexture(GL_TEXTURE_2D, tex->id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        this->applyTextureFilter(tex);
         
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)tex->width, (GLsizei)tex->height, 
                      0, GL_RGBA, GL_UNSIGNED_BYTE, tex->data);
@@ -1169,12 +1204,18 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     
     float ambientLamber = 0.4f;
 
+    float MV[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
+    float eyeDistance = sqrtf(MV[12] * MV[12] + MV[13] * MV[13] + MV[14] * MV[14]);
+    currentLodLevel = object->selectLod(currentLodLevel, eyeDistance);
+    if (currentLodLevel >= object->NumLods()) {
+        currentLodLevel = object->NumLods() - 1;
+    }
+
     Lod *lod = &object->lods[currentLodLevel];
     std::vector<Vector3D> &vertexNormals = this->objectNormals(object);
 
     // Prépare les matrices pour faire l’éclairage en espace œil
-    float MV[16];
-    glGetFloatv(GL_MODELVIEW_MATRIX, MV);
     const float* V = camera.getViewMatrix()->ToGL();
     Vector3D lightWorld{light.x, light.y, light.z};
     Vector3D lightEye = TransformPointCM(V, lightWorld);
@@ -1202,6 +1243,20 @@ void SCRenderer::drawModel(RSEntity *object, size_t lodLevel) {
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+}
+
+int SCRenderer::nearestPaletteColour(int r, int g, int b) {
+    int best_idx = 0, best_d = 1 << 30;
+    for (int i = 0; i < 256; i++) {
+        const Texel *t = this->palette.GetRGBColor((uint8_t)i);
+        int dr = t->r - r, dg = t->g - g, db = t->b - b;
+        int d = dr * dr + dg * dg + db * db;
+        if (d < best_d) {
+            best_d = d;
+            best_idx = i;
+        }
+    }
+    return best_idx;
 }
 
 void SCRenderer::setLight(Point3D *l) { this->light = *l; }
@@ -1384,15 +1439,15 @@ void SCRenderer::renderTexturedTriangle(MapVertex *tri0, MapVertex *tri1, MapVer
         coords = textTrianCoo64;
     }
 
-    glColor4fv(tri0->color);
+    glColor4fv(colors[0]);
     glTexCoord2fv(coords[triangleType][0]);
     glVertex3f(tri0->v.x, tri0->v.y, tri0->v.z);
 
-    glColor4fv(tri0->color);
+    glColor4fv(colors[1]);
     glTexCoord2fv(coords[triangleType][1]);
     glVertex3f(tri1->v.x, tri1->v.y, tri1->v.z);
 
-    glColor4fv(tri0->color);
+    glColor4fv(colors[2]);
     glTexCoord2fv(coords[triangleType][2]);
     glVertex3f(tri2->v.x, tri2->v.y, tri2->v.z);
 }
@@ -2484,8 +2539,7 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size, float alp
         glBindTexture(GL_TEXTURE_2D, tex->id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        this->applyTextureFilter(tex);
         
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)tex->width, (GLsizei)tex->height, 
                      0, GL_RGBA, GL_UNSIGNED_BYTE, tex->data);
@@ -2557,4 +2611,44 @@ void SCRenderer::drawBillboard(Vector3D pos, Texture *tex, float size, float alp
     glEnable(GL_CULL_FACE);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
+}
+
+unsigned int SCRenderer::createTexture(int w, int h, const unsigned char *rgba, bool repeatT) {
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, repeatT ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+    return tex;
+}
+
+void SCRenderer::drawTriangles(const EffectVertex *vertices, size_t count, unsigned int texture, BlendMode blend,
+                               bool depthWrite) {
+    if (vertices == nullptr || count < 3) {
+        return;
+    }
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(depthWrite ? GL_TRUE : GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, blend == BlendMode::Additive ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glBegin(GL_TRIANGLES);
+    for (size_t i = 0; i < count - count % 3; i++) {
+        const EffectVertex &v = vertices[i];
+        glColor4f(v.r, v.g, v.b, v.a);
+        glTexCoord2f(v.u, v.v);
+        glVertex3f(v.x, v.y, v.z);
+    }
+    glEnd();
+    glPopAttrib();
 }

@@ -17,6 +17,7 @@
 #include "../commons/Quaternion.h"
 #include "../commons/PKWareDecompressor.h"
 #include "RSImage.h"
+#include "RSSmokeSet.h"
 
 #include "TreArchive.h"
 #include "../commons/LZBuffer.h"
@@ -275,6 +276,10 @@ public:
     RADAR_SIGN *radar_signature{nullptr};
     uint8_t target_type{0};
     uint8_t combat_class{2};           // chunk JINF, modele +0x52 (9 et plus : chasseur)
+    RSObjectSmoke smoke;               // chunk SMOK (MISS, JETP)
+    uint8_t fall_smoke{ 6 };           // chunk JINF, octet 11 : fumée de la chute d'un avion abattu
+    bool has_smoke_generator{ false }; // classe SMKG
+    RSSmokeGeneratorInfo smoke_generator; // chunk INFO de SMKG
     uint8_t bomb_guided{0};            // chunk DATA des BOMB, modele +0x5E
     int16_t bomb_lock_cone_rate{0};    // modele +0x61, deg/s
     uint8_t bomb_arming_delay{0};
@@ -307,13 +312,15 @@ public:
     bool prepared{false};
     AssetManager &assetsManager = AssetManager::instance();
     std::string name;
-    ~RSEntity();
+    virtual ~RSEntity();
 
-    void InitFromRAM(uint8_t *data, size_t size, std::string name);
+    virtual void InitFromRAM(uint8_t *data, size_t size, std::string name);
     size_t NumImages(void);
     size_t NumVertice(void);
     size_t NumUVs(void);
     size_t NumLods(void);
+    // Hook: lets a derived class pick the level of detail by the eye distance of the object origin
+    virtual size_t selectLod(size_t requested, float distance) { return requested; }
     size_t NumTriangles(void);
     inline bool IsPrepared(void) { return this->prepared; }
     BoudingBox *GetBoudingBpx(void);
@@ -349,6 +356,7 @@ private:
     void parseREAL_OBJT_AFTB(uint8_t *data, size_t size);
     void parseREAL_OBJT_EXPL(uint8_t *data, size_t size);
     void parseREAL_OBJT_SMKG(uint8_t *data, size_t size);
+    void parseREAL_OBJT_SMKG_INFO(uint8_t *data, size_t size);
     void parseREAL_OBJT_OMOB(uint8_t *data, size_t size);
     void parseREAL_OBJT_DEBR(uint8_t *data, size_t size);
     void parseREAL_OBJT_PODR(uint8_t *data, size_t size);

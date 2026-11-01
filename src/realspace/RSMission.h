@@ -26,6 +26,13 @@ struct AREA {
     unsigned int AreaWidth;
     unsigned int AreaHeight;
     std::vector<uint8_t> unknown_bytes;
+    float radius{0.0f};
+    float height{0.0f};
+    float east{0.0f};
+    float west{0.0f};
+    float north{0.0f};
+    float south{0.0f};
+    bool contains(const Vector3D &point) const;
 };
 
 struct MISN_PART {
@@ -34,10 +41,7 @@ struct MISN_PART {
 	std::string member_name_destroyed;
 	std::string weapon_load;
 	uint8_t area_id{0};      
-    uint8_t unknown1{0};
-    int16_t unknown2{0};
     Vector3D position{0, 0, 0};
-    uint8_t unknown3{0};
     uint16_t azymuth{0};
     uint16_t roll{0};
     uint16_t pitch{0};
@@ -48,7 +52,16 @@ struct MISN_PART {
     uint8_t on_is_destroyed{255};
     uint8_t on_missions_init{255};
 
-    std::vector<uint8_t> unknown_bytes;
+    uint8_t placement{0};
+    int16_t speed{0};
+    uint8_t team{0};
+    uint8_t follow_ally{255};
+    int16_t formation_side{0};
+    int16_t formation_ahead{0};
+    int16_t formation_up{0};
+    Vector3D relative_position;
+    uint16_t relative_azymuth{0};
+    uint8_t unknown_byte_47{0};
     RSEntity *entity{nullptr};
     bool alive{true};
 };
@@ -58,8 +71,6 @@ struct SPOT {
     short area_id;
     Vector3D position;
     Vector3D origin;
-    uint8_t unknown1;
-    uint8_t unknown2;
 };
 struct MSGS {
     char message[255];
@@ -81,9 +92,20 @@ struct MISN_SCEN {
     int16_t on_is_activated {-1};
     int16_t on_mission_update {-1};
     int16_t on_leaving {-1};
-    bool is_coord_on_area {false};
-    std::vector<uint8_t> unknown_bytes;
-    std::vector<uint8_t> cast;
+    bool has_arrival_point {false};
+    int16_t arrival_heading {-1};
+    Vector3D arrival_position;
+    std::vector<uint16_t> cast;
+};
+
+struct MISN_LOAD {
+    std::string name;
+    uint8_t flag{0};
+};
+
+struct MISN_CACH {
+    std::string name;
+    uint16_t count{0};
 };
 struct MISN {
     uint16_t version;
@@ -101,7 +123,8 @@ struct MISN {
     std::vector<MISN_PART *> parts;
     std::vector<uint16_t> team;
     std::vector<MISN_SCEN *> scenes;
-    std::vector<uint8_t> load;
+    std::vector<MISN_LOAD *> load;
+    std::vector<MISN_CACH *> cache;
 };
 class RSMission {
 public:

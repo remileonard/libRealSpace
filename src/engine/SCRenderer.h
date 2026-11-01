@@ -78,6 +78,8 @@ private:
     void renderSkydome(int rings, int slices);
 
 public:
+    // index of the palette entry closest to the given colour (used to map fixed colours of replacement models)
+    int nearestPaletteColour(int r, int g, int b);
     Camera camera;
     static SCRenderer& getInstance() {
         if (!SCRenderer::hasInstance()) {
@@ -115,6 +117,10 @@ public:
     GLuint wave_tex{0};
     void ensureWaveTexture();
     void renderWaterWaves(RSArea *area, int LOD, const std::vector<int> &blocks);
+    // [Video] texture_filter: 0 = bilinear (default), 1 = mipmaps (trilinear), 2 = mipmaps + anisotropic
+    int texture_filter{0};
+    float max_anisotropy{1.0f};
+    void applyTextureFilter(const Texture *texture); // for the texture currently bound, call before glTexImage2D
     
     SCRenderer();
     ~SCRenderer();
@@ -142,6 +148,25 @@ public:
     void drawModelTexturePass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawModelTransparentPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber, Vector3D lightEye, float *MV);
     void drawBillboard(Vector3D pos, Texture *tex, float size, float alpha = 1.0f);
+
+    // --- generic drawing interface for extensions (no effect logic in the renderer) ---------------------------------
+    /** Vertex in world space with texture coordinates and colour (straight, non-premultiplied RGBA). */
+    struct EffectVertex {
+        float x;
+        float y;
+        float z;
+        float u;
+        float v;
+        float r;
+        float g;
+        float b;
+        float a;
+    };
+    enum class BlendMode { Alpha, Additive };
+    /** Uploads an RGBA8 image (w*h*4 bytes) as a linearly filtered texture, clamped in S, optionally repeating in T. Returns the GL name. */
+    unsigned int createTexture(int w, int h, const unsigned char *rgba, bool repeatT);
+    /** Draws `count` vertices (multiple of 3) as triangles with the given texture, in world space, depth tested, lighting off. */
+    void drawTriangles(const EffectVertex *vertices, size_t count, unsigned int texture, BlendMode blend, bool depthWrite = false);
     void drawTracer(Vector3D pos, Vector3D velocityDir, float length, float pixelWidth, Vector3D color, float alpha);
     void displayModel(RSEntity *object, size_t lodLevel);
      

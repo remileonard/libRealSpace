@@ -36,15 +36,49 @@ DebugStrike::DebugStrike() : SCStrike() {}
 
 DebugStrike::~DebugStrike() {}
 
-void DebugStrike::setMission(std::string mission_name) { 
-    if (this->current_mission != nullptr) {
+
+void DebugStrike::setMission(std::string mission_name) {
+    bool reload = this->current_mission != nullptr;
+    if (reload) {
+        printf("DEBUG: nettoyage de la mission %s avant %s\n", this->miss_file_name.c_str(), mission_name.c_str());
         this->disablePlayerAI();
+        target = nullptr;
+        this->debug_entity_mode = DebugEntityMode::Actor;
+        this->debug_entity = nullptr;
+        this->debug_scene = nullptr;
+        this->debug_area = nullptr;
+        this->debug_spot = nullptr;
+        this->debug_order_command = prog_op::OP_NOOP;
+        this->debug_order_arg = 0;
+        this->debug_order_arg2 = 0xFF;
+        this->debug_order_executed = false;
+        this->debug_order_target = nullptr;
+        this->saved_target = nullptr;
+        this->player_ai_accumulator = 0.0f;
+        this->maneuver_test = false;
+        this->bench_active = false;
+        this->bench_trace.clear();
+        this->decision_trace_active = false;
+        this->decision_actor_id = -1;
+        this->decision_last.clear();
+        this->decision_lines.clear();
+        for (auto object : this->simulated_objects) {
+            delete object;
+        }
+        this->simulated_objects.clear();
+        this->ejected_object = nullptr;
     }
-    target = nullptr;
-    SCStrike::setMission(mission_name.c_str()); 
+    SCStrike::setMission(mission_name.c_str());
+    if (reload) {
+        printf("DEBUG: musique arretee (%u), musique de la nouvelle mission\n", Mixer.getMusicID());
+        Mixer.stopMusic();
+        this->current_mission->startMusic();
+    }
 }
 
-void DebugStrike::init() { SCStrike::init();}
+void DebugStrike::init() {
+    SCStrike::init();
+}
 void DebugStrike::runFrame(void) {
     SCMissionActors *player = this->current_mission->player;
     if (player->brain != nullptr && !this->pause_simu && this->camera_mode != View::AUTO_PILOT) {
@@ -1533,18 +1567,36 @@ void DebugStrike::radar() {
             draw_list->AddText(runway_pos, IM_COL32(255, 255, 255, 255), "RUNWAY");
         }
     }
+    MISN_SCEN *current_scene = nullptr;
+    if (this->current_mission->current_scene != nullptr) {
+        current_scene = this->current_mission->current_scene->scene;
+    }
+    int area_index = 0;
     for (auto area : this->current_mission->mission->mission_data.areas) {
         if (area) {
-            // Map world coordinates (using x and z for a top-down view) to canvas coordinates.
-            float world_x = area->position.x;
-            float world_z = -area->position.z;
-            ImVec2 area_canvas_pos = ImVec2(canvas_center.x + world_x * scale_x, canvas_center.y - world_z * scale_z);
-            ImVec2 top_left = ImVec2(area_canvas_pos.x - area->AreaWidth * scale_x * 0.5f,
-                                     area_canvas_pos.y - area->AreaHeight * scale_z * 0.5f);
-            ImVec2 bottom_right = ImVec2(area_canvas_pos.x + area->AreaWidth * scale_x * 0.5f,
-                                         area_canvas_pos.y + area->AreaHeight * scale_z * 0.5f);
-
-            draw_list->AddRect(top_left, bottom_right, IM_COL32(0, 255, 0, 255));
+            // Vue de dessus : x vers la droite, z vers le bas (le nord, -Z, est en haut).
+            ImVec2 area_canvas_pos =
+                ImVec2(canvas_center.x + area->position.x * scale_x, canvas_center.y + area->position.z * scale_z);
+            ImU32 area_color = IM_COL32(0, 255, 0, 255);
+            if (current_scene != nullptr && current_scene->area_id == area_index) {
+                area_color = IM_COL32(255, 255, 0, 255);
+            }
+            ImVec2 top_left;
+            ImVec2 bottom_right;
+            if (area->AreaType == 'B') {
+                top_left = ImVec2(canvas_center.x + (area->position.x - area->west) * scale_x,
+                                  canvas_center.y + (area->position.z - area->north) * scale_z);
+                bottom_right = ImVec2(canvas_center.x + (area->position.x + area->east) * scale_x,
+                                      canvas_center.y + (area->position.z + area->south) * scale_z);
+                draw_list->AddRect(top_left, bottom_right, area_color);
+            } else {
+                top_left = ImVec2(area_canvas_pos.x - area->radius * scale_x, area_canvas_pos.y - area->radius * scale_z);
+                bottom_right =
+                    ImVec2(area_canvas_pos.x + area->radius * scale_x, area_canvas_pos.y + area->radius * scale_z);
+                draw_list->AddCircle(area_canvas_pos, area->radius * scale_x, area_color, 64);
+            }
+            draw_list->AddCircleFilled(area_canvas_pos, 2.0f, area_color);
+            area_index++;
 
             draw_list->AddText(ImVec2(bottom_right.x + 2, top_left.y), IM_COL32(255, 255, 255, 255), area->AreaName);
             if (ImGui::IsMouseHoveringRect(top_left, bottom_right)) {
@@ -1832,6 +1884,34 @@ void printProgTable(std::vector<PROG> &prog, SCMissionActors *actor, int prog_id
             cpt++;
         }
         ImGui::EndTable();
+    }
+}
+// Dimensions de la zone selon sa forme (RSMission::parseMISN_AREA) et test du joueur (AREA::contains).
+void DebugStrike::renderAreaShape(AREA *area) {
+    ImGui::Text("Position: (%.0f, %.0f, %.0f)", area->position.x, area->position.y, area->position.z);
+    if (area->AreaType == 'S') {
+        ImGui::Text("Sphere, radius %.0f", area->radius);
+    } else if (area->AreaType == 'C') {
+        ImGui::Text("Cylinder, radius %.0f, height %.0f", area->radius, area->height);
+    } else if (area->AreaType == 'B') {
+        ImGui::Text("Box, east %.0f, west %.0f, north %.0f, south %.0f, height %.0f", area->east, area->west,
+                    area->north, area->south, area->height);
+        ImGui::Text("x %.0f .. %.0f, z %.0f .. %.0f", area->position.x - area->west, area->position.x + area->east,
+                    area->position.z - area->north, area->position.z + area->south);
+    }
+    if (area->AreaType == 'S') {
+        ImGui::Text("Altitude %.0f .. %.0f", area->position.y - area->radius, area->position.y + area->radius);
+    } else {
+        ImGui::Text("Altitude %.0f .. %.0f", area->position.y, area->position.y + area->height);
+    }
+    if (this->player_plane != nullptr) {
+        Vector3D player_position = {
+            this->player_plane->x,
+            this->player_plane->y,
+            this->player_plane->z
+        };
+        ImGui::Text("Player inside: %s (player altitude %.0f)", area->contains(player_position) ? "yes" : "no",
+                    player_position.y);
     }
 }
 void DebugStrike::showActorDetails(SCMissionActors *actor) {
@@ -2331,11 +2411,7 @@ void DebugStrike::renderMenu() {
                 if (ImGui::TreeNode((void *)(intptr_t)area->id, "Area id %d", area->id)) {
                     ImGui::Text("Area name %s", area->AreaName);
                     ImGui::Text("Area Type %c", area->AreaType);
-                    ImGui::Text("Area x %.0f y %.0f z %.0f", area->position.x, area->position.y, area->position.z);
-                    ImGui::Text("Area width %d height %d", area->AreaWidth, area->AreaHeight);
-                    for (auto ub : area->unknown_bytes) {
-                        ImGui::Text("ub %d", ub);
-                    }
+                    this->renderAreaShape(area);
                     ImGui::TreePop();
                 }
             }
@@ -2381,8 +2457,6 @@ void DebugStrike::renderMenu() {
                     ImGui::Text("Spot area_id %d", spot->area_id);
                     ImGui::Text("Spot x %.0f y %.0f z %.0f", spot->position.x, spot->position.y, spot->position.z);
                     ImGui::Text("Spot from file x %.0f y %.0f z %.0f", spot->origin.x, spot->origin.y, spot->origin.z);
-                    ImGui::Text("u1 %d", spot->unknown1);
-                    ImGui::Text("u2 %d", spot->unknown2);
                     ImGui::TreePop();
                 }
             }
@@ -2430,15 +2504,14 @@ void DebugStrike::renderMenu() {
                         ImGui::Text("Scene area_id %d", scene->area_id);
                     }
                     ImGui::Text("IS ACTIVE %d", scene->is_active);
-                    ImGui::Text("Is COORD RELATIVE TO AREA %d", scene->is_coord_on_area);
+                    ImGui::Text("Arrival point %d, heading %d, position %.0f %.0f %.0f", scene->has_arrival_point,
+                                scene->arrival_heading, scene->arrival_position.x, scene->arrival_position.y,
+                                scene->arrival_position.z);
                     for (auto cast : scene->cast) {
                         ImGui::Text("Cast %d", cast);
                     }
                     for (auto prog : scene->progs_id) {
                         ImGui::Text("Prog %d", prog);
-                    }
-                    for (auto b : scene->unknown_bytes) {
-                        ImGui::Text("ub %d", b);
                     }
                     ImGui::TreePop();
                 }
@@ -2450,16 +2523,15 @@ void DebugStrike::renderMenu() {
         if (ImGui::TreeNode("Parts")) {
             for (auto part : this->current_mission->mission->mission_data.parts) {
                 if (ImGui::TreeNode((void *)(intptr_t)part->id, "Parts id %d, area id %d", part->id, part->area_id)) {
-                    ImGui::Text("u1 %d", part->unknown1);
-                    ImGui::Text("u2 %d", part->unknown2);
+                    ImGui::Text("placement %d", part->placement);
                     ImGui::Text("x %.0f y %.0f z %.0f", part->position.x, part->position.y, part->position.z);
                     ImGui::Text("azymuth %d", part->azymuth);
-                    ImGui::Text("u3 %d", part->unknown3);
                     ImGui::Text("Name %s", part->member_name.c_str());
                     ImGui::Text("Destroyed %s", part->member_name_destroyed.c_str());
-                    for (auto obj : part->unknown_bytes) {
-                        ImGui::Text("ub %d", obj);
-                    }
+                    ImGui::Text("speed %d", part->speed);
+                    ImGui::Text("team %d", part->team);
+                    ImGui::Text("follow ally %d", part->follow_ally);
+                    ImGui::Text("formation %d %d %d", part->formation_side, part->formation_ahead, part->formation_up);
                     ImGui::Text("Weapon load %s", part->weapon_load.c_str());
                     if (ImGui::TreeNode("RS ENTITY")) {
                         ImGui::Text("weight %d", part->entity->weight_in_kg);
@@ -2611,8 +2683,6 @@ void DebugStrike::renderUI() {
                     ImGui::Text("Origin: (%.0f, %.0f, %.0f)", this->debug_spot->origin.x, this->debug_spot->origin.y,
                                 this->debug_spot->origin.z);
                     ImGui::Text("Area ID: %d", this->debug_spot->area_id);
-                    ImGui::Text("Unknown1: %d", this->debug_spot->unknown1);
-                    ImGui::Text("Unknown2: %d", this->debug_spot->unknown2);
                 } else {
                     ImGui::Text("No spot selected");
                 }
@@ -2621,9 +2691,7 @@ void DebugStrike::renderUI() {
                 if (this->debug_area != nullptr) {
                     ImGui::Text("Area ID: %d", this->debug_area->id);
                     ImGui::Text("Area Name: %s", this->debug_area->AreaName);
-                    ImGui::Text("Position: (%.0f, %.0f, %.0f)", this->debug_area->position.x,
-                                this->debug_area->position.y, this->debug_area->position.z);
-                    ImGui::Text("Width: %d, Height: %d", this->debug_area->AreaWidth, this->debug_area->AreaHeight);
+                    this->renderAreaShape(this->debug_area);
                 } else {
                     ImGui::Text("No area selected");
                 }
@@ -2632,7 +2700,7 @@ void DebugStrike::renderUI() {
                 if (this->debug_scene != nullptr) {
                     ImGui::Text("Scene ID: %d", this->debug_scene->area_id);
                     ImGui::Text("Is Active: %d", this->debug_scene->is_active);
-                    ImGui::Text("Is Coord Relative to Area: %d", this->debug_scene->is_coord_on_area);
+                    ImGui::Text("Autopilot arrival point: %d", this->debug_scene->has_arrival_point);
                     if (this->debug_scene->cast.size() > 0) {
                         if (ImGui::TreeNode("Cast Actors")) {
                             for (auto cast_actor : this->debug_scene->cast) {
@@ -2690,11 +2758,10 @@ void DebugStrike::renderUI() {
                             }
                         }
                     }
-                    if (ImGui::TreeNode("Unknown Bytes")) {
-                        for (auto b : this->debug_scene->unknown_bytes) {
-                            ImGui::Text("ub %d", b);
-                        }
-                        ImGui::TreePop();
+                    if (this->debug_scene->has_arrival_point) {
+                        ImGui::Text("Arrival heading: %d", this->debug_scene->arrival_heading);
+                        ImGui::Text("Arrival position: %.0f %.0f %.0f", this->debug_scene->arrival_position.x,
+                                    this->debug_scene->arrival_position.y, this->debug_scene->arrival_position.z);
                     }
                 } else {
                     ImGui::Text("No scene selected");

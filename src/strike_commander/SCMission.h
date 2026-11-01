@@ -26,9 +26,8 @@ class SCCameraDirector;
 
 class SCMission {
     
-private:
-    MessageBus::SubscriptionId subscription_id{-1};
 protected:
+    MessageBus::SubscriptionId subscription_id{-1};
     std::string mission_name;
     std::unordered_map<std::string, RSEntity *> *obj_cache{nullptr};
     
@@ -67,7 +66,10 @@ protected:
     MessageBus &messageBus = MessageBus::getInstance();
     void onEvent(const EventMessage &event);
 public:
+    void startMusic();
     std::vector<SCMissionScene *> scenes;
+    SCMissionScene *global_scene{nullptr};  // MissionScenario+78 : première scène sans zone
+    SCMissionScene *current_scene{nullptr}; // MissionScenario+80 : scène de la zone où est le joueur
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;
     std::vector<SCMissionActors *> friendlies;
@@ -78,6 +80,10 @@ public:
     bool success{false};
     bool failure{false};
     bool mission_ended{false};
+    uint8_t exit_code{ 0 };              // byte_706AF : chunk EXIT de MISN2OP.IFF
+    std::vector<SCMissionActors *> team; // participants du chunk TEAM, dans l'ordre
+    std::unordered_map<uint8_t, int16_t> stock_left; // stock de la campagne non emporte (table WPNS de STRIKE.EXE)
+    bool stock_taken{false};
     uint8_t current_area_id{0};
     SCMissionActors *player{nullptr};
     RSArea *area{nullptr};
@@ -105,8 +111,18 @@ public:
     virtual void update();
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
+    virtual RSEntity *createEntity();
+    SCMissionScene *findSceneAt(Vector3D position);
+    void startScenes();
+    void placeRelativeToPlayer(SCMissionActors *actor);
+    void respawnActor(SCMissionActors *actor);
+    void createAiPlane(SCMissionActors *actor);
+    void finishScenes();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
+    void setExitCode(uint8_t code, const char *reason);
+    void takeTeamWeaponsFromStock(bool take_from_stock);
+    MissionReport buildReport(const std::string &report_name);
     uint32_t tps{0};
     float scene_wait_timer{0.0f};   // dword_706B0 : minuteur WAIT des scripts de scene
     int32_t difficulty{0};

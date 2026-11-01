@@ -6,13 +6,15 @@ class SCMission;
 
 class SCMissionScene {
 private:
-    MessageBus::SubscriptionId subscription_id;
+    MessageBus::SubscriptionId subscription_id{ -1 };
     void onEvent(const EventMessage &event);
-    void onMissionUpdate(const MissionUpdateEvent &event);
-    void onSceneActivated(const MissionEventSceneActivated &event);
+    void runProg(int16_t prog_id);
 public:
     SCMissionScene(SCMission *mission, MISN_SCEN *scene);
     ~SCMissionScene();
+    void activate();
+    void runMissionUpdate();
+    void runLeaving();
     SCMission *mission{nullptr};
     MISN_SCEN *scene{nullptr};
 };

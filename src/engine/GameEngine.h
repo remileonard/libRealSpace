@@ -117,7 +117,7 @@ protected:
     SCState &GameState = SCState::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
     RSScreen *Screen = &RSScreen::getInstance();
-    Point2D lastControllerPosition{0,0};
+    Point2D lastControllerPosition{160,100}; // start in the middle of the 320x200 space
 
 public:
     static GameEngine& getInstance() {

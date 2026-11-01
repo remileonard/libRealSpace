@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
+#include <unordered_set>
 #include <mutex>
 #include <memory>
 #include <queue>
@@ -31,6 +32,7 @@ private:
 
     std::vector<InputSubscription> input_callbacks;
     std::vector<EventSubscription> event_callbacks;
+    std::unordered_set<SubscriptionId> removed_during_dispatch; // désabonnés pendant processEvents
     SubscriptionId next_subscription_id = 1;
     std::mutex subscriptions_mutex;
 

@@ -1,6 +1,11 @@
 #include "PSStrike.h"
 
 
+// Pacific Strike choisit sa musique de mission dans setMission (numéro + 1).
+void PSStrike::start(void) {
+    IActivity::start();
+}
+
 void PSStrike::setMission(char const *missionName) {
     if (Mixer.isSoundPlaying(5)) {
         Mixer.stopSound(5);

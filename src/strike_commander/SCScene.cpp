@@ -157,7 +157,8 @@ void SCScene::Render() {
     }
 
     if (this->sceneOpts != nullptr && this->sceneOpts->tune != nullptr && this->music) {
-        Mixer.playMusic(Mixer.music->gameflow_musics[GameState.tune_modifier][this->sceneOpts->tune->ID],1);
+        Mixer.switchBank(1);
+        Mixer.playMusic(this->sceneOpts->tune->ID, 1);
     }
     if (this->rawPalette != nullptr) {
         ByteStream paletteReader;
@@ -354,6 +355,19 @@ SCZone *WeaponLoadoutScene::addNoGfXZone(uint8_t id, std::string label, uint8_t 
 }
 
 void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
+    // Gameflow_WeaponLoadout_51AB3 : une paire n'est ajoutée que si le stock restant (stock - armes posées) dépasse 1.
+    int stock = 0;
+    for (auto &weapon : weapon_inv_to_loadout) {
+        if (weapon.second == id) {
+            stock = GameState.weapon_inventory[weapon.first];
+            break;
+        }
+    }
+    int loaded = GameState.weapon_load_out[id];
+    if (stock - loaded <= 1) {
+        printf("LOADOUT: ajout de l'arme %d refuse, stock %d, deja posees %d\n", id, stock, loaded);
+        return;
+    }
     // Réinitialiser les zones supplémentaires
     this->extra_zones.clear();
     this->extra_zones.shrink_to_fit();
@@ -370,7 +384,7 @@ void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
             GameState.weapon_load_out[2] = AIM9J;
             GameState.weapon_load_out[id] += 2;
         } else if (GameState.weapon_load_out[3] == 0) {
-            GameState.weapon_load_out[3] = AIM9M;
+            GameState.weapon_load_out[3] = AIM9J;
             GameState.weapon_load_out[id] += 2;
         }
         break;
@@ -402,7 +416,6 @@ void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
         }
         break;
     case AGM65D:
-    case MK20:
     case DURANDAL:
         if (GameState.weapon_load_out[3] == 0) {
             GameState.weapon_load_out[3] = id;
@@ -425,21 +438,27 @@ void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
             GameState.weapon_load_out[id] += 2;
         }
         break;
+    case MK20:
     case MK82:
+        // Gameflow_ApplyDefaultLoadout_51830 : MK-20 et MK-82, 6 par côté sur les points 2 et 3.
         if (GameState.weapon_load_out[3] == 0) {
-            GameState.weapon_load_out[3] = MK82;
+            GameState.weapon_load_out[3] = id;
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3]== MK82 && GameState.weapon_load_out[id] < 12) {
+        } else if (GameState.weapon_load_out[3] == id && GameState.weapon_load_out[id] < 12) {
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3]== MK82 && GameState.weapon_load_out[id] == 12 && GameState.weapon_load_out[4] == 0) {
-            GameState.weapon_load_out[4] = MK82;
+        } else if (GameState.weapon_load_out[3] == id && GameState.weapon_load_out[id] == 12 &&
+                   GameState.weapon_load_out[4] == 0) {
+            GameState.weapon_load_out[4] = id;
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3]== MK82 && GameState.weapon_load_out[4] == MK82 && GameState.weapon_load_out[id] < 24) {
+        } else if (GameState.weapon_load_out[3] == id && GameState.weapon_load_out[4] == id &&
+                   GameState.weapon_load_out[id] < 24) {
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3]!= MK82 && GameState.weapon_load_out[4] == 0 && GameState.weapon_load_out[id] < 12) {
-            GameState.weapon_load_out[4] = MK82;
+        } else if (GameState.weapon_load_out[3] != id && GameState.weapon_load_out[4] == 0 &&
+                   GameState.weapon_load_out[id] < 12) {
+            GameState.weapon_load_out[4] = id;
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3]!= MK82 && GameState.weapon_load_out[4] == MK82 && GameState.weapon_load_out[id] < 12) {
+        } else if (GameState.weapon_load_out[3] != id && GameState.weapon_load_out[4] == id &&
+                   GameState.weapon_load_out[id] < 12) {
             GameState.weapon_load_out[id] += 2;
         }
         break;
@@ -456,15 +475,18 @@ void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
         }
         break;
     case LAU3:
+        // Gameflow_ApplyDefaultLoadout_51830 : LAU-3, 2 par côté sur les points 2 et 3.
         if (GameState.weapon_load_out[3] == 0) {
             GameState.weapon_load_out[3] = LAU3;
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3] == LAU3 && GameState.weapon_load_out[id] < 6) {
+        } else if (GameState.weapon_load_out[3] == LAU3 && GameState.weapon_load_out[id] < 4) {
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3] == LAU3 && GameState.weapon_load_out[id] == 6 && GameState.weapon_load_out[4] == 0) {
+        } else if (GameState.weapon_load_out[3] == LAU3 && GameState.weapon_load_out[id] == 4 &&
+                   GameState.weapon_load_out[4] == 0) {
             GameState.weapon_load_out[4] = LAU3;
             GameState.weapon_load_out[id] += 2;
-        } else if (GameState.weapon_load_out[3] == LAU3 && GameState.weapon_load_out[4] == LAU3 && GameState.weapon_load_out[id] < 10) {
+        } else if (GameState.weapon_load_out[3] == LAU3 && GameState.weapon_load_out[4] == LAU3 &&
+                   GameState.weapon_load_out[id] < 8) {
             GameState.weapon_load_out[id] += 2;
         } else if (GameState.weapon_load_out[3] != LAU3 && GameState.weapon_load_out[4] == 0) {
             GameState.weapon_load_out[4] = LAU3;
@@ -485,15 +507,15 @@ void WeaponLoadoutScene::removeWeapon(std::vector<EFCT *> *script, uint8_t id) {
     // L'opérateur [] crée l'entrée si elle n'existe pas et retourne 0 par défaut.
     int nbweap                                        = GameState.weapon_load_out[id];
     std::unordered_map<weapon_type_shp_id, uint8_t> max_weapons = {
-        {   AIM9J,  6},
-        {   AIM9M,  6},
-        {  AIM120,  6},
-        {  AGM65D, 12},
-        {DURANDAL, 12},
-        {    MK20, 12},
-        {    MK82, 24},
-        {   GBU15,  2},
-        {    LAU3, 10}
+        { AIM9J, 6 },
+        { AIM9M, 6 },
+        { AIM120, 6 },
+        { AGM65D, 12 },
+        { DURANDAL, 12 },
+        { MK20, 24 },
+        { MK82, 24 },
+        { GBU15, 4 },
+        { LAU3, 8 }
     };
     GameState.weapon_load_out[id] = (std::max)(0, GameState.weapon_load_out[id] - 2);
     int last_id                   = 0;
@@ -612,11 +634,15 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
                 }
             } else if (i == 4) {
                 nbweap = GameState.weapon_load_out[pylid];
-                if (GameState.weapon_load_out[pylid] > 6) {
-                    nbweap = GameState.weapon_load_out[pylid] - 6;
+                if (GameState.weapon_load_out[pylid] > 12) {
+                    nbweap = GameState.weapon_load_out[pylid] - 12;
                 }
-                nbweap = nbweap / 2;
-                nbweap = nbweap - 1;
+                if (nbweap > 6) {
+                    nbweap = 2;
+                } else {
+                    nbweap = nbweap / 2;
+                    nbweap = nbweap - 1;
+                }
             }
             addWeaponZones(pylid, wlabel, weapon_pylones[i - 1][pylid][0][nbweap], weapon_pylones[i - 1][pylid][1]);
         } break;
@@ -679,16 +705,16 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
                 int nbweap               = 0;
                 weapon_type_shp_id pylid = weapon_type_shp_id(GameState.weapon_load_out[i]);
                 if (i == 3) {
-                    if (GameState.weapon_load_out[pylid] >= 6) {
-                        nbweap = 2;
+                    if (GameState.weapon_load_out[pylid] >= 4) {
+                        nbweap = 1;
                     } else {
                         nbweap = GameState.weapon_load_out[pylid] / 2;
                         nbweap = nbweap - 1;
                     }
                 } else if (i == 4) {
                     nbweap = GameState.weapon_load_out[pylid];
-                    if (GameState.weapon_load_out[pylid] >= 6) {
-                        nbweap = GameState.weapon_load_out[pylid] - 6;
+                    if (GameState.weapon_load_out[pylid] > 4) {
+                        nbweap = GameState.weapon_load_out[pylid] - 4;
                     }
                     nbweap = nbweap / 2;
                     nbweap = nbweap - 1;
@@ -700,6 +726,91 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
             break;
         }
     }
+}
+
+// Gameflow_ApplyDefaultLoadout_51830 : chunk LOAD dont le 1er octet vaut load_id, puis paires (arme, nombre).
+// Points d'emport 0 a 3 du jeu = weapon_load_out[1] a [4] ; nombre par cote, borne par le stock et rendu pair.
+void WeaponLoadoutScene::applyDefaultLoadout(const std::vector<LOAD *> &loads, uint8_t load_id) {
+    if (load_id == 255) {
+        printf("LOADOUT: pas de chargement par defaut (255)\n");
+        return;
+    }
+    LOAD *found = nullptr;
+    for (auto load : loads) {
+        if (!load->load.empty() && load->load[0] == load_id) {
+            found = load;
+            break;
+        }
+    }
+    if (found == nullptr) {
+        printf("LOADOUT: chargement %d absent du FORM LOAD\n", load_id);
+        return;
+    }
+    for (size_t i = 1; i + 1 < found->load.size(); i += 2) {
+        uint8_t weapon = found->load[i];
+        int count = found->load[i + 1];
+        if (weapon >= 9) {
+            printf("LOADOUT: chargement %d, arme %d inconnue, ignoree\n", load_id, weapon);
+            continue;
+        }
+        int first_hp = 2;
+        int last_hp = 3;
+        int max_per_side = 3;
+        switch (weapon) {
+        case 0:
+        case 1:
+            first_hp = 0;
+            last_hp = 2;
+            max_per_side = 1;
+            break;
+        case 6:
+            max_per_side = 1;
+            break;
+        case 8:
+            first_hp = 1;
+            last_hp = 2;
+            max_per_side = 2;
+            break;
+        case 4:
+        case 5:
+            max_per_side = 6;
+            break;
+        case 7:
+            max_per_side = 2;
+            break;
+        default:
+            break;
+        }
+        weapon_ids id = optest_weapon_ids[weapon];
+        weapon_type_shp_id shp = weapon_inv_to_loadout[id];
+        int stock = GameState.weapon_inventory[id];
+        int asked = count;
+        if (count > stock) {
+            count = stock & 255;
+        }
+        if (count & 1) {
+            count--;
+        }
+        printf("LOADOUT: chargement %d, %s demande %d, stock %d, retenu %d\n", load_id, weapon_names[id].c_str(), asked,
+               stock, count);
+        for (int hp = first_hp; hp <= last_hp; hp++) {
+            if (count == 0) {
+                break;
+            }
+            if (GameState.weapon_load_out[hp + 1] != 0) {
+                continue;
+            }
+            int per_side = count / 2;
+            if (count > 2 * max_per_side) {
+                per_side = max_per_side;
+            }
+            count -= 2 * per_side;
+            GameState.weapon_load_out[hp + 1] = shp;
+            GameState.weapon_load_out[shp] += 2 * per_side;
+            printf("LOADOUT: point d'emport %d, %s %d par cote\n", hp, weapon_names[id].c_str(), per_side);
+        }
+    }
+    this->updateWeaponDisplay();
 }
 
 std::vector<SCZone *> *WeaponLoadoutScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
@@ -1171,8 +1282,9 @@ void CatalogueScene::placeOrder(std::vector<EFCT *> *script, uint8_t sprite_id) 
             break;
         }
     }
+    // Gameflow_Catalog_52662 : achats ajoutés à [partie+643] ; applyMissionReport les retire de l'argent (le jeu : au départ en vol).
     GameState.weapons_costs += cost;
-    GameState.proj_cash = GameState.proj_cash - GameState.weapons_costs * 1000;
+    printf("CATALOG: commande de %d, achats %d, argent %d\n", cost, GameState.weapons_costs, GameState.proj_cash);
     this->onclick(nullptr, sprite_id);
 }
 std::vector<SCZone *> * CatalogueScene::UpdateZones() {
@@ -1304,7 +1416,9 @@ void CatalogueScene::Render() {
     }
     
     FrameBuffer *fb = VGA.getFrameBuffer();
-    std::string current_cash = string_format("%08d", GameState.proj_cash);
+    // Argent disponible = argent moins achats déjà commandés ([+635] - [+643]).
+    int available_cash = GameState.proj_cash - GameState.weapons_costs;
+    std::string current_cash = string_format("%08d", available_cash);
     fb->printTextFixedWidth(this->calcfont, Point2D({257, 33}), current_cash, 1);
     int bascket_total = 0;
     for (auto item: this->shopping_cart) {
@@ -1371,7 +1485,7 @@ void CatalogueScene::Render() {
     if (bascket_total > 0) {
         std::string basket_total = string_format("%08d", bascket_total);
         fb->printTextFixedWidth(this->calcfont, Point2D({257, 40}), basket_total, 1);
-        std::string cash_left = string_format("%08d", GameState.proj_cash-bascket_total);
+        std::string cash_left = string_format("%08d", available_cash - bascket_total);
         fb->printTextFixedWidth(this->calcfont, Point2D({257, 47}), cash_left, 1);
     }
     

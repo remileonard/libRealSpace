@@ -30,7 +30,15 @@ private:
         NAV_PREV_WP = 3,
         NAV_ESCAPE2 = 4,
     };
-    std::unordered_map<int, Point2D> used_areas;
+    // Rectangles déjà occupés par un repère ou un texte (NavMap_DrawMissionObjects_7EDCA, au plus 32).
+    struct LabelBox {
+        int left;
+        int top;
+        int right;
+        int bottom;
+    };
+    std::vector<LabelBox> label_boxes;
+    bool label_first_try_only{ false }; // byte_6D5DE
     int color{134};
     std::string *name;
     Keyboard *m_keyboard;
@@ -43,5 +51,15 @@ private:
     bool show_waypoint{true};
 
     void checkKeyboard(void);
-    void showArea(AREA *area, float center, float map_width, int w, int h, int t, int l, int c);
+    Point2D worldToMap(float x, float z);
+    AREA *sceneArea(MISN_SCEN *scene);
+    AREA *objectiveArea();
+    bool isNavigationArea(AREA *area);
+    void reserveBox(int left, int top, int width, int height);
+    bool boxIsFree(int left, int top, int width, int height);
+    void clampBox(int &left, int &top, int width, int height);
+    void drawLabel(int x, int y, std::string text, uint8_t label_color);
+    void drawAreaOutlines();
+    void drawObjects();
+    void drawAreaNames();
 };

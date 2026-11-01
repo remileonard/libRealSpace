@@ -67,7 +67,6 @@ class SCPlane {
     friend class DebugStrike;
 
 protected:
-    int anim_ticks{0};
     int thrust{0};
     float ELEVF_CSTE{0.0f};
     float ROLLFF_CSTE{0.0f};
@@ -129,8 +128,8 @@ protected:
     int wheel_anim{10};
     
     SCSmokeSet *smoke_set{nullptr};
-    std::vector<Vector3D> smoke_positions;
-    std::vector<int> smoke_anim_counters;
+    bool smoke_falling{ false };
+    void updateSmoke();
 
     Vector3D thrust_vector {0.0f, 0.0f, 0.0f};
     Vector3D lift_vector {0.0f, 0.0f, 0.0f};
@@ -322,6 +321,7 @@ public:
     Matrix ptw;
     Matrix incremental;
     bool disable_azimuth{false};
+    int getThrust() const { return thrust; }
     SCPlane();
     SCPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELEVF_CSTE, float ROLLFF_CSTE, float s, float W,
             float fuel_weight, float Mthrust, float b, float ie_pi_AR, int MIN_LIFT_SPEED,

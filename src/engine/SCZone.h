@@ -76,6 +76,9 @@ public:
     std::string *label{nullptr};
     std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick;
     animatedSprites *sprite{nullptr};
+    bool hovered{false};
+    RLEShape *hover_shape{nullptr};
+    Point2D hover_position{};
 
     SCZone();
     ~SCZone();
