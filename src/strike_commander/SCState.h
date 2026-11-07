@@ -10,6 +10,20 @@
 #include <array>
 
 // Compte rendu de vol transmis de SCStrike à SCGameFlow : contenu de misn2op.iff (GAMEFLOW_SYSTEM.md § 6).
+// Réglages des écrans d'entraînement (Training_InitSettings_598FC, 42 octets dans OPTEST).
+struct MISN_TRAINING {
+    // +40 : 1 = DOGFIGHT, 2 = SEARCH AND DESTROY.
+    uint8_t type{ 0 };
+    // +12, +14, +16 : nombre d'avions des groupes 0, 1, 2.
+    std::array<uint8_t, 3> group_count{};
+    // +6, +8, +10 : type d'avion des groupes (rang dans SCTrainingMenu::training_planes).
+    std::array<uint8_t, 3> group_plane{};
+    // +0 : altitude choisie, en pieds (5000 par défaut).
+    int32_t altitude_feet{ 5000 };
+    // +18 : 0 = rookie, 1 = veteran, 2 = ace.
+    uint8_t pilot_level{ 0 };
+};
+
 struct MissionReport {
     uint8_t exit_code{0};                                                    // EXIT (2 = joueur mort)
     std::string mission_name;                                                // INFO

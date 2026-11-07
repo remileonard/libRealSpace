@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 //  TRAINING MISSION (OPTEST.EXE, ovr190) : écrans de réglage, puis vol de MISSIONS\TEMPLATE.IFF complété par
-//  RSMission::addTraining. strike_commander_re/analysis/TRAINING_MISSION.md.
+//  SCTrainingMenu::applyTraining. strike_commander_re/analysis/TRAINING_MISSION.md.
 //
 
 #ifndef __libRealSpace__File__
@@ -16,6 +16,18 @@
 
 // Déclarée dans SCScene.h, inclus après ce fichier par precomp.h.
 class WeaponLoadoutScene;
+
+// Mission d'entraînement (TRAINING MISSION d'OPTEST.EXE) : un avion de l'écran de choix, table du segment de données
+// d'OPTEST lue par Training_AircraftScreen_56B04 et Training_BuildInstantMission_58EEA (15 octets par avion : nom affiché,
+// fichier objet, emport, deux dwords non lus par ce code, drapeau). strike_commander_re/analysis/TRAINING_MISSION.md § 5.
+struct MISN_TRAINING_PLANE {
+    const char *name;
+    const char *object;
+    const char *loadout;
+    // Drapeau : pilote CAST au niveau choisi, programme de mise à jour 1, vitesse 200 ; sinon « TARGET », programme 2,
+    // vitesse 100.
+    bool armed;
+};
 
 class SCTrainingMenu : public IActivity {
 
@@ -27,6 +39,11 @@ public:
     void unFocus(void);
     void focus(void);
     void runFrame(void);
+    // Les 16 avions de l'écran de choix, dans l'ordre des boutons.
+    static const MISN_TRAINING_PLANE training_planes[16];
+    // Training_BuildInstantMission_58EEA : complète la mission lue depuis MISSIONS\TEMPLATE.IFF avec les réglages des
+    // écrans (position du joueur, zone, avions et pilotes ajoutés), au lieu d'écrire instant.iff.
+    static void applyTraining(RSMission *mission, const MISN_TRAINING &training);
 
 protected:
     // Départ du vol après l'écran d'armement : SCStrike::player_loadout (emport choisi à l'écran, GameState.weapon_load_out).
@@ -87,7 +104,8 @@ private:
     bool inventory_saved{ false };
     bool zone_pending{ false };
     bool flight_pending{ false };
-    bool flight_started{ false }; // vol lancé : focus() remet le menu à zéro au retour
+    bool flight_started{ false };
+    static AREA *trainingArea(const MISN_TRAINING &training); // vol lancé : focus() remet le menu à zéro au retour
     uint8_t zone_choice{ 0 };
 
     void OnExitTraining();

@@ -9,6 +9,186 @@
 
 #include "precomp.h"
 
+// Table des avions de Training_AircraftScreen_56B04 (bouton n = entrée n − 1). Fichier objet et emport : mots 2 et 4 de
+// chaque enregistrement de 15 octets, écrits ici en majuscules comme après la lecture d'un PART ; drapeau : octet 14
+// (cmp byte ptr [bx+0AA2h], 0).
+const MISN_TRAINING_PLANE SCTrainingMenu::training_planes[16] = {
+    {
+        "F-15",
+        "F-15",
+        "F15LOADA",
+        true,
+    },
+    {
+        "F-16",
+        "F-16GRAY",
+        "F16LOADA",
+        true,
+    },
+    {
+        "F/A-18",
+        "F-18",
+        "F18LOADA",
+        true,
+    },
+    {
+        "C-130",
+        "C130DES",
+        "",
+        false,
+    },
+    {
+        "F-22",
+        "F-22",
+        "F22LOAD",
+        true,
+    },
+    {
+        "YF-23",
+        "YF23",
+        "YF23LOAD",
+        true,
+    },
+    {
+        "A-10",
+        "A-10",
+        "",
+        true,
+    },
+    {
+        "E-3",
+        "AWACS",
+        "",
+        false,
+    },
+    {
+        "Tornado",
+        "TORNCG",
+        "TORNLOAD",
+        true,
+    },
+    {
+        "Mirage 2000",
+        "MIRAGE",
+        "MIRLOADA",
+        true,
+    },
+    {
+        "Lear Jet",
+        "LEARJET",
+        "",
+        false,
+    },
+    {
+        "747",
+        "747",
+        "",
+        false,
+    },
+    {
+        "MiG-21",
+        "MIG21",
+        "M21LOADA",
+        true,
+    },
+    {
+        "MiG-29",
+        "MIG29",
+        "M29LOADA",
+        true,
+    },
+    {
+        "Su-27",
+        "SU27",
+        "SUMLOAD",
+        true,
+    },
+    {
+        "TU-95",
+        "TU-20",
+        "TU20LOAD",
+        false,
+    },
+};
+
+// Sphère de 49 octets ajoutée au chunk AREA : centre x = −66000, z = −128000, rayon 45000 ; son altitude est le nombre
+// de pieds recopié tel quel (`shl eax, 8` sur la valeur en pieds).
+AREA *SCTrainingMenu::trainingArea(const MISN_TRAINING &training) {
+    if (training.type != 1) {
+        return nullptr;
+    }
+    AREA *zone = new AREA();
+    zone->AreaType = 'S';
+    memset(zone->AreaName, 0, sizeof(zone->AreaName));
+    strncpy(zone->AreaName, "DESTROY BOGEYS", 32);
+    zone->position.x = -66000.0f * BLOCK_COORD_SCALE;
+    zone->position.y = (float)training.altitude_feet * HEIGH_MAP_SCALE;
+    zone->position.z = -128000.0f * BLOCK_COORD_SCALE;
+    zone->radius = 45000.0f * BLOCK_COORD_SCALE;
+    zone->AreaWidth = (unsigned int)zone->radius;
+    zone->AreaHeight = zone->AreaWidth;
+    return zone;
+}
+
+// Joueur (1er objet du modèle) : x = −73000, z = −128000, cap 90, altitude = pieds × 256 / 839 ((pieds << 16) / 839 en
+// 24.8 : `idiv` par dword_46456 = 839 / 256, pieds par mètre). FLAG : nombre total d'avions ajoutés (FLAG[1], décompté
+// par le programme 3 du modèle). DOGFIGHT : un avion par appareil des groupes, rang compté sur tous les groupes ;
+// x = −59000 + 500 × groupe, z = −(128000 + 300 × rang), cap 270, même altitude que le joueur ; avion armé : pilote au
+// niveau choisi, vitesse 200, programme de mise à jour 1 ; sinon « TARGET », vitesse 100, programme 2 ; destruction :
+// programme 3.
+void SCTrainingMenu::applyTraining(RSMission *mission, const MISN_TRAINING &training) {
+    int64_t altitude_raw = ((int64_t)training.altitude_feet * 65536) / 839;
+    float altitude = (float)altitude_raw / 256.0f * HEIGH_MAP_SCALE;
+    Vector3D player_position = Vector3D(-73000.0f * BLOCK_COORD_SCALE, altitude, -128000.0f * BLOCK_COORD_SCALE);
+    const char *levels[3] = {
+        "ROOKIE",
+        "VETERAN",
+        "ACE",
+    };
+    std::vector<MISN_ADDED_PART> parts;
+    if (training.type == 1) {
+        int rank = 0;
+        for (int g = 0; g < 3; g++) {
+            const MISN_TRAINING_PLANE &plane = training_planes[training.group_plane[g] % 16];
+            for (int k = 0; k < training.group_count[g]; k++) {
+                MISN_PART *part = new MISN_PART();
+                part->member_name = plane.object;
+                part->member_name_destroyed = "";
+                part->weapon_load = plane.loadout;
+                part->area_id = 255;
+                part->placement = 0;
+                part->position = Vector3D((-59000.0f + 500.0f * g) * BLOCK_COORD_SCALE, altitude,
+                                          -(128000.0f + 300.0f * rank) * BLOCK_COORD_SCALE);
+                part->azymuth = 270;
+                part->relative_position = part->position;
+                part->relative_azymuth = part->azymuth;
+                part->speed = plane.armed ? 200 : 100;
+                part->team = 255;
+                part->follow_ally = 255;
+                part->unknown_byte_47 = 255;
+                part->formation_side = 0;
+                part->formation_ahead = 0;
+                part->formation_up = 0;
+                part->progs_id.push_back(255);
+                part->progs_id.push_back(plane.armed ? 1 : 2);
+                part->progs_id.push_back(3);
+                part->progs_id.push_back(255);
+                part->on_is_activated = part->progs_id[0];
+                part->on_mission_update = part->progs_id[1];
+                part->on_is_destroyed = part->progs_id[2];
+                part->on_missions_init = part->progs_id[3];
+                part->entity = nullptr;
+                MISN_ADDED_PART added;
+                added.cast = plane.armed ? levels[training.pilot_level % 3] : "TARGET";
+                added.part = part;
+                parts.push_back(added);
+                rank++;
+            }
+        }
+    }
+    mission->updateMission(player_position, 90, (int16_t)parts.size(), trainingArea(training), parts);
+}
+
 static const Point2D PANEL_LOW = {
     6,
     153,
@@ -76,7 +256,7 @@ void SCTrainingMenu::unFocus(void) {
     }
 }
 
-// Départ du vol, pour les deux types : MISSIONS\TEMPLATE.IFF, complété par RSMission::addTraining dans
+// Départ du vol, pour les deux types : MISSIONS\TEMPLATE.IFF, complété par SCTrainingMenu::applyTraining dans
 // SCMission::loadMission. Le nom est gardé : EnhancedTrainingMenu le redéfinit pour lancer EnhancedStrike.
 void SCTrainingMenu::OnSearchAndDestroy() {
     SCStrike *strike = new SCStrike();
@@ -358,11 +538,11 @@ void SCTrainingMenu::onCountChosen(int count) {
     this->showScreen(SCREEN_PLANE);
 }
 
-// Type d'avion du groupe (1 à 16, rang dans RSMission::training_planes + 1).
+// Type d'avion du groupe (1 à 16, rang dans SCTrainingMenu::training_planes + 1).
 void SCTrainingMenu::onPlaneChosen(int plane) {
     this->pushStep();
     this->settings.group_plane[this->group] = (uint8_t)(plane - 1);
-    std::string name = RSMission::training_planes[plane - 1].name;
+    std::string name = SCTrainingMenu::training_planes[plane - 1].name;
     if (this->group == 2) {
         name += ".";
     }
@@ -379,7 +559,7 @@ void SCTrainingMenu::onPlaneChosen(int plane) {
 void SCTrainingMenu::onMore() {
     this->pushStep();
     int line = 67 + 12 * this->group;
-    int x = 30 + this->textWidth(RSMission::training_planes[this->settings.group_plane[this->group]].name);
+    int x = 30 + this->textWidth(SCTrainingMenu::training_planes[this->settings.group_plane[this->group]].name);
     if (this->group == 1) {
         this->addText(x, line, ", and");
     } else {
@@ -393,7 +573,7 @@ void SCTrainingMenu::onMore() {
 void SCTrainingMenu::onEnough() {
     this->pushStep();
     int line = 67 + 12 * this->group;
-    int x = 30 + this->textWidth(RSMission::training_planes[this->settings.group_plane[this->group]].name);
+    int x = 30 + this->textWidth(SCTrainingMenu::training_planes[this->settings.group_plane[this->group]].name);
     this->addText(x, line, ".");
     this->addText(5, 103, "Altitude: ");
     this->showScreen(SCREEN_ALTITUDE);

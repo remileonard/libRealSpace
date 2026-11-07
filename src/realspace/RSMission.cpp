@@ -353,7 +353,6 @@ void RSMission::parseMISN_PLAY_SCEN(uint8_t *data, size_t size) {
     scen->on_is_activated = scen->progs_id[0];
     scen->on_mission_update = scen->progs_id[1];
     scen->on_leaving = scen->progs_id[2];
-    // MissionScene_ParseRecord_AA3A5, lu par Autopilot_JumpSequence_7A054
     scen->has_arrival_point = stream.ReadByte() != 0;
     scen->arrival_heading = stream.ReadShort();
     int32_t c0 = stream.ReadInt32LE();
@@ -391,211 +390,43 @@ void RSMission::parseMISN_CACH(uint8_t *data, size_t size) {
         this->mission_data.cache.push_back(cache);
     }
 }
-// Table des avions de Training_AircraftScreen_56B04 (bouton n = entrée n − 1). Fichier objet et emport : mots 2 et 4 de
-// chaque enregistrement de 15 octets, écrits ici en majuscules comme après la lecture d'un PART ; drapeau : octet 14
-// (cmp byte ptr [bx+0AA2h], 0).
-const MISN_TRAINING_PLANE RSMission::training_planes[16] = {
-    {
-        "F-15",
-        "F-15",
-        "F15LOADA",
-        true,
-    },
-    {
-        "F-16",
-        "F-16GRAY",
-        "F16LOADA",
-        true,
-    },
-    {
-        "F/A-18",
-        "F-18",
-        "F18LOADA",
-        true,
-    },
-    {
-        "C-130",
-        "C130DES",
-        "",
-        false,
-    },
-    {
-        "F-22",
-        "F-22",
-        "F22LOAD",
-        true,
-    },
-    {
-        "YF-23",
-        "YF23",
-        "YF23LOAD",
-        true,
-    },
-    {
-        "A-10",
-        "A-10",
-        "",
-        true,
-    },
-    {
-        "E-3",
-        "AWACS",
-        "",
-        false,
-    },
-    {
-        "Tornado",
-        "TORNCG",
-        "TORNLOAD",
-        true,
-    },
-    {
-        "Mirage 2000",
-        "MIRAGE",
-        "MIRLOADA",
-        true,
-    },
-    {
-        "Lear Jet",
-        "LEARJET",
-        "",
-        false,
-    },
-    {
-        "747",
-        "747",
-        "",
-        false,
-    },
-    {
-        "MiG-21",
-        "MIG21",
-        "M21LOADA",
-        true,
-    },
-    {
-        "MiG-29",
-        "MIG29",
-        "M29LOADA",
-        true,
-    },
-    {
-        "Su-27",
-        "SU27",
-        "SUMLOAD",
-        true,
-    },
-    {
-        "TU-95",
-        "TU-20",
-        "TU20LOAD",
-        false,
-    },
-};
 
-// Training_BuildInstantMission_58EEA recopie MISSIONS\TEMPLATE.IFF dans instant.iff et y ajoute les objets choisis aux
-// écrans. Ici, le modèle est déjà lu : les mêmes ajouts sont faits dans mission_data, avec les conversions de lecture des
-// fonctions parseMISN_* (x = c0, y = c2, z = −c1). strike_commander_re/analysis/TRAINING_MISSION.md § 6.
-void RSMission::addTraining(const MISN_TRAINING &training) {
+void RSMission::updateMission(Vector3D player_position, uint16_t player_azymuth, int16_t flag, AREA *area, const std::vector<MISN_ADDED_PART> &parts) {
     MISN &data = this->mission_data;
-    bool dogfight = training.type == 1;
     size_t area_count = data.areas.size();
     size_t cast_count = data.casting.size();
     size_t part_count = data.parts.size();
-    int total = 0;
-    if (dogfight) {
-        for (int g = 0; g < 3; g++) {
-            total += training.group_count[g];
-        }
-    }
-    // Altitude des avions : (pieds << 16) / 839 en 24.8 (`idiv` par dword_46456 = 839 / 256, pieds par mètre).
-    int64_t altitude_raw = ((int64_t) training.altitude_feet * 65536) / 839;
-    float altitude = (float) altitude_raw / 256.0f * HEIGH_MAP_SCALE;
 
-    // AREA : zone sphérique « Destroy bogeys », la zone n° area_count. Son altitude est le nombre de pieds recopié tel
-    // quel (`shl eax, 8` sur la valeur en pieds).
-    if (dogfight) {
-        AREA *zone = new AREA();
-        zone->id = (int) area_count + 1;
-        zone->AreaType = 'S';
-        memset(zone->AreaName, 0, sizeof(zone->AreaName));
-        strncpy(zone->AreaName, "DESTROY BOGEYS", 32);
-        zone->position.x = -66000.0f * BLOCK_COORD_SCALE;
-        zone->position.y = (float) training.altitude_feet * HEIGH_MAP_SCALE;
-        zone->position.z = -128000.0f * BLOCK_COORD_SCALE;
-        zone->radius = 45000.0f * BLOCK_COORD_SCALE;
-        zone->AreaWidth = (unsigned int) zone->radius;
-        zone->AreaHeight = zone->AreaWidth;
-        data.areas.push_back(zone);
-    }
+    data.flags.push_back(flag);
 
-    // FLAG : un mot ajouté = nombre total d'avions (FLAG[1], décompté par le programme 3 du modèle). Les deux types.
-    data.flags.push_back((int16_t) total);
-
-    // Le joueur, 1er objet du modèle : position et cap remplacés, le reste gardé. Les deux types.
     if (!data.parts.empty()) {
         MISN_PART *player_part = data.parts[0];
-        player_part->position = Vector3D(-73000.0f * BLOCK_COORD_SCALE, altitude, -128000.0f * BLOCK_COORD_SCALE);
-        player_part->azymuth = 90;
+        player_part->position = player_position;
+        player_part->azymuth = player_azymuth;
         player_part->relative_position = player_part->position;
         player_part->relative_azymuth = player_part->azymuth;
     }
-    if (!dogfight) {
+
+    if (area != nullptr) {
+        area->id = (int)area_count + 1;
+        data.areas.push_back(area);
+    }
+
+    for (size_t k = 0; k < parts.size(); k++) {
+        CAST *cast = new CAST();
+        cast->actor = parts[k].cast;
+        cast->profile = nullptr;
+        data.casting.push_back(cast);
+        parts[k].part->id = (uint8_t)(cast_count + k);
+        data.parts.push_back(parts[k].part);
+    }
+
+    if (area == nullptr || parts.empty()) {
         return;
     }
-
-    // CAST et PART : un pilote et un objet par avion, groupe après groupe. Le rang continue d'un groupe à l'autre.
-    const char *levels[3] = {
-        "ROOKIE",
-        "VETERAN",
-        "ACE",
-    };
-    int rank = 0;
-    for (int g = 0; g < 3; g++) {
-        const MISN_TRAINING_PLANE &plane = training_planes[training.group_plane[g] % 16];
-        for (int k = 0; k < training.group_count[g]; k++) {
-            CAST *cast = new CAST();
-            cast->actor = plane.armed ? levels[training.pilot_level % 3] : "TARGET";
-            cast->profile = nullptr;
-            data.casting.push_back(cast);
-
-            MISN_PART *part = new MISN_PART();
-            part->id = (uint8_t) (cast_count + rank);
-            part->member_name = plane.object;
-            part->member_name_destroyed = "";
-            part->weapon_load = plane.loadout;
-            part->area_id = 255;
-            part->placement = 0;
-            part->position = Vector3D((-59000.0f + 500.0f * g) * BLOCK_COORD_SCALE, altitude,
-                                      -(128000.0f + 300.0f * rank) * BLOCK_COORD_SCALE);
-            part->azymuth = 270;
-            part->relative_position = part->position;
-            part->relative_azymuth = part->azymuth;
-            part->speed = plane.armed ? 200 : 100;
-            part->team = 255;
-            part->follow_ally = 255;
-            part->unknown_byte_47 = 255;
-            part->formation_side = 0;
-            part->formation_ahead = 0;
-            part->formation_up = 0;
-            part->progs_id.push_back(255);
-            part->progs_id.push_back(plane.armed ? 1 : 2);
-            part->progs_id.push_back(3);
-            part->progs_id.push_back(255);
-            part->on_is_activated = part->progs_id[0];
-            part->on_mission_update = part->progs_id[1];
-            part->on_is_destroyed = part->progs_id[2];
-            part->on_missions_init = part->progs_id[3];
-            part->entity = nullptr;
-            data.parts.push_back(part);
-            rank++;
-        }
-    }
-
-    // SCNE : une scène active sur la zone ajoutée, sans script, qui contient les avions ajoutés.
     MISN_SCEN *scene = new MISN_SCEN();
     scene->is_active = 1;
-    scene->area_id = (int16_t) area_count;
+    scene->area_id = (int16_t)area_count;
     for (int i = 0; i < 3; i++) {
         scene->progs_id.push_back(-1);
     }
@@ -605,8 +436,8 @@ void RSMission::addTraining(const MISN_TRAINING &training) {
     scene->has_arrival_point = false;
     scene->arrival_heading = 0;
     scene->arrival_position = Vector3D(0, 0, 0);
-    for (int k = 0; k < total; k++) {
-        scene->cast.push_back((uint16_t) (part_count + k));
+    for (size_t k = 0; k < parts.size(); k++) {
+        scene->cast.push_back((uint16_t)(part_count + k));
     }
     data.scenes.push_back(scene);
 }

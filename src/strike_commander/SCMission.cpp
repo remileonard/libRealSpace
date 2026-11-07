@@ -218,7 +218,7 @@ void SCMission::loadMission() {
     // TRAINING MISSION : objets choisis aux écrans ajoutés au modèle avant la création des scènes et des acteurs
     // (Training_BuildInstantMission_58EEA d'OPTEST, qui les écrit dans instant.iff).
     if (GameState.training_active) {
-        this->mission->addTraining(GameState.training);
+        SCTrainingMenu::applyTraining(this->mission, GameState.training);
     }
 
     TreEntry *intel_tre = Assets.GetEntryByName(Assets.intel_root_path + "INTEL.IFF");
