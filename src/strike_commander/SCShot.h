@@ -44,10 +44,9 @@ protected:
 };
 
 class EndMissionScene : public SCShot {
-private:
+protected:
     RSImageSet* scoringSprites{nullptr};
     VGAPalette *p2{nullptr};
-protected:
     int part{0};
 public:
     EndMissionScene(PakArchive *optShps, PakArchive *optPals) : SCShot() {};

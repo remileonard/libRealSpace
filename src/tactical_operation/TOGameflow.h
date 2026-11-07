@@ -16,4 +16,12 @@ public:
     void opWeaponLoadout(EFCT *instruction) override;
     // WEAPON_LOADOUT_ALT (43) : écran d'armement du F-22, test comme WEAPON_LOADOUT.
     virtual void opWeaponLoadoutAlt(EFCT *instruction);
+    // IF_MISSION_SUCCESS (32) : de plus, vol terminé avec le code 2 et drapeau 88 posé : 7e valeur de STAT à 1.
+    void opIfMissSuccess(EFCT *instruction) override;
+    // IF_RESULT_7 (42, IF_LOADED_FLAG du CD de Strike Commander) : test, 7e valeur de STAT non nulle.
+    virtual void opIfResult7(EFCT *instruction);
+    // RESTORE_PILOT (44) : remet le pilote n au tableau des victoires, inverse de REMOVE_PILOT.
+    virtual void opRestorePilot(EFCT *instruction);
+    // SHOW_KILL_MARKS_ALT (45) : second écran des marques de victoires, même condition que SHOW_KILL_MARKS.
+    virtual void opShowKillMarksAlt(EFCT *instruction);
 };

@@ -1,6 +1,7 @@
 #include "TOGameflow.h"
 #include "TOConvPlayer.h"
 #include "TOF22LoadoutScene.h"
+#include "TOKillMarksScene.h"
 
 TOGameFlow::TOGameFlow() {
     TreEntry *shapes = Assets.GetEntryByName(Assets.gameflow_root_path + "OPTSHPS2.PAK");
@@ -16,6 +17,9 @@ TOGameFlow::~TOGameFlow() {
 void TOGameFlow::initInstructions() {
     SCGameFlow::initInstructions();
     this->instructions[EFECT_OPT_ALT_LOADOUT_SCREEN] = std::bind(&TOGameFlow::opWeaponLoadoutAlt, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_LOADED_FLAG] = std::bind(&TOGameFlow::opIfResult7, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_RESTORE_PILOT] = std::bind(&TOGameFlow::opRestorePilot, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SHOW_KILL_MARKS_ALT] = std::bind(&TOGameFlow::opShowKillMarksAlt, this, std::placeholders::_1);
 }
 void TOGameFlow::opWeaponLoadout(EFCT *instruction) {
     if (!this->scriptExecuting()) {
@@ -91,4 +95,42 @@ void TOGameFlow::opWeaponLoadoutAlt(EFCT *instruction) {
         loadout->applyDefaultLoadout(this->gameFlowParser.game.load, this->weapon_loadout_id);
     }
     this->script_waiting = true;
+}
+
+// Gameflow_RunScriptPairs_63B9, IF_MISSION_SUCCESS : cmp byte ptr [si+0F9h], 2 / cmp byte ptr [si+156h], 1 /
+// mov byte ptr [si+3D7h], 1.
+void TOGameFlow::opIfMissSuccess(EFCT *instruction) {
+    if (this->scriptExecuting() && GameState.mission_report.exit_code == 2 && GameState.requierd_flags[88]) {
+        GameState.mission_report.results[6] = 1;
+        printf("GAMEFLOW: IF_MISS_SUCCESS, code de sortie 2 et drapeau 88 : 7e valeur de STAT a 1\n");
+    }
+    SCGameFlow::opIfMissSuccess(instruction);
+}
+
+void TOGameFlow::opIfResult7(EFCT *instruction) {
+    this->openTest(GameState.mission_report.results[6] != 0, "IF_RESULT_7");
+}
+
+void TOGameFlow::opRestorePilot(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: RESTORE_PILOT %d\n", instruction->value);
+    if (instruction->value < 8) {
+        GameState.pilot_roaster[instruction->value] = 1;
+    }
+}
+
+void TOGameFlow::opShowKillMarksAlt(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    MissionReport &report = GameState.mission_report;
+    int kills = report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] + report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
+    printf("GAMEFLOW: SHOW_KILL_MARKS_ALT, %d victoires au dernier vol, mort %d\n", kills, GameState.player_dead);
+    if (kills > 0 && !GameState.player_dead) {
+        TOKillMarksScene *end = new TOKillMarksScene(&this->optShps2, &this->optPals2);
+        end->init();
+        this->pending_activities.push(end);
+    }
 }
