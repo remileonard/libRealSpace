@@ -87,6 +87,7 @@ private:
     bool inventory_saved{ false };
     bool zone_pending{ false };
     bool flight_pending{ false };
+    bool flight_started{ false }; // vol lancé : focus() remet le menu à zéro au retour
     uint8_t zone_choice{ 0 };
 
     void OnExitTraining();

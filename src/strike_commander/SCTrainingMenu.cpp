@@ -56,7 +56,8 @@ void SCTrainingMenu::focus(void) {
         Mixer.playMusic(28);
         this->music_playing = true;
     }
-    if (GameState.training_active) {
+    if (this->flight_started) {
+        this->flight_started = false;
         GameState.training_active = false;
         this->restoreInventory();
         this->settings = MISN_TRAINING();
@@ -428,6 +429,7 @@ void SCTrainingMenu::onAccept() {
 void SCTrainingMenu::runFrame(void) {
     if (this->flight_pending) {
         this->flight_pending = false;
+        this->flight_started = true;
         this->OnSearchAndDestroy();
         return;
     }
