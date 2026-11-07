@@ -40,6 +40,7 @@ SCGameFlow::SCGameFlow() {
         this->Game = &GameEngine::getInstance();
     }
     this->m_keyboard = Game->getKeyboard();
+    this->initInstructions();
 }
 
 SCGameFlow::~SCGameFlow() {}
@@ -190,410 +191,92 @@ void SCGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {
     map->SetPoints(points);
     this->pending_activities.push(map);
 }
+// Table des instructions du script de Strike Commander : numéro de commande → fonction. Un autre jeu redéfinit cette
+// méthode : il appelle celle-ci, puis ajoute, remplace ou retire des instructions.
+void SCGameFlow::initInstructions() {
+    this->instructions.clear();
+    this->instructions[EFECT_OPT_CONV] = std::bind(&SCGameFlow::opConv, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SCEN] = std::bind(&SCGameFlow::opScen, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_PLAY_MIDGAME] = std::bind(&SCGameFlow::opPlayMidgame, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_FLYM2] = std::bind(&SCGameFlow::opFlym2, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_NOP_4] = std::bind(&SCGameFlow::opNop, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SELECT_MISSION_ALT] =
+        std::bind(&SCGameFlow::opSelectMissionAlt, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SETFLAG_TRUE] = std::bind(&SCGameFlow::opSetFlagTrue, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SETFLAG_FALSE] = std::bind(&SCGameFlow::opSetFlagFalse, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SHOT] = std::bind(&SCGameFlow::opShot, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_NOT_FLAG] = std::bind(&SCGameFlow::opIfNotFlag, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_FLAG] = std::bind(&SCGameFlow::opIfFlag, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_NOP_11] = std::bind(&SCGameFlow::opNop, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_FLYM] = std::bind(&SCGameFlow::opFlym, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_MIS2] = std::bind(&SCGameFlow::opMis2, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_START_FLIGHT] = std::bind(&SCGameFlow::opStartFlight, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_GO] = std::bind(&SCGameFlow::opGo, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SAVE_GAME] = std::bind(&SCGameFlow::opSaveGame, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_LOAD_GAME] = std::bind(&SCGameFlow::opLoadGame, this, std::placeholders::_1);
+    this->instructions[EFFCT_OPT_SHOW_MAP] = std::bind(&SCGameFlow::opShowMap, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_LOOK_AT_KILLBOARD] =
+        std::bind(&SCGameFlow::opLookAtKillboard, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_MISS_ACCEPTED] = std::bind(&SCGameFlow::opMissAccepted, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_MISS_REJECTED] = std::bind(&SCGameFlow::opMissRejected, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_END_MISS] = std::bind(&SCGameFlow::opEndMiss, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_VIEW_CATALOG] = std::bind(&SCGameFlow::opViewCatalog, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SET_MUSIC] = std::bind(&SCGameFlow::opSetMusic, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_LOOK_AT_LEDGER] = std::bind(&SCGameFlow::opLookAtLedger, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SHOW_KILL_MARKS] =
+        std::bind(&SCGameFlow::opShowKillMarks, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_REMOVE_PILOT] = std::bind(&SCGameFlow::opRemovePilot, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_TRUE] = std::bind(&SCGameFlow::opIfTrue, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_CHECK_BALANCE] = std::bind(&SCGameFlow::opCheckBalance, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_MISS_ELSE] = std::bind(&SCGameFlow::opElse, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_MISS_ENDIF] = std::bind(&SCGameFlow::opEndif, this, std::placeholders::_1);
+    this->instructions[EFFCT_OPT_IF_MISS_SUCCESS] =
+        std::bind(&SCGameFlow::opIfMissSuccess, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_OR_GROUP] = std::bind(&SCGameFlow::opOrGroup, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_APPLY_CHANGE] = std::bind(&SCGameFlow::opApplyChange, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_PLANES_LOST] = std::bind(&SCGameFlow::opIfPlanesLost, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_PLANES_LOST_CONV] =
+        std::bind(&SCGameFlow::opPlanesLostConv, this, std::placeholders::_1);
+    this->instructions[EFECT_IF_LAST_MISS_SUCCESS] =
+        std::bind(&SCGameFlow::opIfLastMissSuccess, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_TUNE_MODIFIER] = std::bind(&SCGameFlow::opTuneModifier, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_RESULT_4] = std::bind(&SCGameFlow::opIfResult4, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_RESULT_5] = std::bind(&SCGameFlow::opIfResult5, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_RESULT_6] = std::bind(&SCGameFlow::opIfResult6, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_IF_LOADED_FLAG] = std::bind(&SCGameFlow::opIfLoadedFlag, this, std::placeholders::_1);
+}
+
 /**
  * Runs the current effect based on the efect vector and currentOptCode.
  *
- * Iterates through the efect vector, executing different actions based on the opcode.
- * Actions include playing conversations, scenes, and missions, as well as handling unknown opcodes.
- *
- * @return None
+ * Chaque instruction est passée à sa fonction (table instructions) ; l'état des tests est gardé dans SCGameFlow, et
+ * chaque fonction en tient compte. Un script suspendu par une activité reprend à l'instruction suivante.
  */
 void SCGameFlow::runEffect() {
     if (this->efect == nullptr) {
         return;
     }
-    // Etat des tests gardé dans SCGameFlow : un script suspendu par une activité reprend dans le même bloc.
-    bool *executeStack = this->script_execute;
-    bool *elseEncountered = this->script_else_seen;
-    int &ifDepth = this->script_if_depth;
     if (this->currentOptCode == 0) {
         for (int depth = 0; depth < MAX_IF_DEPTH; depth++) {
-            executeStack[depth] = false;
-            elseEncountered[depth] = false;
+            this->script_execute[depth] = false;
+            this->script_else_seen[depth] = false;
         }
-        executeStack[0] = true;
-        ifDepth = 0;
+        this->script_execute[0] = true;
+        this->script_if_depth = 0;
         this->weapon_loadout_requested = false;
     }
-    int i = 0;
-    
-    for (auto instruction : *this->efect) {
-        if (i < this->currentOptCode) {
-            i++;
-            continue;
-        }
-        
-        // Vérifier si nous sommes dans un contexte d'exécution actif
-        bool shouldExecute = true;
-        for (int depth = 0; depth <= ifDepth; depth++) {
-            if (!executeStack[depth]) {
-                shouldExecute = false;
-                break;
-            }
-        }
-        
-        if (!shouldExecute) {
-            // Traitement spécial pour les instructions de contrôle dans les blocs ignorés
-            switch (instruction->opcode) {
-            case EFECT_OPT_MISS_ELSE:
-                if (ifDepth >= 0 && !elseEncountered[ifDepth]) {
-                    executeStack[ifDepth] = !executeStack[ifDepth];
-                    elseEncountered[ifDepth] = true;
-                }
-                break;
-                
-            case EFECT_OPT_MISS_ENDIF:
-                if (ifDepth > 0) {
-                    ifDepth--;
-                }
-                break;
-                
-            case EFECT_OPT_IF_FLAG:
-            case EFECT_OPT_MISS_ACCEPTED:
-            case EFECT_OPT_MISS_REJECTED:
-            case EFECT_OPT_IF_NOT_FLAG:
-            case EFFCT_OPT_IF_MISS_SUCCESS:
-            case EFECT_IF_LAST_MISS_SUCCESS:
-            case EFECT_OPT_IF_TRUE:
-            case EFECT_OPT_IF_PLANES_LOST:
-                // Pour les if imbriqués dans un bloc ignoré
-                ifDepth++;
-                if (ifDepth < MAX_IF_DEPTH) {
-                    executeStack[ifDepth] = false;
-                    elseEncountered[ifDepth] = false;
-                }
-                break;
-            }
-            i++;
-            continue;
-        }
-        switch (instruction->opcode) {
-        case EFFCT_OPT_SHOW_MAP: {
-            if (instruction->value < this->gameFlowParser.game.wrld.size()) {
-                this->playMapShot(&this->gameFlowParser.game.wrld[instruction->value]->data->points);
-            }
-        } break;
-        case EFECT_OPT_CONV: {
-            this->playConv(instruction->value);
-        } break;
-        case EFECT_OPT_SHOW_KILL_MARKS: {
-            // SHOW_KILL_MARKS : marques de victoires si le joueur en a eu pendant le dernier vol et n'est pas mort.
-            MissionReport &report = GameState.mission_report;
-            int kills = report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] +
-                        report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
-            printf("GAMEFLOW: SHOW_KILL_MARKS, %d victoires au dernier vol, mort %d\n", kills, GameState.player_dead);
-            if (kills > 0 && !GameState.player_dead) {
-                EndMissionScene *end = new EndMissionScene(&this->optShps, &this->optPals);
-                end->init();
-                this->pending_activities.push(end);
-            }
-        } break;
-        case EFECT_OPT_SET_MUSIC: {
-            this->setMusic(instruction->value);
-        } break;
-        case EFECT_OPT_NOP_4:
-        case EFECT_OPT_NOP_11:
-            break;
-        case EFECT_OPT_SELECT_MISSION_ALT: {
-            printf("GAMEFLOW: SELECT_MISSION_ALT %d\n", instruction->value);
-            this->playFlyMission(instruction->value);
-        } break;
-        case EFECT_OPT_START_FLIGHT: {
-            printf("GAMEFLOW: START_FLIGHT, mission %s\n", this->missionToFly != nullptr ? this->missionToFly : "(aucune)");
-            if (this->missionToFly != nullptr) {
-                this->flyMission(0);
-            }
-        } break;
-        case EFECT_OPT_REMOVE_PILOT: {
-            printf("GAMEFLOW: REMOVE_PILOT %d\n", instruction->value);
-            if (instruction->value < 8) {
-                GameState.pilot_roaster[instruction->value] = 0;
-            }
-        } break;
-        case EFECT_OPT_OR_GROUP: {
-            // Absent des données ; l'effet exact n'est pas un « ou » (GAMEFLOW_SYSTEM.md § 5.1) : pas porté.
-            printf("GAMEFLOW: OR_GROUP %d ignore\n", instruction->value);
-        } break;
-        case EFECT_OPT_IF_TRUE:
-            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, true, "IF_TRUE");
-            break;
-        case EFECT_OPT_IF_PLANES_LOST:
-            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH,
-                           GameState.mission_report.planes_lost != 0, "IF_PLANES_LOST");
-            break;
-        case EFECT_OPT_IF_RESULT_4:
-            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, GameState.mission_report.results[3] != 0,
-                           "IF_RESULT_4");
-            break;
-        case EFECT_OPT_IF_RESULT_5:
-            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, GameState.mission_report.results[4] != 0,
-                           "IF_RESULT_5");
-            break;
-        case EFECT_OPT_IF_RESULT_6:
-            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, GameState.mission_report.results[5] != 0,
-                           "IF_RESULT_6");
-            break;
-        case EFECT_OPT_IF_LOADED_FLAG:
-            // Octet posé par le chargement d'une partie dans la version CD, rôle non établi : test considéré faux.
-            this->openTest(executeStack, elseEncountered, ifDepth, MAX_IF_DEPTH, false, "IF_LOADED_FLAG");
-            break;
-        case EFECT_OPT_PLANES_LOST_CONV: {
-            // PLANES_LOST_CONV : avion perdu au dernier vol, joueur éjecté (mort : cinématique 33 au retour).
-            printf("GAMEFLOW: PLANES_LOST_CONV, %d avions perdus au dernier vol, mort %d\n",
-                   GameState.mission_report.planes_lost, GameState.player_dead);
-            if (GameState.mission_report.planes_lost > 0 && !GameState.player_dead) {
-                this->setMusic(8);
-                this->playConv(LOST_PLAYER_PLANE);
-            }
-        } break;
-        case EFECT_OPT_SCEN:
-            for (int j = 0; j < this->gameFlowParser.game.game[this->current_miss]->scen.size(); j++) {
-                if (this->gameFlowParser.game.game[this->current_miss]->scen.at(j)->info.ID == instruction->value) {
-                    this->current_scen = j;
-                    this->currentSpriteId = 0;
-                    this->createScen();
-                }
-            }
-            break;
-        case EFECT_OPT_END_MISS: {
-            // WEAPON_LOADOUT : écran d'armement, ouvert en fin de script ; le départ en vol (sprite 12) lance la mission.
-            this->weapon_loadout_id = instruction->value;
-            this->playEndMission();
-        } break;
-        case EFECT_OPT_MIS2:
-            GameState.mission_id = instruction->value;
-            break;
-        case EFECT_OPT_SHOT: {
-            this->playShot(instruction->value);
-        } break;
-        case EFECT_OPT_FLYM: {
-            // SELECT_MISSION : choix de la mission seulement.
-            this->playFlyMission(instruction->value);
-        } break;
-        case EFECT_OPT_FLYM2: {
-            // FLY_MISSION_NOW : choix de la mission et départ en vol, sans écran d'armement.
-            this->playFlyMission2(instruction->value);
-        } break;
-        case EFECT_OPT_SETFLAG_TRUE:
-            GameState.requierd_flags[instruction->value] = true;
-            break;
-        case EFECT_OPT_SETFLAG_FALSE:
-            GameState.requierd_flags[instruction->value] = false;
-            break;
-        case EFECT_OPT_MISS_ACCEPTED:
-            ifDepth++;
-            if (ifDepth < MAX_IF_DEPTH) {
-                executeStack[ifDepth] = (GameState.mission_accepted == true);
-                elseEncountered[ifDepth] = false;
-            }
-            break;
-            
-        case EFECT_OPT_MISS_REJECTED:
-            ifDepth++;
-            if (ifDepth < MAX_IF_DEPTH) {
-                executeStack[ifDepth] = (GameState.mission_accepted == false);
-                elseEncountered[ifDepth] = false;
-            }
-            break;
-            
-        case EFECT_OPT_IF_FLAG:
-            ifDepth++;
-            if (ifDepth < MAX_IF_DEPTH) {
-                executeStack[ifDepth] = (GameState.requierd_flags[instruction->value] == true);
-                elseEncountered[ifDepth] = false;
-            }
-            break;
-            
-        case EFECT_OPT_IF_NOT_FLAG:
-            ifDepth++;
-            if (ifDepth < MAX_IF_DEPTH) {
-                executeStack[ifDepth] = (GameState.requierd_flags[instruction->value] == false);
-                elseEncountered[ifDepth] = false;
-            }
-            break;
-            
-        case EFFCT_OPT_IF_MISS_SUCCESS:
-            ifDepth++;
-            if (ifDepth < MAX_IF_DEPTH) {
-                executeStack[ifDepth] = GameState.mission_flyed_success[instruction->value];
-                elseEncountered[ifDepth] = false;
-            }
-            break;
-        case EFECT_IF_LAST_MISS_SUCCESS:
-            ifDepth++;
-            if (ifDepth < MAX_IF_DEPTH) {
-                executeStack[ifDepth] = GameState.mission_flyed_success[GameState.mission_flyed];
-                elseEncountered[ifDepth] = false;
-            }
-            break;
-        case EFECT_OPT_MISS_ELSE:
-            if (ifDepth >= 0 && !elseEncountered[ifDepth]) {
-                executeStack[ifDepth] = !executeStack[ifDepth];
-                elseEncountered[ifDepth] = true;
-            }
-            break;
-            
-        case EFECT_OPT_MISS_ENDIF:
-            if (ifDepth > 0) {
-                ifDepth--;
-            }
-            break;
-        case EFECT_OPT_LOAD_GAME:
-            if (instruction->value != 0) {
-                break;
-            }
-            if (this->frequest == nullptr) {
-                uint8_t soffset = 0;
-                if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
-                    soffset = 21;
-                } else {
-                    soffset = 0;
-                }
-                this->frequest = new SCFileRequester(std::bind(&SCGameFlow::loadGame, this, std::placeholders::_1),soffset);
-            }    
-            this->frequest->opened = true;
-            this->frequest->loadFiles();
-        break;
-        case EFECT_OPT_SAVE_GAME:
-            if (instruction->value != 0) {
-                break;
-            }
-            if (this->frequest == nullptr) {
-                uint8_t soffset = 0;
-                if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
-                    soffset = 21;
-                } else {
-                    soffset = 0;
-                }
-                this->frequest = new SCFileRequester(std::bind(&SCGameFlow::saveGame, this, std::placeholders::_1),soffset, true);
-            }    
-            this->frequest->opened = true;
-            this->frequest->loadFiles();
-            break;
-        case EFECT_OPT_LOOK_AT_LEDGER:
-            this->lookAtLedger();
-            break;
-        case EFECT_OPT_LOOK_AT_KILLBOARD:
-            this->lookAtKillBoard();
-            break;
-        case EFECT_OPT_PLAY_MIDGAME:
-        {
-            this->playMidGame(instruction->value);
-            if (instruction->value == 36) {
-                this->playCredits(false);
-                this->isGameOver = true;
-            }
-            break;
-        }
-        case EFECT_OPT_CHECK_BALANCE:
-            // CHECK_GAME_OVER (Gameflow_CheckLossConversations_50645) : plus de 16 avions perdus, puis argent < 0.
-            printf("GAMEFLOW: CHECK_GAME_OVER, avions perdus %d, argent %d\n", GameState.lost_aircraft,
-                   GameState.proj_cash);
-            // Conversation de fin, puis « THE END » (Credits_Play_BDE10 avec 1).
-            if (GameState.lost_aircraft > 16) {
-                this->playConv(GAMOVER_NO_INSURANCE);
-                this->playCredits(true);
-                this->isGameOver = true;
-            } else if (GameState.proj_cash < 0) {
-                this->playConv(GAMEOVER_NO_MONEY);
-                this->playCredits(true);
-                this->isGameOver = true;
-            }
-            break;
-        case EFECT_OPT_VIEW_CATALOG:
-            this->viewCatalog();
-            break;
-        case EFECT_OPT_GO:
-            this->next_miss = GameState.mission_id;
-            break;
-        case EFECT_OPT_TUNE_MODIFIER:
-            GameState.tune_modifier = instruction->value;
-            Mixer.music->SelectSet(1, instruction->value);
-            break;
-        case EFECT_OPT_APPLY_CHANGE:
-            if (this->gameFlowParser.game.stat[instruction->value] != nullptr) {
-                CHNG *chng = this->gameFlowParser.game.stat[instruction->value];
-                if (chng->cash != nullptr) {
-                    switch (chng->cash->op) {
-                    case 2:
-                        GameState.proj_cash = chng->cash->value*1000;
-                        break;
-                    case 1:
-                        GameState.proj_cash -= chng->cash->value*1000;
-                        break;
-                    case 0:
-                        GameState.proj_cash += chng->cash->value*1000;
-                        break;
-                    }
-                    if (GameState.cash == 0) {
-                        GameState.cash = GameState.proj_cash;
-                    }
-                }
-                if (chng->over != nullptr) {
-                    switch (chng->over->op) {
-                    case 2:
-                        GameState.over_head = chng->over->value*1000;
-                        break;
-                    case 1:
-                        GameState.over_head -= chng->over->value*1000;
-                        break;
-                    case 0:
-                        GameState.over_head += chng->over->value*1000;
-                        break;
-                    }
-                }
-                if (chng->weap != nullptr) {
-                    for (auto weapon : *chng->weap) {
-                        const std::vector<int> weapon_ids_mapping = {
-                            ID_AIM9J,
-                            ID_AIM9M,
-                            ID_AGM65D,
-                            ID_LAU3,
-                            ID_MK20,
-                            ID_MK82,
-                            ID_DURANDAL,
-                            ID_GBU15,
-                            ID_AIM120
-                        };
-                        switch (weapon->op) {
-                        case 2:
-                            GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] = weapon->value;
-                            break;
-                        case 1:
-                            GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] -= weapon->value;
-                            break;
-                        case 0:
-                            GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] += weapon->value;
-                            break;
-                        }
-                    }
-                }
-                if (chng->pilt != nullptr) {
-                    for (auto pil : *chng->pilt) {
-                        switch (pil->op) {
-                        case 2:
-                            GameState.kill_board[pil->pilot_id][pil->air] = pil->value;
-                            break;
-                        case 1:
-                            GameState.kill_board[pil->pilot_id][pil->air] -= pil->value;
-                            break;
-                        case 0:
-                            GameState.kill_board[pil->pilot_id][pil->air] += pil->value;
-                            break;
-                        }
-                    }
-                }
-            }
-            break;
-        default:
+    for (size_t i = this->currentOptCode; i < this->efect->size(); i++) {
+        EFCT *instruction = this->efect->at(i);
+        auto found = this->instructions.find(instruction->opcode);
+        if (found == this->instructions.end()) {
             printf("Unkown opcode :%d, %d\n", instruction->opcode, instruction->value);
-            break;
-        };
-        i++;
+        } else {
+            found->second(instruction);
+        }
         // Une commande jouée (plan, carte, cinématique, conversation) suspend le script jusqu'à sa fin.
         if (!this->pending_activities.empty()) {
-            this->currentOptCode = i;
-            printf("GAMEFLOW: script suspendu avant l'instruction %d\n", i);
+            this->currentOptCode = (uint8_t)(i + 1);
+            printf("GAMEFLOW: script suspendu avant l'instruction %zu\n", i + 1);
             return;
         }
     }
@@ -619,10 +302,438 @@ void SCGameFlow::runEffect() {
         } else {
             this->flyMission(0);
         }
-        
     }
     this->efect = nullptr;
     this->currentOptCode = 0;
+}
+
+// Vrai si tous les tests ouverts ont réussi : les commandes sont jouées, sinon sautées.
+bool SCGameFlow::scriptExecuting() {
+    for (int depth = 0; depth <= this->script_if_depth; depth++) {
+        if (!this->script_execute[depth]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Ouvre un test du script : le bloc qui suit est joué si result est vrai (GAMEFLOW_SYSTEM.md § 5.1). Dans un bloc
+// sauté, le test ouvre quand même un niveau, refermé par son ENDIF.
+void SCGameFlow::openTest(bool result, const char *name) {
+    bool executing = this->scriptExecuting();
+    if (executing) {
+        printf("GAMEFLOW: %s -> %d\n", name, result);
+    }
+    this->script_if_depth++;
+    if (this->script_if_depth < MAX_IF_DEPTH) {
+        this->script_execute[this->script_if_depth] = executing && result;
+        this->script_else_seen[this->script_if_depth] = false;
+    }
+}
+
+void SCGameFlow::opElse(EFCT *instruction) {
+    if (this->script_if_depth >= 0 && !this->script_else_seen[this->script_if_depth]) {
+        this->script_execute[this->script_if_depth] = !this->script_execute[this->script_if_depth];
+        this->script_else_seen[this->script_if_depth] = true;
+    }
+}
+
+void SCGameFlow::opEndif(EFCT *instruction) {
+    if (this->script_if_depth > 0) {
+        this->script_if_depth--;
+    }
+}
+
+void SCGameFlow::opIfTrue(EFCT *instruction) {
+    this->openTest(true, "IF_TRUE");
+}
+
+void SCGameFlow::opIfPlanesLost(EFCT *instruction) {
+    this->openTest(GameState.mission_report.planes_lost != 0, "IF_PLANES_LOST");
+}
+
+void SCGameFlow::opIfResult4(EFCT *instruction) {
+    this->openTest(GameState.mission_report.results[3] != 0, "IF_RESULT_4");
+}
+
+void SCGameFlow::opIfResult5(EFCT *instruction) {
+    this->openTest(GameState.mission_report.results[4] != 0, "IF_RESULT_5");
+}
+
+void SCGameFlow::opIfResult6(EFCT *instruction) {
+    this->openTest(GameState.mission_report.results[5] != 0, "IF_RESULT_6");
+}
+
+// Octet posé par le chargement d'une partie dans la version CD, rôle non établi : test considéré faux.
+void SCGameFlow::opIfLoadedFlag(EFCT *instruction) {
+    this->openTest(false, "IF_LOADED_FLAG");
+}
+
+void SCGameFlow::opMissAccepted(EFCT *instruction) {
+    this->openTest(GameState.mission_accepted == true, "MISS_ACCEPTED");
+}
+
+void SCGameFlow::opMissRejected(EFCT *instruction) {
+    this->openTest(GameState.mission_accepted == false, "MISS_REJECTED");
+}
+
+void SCGameFlow::opIfFlag(EFCT *instruction) {
+    this->openTest(GameState.requierd_flags[instruction->value] == true, "IF_FLAG");
+}
+
+void SCGameFlow::opIfNotFlag(EFCT *instruction) {
+    this->openTest(GameState.requierd_flags[instruction->value] == false, "IF_NOT_FLAG");
+}
+
+void SCGameFlow::opIfMissSuccess(EFCT *instruction) {
+    this->openTest(GameState.mission_flyed_success[instruction->value], "IF_MISS_SUCCESS");
+}
+
+void SCGameFlow::opIfLastMissSuccess(EFCT *instruction) {
+    this->openTest(GameState.mission_flyed_success[GameState.mission_flyed], "IF_LAST_MISS_SUCCESS");
+}
+
+void SCGameFlow::opShowMap(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    if (instruction->value < this->gameFlowParser.game.wrld.size()) {
+        this->playMapShot(&this->gameFlowParser.game.wrld[instruction->value]->data->points);
+    }
+}
+
+void SCGameFlow::opConv(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->playConv(instruction->value);
+}
+
+// SHOW_KILL_MARKS : marques de victoires si le joueur en a eu pendant le dernier vol et n'est pas mort.
+void SCGameFlow::opShowKillMarks(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    MissionReport &report = GameState.mission_report;
+    int kills = report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] +
+                report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
+    printf("GAMEFLOW: SHOW_KILL_MARKS, %d victoires au dernier vol, mort %d\n", kills, GameState.player_dead);
+    if (kills > 0 && !GameState.player_dead) {
+        EndMissionScene *end = new EndMissionScene(&this->optShps, &this->optPals);
+        end->init();
+        this->pending_activities.push(end);
+    }
+}
+
+void SCGameFlow::opSetMusic(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->setMusic(instruction->value);
+}
+
+void SCGameFlow::opNop(EFCT *instruction) {
+}
+
+void SCGameFlow::opSelectMissionAlt(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: SELECT_MISSION_ALT %d\n", instruction->value);
+    this->playFlyMission(instruction->value);
+}
+
+void SCGameFlow::opStartFlight(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: START_FLIGHT, mission %s\n", this->missionToFly != nullptr ? this->missionToFly : "(aucune)");
+    if (this->missionToFly != nullptr) {
+        this->flyMission(0);
+    }
+}
+
+void SCGameFlow::opRemovePilot(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: REMOVE_PILOT %d\n", instruction->value);
+    if (instruction->value < 8) {
+        GameState.pilot_roaster[instruction->value] = 0;
+    }
+}
+
+// Absent des données ; l'effet exact n'est pas un « ou » (GAMEFLOW_SYSTEM.md § 5.1) : pas porté.
+void SCGameFlow::opOrGroup(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: OR_GROUP %d ignore\n", instruction->value);
+}
+
+// PLANES_LOST_CONV : avion perdu au dernier vol, joueur éjecté (mort : cinématique 33 au retour).
+void SCGameFlow::opPlanesLostConv(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: PLANES_LOST_CONV, %d avions perdus au dernier vol, mort %d\n",
+           GameState.mission_report.planes_lost, GameState.player_dead);
+    if (GameState.mission_report.planes_lost > 0 && !GameState.player_dead) {
+        this->setMusic(8);
+        this->playConv(LOST_PLAYER_PLANE);
+    }
+}
+
+void SCGameFlow::opScen(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    for (int j = 0; j < this->gameFlowParser.game.game[this->current_miss]->scen.size(); j++) {
+        if (this->gameFlowParser.game.game[this->current_miss]->scen.at(j)->info.ID == instruction->value) {
+            this->current_scen = j;
+            this->currentSpriteId = 0;
+            this->createScen();
+        }
+    }
+}
+
+// WEAPON_LOADOUT : écran d'armement, ouvert en fin de script ; le départ en vol (sprite 12) lance la mission.
+void SCGameFlow::opEndMiss(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->weapon_loadout_id = instruction->value;
+    this->playEndMission();
+}
+
+void SCGameFlow::opMis2(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    GameState.mission_id = instruction->value;
+}
+
+void SCGameFlow::opShot(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->playShot(instruction->value);
+}
+
+// SELECT_MISSION : choix de la mission seulement.
+void SCGameFlow::opFlym(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->playFlyMission(instruction->value);
+}
+
+// FLY_MISSION_NOW : choix de la mission et départ en vol, sans écran d'armement.
+void SCGameFlow::opFlym2(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->playFlyMission2(instruction->value);
+}
+
+void SCGameFlow::opSetFlagTrue(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    GameState.requierd_flags[instruction->value] = true;
+}
+
+void SCGameFlow::opSetFlagFalse(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    GameState.requierd_flags[instruction->value] = false;
+}
+
+void SCGameFlow::opLoadGame(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    if (instruction->value != 0) {
+        return;
+    }
+    if (this->frequest == nullptr) {
+        uint8_t soffset = 0;
+        if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
+            soffset = 21;
+        } else {
+            soffset = 0;
+        }
+        this->frequest = new SCFileRequester(std::bind(&SCGameFlow::loadGame, this, std::placeholders::_1), soffset);
+    }
+    this->frequest->opened = true;
+    this->frequest->loadFiles();
+}
+
+void SCGameFlow::opSaveGame(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    if (instruction->value != 0) {
+        return;
+    }
+    if (this->frequest == nullptr) {
+        uint8_t soffset = 0;
+        if (this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID == 29) {
+            soffset = 21;
+        } else {
+            soffset = 0;
+        }
+        this->frequest =
+            new SCFileRequester(std::bind(&SCGameFlow::saveGame, this, std::placeholders::_1), soffset, true);
+    }
+    this->frequest->opened = true;
+    this->frequest->loadFiles();
+}
+
+void SCGameFlow::opLookAtLedger(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->lookAtLedger();
+}
+
+void SCGameFlow::opLookAtKillboard(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->lookAtKillBoard();
+}
+
+void SCGameFlow::opPlayMidgame(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->playMidGame(instruction->value);
+    if (instruction->value == 36) {
+        this->playCredits(false);
+        this->isGameOver = true;
+    }
+}
+
+// CHECK_GAME_OVER (Gameflow_CheckLossConversations_50645) : plus de 16 avions perdus, puis argent < 0.
+void SCGameFlow::opCheckBalance(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    printf("GAMEFLOW: CHECK_GAME_OVER, avions perdus %d, argent %d\n", GameState.lost_aircraft, GameState.proj_cash);
+    // Conversation de fin, puis « THE END » (Credits_Play_BDE10 avec 1).
+    if (GameState.lost_aircraft > 16) {
+        this->playConv(GAMOVER_NO_INSURANCE);
+        this->playCredits(true);
+        this->isGameOver = true;
+    } else if (GameState.proj_cash < 0) {
+        this->playConv(GAMEOVER_NO_MONEY);
+        this->playCredits(true);
+        this->isGameOver = true;
+    }
+}
+
+void SCGameFlow::opViewCatalog(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->viewCatalog();
+}
+
+void SCGameFlow::opGo(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    this->next_miss = GameState.mission_id;
+}
+
+void SCGameFlow::opTuneModifier(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    GameState.tune_modifier = instruction->value;
+    Mixer.music->SelectSet(1, instruction->value);
+}
+
+void SCGameFlow::opApplyChange(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        return;
+    }
+    if (this->gameFlowParser.game.stat[instruction->value] == nullptr) {
+        return;
+    }
+    CHNG *chng = this->gameFlowParser.game.stat[instruction->value];
+    if (chng->cash != nullptr) {
+        switch (chng->cash->op) {
+        case 2:
+            GameState.proj_cash = chng->cash->value * 1000;
+            break;
+        case 1:
+            GameState.proj_cash -= chng->cash->value * 1000;
+            break;
+        case 0:
+            GameState.proj_cash += chng->cash->value * 1000;
+            break;
+        }
+        if (GameState.cash == 0) {
+            GameState.cash = GameState.proj_cash;
+        }
+    }
+    if (chng->over != nullptr) {
+        switch (chng->over->op) {
+        case 2:
+            GameState.over_head = chng->over->value * 1000;
+            break;
+        case 1:
+            GameState.over_head -= chng->over->value * 1000;
+            break;
+        case 0:
+            GameState.over_head += chng->over->value * 1000;
+            break;
+        }
+    }
+    if (chng->weap != nullptr) {
+        for (auto weapon : *chng->weap) {
+            const std::vector<int> weapon_ids_mapping = {
+                ID_AIM9J,
+                ID_AIM9M,
+                ID_AGM65D,
+                ID_LAU3,
+                ID_MK20,
+                ID_MK82,
+                ID_DURANDAL,
+                ID_GBU15,
+                ID_AIM120
+            };
+            switch (weapon->op) {
+            case 2:
+                GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] = weapon->value;
+                break;
+            case 1:
+                GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] -= weapon->value;
+                break;
+            case 0:
+                GameState.weapon_inventory[weapon_ids_mapping[weapon->weap_id]] += weapon->value;
+                break;
+            }
+        }
+    }
+    if (chng->pilt != nullptr) {
+        for (auto pil : *chng->pilt) {
+            switch (pil->op) {
+            case 2:
+                GameState.kill_board[pil->pilot_id][pil->air] = pil->value;
+                break;
+            case 1:
+                GameState.kill_board[pil->pilot_id][pil->air] -= pil->value;
+                break;
+            case 0:
+                GameState.kill_board[pil->pilot_id][pil->air] += pil->value;
+                break;
+            }
+        }
+    }
 }
 
 /**
@@ -802,17 +913,6 @@ RSImageSet *SCGameFlow::getShape(uint8_t shpid) {
  *
  * @throws None
  */
-// Ouvre un test du script : le bloc qui suit est joué si result est vrai (GAMEFLOW_SYSTEM.md § 5.1).
-void SCGameFlow::openTest(bool *executeStack, bool *elseEncountered, int &ifDepth, int maxDepth, bool result,
-                          const char *name) {
-    printf("GAMEFLOW: %s -> %d\n", name, result);
-    ifDepth++;
-    if (ifDepth < maxDepth) {
-        executeStack[ifDepth] = result;
-        elseEncountered[ifDepth] = false;
-    }
-}
-
 // SET_MUSIC : piste n du jeu de musique du déroulement (banque 1), jouée par le séquenceur avec ses liaisons ; 255 = rien.
 void SCGameFlow::setMusic(uint8_t track) {
     printf("GAMEFLOW: SET_MUSIC %d\n", track);
