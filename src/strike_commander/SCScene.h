@@ -47,8 +47,11 @@ public:
 };
 
 class WeaponLoadoutScene : public SCScene {
+    // Sprite du départ en vol ; l'autre sortie (sprite du numéro de la scène) revient au déroulement.
+    static const uint8_t FLY_SPRITE = 12;
     std::vector<SCZone *> extra_zones;
-    std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick;
+    std::function<void(bool fly)> onexit;
+    void exitClicked(std::vector<EFCT *> *script, uint8_t id);
     SCZone *addExtraZone(uint8_t id);
     SCZone *addNoGfXZone(uint8_t id, std::string label, uint8_t weapon_type_shp_id);
     void addWeapon(std::vector<EFCT *> *script, uint8_t id);
@@ -91,7 +94,8 @@ public:
     bool keep_music{false};
     void Render();
     WeaponLoadoutScene(PakArchive *optShps, PakArchive *optPals) : SCScene(optShps, optPals) {};
-    std::vector<SCZone *> * init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick);
+    // onexit(true) : départ en vol ; onexit(false) : retour au déroulement.
+    std::vector<SCZone *> *init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(bool fly)> onexit);
     void applyDefaultLoadout(const std::vector<LOAD *> &loads, uint8_t load_id);
 };
 

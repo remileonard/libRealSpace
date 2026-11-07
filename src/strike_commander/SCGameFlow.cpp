@@ -117,16 +117,17 @@ void SCGameFlow::saveGame(std::string filename) {
 
 
 void SCGameFlow::returnFromScene(std::vector<EFCT *> *script, uint8_t id) { this->createScen(); }
-void SCGameFlow::flyOrReturnFromScene(std::vector<EFCT *> *script, uint8_t id) {
-    switch (id) {
-    case 20:
-        this->createScen();
-        break;
-    default:
+// Sortie de l'écran d'armement : le test WEAPON_LOADOUT réussit si le joueur part en vol, et le script reprend. Le vol
+// part quand le script est fini (runFrame) ; au retour, la scène du déroulement est rétablie.
+void SCGameFlow::loadoutExit(bool fly) {
+    this->script_waiting = false;
+    this->openTest(fly, "WEAPON_LOADOUT");
+    if (fly) {
         // Départ de l'écran d'armement : OPTEST écrit le chunk PLYR ([partie+238] = 1).
         this->player_loadout_pending = true;
         this->flyMission(0);
-        break;
+    } else {
+        this->createScen();
     }
 }
 void SCGameFlow::flyMission(uint8_t missionid) {
@@ -200,8 +201,7 @@ void SCGameFlow::initInstructions() {
     this->instructions[EFECT_OPT_PLAY_MIDGAME] = std::bind(&SCGameFlow::opPlayMidgame, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_FLYM2] = std::bind(&SCGameFlow::opFlym2, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_NOP_4] = std::bind(&SCGameFlow::opNop, this, std::placeholders::_1);
-    this->instructions[EFECT_OPT_SELECT_MISSION_ALT] =
-        std::bind(&SCGameFlow::opSelectMissionAlt, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SELECT_MISSION_ALT] = std::bind(&SCGameFlow::opSelectMissionAlt, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_SETFLAG_TRUE] = std::bind(&SCGameFlow::opSetFlagTrue, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_SETFLAG_FALSE] = std::bind(&SCGameFlow::opSetFlagFalse, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_SHOT] = std::bind(&SCGameFlow::opShot, this, std::placeholders::_1);
@@ -215,30 +215,25 @@ void SCGameFlow::initInstructions() {
     this->instructions[EFECT_OPT_SAVE_GAME] = std::bind(&SCGameFlow::opSaveGame, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_LOAD_GAME] = std::bind(&SCGameFlow::opLoadGame, this, std::placeholders::_1);
     this->instructions[EFFCT_OPT_SHOW_MAP] = std::bind(&SCGameFlow::opShowMap, this, std::placeholders::_1);
-    this->instructions[EFECT_OPT_LOOK_AT_KILLBOARD] =
-        std::bind(&SCGameFlow::opLookAtKillboard, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_LOOK_AT_KILLBOARD] = std::bind(&SCGameFlow::opLookAtKillboard, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_MISS_ACCEPTED] = std::bind(&SCGameFlow::opMissAccepted, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_MISS_REJECTED] = std::bind(&SCGameFlow::opMissRejected, this, std::placeholders::_1);
-    this->instructions[EFECT_OPT_END_MISS] = std::bind(&SCGameFlow::opEndMiss, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_WEAPON_LOADOUT] = std::bind(&SCGameFlow::opWeaponLoadout, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_VIEW_CATALOG] = std::bind(&SCGameFlow::opViewCatalog, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_SET_MUSIC] = std::bind(&SCGameFlow::opSetMusic, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_LOOK_AT_LEDGER] = std::bind(&SCGameFlow::opLookAtLedger, this, std::placeholders::_1);
-    this->instructions[EFECT_OPT_SHOW_KILL_MARKS] =
-        std::bind(&SCGameFlow::opShowKillMarks, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_SHOW_KILL_MARKS] = std::bind(&SCGameFlow::opShowKillMarks, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_REMOVE_PILOT] = std::bind(&SCGameFlow::opRemovePilot, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_IF_TRUE] = std::bind(&SCGameFlow::opIfTrue, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_CHECK_BALANCE] = std::bind(&SCGameFlow::opCheckBalance, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_MISS_ELSE] = std::bind(&SCGameFlow::opElse, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_MISS_ENDIF] = std::bind(&SCGameFlow::opEndif, this, std::placeholders::_1);
-    this->instructions[EFFCT_OPT_IF_MISS_SUCCESS] =
-        std::bind(&SCGameFlow::opIfMissSuccess, this, std::placeholders::_1);
+    this->instructions[EFFCT_OPT_IF_MISS_SUCCESS] = std::bind(&SCGameFlow::opIfMissSuccess, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_OR_GROUP] = std::bind(&SCGameFlow::opOrGroup, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_APPLY_CHANGE] = std::bind(&SCGameFlow::opApplyChange, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_IF_PLANES_LOST] = std::bind(&SCGameFlow::opIfPlanesLost, this, std::placeholders::_1);
-    this->instructions[EFECT_OPT_PLANES_LOST_CONV] =
-        std::bind(&SCGameFlow::opPlanesLostConv, this, std::placeholders::_1);
-    this->instructions[EFECT_IF_LAST_MISS_SUCCESS] =
-        std::bind(&SCGameFlow::opIfLastMissSuccess, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_PLANES_LOST_CONV] = std::bind(&SCGameFlow::opPlanesLostConv, this, std::placeholders::_1);
+    this->instructions[EFECT_IF_LAST_MISS_SUCCESS] = std::bind(&SCGameFlow::opIfLastMissSuccess, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_TUNE_MODIFIER] = std::bind(&SCGameFlow::opTuneModifier, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_IF_RESULT_4] = std::bind(&SCGameFlow::opIfResult4, this, std::placeholders::_1);
     this->instructions[EFECT_OPT_IF_RESULT_5] = std::bind(&SCGameFlow::opIfResult5, this, std::placeholders::_1);
@@ -263,7 +258,7 @@ void SCGameFlow::runEffect() {
         }
         this->script_execute[0] = true;
         this->script_if_depth = 0;
-        this->weapon_loadout_requested = false;
+        this->script_waiting = false;
     }
     for (size_t i = this->currentOptCode; i < this->efect->size(); i++) {
         EFCT *instruction = this->efect->at(i);
@@ -273,34 +268,11 @@ void SCGameFlow::runEffect() {
         } else {
             found->second(instruction);
         }
-        // Une commande jouée (plan, carte, cinématique, conversation) suspend le script jusqu'à sa fin.
-        if (!this->pending_activities.empty()) {
+        // Une commande jouée (plan, carte, cinématique, conversation, écran d'armement) suspend le script jusqu'à sa fin.
+        if (!this->pending_activities.empty() || this->script_waiting) {
             this->currentOptCode = (uint8_t)(i + 1);
             printf("GAMEFLOW: script suspendu avant l'instruction %zu\n", i + 1);
             return;
-        }
-    }
-    if (this->weapon_loadout_requested) {
-        this->weapon_loadout_requested = false;
-        printf("GAMEFLOW: WEAPON_LOADOUT %d, ecran d'armement pour %s\n", this->weapon_loadout_id,
-               this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
-        if (this->scen != nullptr) {
-            delete this->scen;
-            this->scen = nullptr;
-            this->zones = nullptr;
-        }
-        this->next_miss = 0;
-        if (this->gameFlowParser.game.game[this->current_miss]->scen.size() > 0) {
-            WeaponLoadoutScene *loadout = new WeaponLoadoutScene(&this->optShps, &this->optPals);
-            this->scen = loadout;
-            this->zones = loadout->init(
-                this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[15],
-                std::bind(&SCGameFlow::flyOrReturnFromScene, this, std::placeholders::_1, std::placeholders::_2));
-            if (this->zones != nullptr) {
-                loadout->applyDefaultLoadout(this->gameFlowParser.game.load, this->weapon_loadout_id);
-            }
-        } else {
-            this->flyMission(0);
         }
     }
     this->efect = nullptr;
@@ -497,9 +469,10 @@ void SCGameFlow::opScen(EFCT *instruction) {
     }
 }
 
-// WEAPON_LOADOUT : écran d'armement, ouvert en fin de script ; le départ en vol (sprite 12) lance la mission.
-void SCGameFlow::opEndMiss(EFCT *instruction) {
+// WEAPON_LOADOUT : écran d'armement, et test ouvert à sa sortie (loadoutExit) ; dans un bloc sauté, test ouvert à faux.
+void SCGameFlow::opWeaponLoadout(EFCT *instruction) {
     if (!this->scriptExecuting()) {
+        this->openTest(false, "WEAPON_LOADOUT");
         return;
     }
     this->weapon_loadout_id = instruction->value;
@@ -987,7 +960,7 @@ void SCGameFlow::runFrame(void) {
     } else if (isGameOver) {
         this->stop();
     }
-    if (this->currentOptCode > 0 && this->efect != nullptr) {
+    if (this->currentOptCode > 0 && this->efect != nullptr && !this->script_waiting) {
         this->runEffect();
         return;
     }
@@ -1090,8 +1063,29 @@ void SCGameFlow::playCredits(bool the_end_only, bool wait_music_end) {
 
 void SCGameFlow::playShowMap(uint8_t mapId) {}
 
+// Écran d'armement du chargement weapon_loadout_id ; le script attend sa sortie. Sans scène, départ en vol direct.
 void SCGameFlow::playEndMission() {
-    this->weapon_loadout_requested = true;
+    printf("GAMEFLOW: WEAPON_LOADOUT %d, ecran d'armement pour %s\n", this->weapon_loadout_id,
+           this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
+    if (this->scen != nullptr) {
+        delete this->scen;
+        this->scen = nullptr;
+        this->zones = nullptr;
+    }
+    this->next_miss = 0;
+    if (this->gameFlowParser.game.game[this->current_miss]->scen.size() == 0) {
+        this->openTest(true, "WEAPON_LOADOUT");
+        this->flyMission(0);
+        return;
+    }
+    WeaponLoadoutScene *loadout = new WeaponLoadoutScene(&this->optShps, &this->optPals);
+    this->scen = loadout;
+    this->zones = loadout->init(this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
+                                this->optionParser.opts[15], std::bind(&SCGameFlow::loadoutExit, this, std::placeholders::_1));
+    if (this->zones != nullptr) {
+        loadout->applyDefaultLoadout(this->gameFlowParser.game.load, this->weapon_loadout_id);
+    }
+    this->script_waiting = true;
 }
 
 bool SCGameFlow::playFlyMission(uint8_t flyMissionId) {

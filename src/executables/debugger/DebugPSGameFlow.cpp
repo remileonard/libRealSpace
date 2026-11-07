@@ -72,6 +72,7 @@ void DebugPSGameFlow::playEndMission() {
         fly_mission.push(static_cast<DebugStrike*>(fly));   
     }
     this->next_miss = GameState.mission_id;
+    this->openTest(true, "WEAPON_LOADOUT");
 }
 
 bool DebugPSGameFlow::playFlyMission(uint8_t flyMissionId) {

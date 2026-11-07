@@ -8,6 +8,7 @@ TOGameFlow::~TOGameFlow() {
 
 void TOGameFlow::initInstructions() {
     SCGameFlow::initInstructions();
+    this->instructions[EFECT_OPT_ALT_LOADOUT_SCREEN] = std::bind(&TOGameFlow::opWeaponLoadout, this, std::placeholders::_1);
 }
 
 void TOGameFlow::playMidGame(uint8_t midGameId) {

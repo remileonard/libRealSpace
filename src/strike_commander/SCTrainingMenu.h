@@ -106,7 +106,7 @@ private:
     bool flight_pending{ false };
     bool flight_started{ false };
     static AREA *trainingArea(const MISN_TRAINING &training); // vol lancé : focus() remet le menu à zéro au retour
-    uint8_t zone_choice{ 0 };
+    bool loadout_fly{ false };
 
     void OnExitTraining();
     void buildPanels();
@@ -130,7 +130,7 @@ private:
     bool openLoadout();
     void closeLoadout();
     void restoreInventory();
-    void onLoadoutClick(std::vector<EFCT *> *script, uint8_t id);
+    void onLoadoutExit(bool fly);
 };
 
 #endif /* defined(__libRealSpace__File__) */

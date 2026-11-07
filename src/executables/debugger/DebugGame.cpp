@@ -20,11 +20,12 @@
 #include "DebugPacificStrikeMISN.h"
 #include "DebugPSConvPlayer.h"
 #include "DebugPSGameFlow.h"
+#include "DebugTOGameflow.h"
 #include "../../engine/keyboard.h"
 #include "../../engine/EventManager.h"  
 #include "../../engine/gametimer.h"
 #include "../../strike_commander/precomp.h"
-#include "../../tactical_operation/TOGameflow.h"
+
 
 
 
@@ -271,7 +272,7 @@ void DebugGame::loadTO() {
         ConvAssets.init();
         RSSound::getInstance().init();
         RSMixer::getInstance().init();
-        TOGameFlow* main = new TOGameFlow();
+        DebugTOGameFlow* main = new DebugTOGameFlow();
         SCState &GameState = SCState::getInstance();
         GameState.Reset();
         GameState.player_callsign = "Debug";

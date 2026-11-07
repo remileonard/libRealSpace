@@ -548,8 +548,10 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
     };
 
     // Ajout des zones fixes
-    createAndAddZone(this->gameflow_scene->info.ID, this->gameflow_scene->info.ID, this->onclick);
-    createAndAddZone(12, 12, this->onclick);
+    createAndAddZone(this->gameflow_scene->info.ID, this->gameflow_scene->info.ID,
+                     std::bind(&WeaponLoadoutScene::exitClicked, this, std::placeholders::_1, std::placeholders::_2));
+    createAndAddZone(FLY_SPRITE, FLY_SPRITE,
+                     std::bind(&WeaponLoadoutScene::exitClicked, this, std::placeholders::_1, std::placeholders::_2));
     for (auto weap: GameState.weapon_inventory) {
         if (weap.second != 0) {
             createAndAddZone(
@@ -813,7 +815,7 @@ void WeaponLoadoutScene::applyDefaultLoadout(const std::vector<LOAD *> &loads, u
     this->updateWeaponDisplay();
 }
 
-std::vector<SCZone *> *WeaponLoadoutScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick) {
+std::vector<SCZone *> *WeaponLoadoutScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(bool fly)> onexit) {
     if (sc_opts == nullptr) {
         return nullptr;
     }
@@ -843,9 +845,15 @@ std::vector<SCZone *> *WeaponLoadoutScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts
         this->layers.push_back(tmpbg);
     }
 
-    this->onclick = onclick;
+    this->onexit = onexit;
     this->updateWeaponDisplay();
     return (&this->zones);
+}
+
+void WeaponLoadoutScene::exitClicked(std::vector<EFCT *> *script, uint8_t id) {
+    bool fly = id == FLY_SPRITE;
+    printf("LOADOUT: sortie par le sprite %d, %s\n", id, fly ? "depart en vol" : "retour au deroulement");
+    this->onexit(fly);
 }
 
 void WeaponLoadoutScene::Render() {

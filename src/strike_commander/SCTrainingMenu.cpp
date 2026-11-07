@@ -214,7 +214,6 @@ static const int16_t TRAINING_STOCK[9] = {
 static const uint8_t LOADOUT_OPTIONS_SCREEN = 15;
 static const uint8_t LOADOUT_SCENE = 11;
 static const uint8_t LOADOUT_DEFAULT_LOAD = 0;
-static const uint8_t LOADOUT_SPRITE_FLY = 12;
 
 SCTrainingMenu::SCTrainingMenu() {
     this->music_playing = false;
@@ -483,7 +482,7 @@ bool SCTrainingMenu::openLoadout() {
     this->loadout->keep_music = true;
     this->zones = this->loadout->init(
         &this->loadout_scene, this->options.opts[LOADOUT_OPTIONS_SCREEN],
-        std::bind(&SCTrainingMenu::onLoadoutClick, this, std::placeholders::_1, std::placeholders::_2));
+        std::bind(&SCTrainingMenu::onLoadoutExit, this, std::placeholders::_1));
     if (this->zones == nullptr) {
         this->closeLoadout();
         return false;
@@ -501,10 +500,10 @@ void SCTrainingMenu::closeLoadout() {
     this->zone_pending = false;
 }
 
-// Clic sur une zone de l'écran d'armement : noté, appliqué par runFrame (les zones appartiennent à la scène).
-void SCTrainingMenu::onLoadoutClick(std::vector<EFCT *> *script, uint8_t id) {
+// Sortie de l'écran d'armement : notée, appliquée par runFrame (les zones appartiennent à la scène).
+void SCTrainingMenu::onLoadoutExit(bool fly) {
     this->zone_pending = true;
-    this->zone_choice = id;
+    this->loadout_fly = fly;
 }
 
 // Premier écran : 1 = DOGFIGHT, 2 = SEARCH AND DESTROY.
@@ -619,9 +618,9 @@ void SCTrainingMenu::runFrame(void) {
         Mouse.draw();
         VGA.vSync();
         if (this->zone_pending) {
-            uint8_t id = this->zone_choice;
+            bool fly = this->loadout_fly;
             this->closeLoadout();
-            if (id == LOADOUT_SPRITE_FLY) {
+            if (fly) {
                 this->startFlight(true);
             } else {
                 this->OnExitTraining();

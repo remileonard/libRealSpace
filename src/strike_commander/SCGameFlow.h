@@ -104,7 +104,8 @@ protected:
     SCFileRequester *frequest{nullptr};
     bool isGameOver{false};
     bool mission_report_pending{false};
-    bool weapon_loadout_requested{false};
+    // WEAPON_LOADOUT : le script attend la sortie de l'écran d'armement (loadoutExit).
+    bool script_waiting{ false };
     bool player_loadout_pending{false};
     uint8_t weapon_loadout_id{ 255 };
     void applyMissionReport(void);
@@ -113,7 +114,7 @@ protected:
     void loadGame(std::string filename);
     void saveGame(std::string filename);
     void returnFromScene(std::vector<EFCT *> *script, uint8_t id);
-    void flyOrReturnFromScene(std::vector<EFCT *> *script, uint8_t id);
+    void loadoutExit(bool fly);
     void runEffect();
     void runEffectAfterLoad();
     // Instructions du script : numéro de commande → fonction (initInstructions). Chaque fonction lit et modifie l'état
@@ -144,7 +145,7 @@ protected:
     virtual void opLookAtKillboard(EFCT *instruction);
     virtual void opMissAccepted(EFCT *instruction);
     virtual void opMissRejected(EFCT *instruction);
-    virtual void opEndMiss(EFCT *instruction);
+    virtual void opWeaponLoadout(EFCT *instruction);
     virtual void opViewCatalog(EFCT *instruction);
     virtual void opSetMusic(EFCT *instruction);
     virtual void opLookAtLedger(EFCT *instruction);

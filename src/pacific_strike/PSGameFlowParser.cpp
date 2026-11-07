@@ -21,7 +21,7 @@ void PSGameFlowParser::parseOpCode(uint8_t *data, size_t size, std::vector<EFCT 
         {GameFlowOpCode::EFECT_OPT_LOOK_AT_KILLBOARD    ,1},
         {GameFlowOpCode::EFECT_OPT_MISS_ACCEPTED        ,1},
         {GameFlowOpCode::EFECT_OPT_MISS_REJECTED        ,1},
-        {GameFlowOpCode::EFECT_OPT_END_MISS             ,1},
+        {GameFlowOpCode::EFECT_OPT_WEAPON_LOADOUT            ,1},
         {GameFlowOpCode::EFECT_OPT_VIEW_CATALOG         ,1},
         {GameFlowOpCode::EFECT_OPT_LOOK_AT_LEDGER       ,1},
         {GameFlowOpCode::EFECT_OPT_MISS_ELSE            ,1},
