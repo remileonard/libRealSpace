@@ -168,7 +168,8 @@ void GameUI::panel(int x, int y, int w, int h) {
 
 void GameUI::label(const char *text, int centerX, int y, int scale) {
     std::string s = text;
-    const int width = this->picture->getTextWidth(this->font, s);
+    // printText advances by the glyph advance plus 2, so measure the same way
+    const int width = this->picture->getJustifiedTextWidth(this->font, s, 2);
     if (scale <= 1) {
         this->picture->printText(this->font, {centerX - width / 2, y}, s, TEXT_COLOR);
         return;
@@ -227,7 +228,8 @@ bool GameUI::drawButton(int x, int y, int w, int h, const char *text, bool press
         this->fillRect(x + w - 2, y + 1, 1, h - 2, bottomRight);
     }
     std::string s = text;
-    const int width = this->picture->getTextWidth(this->font, s);
+    // printText advances by the glyph advance plus 2, so measure the same way
+    const int width = this->picture->getJustifiedTextWidth(this->font, s, 2);
     const int shift = pressed ? 1 : 0;
     this->picture->printText(this->font, {x + (w - width) / 2 + shift, y + 2 + shift}, s,
                              TEXT_COLOR);
