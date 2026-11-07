@@ -269,6 +269,10 @@ void FrameBuffer::printText(RSFont *font, Point2D *coo, char *text, uint8_t colo
 
 int FrameBuffer::textGlyphAdvance(RSFont *font, char c) {
     RLEShape *shape = font->GetShapeForChar(c == ' ' ? '-' : c);
+    // Police sans tiret (image vide, comme dans GAMEFLOW\BWFONT.SHP) : l'espace prend la largeur d'un « A ».
+    if (c == ' ' && (shape == nullptr || shape->GetWidth() == 0)) {
+        shape = font->GetShapeForChar('A');
+    }
     if (shape == nullptr) {
         return 0;
     }
@@ -303,7 +307,7 @@ void FrameBuffer::printText(RSFont *font, Point2D coo, std::string text, uint8_t
         shape = font->GetShapeForChar('0');
     }
     width = shape->GetWidth()-2;
-    this->printText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 2, width);
+    this->printText(font, &coo, (char *)text.c_str(), color, 0, (uint32_t)text.size(), 1, width);
 }
 void FrameBuffer::printText_SM(RSFont *font, Point2D *coo, char *text, uint8_t color, size_t start, uint32_t size, size_t interLetterSpace, size_t spaceSize, bool isSmall, bool fixedWidth) {
 

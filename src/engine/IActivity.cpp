@@ -8,6 +8,7 @@
 
 #include "IActivity.h"
 #include "GameEngine.h"
+#include "SCZone.h"
 
 char *strtoupper(char *dest, const char *src) {
     char *result = dest;
@@ -102,6 +103,47 @@ SCButton *IActivity::checkButtons(void) {
 
     Mouse.setMode(SCMouse::CURSOR);
     return NULL;
+}
+
+SCZone *IActivity::checkZones(std::vector<SCZone *> *zones) {
+    static uint8_t color = 0;
+    if (zones == nullptr) {
+        return nullptr;
+    }
+    RSFont *fnt = FontManager.GetFont("..\\..\\DATA\\FONTS\\OPTFONT.SHP");
+    for (auto zone : *zones) {
+        if (!zone->active) {
+            continue;
+        }
+        bool inside = false;
+        if (zone->quad != nullptr) {
+            inside = isPointInQuad(Mouse.getPosition(), zone->quad);
+        }
+        if (!inside) {
+            inside = Mouse.getPosition().x > zone->position.x &&
+                     Mouse.getPosition().x < zone->position.x + zone->dimension.x &&
+                     Mouse.getPosition().y > zone->position.y &&
+                     Mouse.getPosition().y < zone->position.y + zone->dimension.y;
+        }
+        if (!inside) {
+            continue;
+        }
+        Mouse.setMode(SCMouse::VISOR);
+        // If the mouse button has just been released: trigger action.
+        if (Mouse.buttons[MouseButton::LEFT].event == MouseButton::RELEASED) {
+            Mouse.buttons[MouseButton::LEFT].event = MouseButton::NONE;
+            zone->onAction();
+        }
+        Point2D p = {
+            160 - static_cast<int32_t>(zone->label->length() / 2) * 8,
+            180,
+        };
+        VGA.getFrameBuffer()->printText(fnt, &p, (char *)zone->label->c_str(), color, 0,
+                                        static_cast<uint32_t>(zone->label->length()), 3, 5);
+        return zone;
+    }
+    Mouse.setMode(SCMouse::CURSOR);
+    return nullptr;
 }
 
 void IActivity::drawButtons(void) {

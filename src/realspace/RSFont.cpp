@@ -18,6 +18,9 @@ RSFont::~RSFont(){
 }
 
 RLEShape* RSFont::GetShapeForChar(char c){
+    if (this->letters.size() == 0) {
+        return nullptr;
+    }
     if (c < 0 || c >= this->letters.size()) {
         return nullptr;
     }

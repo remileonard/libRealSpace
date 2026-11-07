@@ -16,6 +16,7 @@ extern "C" {
 #include <stdint.h>
 #include <string>
 #include <algorithm>
+#include <array>
 
 
 struct AREA {
@@ -126,6 +127,32 @@ struct MISN {
     std::vector<MISN_LOAD *> load;
     std::vector<MISN_CACH *> cache;
 };
+// Mission d'entraînement (TRAINING MISSION d'OPTEST.EXE) : un avion de l'écran de choix, table du segment de données
+// d'OPTEST lue par Training_AircraftScreen_56B04 et Training_BuildInstantMission_58EEA (15 octets par avion : nom affiché,
+// fichier objet, emport, deux dwords non lus par ce code, drapeau). strike_commander_re/analysis/TRAINING_MISSION.md § 5.
+struct MISN_TRAINING_PLANE {
+    const char *name;
+    const char *object;
+    const char *loadout;
+    // Drapeau : pilote CAST au niveau choisi, programme de mise à jour 1, vitesse 200 ; sinon « TARGET », programme 2,
+    // vitesse 100.
+    bool armed;
+};
+
+// Réglages des écrans d'entraînement (Training_InitSettings_598FC, 42 octets dans OPTEST).
+struct MISN_TRAINING {
+    // +40 : 1 = DOGFIGHT, 2 = SEARCH AND DESTROY.
+    uint8_t type{0};
+    // +12, +14, +16 : nombre d'avions des groupes 0, 1, 2.
+    std::array<uint8_t, 3> group_count{};
+    // +6, +8, +10 : type d'avion des groupes (rang dans RSMission::training_planes).
+    std::array<uint8_t, 3> group_plane{};
+    // +0 : altitude choisie, en pieds (5000 par défaut).
+    int32_t altitude_feet{5000};
+    // +18 : 0 = rookie, 1 = veteran, 2 = ace.
+    uint8_t pilot_level{0};
+};
+
 class RSMission {
 public:
     std::unordered_map<std::string, RSEntity *> *objCache;
@@ -138,6 +165,11 @@ public:
     MISN_PART *getPlayerCoord();
     MISN_PART *getObject(const char *name);
     void InitFromRAM(uint8_t *data, size_t size);
+    // Les 16 avions de l'écran de choix, dans l'ordre des boutons.
+    static const MISN_TRAINING_PLANE training_planes[16];
+    // Ajoute à mission_data, lue depuis MISSIONS\TEMPLATE.IFF, ce que Training_BuildInstantMission_58EEA ajoute au
+    // modèle pour écrire instant.iff : le jeu n'a pas besoin du fichier pour voler la mission.
+    void addTraining(const MISN_TRAINING &training);
 
 protected:
     MISN_PART *player{nullptr};

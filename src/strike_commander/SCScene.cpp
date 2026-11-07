@@ -854,7 +854,8 @@ void WeaponLoadoutScene::Render() {
     if (fpsupdate) {
         this->fps = (SDL_GetTicks() / 10);
     }
-    if (this->sceneOpts->tune != nullptr) {
+    // Entraînement : la musique de l'écran d'entraînement continue (OPTEST : byte_43BAA posé, pas de changement d'ambiance).
+    if (!this->keep_music && this->sceneOpts->tune != nullptr) {
         if (Mixer.getMusicID() != this->sceneOpts->tune->ID) {
             Mixer.switchBank(1);
             Mixer.playMusic(this->sceneOpts->tune->ID);

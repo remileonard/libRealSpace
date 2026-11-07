@@ -57,6 +57,10 @@ public:
     bool player_ejected{false};
     int32_t lost_aircraft{0};
     MissionReport mission_report;
+    // Mission d'entraînement : posée par SCTrainingMenu avant le vol, lue par SCMission::loadMission
+    // (OPTEST : [partie+249] = 254, mission « instant »).
+    bool training_active{false};
+    MISN_TRAINING training;
 
     static SCState& getInstance() {
         if (!SCState::hasInstance()) {

@@ -87,6 +87,8 @@ class WeaponLoadoutScene : public SCScene {
     };
 
 public:
+    // Vrai pour l'écran d'armement de l'entraînement : la musique de la scène n'est pas lancée.
+    bool keep_music{false};
     void Render();
     WeaponLoadoutScene(PakArchive *optShps, PakArchive *optPals) : SCScene(optShps, optPals) {};
     std::vector<SCZone *> * init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick);

@@ -215,6 +215,11 @@ void SCMission::loadMission() {
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
     this->mission = new RSMission();
     this->mission->InitFromRAM(mission_tre->data, mission_tre->size);
+    // TRAINING MISSION : objets choisis aux écrans ajoutés au modèle avant la création des scènes et des acteurs
+    // (Training_BuildInstantMission_58EEA d'OPTEST, qui les écrit dans instant.iff).
+    if (GameState.training_active) {
+        this->mission->addTraining(GameState.training);
+    }
 
     TreEntry *intel_tre = Assets.GetEntryByName(Assets.intel_root_path + "INTEL.IFF");
     if (intel_tre != nullptr) {

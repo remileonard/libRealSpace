@@ -17,6 +17,7 @@
 
 
 class GameEngine;
+class SCZone;
 
 char* strtoupper(char* dest, const char* src);
 bool isPointInQuad(const Point2D &p, const std::vector<Point2D *> *quad);
@@ -31,6 +32,8 @@ protected:
     int timer{0};
     IActivity();
     SCButton* checkButtons(void);
+    // Comme checkButtons, pour les zones d'une scène (SCZone) : même traitement que SCGameFlow::CheckZones.
+    SCZone *checkZones(std::vector<SCZone *> *zones);
     std::vector<SCButton*> buttons;
     void drawButtons(void);
     RSScreen *Screen = &RSScreen::instance();
