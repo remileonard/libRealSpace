@@ -903,6 +903,37 @@ void RSArea::computeQuadColors(MapVertex *cur, MapVertex *right, MapVertex *bott
     this->triangleColors(cur, right, bottomRight, cur->upperColors);
 }
 
+bool RSArea::isTerrainFlat() const {
+    return this->terrain_flat;
+}
+
+void RSArea::setTerrainFlat(bool flat) {
+    std::vector<float> before;
+    for (int i = 0; i < BLOCKS_PER_MAP; i++) {
+        AreaBlock *block = &blocks[BLOCK_LOD_MAX][i];
+        for (int v = 0; v < block->sideSize * block->sideSize; v++) {
+            before.push_back(block->vertice[v].lowerColors[0][0]);
+            before.push_back(block->vertice[v].lowerColors[1][0]);
+        }
+    }
+    this->terrain_flat = flat;
+    this->ComputeTriangleColors();
+    int changed = 0;
+    size_t k = 0;
+    for (int i = 0; i < BLOCKS_PER_MAP; i++) {
+        AreaBlock *block = &blocks[BLOCK_LOD_MAX][i];
+        for (int v = 0; v < block->sideSize * block->sideSize; v++) {
+            if (before[k] != block->vertice[v].lowerColors[0][0] ||
+                before[k + 1] != block->vertice[v].lowerColors[1][0]) {
+                changed++;
+            }
+            k += 2;
+        }
+    }
+    printf("RSArea %p: terrain_flat=%d, triangles recolorés (LOD max) = %d sur %zu\n", (void *)this, flat, changed,
+           before.size() / 2);
+}
+
 void RSArea::ComputeTriangleColors() {
     for (int lod = 0; lod < NUM_LODS; lod++) {
         for (int i = 0; i < BLOCKS_PER_MAP; i++) {

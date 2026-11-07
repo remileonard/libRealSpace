@@ -128,6 +128,9 @@ public:
     void BuildSkirts();                  // pré-calcul des jupes (une fois après ParseHeightMap)
     void generateClouds(int count, float altitude, float spread);
     const PrecomputedSkirts& GetSkirts() const { return skirts_; }
+    bool isTerrainFlat() const;
+    void setTerrainFlat(bool flat);
+
 private:
     AssetManager &assetsManager = AssetManager::getInstance();
     SCRenderer &Renderer = SCRenderer::getInstance();

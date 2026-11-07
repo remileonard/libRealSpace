@@ -336,6 +336,7 @@ void SCRenderer::init(int width, int height) {
     
     this->lodLevel = config.getInt("Game", "object_detail", 0);
     this->show_textured = config.getBool("Game", "show_texture", true);
+    this->object_gouraud = config.getBool("Game", "object_gouraud", true);
     this->show_fog = config.getBool("Game", "show_fog", true);
     this->terrain_detail = config.getInt("Video", "terrain_detail", 0);
     
@@ -819,7 +820,7 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
         glBegin(GL_TRIANGLES);
         for (int j = 0; j < 3; j++) {
             Vector3D vLocal = object->vertices[triangle->ids[j]];
-            Vector3D normal = vertexNormals[triangle->ids[j]];
+            Vector3D normal = this->object_gouraud ? vertexNormals[triangle->ids[j]] : face_normal;
             if (back) {
                 normal = {-face_normal.x, -face_normal.y, -face_normal.z};
             }
@@ -884,7 +885,7 @@ void SCRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vect
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D normal = vertexNormals[triangle->ids[j]];
+                Vector3D normal = this->object_gouraud ? vertexNormals[triangle->ids[j]] : face_normal;
                 if (back) {
                     normal = {-face_normal.x, -face_normal.y, -face_normal.z};
                 }
@@ -949,7 +950,7 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             glBegin(GL_TRIANGLES);
             for (int j = 0; j < 3; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D normal = vertexNormals[triangle->ids[j]];
+                Vector3D normal = this->object_gouraud ? vertexNormals[triangle->ids[j]] : face_normal;
                 if (back) {
                     normal = {-face_normal.x, -face_normal.y, -face_normal.z};
                 }
@@ -1016,7 +1017,7 @@ void SCRenderer::drawModelTexturePass(RSEntity *object, size_t lodLevel, std::ve
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D normal = vertexNormals[triangle->ids[j]];
+                Vector3D normal = this->object_gouraud ? vertexNormals[triangle->ids[j]] : face_normal;
                 if (back) {
                     normal = {-face_normal.x, -face_normal.y, -face_normal.z};
                 }
@@ -1076,10 +1077,11 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
         if (twoSided) {
             glDisable(GL_CULL_FACE);
         }
+        Vector3D face_normal = objectFaceNormal(object, triangle->ids[0], triangle->ids[1], triangle->ids[2]);
         glBegin(GL_TRIANGLES);
         for (int j = 0; j < 3; j++) {
             Vector3D vLocal = object->vertices[triangle->ids[j]];
-            Vector3D nLocal = vertexNormals[triangle->ids[j]];
+            Vector3D nLocal = this->object_gouraud ? vertexNormals[triangle->ids[j]] : face_normal;
 
             float lambertianFactor = twoSided
                 ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)
@@ -1126,10 +1128,11 @@ void SCRenderer::drawModelTransparentPass(RSEntity *object, size_t lodLevel, std
             if (twoSided) {
                 glDisable(GL_CULL_FACE);
             }
+            Vector3D face_normal = objectFaceNormal(object, triangle->ids[0], triangle->ids[1], triangle->ids[2]);
             glBegin(GL_QUADS);
             for (int j = 0; j < 4; j++) {
                 Vector3D vLocal = object->vertices[triangle->ids[j]];
-                Vector3D nLocal = vertexNormals[triangle->ids[j]];
+                Vector3D nLocal = this->object_gouraud ? vertexNormals[triangle->ids[j]] : face_normal;
 
                 float lambertianFactor = twoSided
                 ? ComputeLambertAtTwoSided(vLocal, nLocal, MV, lightEye, ambientLamber)

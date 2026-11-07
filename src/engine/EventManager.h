@@ -34,7 +34,9 @@ public:
     bool isKeyPressed(SDL_Scancode key) const;
     bool isKeyJustPressed(SDL_Scancode key) const;
     bool isKeyJustReleased(SDL_Scancode key) const;
-    
+    // Modificateurs enfoncés (MAJ, CTRL, ALT), en bits KeyModifier.
+    int getKeyModifiers() const;
+
     // État de la souris
     bool isMouseButtonPressed(int button) const;
     bool isMouseButtonJustPressed(int button) const;

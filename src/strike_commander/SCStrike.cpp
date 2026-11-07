@@ -765,6 +765,8 @@ SCStrike::SCStrike() {
 
 SCStrike::~SCStrike() {
     Game->direct_mouse_control = false;
+    delete this->flight_options;
+    this->flight_options = nullptr;
     if (this->current_mission != nullptr) {
         printf("STRIKE: destruction de la mission %s\n", this->miss_file_name.c_str());
         this->current_mission->cleanup();
@@ -1006,6 +1008,15 @@ void SCStrike::checkKeyboard(void) {
     msy = dy - (Screen->logical_height / 2);
     msx = dx - (Screen->logical_width / 2);
     //Mouse.setPosition({(int)dx, (int)dy});
+    // Panneau CONFIGURATION ouvert : les commandes de vol sont ignorées.
+    if (this->flight_options != nullptr && this->flight_options->is_open) {
+        return;
+    }
+    // ALT+O (Input_AltKeyCommands_26F7E), liaison avec KEY_MOD_ALT.
+    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLIGHT_OPTIONS))) {
+        this->openFlightOptions();
+        return;
+    }
     if (this->camera_mode == View::AUTO_PILOT) {
         return;
     }
@@ -2482,4 +2493,50 @@ void SCStrike::runFrame(void) {
 
     renderScene(Renderer.width, Renderer.height, verticalOffset, false);
     this->afterFrameRendered();
+    if (this->flight_options != nullptr && this->flight_options->is_open) {
+        this->renderFlightOptions();
+    }
+}
+
+// ALT+O (Input_AltKeyCommands_26F7E) : effets sonores coupés (SoundFX_StopAll_5AA95), vol figé, curseur des menus.
+void SCStrike::openFlightOptions() {
+    if (this->flight_options == nullptr) {
+        this->flight_options = new SCFlightOptions();
+        this->flight_options->init();
+    }
+    this->flight_options->area = this->area;
+    this->options_pause_before = this->pause_simu;
+    this->options_mouse_before = Game->direct_mouse_control;
+    this->pause_simu = true;
+    Game->direct_mouse_control = false;
+    Mixer.stopSound();
+    Mixer.stopSound(5);
+    this->flight_options->open();
+}
+
+void SCStrike::closeFlightOptions() {
+    this->pause_simu = this->options_pause_before;
+    Game->direct_mouse_control = this->options_mouse_before;
+}
+
+// Options_DrawPanel_8FA4C : le panneau par-dessus l'image du vol, comme le cockpit 2D (zones à 255 transparentes).
+void SCStrike::renderFlightOptions() {
+    bool upscale = VGA.upscale;
+    bool wide_screen = VGA.wide_screen;
+    VGA.upscale = false;
+    VGA.wide_screen = false;
+    VGA.activate();
+    VGA.setPalette(&this->cockpit->palette);
+    FrameBuffer *fb = VGA.getFrameBuffer();
+    fb->clear();
+    this->flight_options->checkButtons();
+    this->flight_options->draw(fb);
+    this->flight_options->applyPending();
+    if (!this->flight_options->is_open) {
+        this->closeFlightOptions();
+    }
+    Mouse.draw();
+    VGA.vSync();
+    VGA.upscale = upscale;
+    VGA.wide_screen = wide_screen;
 }

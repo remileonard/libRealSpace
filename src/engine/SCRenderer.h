@@ -96,6 +96,7 @@ public:
     bool show_fog{true};
     
     bool show_textured{true};
+    bool object_gouraud{ true };
     bool show_clouds{false};
     int lodLevel{0};
     GLuint texture{0};

@@ -67,15 +67,26 @@ enum class InputType {
     JOYSTICK_AXIS
 };
 
+// Touches de modification d'une liaison clavier (bits combinables)
+enum KeyModifier {
+    KEY_MOD_NONE = 0,
+    KEY_MOD_SHIFT = 1,
+    KEY_MOD_CTRL = 2,
+    KEY_MOD_ALT = 4
+};
+
 // Structure pour représenter une entrée spécifique
 struct InputBinding {
     InputType type;
     int deviceId;  // Pour distinguer plusieurs souris/manettes (-1 = périphérique par défaut)
     int code;      // Code spécifique à l'entrée (touche, bouton, axe...)
     float scale;   // Pour les axes (1.0 ou -1.0 pour inverser)
-    
-    InputBinding(InputType t, int dev, int c, float s = 1.0f)
-        : type(t), deviceId(dev), code(c), scale(s) {}
+    // Clavier : 0 = modificateurs ignorés ; sinon la touche ne compte qu'avec exactement ces KeyModifier enfoncés.
+    int modifiers;
+
+    InputBinding(InputType t, int dev, int c, float s = 1.0f, int m = KEY_MOD_NONE)
+        : type(t), deviceId(dev), code(c), scale(s), modifiers(m) {
+    }
 };
 
 // Classe principale du système d'actions

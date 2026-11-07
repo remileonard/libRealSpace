@@ -202,6 +202,11 @@ bool RLEShape::ExpandFragmentWithBox(RLEFragment *frag, uint8_t *dst, int bx1, i
 }
 
 void RLEShape::init(uint8_t *idata, size_t isize) {
+    if (this->expand_buffer != nullptr) {
+        delete[] this->expand_buffer;
+        this->expand_buffer = nullptr;
+    }
+    this->uncompressed = false;
     if (isize == 0) {
         this->size = 0;
         this->data = nullptr;

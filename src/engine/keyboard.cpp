@@ -34,8 +34,8 @@ void Keyboard::registerAction(const InputAction actionId) {
     m_inputSystem->registerAction(actionId);
 }
 
-void Keyboard::bindKeyToAction(const InputAction actionId, SDL_Scancode key) {
-    m_inputSystem->bindInput(actionId, InputBinding(InputType::KEYBOARD, -1, static_cast<int>(key)));
+void Keyboard::bindKeyToAction(const InputAction actionId, SDL_Scancode key, int modifiers) {
+    m_inputSystem->bindInput(actionId, InputBinding(InputType::KEYBOARD, -1, static_cast<int>(key), 1.0f, modifiers));
 }
 
 void Keyboard::bindMouseButtonToAction(const InputAction actionId, int button) {

@@ -222,7 +222,6 @@ SCTrainingMenu::SCTrainingMenu() {
 
 SCTrainingMenu::~SCTrainingMenu() {
     this->closeLoadout();
-    this->buttons.clear();
     if (this->font != nullptr) {
         delete this->font;
         this->font = nullptr;
@@ -397,11 +396,10 @@ void SCTrainingMenu::buildPanels() {
     this->addBackupCancel(panel, 24, 95);
 }
 
-// Changement d'écran : la liste des boutons de l'activité devient celle du panneau. Appelé depuis l'action d'un bouton
-// pendant checkButtons, qui s'arrête juste après l'action : les boutons ne sont pas détruits, rien n'est invalidé.
+// Changement d'écran. Appelé depuis l'action d'un bouton pendant SCPanel::checkButtons, qui s'arrête juste après
+// l'action : les boutons ne sont pas détruits, rien n'est invalidé.
 void SCTrainingMenu::showScreen(TrainingScreen next) {
     this->screen = next;
-    this->buttons = this->panels[next].buttons;
 }
 
 // Largeur d'un texte écrit par FrameBuffer::printText, espace qui suit compris : x du texte écrit à sa suite.
@@ -631,7 +629,7 @@ void SCTrainingMenu::runFrame(void) {
         }
         return;
     }
-    checkButtons();
+    this->panels[this->screen].checkButtons();
 
     VGA.activate();
     VGA.getFrameBuffer()->clear();
@@ -647,8 +645,6 @@ void SCTrainingMenu::runFrame(void) {
             VGA.getFrameBuffer()->printText(this->font, line.position, line.text, 0);
         }
     }
-
-    drawButtons();
 
     Mouse.draw();
 

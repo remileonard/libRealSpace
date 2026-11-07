@@ -95,13 +95,13 @@ void InputActionSystem::unbindInput(const InputAction actionId, const InputBindi
         // Supprimer les liaisons correspondantes
         bindings.erase(
             std::remove_if(bindings.begin(), bindings.end(),
-                [&binding](const InputBinding& b) {
-                    return b.type == binding.type && 
-                           b.deviceId == binding.deviceId && 
-                           b.code == binding.code;
-                }),
-            bindings.end()
-        );
+                           [&binding](const InputBinding &b) {
+                               return b.type == binding.type &&
+                                      b.deviceId == binding.deviceId &&
+                                      b.code == binding.code &&
+                                      b.modifiers == binding.modifiers;
+                           }),
+            bindings.end());
     }
 }
 
@@ -151,6 +151,9 @@ bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outV
         case InputType::KEYBOARD: {
             SDL_Scancode scancode = static_cast<SDL_Scancode>(binding.code);
             bool isPressed = m_eventManager->isKeyPressed(scancode);
+            if (binding.modifiers != KEY_MOD_NONE && m_eventManager->getKeyModifiers() != binding.modifiers) {
+                isPressed = false;
+            }
             outValue = isPressed ? 1.0f : 0.0f;
             return isPressed;
         }
@@ -252,11 +255,12 @@ bool InputActionSystem::saveBindings(const std::string &filename) const {
     
     for (const auto& [actionId, state] : m_actions) {
         for (const auto& binding : state.bindings) {
-            file << static_cast<int>(actionId) << "," 
-                 << static_cast<int>(binding.type) << "," 
-                 << binding.deviceId << "," 
-                 << binding.code << "," 
-                 << binding.scale << std::endl;
+            file << static_cast<int>(actionId) << ","
+                 << static_cast<int>(binding.type) << ","
+                 << binding.deviceId << ","
+                 << binding.code << ","
+                 << binding.scale << ","
+                 << binding.modifiers << std::endl;
         }
     }
     
@@ -280,8 +284,9 @@ bool InputActionSystem::loadBindings(const std::string &filename) {
         InputAction actionId;
         int type, deviceId, code;
         float scale;
-        
-        // Format: actionId,type,deviceId,code,scale
+        int modifiers = KEY_MOD_NONE;
+
+        // Format: actionId,type,deviceId,code,scale[,modifiers] (modifiers absent : 0)
         std::string actionIdStr;
         if (std::getline(ss, actionIdStr, ',')) {
             actionId = static_cast<InputAction>(std::stoi(actionIdStr));
@@ -292,9 +297,13 @@ bool InputActionSystem::loadBindings(const std::string &filename) {
             ss >> code;
             ss.ignore();
             ss >> scale;
-            
+            if (ss.peek() == ',') {
+                ss.ignore();
+                ss >> modifiers;
+            }
+
             registerAction(actionId);
-            bindInput(actionId, InputBinding(static_cast<InputType>(type), deviceId, code, scale));
+            bindInput(actionId, InputBinding(static_cast<InputType>(type), deviceId, code, scale, modifiers));
         }
     }
     

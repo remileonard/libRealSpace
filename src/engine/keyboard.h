@@ -21,7 +21,8 @@ public:
     bool isKeyPressed(SDL_Scancode key) const;
     // Création et configuration des actions
     void registerAction(const InputAction actionId);
-    void bindKeyToAction(const InputAction actionId, SDL_Scancode key);
+    // modifiers : bits KeyModifier exigés (0 = ignorés).
+    void bindKeyToAction(const InputAction actionId, SDL_Scancode key, int modifiers = KEY_MOD_NONE);
     void bindMouseButtonToAction(const InputAction actionId, int button);
     void bindGamepadButtonToAction(const InputAction actionId, int gamepadIndex, int button);
     void bindGamepadAxisToAction(const InputAction actionId, int gamepadIndex, int axis, float scale = 1.0f);

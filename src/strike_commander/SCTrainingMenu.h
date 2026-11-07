@@ -80,7 +80,7 @@ private:
     RLEShape title;
     RLEShape background;
     PakArchive tm_pack;
-    // Les 7 écrans, construits une fois par init ; IActivity::buttons pointe sur les boutons de l'écran affiché.
+    // Les 7 écrans, construits une fois par init ; seul l'écran affiché suit la souris et se dessine.
     SCPanel panels[SCREEN_TOTAL];
     RSFont *font{ nullptr };
 

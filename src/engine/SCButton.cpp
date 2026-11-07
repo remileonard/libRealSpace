@@ -31,3 +31,18 @@ void SCButton::onAction(void){
     if (this->onClick != nullptr)
         this->onClick();
 }
+
+void SCToggleButton::setActive(bool active) {
+    this->active = active;
+}
+
+bool SCToggleButton::isActive(void) {
+    return this->active;
+}
+
+SCButton::Appearance SCToggleButton::getAppearance(void) {
+    if (this->active) {
+        return APR_DOWN;
+    }
+    return SCButton::getAppearance();
+}

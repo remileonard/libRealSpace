@@ -1,4 +1,5 @@
 #include "EventManager.h"
+#include "InputActionSystem.h"
 #include <SDL_gamecontroller.h>
 #include <cstring>
 #include <algorithm>
@@ -368,6 +369,21 @@ void EventManager::handleJoystickEvent(const SDL_Event& event) {
 
 bool EventManager::isKeyPressed(SDL_Scancode key) const {
     return m_currentKeyStates[key] != 0;
+}
+
+int EventManager::getKeyModifiers() const {
+    SDL_Keymod mod = SDL_GetModState();
+    int modifiers = KEY_MOD_NONE;
+    if ((mod & KMOD_SHIFT) != 0) {
+        modifiers |= KEY_MOD_SHIFT;
+    }
+    if ((mod & KMOD_CTRL) != 0) {
+        modifiers |= KEY_MOD_CTRL;
+    }
+    if ((mod & KMOD_ALT) != 0) {
+        modifiers |= KEY_MOD_ALT;
+    }
+    return modifiers;
 }
 
 bool EventManager::isKeyJustPressed(SDL_Scancode key) const {

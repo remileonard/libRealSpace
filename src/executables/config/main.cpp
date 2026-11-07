@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
     int terrain_shadow_lift = config.getInt("Game", "terrain_shadow_lift", 8);
     int terrain_shadow_range = config.getInt("Game", "terrain_shadow_range", 35);
     bool terrain_flat = config.getBool("Game", "terrain_flat", false);
+    bool object_gouraud = config.getBool("Game", "object_gouraud", true);
     int difficulty = config.getInt("Gameplay", "difficulty", 0);
     // [Input]
     char bindings_file[256];
@@ -167,6 +168,7 @@ int main(int argc, char* argv[]) {
                     ImGui::SliderInt(_labelPrefix("Terrain Shadow Lift").c_str(), &terrain_shadow_lift, 0, 50);
                     ImGui::SliderInt(_labelPrefix("Terrain Shadow Range").c_str(), &terrain_shadow_range, 1, 100);
                     ImGui::Checkbox(_labelPrefix("Terrain Flat Shading").c_str(), &terrain_flat);
+                    ImGui::Checkbox(_labelPrefix("Object Gouraud Shading").c_str(), &object_gouraud);
                 }
                 if (ImGui::CollapsingHeader("Gameplay", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::SliderInt(_labelPrefix("Difficulty").c_str(), &difficulty, 0, 2);
@@ -212,6 +214,7 @@ int main(int argc, char* argv[]) {
                     config.setInt ("Game",   "terrain_shadow_lift", terrain_shadow_lift);
                     config.setInt ("Game",   "terrain_shadow_range", terrain_shadow_range);
                     config.setBool("Game",   "terrain_flat", terrain_flat);
+                    config.setBool("Game",   "object_gouraud", object_gouraud);
                     config.setInt ("Gameplay", "difficulty", difficulty);
                     config.setString("Input", "bindings_file", bindings_file);
                     config.setInt ("Sound",  "midi_music", midi_music);

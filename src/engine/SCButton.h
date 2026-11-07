@@ -25,13 +25,25 @@ public:
     RLEShape appearance[2];
     
     SCButton();
-    ~SCButton();
-    
+    virtual ~SCButton();
+
     void initBehavior(std::function<void()> fct, Point2D position, Point2D dimension);
     void onAction(void);
     inline bool isEnabled(void){ return this->enabled; }
     inline void setEnable(bool enabled){ this->enabled = enabled;}
     inline void setAppearance(Appearance app){ this->apre = app;}
-    inline Appearance getAppearance(void){ return this->apre; }
-    
+    virtual Appearance getAppearance(void) {
+        return this->apre;
+    }
+};
+
+// Bouton à deux états : actif, il reste enfoncé.
+class SCToggleButton : public SCButton {
+private:
+    bool active{ false };
+
+public:
+    void setActive(bool active);
+    bool isActive(void);
+    Appearance getAppearance(void) override;
 };

@@ -87,6 +87,15 @@ protected:
      */
     bool pause_simu{false};
     /**
+     * @brief Panneau CONFIGURATION (ALT+O), créé à la première ouverture
+     */
+    SCFlightOptions *flight_options{ nullptr };
+    bool options_pause_before{ false };
+    bool options_mouse_before{ false };
+    void openFlightOptions();
+    void closeFlightOptions();
+    void renderFlightOptions();
+    /**
      * @brief The main game camera
      */
     Camera *camera;

@@ -98,6 +98,7 @@ enum SimActionOfst {
     RUDDER_LEFT = 65,
     RUDDER_RIGHT = 66,
     EJECT = 67,
+    FLIGHT_OPTIONS = 68,
 };
 
 class GameEngine{
