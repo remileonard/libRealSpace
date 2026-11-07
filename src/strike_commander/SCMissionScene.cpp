@@ -66,12 +66,15 @@ void SCMissionScene::activate() {
                         }
                         actor->is_active = true;
                         actor->is_hidden = false;
-                        if (scene->area_id != -1 || actor->object->placement != 0) {
+                        // Zone de l'objet (PartEntry_ResolveSpawnPositionAndActivate_51EDC : AreaRelPos_ToWorld_50EEB sur part+0x1D),
+                        // que la scène ait une zone ou non.
+                        if (actor->object->area_id != 255 || actor->object->placement != 0) {
                             if (actor->object->placement != 0) {
                                 sc_mission->placeRelativeToPlayer(actor);
-                            } else if (actor->object->area_id != 255) {
-                                actor->object->position += sc_mission->mission->mission_data.areas[scene->area_id]->position;
+                            } else {
+                                actor->object->position += sc_mission->mission->mission_data.areas[actor->object->area_id]->position;
                             }
+                            printf("SCENE: objet %d place en (%.1f, %.1f, %.1f), zone %d, placement %d\n", actor->actor_id, actor->object->position.x, actor->object->position.y, actor->object->position.z, actor->object->area_id, actor->object->placement);
                             float ground_y = sc_mission->area->getY(actor->object->position.x, actor->object->position.z);
                             
                             if (actor->plane != nullptr) {
