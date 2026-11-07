@@ -89,6 +89,11 @@ public:
 
     // Configuration de Strike Commander : fichiers, .dat et banques (voir RSMusic.cpp).
     void init();
+    // PAK des musiques de cinématiques de l'appareil (AMUSIC.PAK, RMUSIC.PAK ou MMUSIC.PAK) : il désigne
+    // aussi la version de la musique de l'introduction de la version CD-ROM (SCFlicPlayer).
+    const std::string &GetMidgamesPak() const {
+        return midgames_pak;
+    }
     void SwitchBank(uint8_t bank);
     MemMusic *GetMusic(uint32_t index);
     // Transitions (.dat) de la banque courante, nullptr si elle n'en a pas

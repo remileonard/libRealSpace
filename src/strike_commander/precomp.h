@@ -54,15 +54,16 @@
 //Activities
 #include "SCConvPlayer.h"
 #include "SCAnimationPlayer.h"
+#include "SCFlicPlayer.h"
 #include "SCRegister.h"
 
 #include "SCNavMap.h"
-#include "SCCredit.h"
 #include "SCCockpit.h"
 #include "SCStrike.h"
 #include "SCObjectViewer.h"
 #include "SCDogFightMenu.h"
 #include "SCTrainingMenu.h"
+#include "SCCredit.h"
 #include "SCMainMenu.h"
 #include "SCShot.h"
 #include "SCScene.h"

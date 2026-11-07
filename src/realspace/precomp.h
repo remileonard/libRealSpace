@@ -36,11 +36,12 @@
     #include "RSGameflow.h"
     #include "RSHud.h"
     #include "RSCockpit.h"
-    #include "RSNavMap.h"
     #include "RSCredits.h"
+    #include "RSNavMap.h"
     #include "RSWorld.h"
     #include "RSMission.h"
     #include "SCAnimationArchive.h"
+    #include "RSFlic.h"
     
     // Music Stuff
     #include "RSMusic.h"

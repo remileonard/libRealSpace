@@ -106,6 +106,12 @@ int main(int argc, char* argv[]) {
     SCAnimationPlayer *intro = new SCAnimationPlayer();
     intro->init();
     game->addActivity(intro);
+    // Version CD-ROM : l'animation DATA\FLIC\THEFLIC.FLX passe avant tout le reste, comme dans MENU.EXE.
+    if (SCFlicPlayer::IsAvailable()) {
+        SCFlicPlayer *flic = new SCFlicPlayer();
+        flic->init();
+        game->addActivity(flic);
+    }
     game->run();
 
     return EXIT_SUCCESS;
