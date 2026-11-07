@@ -114,7 +114,6 @@ protected:
     SCMouse &Mouse = SCMouse::getInstance();
     AssetManager &Assets = AssetManager::getInstance();
     RSSound &Sound = RSSound::getInstance();
-    ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
     SCState &GameState = SCState::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
     RSScreen *Screen = &RSScreen::getInstance();

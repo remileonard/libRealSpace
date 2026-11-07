@@ -50,10 +50,17 @@ typedef struct ConvBackGround {
 } ConvBackGround;
 
 class ConvAssetManager {
+protected:
+    // Charge les images, palettes et CONVDATA ; une version d'un autre jeu y ajoute ses fichiers.
+    virtual void BuildDB(void);
+    // Image numéro id des conversations (CONVSHPS.PAK).
+    virtual PakEntry *convShape(uint8_t id);
+    // Figure dont les images sont l'entrée pakID des images des conversations (FIGR).
+    CharFigure *makeFigure(const std::string &name, uint8_t pakID);
+    AssetManager &Assets = AssetManager::getInstance();
+
 private:
-
-    void BuildDB(void);
-
+    bool initialized{ false };
     PakArchive optShps;
     PakArchive optPals;
     ConvBackGround *tmp_conv_bg{nullptr};
@@ -75,7 +82,7 @@ private:
     void parseFGPL(uint8_t *data, size_t size);
     void parseFGPL_DATA(uint8_t *data, size_t size);
     inline static std::unique_ptr<ConvAssetManager> s_instance{};
-    AssetManager &Assets = AssetManager::getInstance();
+
 public:
     std::unordered_map<std::string, CharFace *> faces;
     std::unordered_map<std::string, FacePalette *> facePalettes;
@@ -99,7 +106,7 @@ public:
     }
     static bool hasInstance() { return (bool)s_instance; }
     ConvAssetManager();
-    ~ConvAssetManager();
+    virtual ~ConvAssetManager();
 
     void init(void);
 

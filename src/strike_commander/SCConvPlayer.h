@@ -99,7 +99,17 @@ protected:
     uint32_t blink_tick{0};
     bool blinking{false};
     void selectWing(const ConvRecord &record);
-    void setWingmanChoice(ConvFrame *frame);
+    // Écran de choix de l'équipier : le joueur, puis chaque pilote de candidates, dans l'ordre des numéros.
+    void setWingmanChoice(ConvFrame *frame, const std::vector<uint8_t> &candidates);
+    // Pilotes proposés par une commande de choix de l'équipier (CHOOSE_WINGMAN : ceux de l'escadre).
+    virtual std::vector<uint8_t> wingmanCandidates(uint8_t command);
+    // Commande sans traitement ici ; un autre jeu y ajoute les siennes. Renvoie la scène à jouer, ou nullptr.
+    virtual ConvFrame *buildOtherCommand(const ConvRecord &record);
+    // Prénoms et figures des pilotes, par numéro (0 = le joueur) ; emplacement de l'écran de choix d'un pilote.
+    virtual const std::vector<std::string> &pilotNames(void);
+    virtual const std::vector<std::string> &pilotFigures(void);
+    virtual uint8_t pilotSlot(uint8_t pilot);
+    std::string pilotWingmanName(uint8_t pilot);
     void answerQuestion(bool accepted);
     int layerOffset(size_t index);
     void runChoice(void);

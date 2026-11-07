@@ -1,6 +1,8 @@
 #include "TOGameflow.h"
+#include "TOConvPlayer.h"
 
 TOGameFlow::TOGameFlow() {
+    this->initInstructions();
 }
 
 TOGameFlow::~TOGameFlow() {
@@ -10,7 +12,20 @@ void TOGameFlow::initInstructions() {
     SCGameFlow::initInstructions();
     this->instructions[EFECT_OPT_ALT_LOADOUT_SCREEN] = std::bind(&TOGameFlow::opWeaponLoadout, this, std::placeholders::_1);
 }
-
+void TOGameFlow::opWeaponLoadout(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        this->openTest(false, "WEAPON_LOADOUT");
+        return;
+    }
+    this->weapon_loadout_id = instruction->value;
+    this->playEndMission();
+}
+void TOGameFlow::playConv(uint8_t convId) {
+    TOConvPlayer *conv = new TOConvPlayer();
+    conv->init();
+    conv->SetID(convId);
+    this->pending_activities.push(conv);
+}
 void TOGameFlow::playMidGame(uint8_t midGameId) {
     SCAnimationPlayer *midgame = new SCAnimationPlayer();
     midgame->init();

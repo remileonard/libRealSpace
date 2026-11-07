@@ -16,6 +16,7 @@ enum ConvCommand : uint8_t {
     CONV_SELECT_WING = 14,
     CONV_CHOOSE_WINGMAN = 15,
     CONV_NOP_16 = 16,
+    CONV_CHOOSE_WINGMAN_ORIGINAL = 17,
     CONV_NOP_18 = 18
 };
 

@@ -41,6 +41,7 @@ int ConvData::parse() {
             break;
         case CONV_CHOOSE_WINGMAN:
         case CONV_NOP_16:
+        case CONV_CHOOSE_WINGMAN_ORIGINAL:
         case CONV_NOP_18:
             ok = addSimple(at, op);
             break;
@@ -178,6 +179,7 @@ bool ConvData::isTopLevel(uint8_t op) {
     case CONV_SELECT_WING:
     case CONV_CHOOSE_WINGMAN:
     case CONV_NOP_16:
+    case CONV_CHOOSE_WINGMAN_ORIGINAL:
     case CONV_NOP_18:
         return true;
     default:

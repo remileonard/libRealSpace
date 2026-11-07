@@ -375,8 +375,25 @@ static const std::vector<std::string> kPilotFigures = {
     "tex3"
 };
 
-static std::string pilotWingmanName(uint8_t pilot) {
-    std::string name = pilot < kPilotNames.size() ? kPilotNames[pilot] : "";
+const std::vector<std::string> &SCConvPlayer::pilotNames(void) {
+    return kPilotNames;
+}
+
+const std::vector<std::string> &SCConvPlayer::pilotFigures(void) {
+    return kPilotFigures;
+}
+
+uint8_t SCConvPlayer::pilotSlot(uint8_t pilot) {
+    return pilot;
+}
+
+std::vector<uint8_t> SCConvPlayer::wingmanCandidates(uint8_t command) {
+    return this->wing_pilots;
+}
+
+std::string SCConvPlayer::pilotWingmanName(uint8_t pilot) {
+    const std::vector<std::string> &names = this->pilotNames();
+    std::string name = pilot < names.size() ? names[pilot] : "";
     std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     return name;
 }
@@ -404,7 +421,7 @@ void SCConvPlayer::selectWing(const ConvRecord &record) {
            this->wing_screen, this->wing_number, this->wing_pilots.size(), GameState.wingman.c_str());
 }
 
-void SCConvPlayer::setWingmanChoice(ConvFrame *frame) {
+void SCConvPlayer::setWingmanChoice(ConvFrame *frame, const std::vector<uint8_t> &candidates) {
     ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
     ConvBackGround *bg = ConvAssets.GetBackGround(this->wing_screen == 0 ? "s_wing" : "w_wing");
 
@@ -420,13 +437,13 @@ void SCConvPlayer::setWingmanChoice(ConvFrame *frame) {
 
     // Les pilots de p_wing sont des enfants du premier élément du décor : posés en (0, y de cet élément).
     int16_t parent_y = bg->ys.empty() ? 0 : bg->ys[0];
-    for (uint8_t pilot = 0; pilot < kPilotFigures.size(); pilot++) {
-        bool proposed = pilot == 0 ||
-                        std::find(this->wing_pilots.begin(), this->wing_pilots.end(), pilot) != this->wing_pilots.end();
+    const std::vector<std::string> &figures = this->pilotFigures();
+    for (uint8_t pilot = 0; pilot < figures.size(); pilot++) {
+        bool proposed = pilot == 0 || std::find(candidates.begin(), candidates.end(), pilot) != candidates.end();
         if (!proposed) {
             continue;
         }
-        frame->participants.push_back(ConvAssets.GetFigure(kPilotFigures[pilot]));
+        frame->participants.push_back(ConvAssets.GetFigure(figures[pilot]));
         frame->participant_positions.push_back(scriptPosition(0, parent_y));
         frame->pilots.push_back(pilot);
     }
@@ -482,11 +499,18 @@ static const char *convCommandName(uint8_t op) {
         return "CHOOSE_WINGMAN";
     case CONV_NOP_16:
         return "NOP_16";
+    case CONV_CHOOSE_WINGMAN_ORIGINAL:
+        return "CHOOSE_WINGMAN_ORIGINAL";
     case CONV_NOP_18:
         return "NOP_18";
     default:
         return "?";
     }
+}
+
+ConvFrame *SCConvPlayer::buildOtherCommand(const ConvRecord &record) {
+    printf("CONV %d: %s, rien a faire\n", this->conversationID, convCommandName(record.op));
+    return nullptr;
 }
 
 ConvFrame *SCConvPlayer::newFrame(void) {
@@ -770,10 +794,10 @@ void SCConvPlayer::buildFrames(const std::vector<ConvRecord> &records, ConvForma
             break;
         case CONV_CHOOSE_WINGMAN:
             frame = newFrame();
-            this->setWingmanChoice(frame);
+            this->setWingmanChoice(frame, this->wingmanCandidates(record.op));
             break;
         default:
-            printf("CONV %d: %s, rien a faire\n", this->conversationID, convCommandName(record.op));
+            frame = this->buildOtherCommand(record);
             break;
         }
         if (frame != nullptr) {
@@ -1307,14 +1331,22 @@ void SCConvPlayer::addWingmanZones(ConvFrame *frame) {
         },
     };
     for (const auto &bound : bounds) {
-        uint8_t pilot = static_cast<uint8_t>(bound[0]);
-        auto found = std::find(frame->pilots.begin(), frame->pilots.end(), pilot);
-        if (found == frame->pilots.end()) {
+        size_t index = 0;
+        bool found = false;
+        for (size_t k = 1; k < frame->pilots.size(); k++) {
+            if (this->pilotSlot(frame->pilots[k]) == bound[0]) {
+                index = k;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
             continue;
         }
-        size_t index = static_cast<size_t>(found - frame->pilots.begin());
+        uint8_t pilot = frame->pilots[index];
         CharFigure *figure = frame->participants[index];
-        SCZone *zone = rectangleZone(pilot, "Select " + kPilotNames[pilot], bound[1], bound[2], bound[3], bound[4]);
+        SCZone *zone =
+            rectangleZone(pilot, "Select " + this->pilotNames()[pilot], bound[1], bound[2], bound[3], bound[4]);
         zone->onclick = std::bind(&SCConvPlayer::selectWingMan, this, std::placeholders::_1, std::placeholders::_2);
         zone->hover_shape = figure->appearances->GetShape(figure->image_offset + 1);
         zone->hover_shape->uncompressed = false;

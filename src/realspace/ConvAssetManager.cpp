@@ -31,11 +31,16 @@ ConvAssetManager::~ConvAssetManager() {
     }
 }
 
-void ConvAssetManager::init(void) { 
-    static bool initialized = false;
-    if (initialized) return;
-    initialized = true;
-    BuildDB();
+void ConvAssetManager::init(void) {
+    if (this->initialized) {
+        return;
+    }
+    this->initialized = true;
+    this->BuildDB();
+}
+
+PakEntry *ConvAssetManager::convShape(uint8_t id) {
+    return this->convShps.GetEntry(id);
 }
 
 /**
@@ -176,7 +181,12 @@ void ConvAssetManager::ParseBGLayer(uint8_t *data, size_t layerID, ConvBackGroun
 
     RLEShape *s = new RLEShape();
 
-    PakEntry *shapeEntry = shapeArchive->GetEntry(shapeID);
+    PakEntry *shapeEntry = nullptr;
+    if (shapeArchive == &this->convShps) {
+        shapeEntry = this->convShape(shapeID);
+    } else {
+        shapeEntry = shapeArchive->GetEntry(shapeID);
+    }
     PakArchive subPAK;
     if (shapeEntry->size == 0) {
         s = RLEShape::GetEmptyShape();
@@ -308,7 +318,7 @@ void ConvAssetManager::parseFACE_DATA(uint8_t *data, size_t size) {
     uint8_t pakID = s.ReadByte();
 
     RSImageSet *imageSet = new RSImageSet();
-    imageSet->InitFromPakEntry(convShps.GetEntry(pakID));
+    imageSet->InitFromPakEntry(this->convShape(pakID));
     tmp_face->appearances = imageSet;
     for (size_t fid = 0; fid < imageSet->GetNumImages(); fid++) {
         RLEShape *s = imageSet->GetShape(fid);
@@ -336,15 +346,20 @@ void ConvAssetManager::parseFIGR_DATA(uint8_t *data, size_t size) {
     }
     ByteStream s(data, size);
 
-    CharFigure *figr = new CharFigure();
-    figr->name = std::string((char *)data, strnlen((char *)data, 8));
+    std::string name = std::string((char *)data, strnlen((char *)data, 8));
 
     s.MoveForward(8);
 
     uint8_t pakID = s.ReadByte();
+    CharFigure *figr = this->makeFigure(name, pakID);
+    this->figures[figr->name] = figr;
+}
 
+CharFigure *ConvAssetManager::makeFigure(const std::string &name, uint8_t pakID) {
+    CharFigure *figr = new CharFigure();
+    figr->name = name;
     RSImageSet *shape = new RSImageSet();
-    PakEntry *entry = convShps.GetEntry(pakID);
+    PakEntry *entry = this->convShape(pakID);
     PakArchive *pak = new PakArchive();
     pak->InitFromRAM("FIGR", entry->data, entry->size);
     if (pak->GetNumEntries()>0) {
@@ -357,7 +372,7 @@ void ConvAssetManager::parseFIGR_DATA(uint8_t *data, size_t size) {
 
     Point2D pos = {0, CONV_TOP_BAR_HEIGHT + 1}; //  to allow the black band on top of the screen
     figr->appearances = shape;
-    this->figures[figr->name] = figr;
+    return figr;
 }
 void ConvAssetManager::parsePFIG(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;

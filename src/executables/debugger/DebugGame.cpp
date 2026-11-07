@@ -16,6 +16,7 @@
 #include "DebugControllerActivity.h"
 #include "DebugControlMapping.h"
 #include "DebugAnimationPlayer.h"
+#include "../../tactical_operation/TOConvAssetManager.h"
 #include "DebugConvPlayer.h"
 #include "DebugPacificStrikeMISN.h"
 #include "DebugPSConvPlayer.h"
@@ -235,6 +236,7 @@ void DebugGame::loadTO() {
     loader.init();
     loader.startLoading([](Loader* loader) {
         AssetManager &Assets = AssetManager::getInstance();
+        ConvAssetManager::setInstance(std::make_unique<TOConvAssetManager>());
         ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
         RSFontManager &FontManager = RSFontManager::getInstance();
         Assets.SetBase("./assets");
@@ -261,7 +263,7 @@ void DebugGame::loadTO() {
         Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
         Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
         Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
-        Assets.conv_data_filename = Assets.gameflow_root_path+"CONVDATA.IFF";
+        Assets.conv_data_filename = Assets.gameflow_root_path + "CONVDAT2.IFF";
         Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
         Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";
         Assets.acc_filename = Assets.texture_root_path+"ACCPACK.PAK";
