@@ -24,6 +24,8 @@
 #include "../../engine/EventManager.h"  
 #include "../../engine/gametimer.h"
 #include "../../strike_commander/precomp.h"
+#include "../../tactical_operation/TOGameflow.h"
+
 
 
 DebugGame::DebugGame() {
@@ -269,7 +271,7 @@ void DebugGame::loadTO() {
         ConvAssets.init();
         RSSound::getInstance().init();
         RSMixer::getInstance().init();
-        DebugGameFlow* main = new DebugGameFlow();
+        TOGameFlow* main = new TOGameFlow();
         SCState &GameState = SCState::getInstance();
         GameState.Reset();
         GameState.player_callsign = "Debug";
