@@ -1065,8 +1065,7 @@ void SCGameFlow::playShowMap(uint8_t mapId) {}
 
 // Écran d'armement du chargement weapon_loadout_id ; le script attend sa sortie. Sans scène, départ en vol direct.
 void SCGameFlow::playEndMission() {
-    printf("GAMEFLOW: WEAPON_LOADOUT %d, ecran d'armement pour %s\n", this->weapon_loadout_id,
-           this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
+    printf("GAMEFLOW: WEAPON_LOADOUT %d, ecran d'armement pour %s\n", this->weapon_loadout_id, this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
     if (this->scen != nullptr) {
         delete this->scen;
         this->scen = nullptr;
@@ -1080,8 +1079,7 @@ void SCGameFlow::playEndMission() {
     }
     WeaponLoadoutScene *loadout = new WeaponLoadoutScene(&this->optShps, &this->optPals);
     this->scen = loadout;
-    this->zones = loadout->init(this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
-                                this->optionParser.opts[15], std::bind(&SCGameFlow::loadoutExit, this, std::placeholders::_1));
+    this->zones = loadout->init(this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[15], std::bind(&SCGameFlow::loadoutExit, this, std::placeholders::_1));
     if (this->zones != nullptr) {
         loadout->applyDefaultLoadout(this->gameFlowParser.game.load, this->weapon_loadout_id);
     }

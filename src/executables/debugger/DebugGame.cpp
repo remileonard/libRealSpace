@@ -262,7 +262,7 @@ void DebugGame::loadTO() {
         Assets.optfont_filename = Assets.gameflow_root_path+"OPTFONT.IFF";
         Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP2.IFF";
         Assets.conv_pak_filename = Assets.gameflow_root_path+"CONVSHPS.PAK";
-        Assets.option_filename = Assets.gameflow_root_path+"OPTIONS.IFF";
+        Assets.option_filename = Assets.gameflow_root_path + "OPTIONS2.IFF";
         Assets.conv_data_filename = Assets.gameflow_root_path + "CONVDAT2.IFF";
         Assets.conv_pal_filename = Assets.gameflow_root_path+"CONVPALS.PAK";
         Assets.txm_filename = Assets.texture_root_path+"TXMPACK.PAK";

@@ -1,7 +1,12 @@
 #include "TOGameflow.h"
 #include "TOConvPlayer.h"
+#include "TOF22LoadoutScene.h"
 
 TOGameFlow::TOGameFlow() {
+    TreEntry *shapes = Assets.GetEntryByName(Assets.gameflow_root_path + "OPTSHPS2.PAK");
+    this->optShps2.InitFromRAM("OPTSHPS2.PAK", shapes->data, shapes->size);
+    TreEntry *palettes = Assets.GetEntryByName(Assets.gameflow_root_path + "OPTPALS2.PAK");
+    this->optPals2.InitFromRAM("OPTPALS2.PAK", palettes->data, palettes->size);
     this->initInstructions();
 }
 
@@ -10,7 +15,7 @@ TOGameFlow::~TOGameFlow() {
 
 void TOGameFlow::initInstructions() {
     SCGameFlow::initInstructions();
-    this->instructions[EFECT_OPT_ALT_LOADOUT_SCREEN] = std::bind(&TOGameFlow::opWeaponLoadout, this, std::placeholders::_1);
+    this->instructions[EFECT_OPT_ALT_LOADOUT_SCREEN] = std::bind(&TOGameFlow::opWeaponLoadoutAlt, this, std::placeholders::_1);
 }
 void TOGameFlow::opWeaponLoadout(EFCT *instruction) {
     if (!this->scriptExecuting()) {
@@ -59,4 +64,31 @@ void TOGameFlow::playMidGame(uint8_t midGameId) {
             printf("Failed to load animation from %s\n", filepath.c_str());
         }
     }
+}
+
+void TOGameFlow::opWeaponLoadoutAlt(EFCT *instruction) {
+    if (!this->scriptExecuting()) {
+        this->openTest(false, "WEAPON_LOADOUT_ALT");
+        return;
+    }
+    this->weapon_loadout_id = instruction->value;
+    printf("GAMEFLOW: WEAPON_LOADOUT_ALT %d, ecran d'armement du F-22 pour %s\n", this->weapon_loadout_id, this->missionToFly != nullptr ? this->missionToFly : "(aucune mission)");
+    if (this->scen != nullptr) {
+        delete this->scen;
+        this->scen = nullptr;
+        this->zones = nullptr;
+    }
+    this->next_miss = 0;
+    if (this->gameFlowParser.game.game[this->current_miss]->scen.size() == 0) {
+        this->openTest(true, "WEAPON_LOADOUT_ALT");
+        this->flyMission(0);
+        return;
+    }
+    TOF22LoadoutScene *loadout = new TOF22LoadoutScene(&this->optShps2, &this->optPals2);
+    this->scen = loadout;
+    this->zones = loadout->init(this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[TOF22LoadoutScene::OPTIONS_SCREEN], std::bind(&TOGameFlow::loadoutExit, this, std::placeholders::_1));
+    if (this->zones != nullptr) {
+        loadout->applyDefaultLoadout(this->gameFlowParser.game.load, this->weapon_loadout_id);
+    }
+    this->script_waiting = true;
 }

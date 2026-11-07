@@ -371,10 +371,12 @@ void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
     // Réinitialiser les zones supplémentaires
     this->extra_zones.clear();
     this->extra_zones.shrink_to_fit();
+    this->placeWeapon(id);
+    this->updateWeaponDisplay();
+}
 
-    // Déterminer la quantité maximale en fonction du type d'arme
-
-    int max = 0;
+// Points d'emport du F-16 (écran 15 d'OPTIONS.IFF).
+void WeaponLoadoutScene::placeWeapon(uint8_t id) {
     switch (id) {
     case AIM9J:
         if (GameState.weapon_load_out[1] == 0) {
@@ -498,7 +500,6 @@ void WeaponLoadoutScene::addWeapon(std::vector<EFCT *> *script, uint8_t id) {
     default:
         break;
     }
-    this->updateWeaponDisplay();
 }
 
 void WeaponLoadoutScene::removeWeapon(std::vector<EFCT *> *script, uint8_t id) {
@@ -548,12 +549,12 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
     };
 
     // Ajout des zones fixes
-    createAndAddZone(this->gameflow_scene->info.ID, this->gameflow_scene->info.ID,
-                     std::bind(&WeaponLoadoutScene::exitClicked, this, std::placeholders::_1, std::placeholders::_2));
-    createAndAddZone(FLY_SPRITE, FLY_SPRITE,
-                     std::bind(&WeaponLoadoutScene::exitClicked, this, std::placeholders::_1, std::placeholders::_2));
+    createAndAddZone(this->gameflow_scene->info.ID, this->gameflow_scene->info.ID, std::bind(&WeaponLoadoutScene::exitClicked, this, std::placeholders::_1, std::placeholders::_2));
+    createAndAddZone(FLY_SPRITE, FLY_SPRITE, std::bind(&WeaponLoadoutScene::exitClicked, this, std::placeholders::_1, std::placeholders::_2));
     for (auto weap: GameState.weapon_inventory) {
-        if (weap.second != 0) {
+        // Seules les armes qui ont un sprite dans l'écran sont proposées (l'écran du F-22 n'en a que 3).
+        if (weap.second != 0 &&
+            this->sceneOpts->foreground->sprites.count(weapon_inv_to_loadout[weapon_ids(weap.first)]) > 0) {
             createAndAddZone(
                 weapon_inv_to_loadout[weapon_ids(weap.first)],
                 weapon_inv_to_loadout[weapon_ids(weap.first)],
@@ -586,17 +587,11 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
             wlabel = string_format("AIM120(%d)", GameState.weapon_load_out[AIM120]);
             if (i == 3) {
                 if (GameState.weapon_load_out[AIM120] > 4 && GameState.weapon_load_out[i - 1] == AIM120) {
-                    addWeaponZones(
-                        AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][1], weapon_pylones[i - 1][AIM120][1]
-                    );
+                    addWeaponZones( AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][1], weapon_pylones[i - 1][AIM120][1]);
                 } if (GameState.weapon_load_out[AIM120] == 4 && GameState.weapon_load_out[i - 1] != AIM120) {
-                    addWeaponZones(
-                        AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][1], weapon_pylones[i - 1][AIM120][1]
-                    );
+                    addWeaponZones( AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][1], weapon_pylones[i - 1][AIM120][1]);
                 } else {
-                    addWeaponZones(
-                        AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][0], weapon_pylones[i - 1][AIM120][1]
-                    );
+                    addWeaponZones(AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][0], weapon_pylones[i - 1][AIM120][1]);
                 }
             } else {
                 addWeaponZones(AIM120, wlabel, weapon_pylones[i - 1][AIM120][0][0], weapon_pylones[i - 1][AIM120][1]);
@@ -730,6 +725,38 @@ void WeaponLoadoutScene::updateWeaponDisplay() {
     }
 }
 
+// Gameflow_ApplyDefaultLoadout_51830 : plages du F-16.
+void WeaponLoadoutScene::loadoutRange(uint8_t weapon, int &first_hp, int &last_hp, int &max_per_side) {
+    first_hp = 2;
+    last_hp = 3;
+    max_per_side = 3;
+    switch (weapon) {
+    case 0:
+    case 1:
+        first_hp = 0;
+        last_hp = 2;
+        max_per_side = 1;
+        break;
+    case 6:
+        max_per_side = 1;
+        break;
+    case 8:
+        first_hp = 1;
+        last_hp = 2;
+        max_per_side = 2;
+        break;
+    case 4:
+    case 5:
+        max_per_side = 6;
+        break;
+    case 7:
+        max_per_side = 2;
+        break;
+    default:
+        break;
+    }
+}
+
 // Gameflow_ApplyDefaultLoadout_51830 : chunk LOAD dont le 1er octet vaut load_id, puis paires (arme, nombre).
 // Points d'emport 0 a 3 du jeu = weapon_load_out[1] a [4] ; nombre par cote, borne par le stock et rendu pair.
 void WeaponLoadoutScene::applyDefaultLoadout(const std::vector<LOAD *> &loads, uint8_t load_id) {
@@ -755,33 +782,13 @@ void WeaponLoadoutScene::applyDefaultLoadout(const std::vector<LOAD *> &loads, u
             printf("LOADOUT: chargement %d, arme %d inconnue, ignoree\n", load_id, weapon);
             continue;
         }
-        int first_hp = 2;
-        int last_hp = 3;
-        int max_per_side = 3;
-        switch (weapon) {
-        case 0:
-        case 1:
-            first_hp = 0;
-            last_hp = 2;
-            max_per_side = 1;
-            break;
-        case 6:
-            max_per_side = 1;
-            break;
-        case 8:
-            first_hp = 1;
-            last_hp = 2;
-            max_per_side = 2;
-            break;
-        case 4:
-        case 5:
-            max_per_side = 6;
-            break;
-        case 7:
-            max_per_side = 2;
-            break;
-        default:
-            break;
+        int first_hp = 0;
+        int last_hp = 0;
+        int max_per_side = 0;
+        this->loadoutRange(weapon, first_hp, last_hp, max_per_side);
+        if (max_per_side == 0) {
+            printf("LOADOUT: chargement %d, arme %d sans point d'emport sur cet avion, ignoree\n", load_id, weapon);
+            continue;
         }
         weapon_ids id = optest_weapon_ids[weapon];
         weapon_type_shp_id shp = weapon_inv_to_loadout[id];

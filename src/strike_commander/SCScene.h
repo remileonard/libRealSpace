@@ -47,6 +47,7 @@ public:
 };
 
 class WeaponLoadoutScene : public SCScene {
+protected:
     // Sprite du départ en vol ; l'autre sortie (sprite du numéro de la scène) revient au déroulement.
     static const uint8_t FLY_SPRITE = 12;
     std::vector<SCZone *> extra_zones;
@@ -55,8 +56,13 @@ class WeaponLoadoutScene : public SCScene {
     SCZone *addExtraZone(uint8_t id);
     SCZone *addNoGfXZone(uint8_t id, std::string label, uint8_t weapon_type_shp_id);
     void addWeapon(std::vector<EFCT *> *script, uint8_t id);
+    // Pose une paire de l'arme id sur les points d'emport (weapon_load_out[1] à [4]) ; propre à chaque avion.
+    virtual void placeWeapon(uint8_t id);
+    // Chargement par défaut : points d'emport first_hp à last_hp (0 à 3) et nombre maximum par côté de l'arme weapon
+    // (numéro OPTEST) ; propre à chaque avion.
+    virtual void loadoutRange(uint8_t weapon, int &first_hp, int &last_hp, int &max_per_side);
     void removeWeapon(std::vector<EFCT *> *script, uint8_t id);
-    void updateWeaponDisplay();
+    virtual void updateWeaponDisplay();
 
     std::vector<std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>> weapon_pylones = {
         std::unordered_map<weapon_type_shp_id, std::vector<std::vector<uint8_t>>>{
