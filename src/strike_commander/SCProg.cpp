@@ -1,64 +1,70 @@
 #include "precomp.h"
 #include "../engine/gametimer.h"
 
-// Table des instructions des scripts de mission : numéro → fonction. Une autre version du jeu redéfinit cette méthode
-// (appel de celle-ci, puis ajout, remplacement ou retrait).
-void SCProg::initInstructions() {
-    this->instructions.clear();
-    this->instructions[OP_EXIT_PROG] = std::bind(&SCProg::opExitProg, this, std::placeholders::_1);
-    this->instructions[OP_SPOT_DATA] = std::bind(&SCProg::opSpotData, this, std::placeholders::_1);
-    this->instructions[OP_SET_LABEL] = std::bind(&SCProg::opSetLabel, this, std::placeholders::_1);
-    this->instructions[OP_MOVE_VALUE_TO_WORK_REGISTER] = std::bind(&SCProg::opMoveValueToWorkRegister, this, std::placeholders::_1);
-    this->instructions[OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS] = std::bind(&SCProg::opGotoIfCurrentCommandInProgress, this, std::placeholders::_1);
-    this->instructions[OP_IF_TARGET_IN_AREA] = std::bind(&SCProg::opIfTargetInArea, this, std::placeholders::_1);
-    this->instructions[OP_ADD_1_TO_FLAG] = std::bind(&SCProg::opAdd1ToFlag, this, std::placeholders::_1);
-    this->instructions[OP_REMOVE_1_TO_FLAG] = std::bind(&SCProg::opRemove1ToFlag, this, std::placeholders::_1);
-    this->instructions[OP_ADD_WORK_REGISTER_TO_FLAG] = std::bind(&SCProg::opAddWorkRegisterToFlag, this, std::placeholders::_1);
-    this->instructions[OP_INSTANT_DESTROY_TARGET] = std::bind(&SCProg::opInstantDestroyTarget, this, std::placeholders::_1);
-    this->instructions[OP_SET_WAIT_FOR_SECONDS] = std::bind(&SCProg::opSetWaitForSeconds, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_TAKE_OFF] = std::bind(&SCProg::opSetObjTakeOff, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_LAND] = std::bind(&SCProg::opSetObjLand, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_FLY_TO_WP] = std::bind(&SCProg::opSetObjFlyToWp, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_FLY_TO_AREA] = std::bind(&SCProg::opSetObjFlyToArea, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_DESTROY_TARGET] = std::bind(&SCProg::opSetObjDestroyTarget, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_DEFEND_TARGET] = std::bind(&SCProg::opSetObjDefendTarget, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_DEFEND_AREA] = std::bind(&SCProg::opSetObjDefendArea, this, std::placeholders::_1);
-    this->instructions[OP_SET_MESSAGE] = std::bind(&SCProg::opSetMessage, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_FOLLOW_ALLY] = std::bind(&SCProg::opSetObjFollowAlly, this, std::placeholders::_1);
-    this->instructions[OP_DEACTIVATE_OBJ] = std::bind(&SCProg::opDeactivateObj, this, std::placeholders::_1);
-    this->instructions[OP_SHOW_ON_NAV_MAP] = std::bind(&SCProg::opShowHideOnNavMap, this, std::placeholders::_1);
-    this->instructions[OP_HIDE_FROM_NAV_MAP] = std::bind(&SCProg::opShowHideOnNavMap, this, std::placeholders::_1);
-    this->instructions[OP_JOIN_PLAYER_TEAM] = std::bind(&SCProg::opJoinLeavePlayerTeam, this, std::placeholders::_1);
-    this->instructions[OP_LEAVE_PLAYER_TEAM] = std::bind(&SCProg::opJoinLeavePlayerTeam, this, std::placeholders::_1);
-    this->instructions[OP_PACIFY_TARGET] = std::bind(&SCProg::opPacifyTarget, this, std::placeholders::_1);
-    this->instructions[OP_SET_OBJ_PATROL_POSITION] = std::bind(&SCProg::opSetObjPatrolPosition, this, std::placeholders::_1);
-    this->instructions[OP_ACTIVATE_OBJ] = std::bind(&SCProg::opActivateObj, this, std::placeholders::_1);
-    this->instructions[OP_MOVE_FLAG_TO_WORK_REGISTER] = std::bind(&SCProg::opMoveFlagToWorkRegister, this, std::placeholders::_1);
-    this->instructions[OP_SAVE_VALUE_TO_GAMFLOW_REGISTER] = std::bind(&SCProg::opSaveValueToGameflowRegister, this, std::placeholders::_1);
-    this->instructions[OP_SET_EXIT_CODE] = std::bind(&SCProg::opSetExitCode, this, std::placeholders::_1);
-    this->instructions[OP_MOVE_WORK_REGISTER_TO_FLAG] = std::bind(&SCProg::opMoveWorkRegisterToFlag, this, std::placeholders::_1);
-    this->instructions[OP_EXECUTE_CALL] = std::bind(&SCProg::opExecuteCall, this, std::placeholders::_1);
-    this->instructions[OP_EXEC_SUB_PROG] = std::bind(&SCProg::opExecSubProg, this, std::placeholders::_1);
-    this->instructions[OP_CMP_WORK_WITH_VALUE] = std::bind(&SCProg::opCmpWorkWithValue, this, std::placeholders::_1);
-    this->instructions[OP_CMP_VALUE_WITH_WORK] = std::bind(&SCProg::opCmpValueWithWork, this, std::placeholders::_1);
-    this->instructions[OP_BRANCH_IF_EQUAL] = std::bind(&SCProg::opBranchIfEqual, this, std::placeholders::_1);
-    this->instructions[OP_BRANCH_IF_NOT_EQUAL] = std::bind(&SCProg::opBranchIfNotEqual, this, std::placeholders::_1);
-    this->instructions[OP_BRANCH_IF_LESS] = std::bind(&SCProg::opBranchIfLess, this, std::placeholders::_1);
-    this->instructions[OP_BRANCH_IF_GREATER] = std::bind(&SCProg::opBranchIfGreater, this, std::placeholders::_1);
-    this->instructions[OP_SELECT_FLAG_208] = std::bind(&SCProg::opSelectFlag208, this, std::placeholders::_1);
-    this->instructions[OP_DIST_TO_TARGET] = std::bind(&SCProg::opDistToTarget, this, std::placeholders::_1);
-    this->instructions[OP_DIST_TO_SPOT] = std::bind(&SCProg::opDistToSpot, this, std::placeholders::_1);
-    this->instructions[OP_IS_TARGET_ALIVE] = std::bind(&SCProg::opIsTargetAlive, this, std::placeholders::_1);
-    this->instructions[OP_IS_TARGET_ACTIVE] = std::bind(&SCProg::opIsTargetActive, this, std::placeholders::_1);
-    this->instructions[OP_SET_FLAG_TO_TRUE] = std::bind(&SCProg::opSetFlagToTrue, this, std::placeholders::_1);
-    this->instructions[OP_SET_FLAG_TO_FALSE] = std::bind(&SCProg::opSetFlagToFalse, this, std::placeholders::_1);
-    this->instructions[OP_TEST_FLAG] = std::bind(&SCProg::opTestFlag, this, std::placeholders::_1);
-    this->instructions[OP_MUL_VALUE_WITH_WORK] = std::bind(&SCProg::opMulValueWithWork, this, std::placeholders::_1);
-    this->instructions[OP_ACTIVATE_SCENE] = std::bind(&SCProg::opActivateScene, this, std::placeholders::_1);
-    this->instructions[OP_DEACTIVATE_SCENE] = std::bind(&SCProg::opDeactivateScene, this, std::placeholders::_1);
+// Table des instructions des scripts de mission de Strike Commander : numéro → fonction membre.
+std::map<uint8_t, SCProg::Instruction> SCProg::buildInstructionTable() {
+    std::map<uint8_t, Instruction> table;
+    table[OP_EXIT_PROG] = &SCProg::opExitProg;
+    table[OP_SPOT_DATA] = &SCProg::opSpotData;
+    table[OP_SET_LABEL] = &SCProg::opSetLabel;
+    table[OP_MOVE_VALUE_TO_WORK_REGISTER] = &SCProg::opMoveValueToWorkRegister;
+    table[OP_GOTO_IF_CURRENT_COMMAND_IN_PROGRESS] = &SCProg::opGotoIfCurrentCommandInProgress;
+    table[OP_IF_TARGET_IN_AREA] = &SCProg::opIfTargetInArea;
+    table[OP_ADD_1_TO_FLAG] = &SCProg::opAdd1ToFlag;
+    table[OP_REMOVE_1_TO_FLAG] = &SCProg::opRemove1ToFlag;
+    table[OP_ADD_WORK_REGISTER_TO_FLAG] = &SCProg::opAddWorkRegisterToFlag;
+    table[OP_INSTANT_DESTROY_TARGET] = &SCProg::opInstantDestroyTarget;
+    table[OP_SET_WAIT_FOR_SECONDS] = &SCProg::opSetWaitForSeconds;
+    table[OP_SET_OBJ_TAKE_OFF] = &SCProg::opSetObjTakeOff;
+    table[OP_SET_OBJ_LAND] = &SCProg::opSetObjLand;
+    table[OP_SET_OBJ_FLY_TO_WP] = &SCProg::opSetObjFlyToWp;
+    table[OP_SET_OBJ_FLY_TO_AREA] = &SCProg::opSetObjFlyToArea;
+    table[OP_SET_OBJ_DESTROY_TARGET] = &SCProg::opSetObjDestroyTarget;
+    table[OP_SET_OBJ_DEFEND_TARGET] = &SCProg::opSetObjDefendTarget;
+    table[OP_SET_OBJ_DEFEND_AREA] = &SCProg::opSetObjDefendArea;
+    table[OP_SET_MESSAGE] = &SCProg::opSetMessage;
+    table[OP_SET_OBJ_FOLLOW_ALLY] = &SCProg::opSetObjFollowAlly;
+    table[OP_DEACTIVATE_OBJ] = &SCProg::opDeactivateObj;
+    table[OP_SHOW_ON_NAV_MAP] = &SCProg::opShowHideOnNavMap;
+    table[OP_HIDE_FROM_NAV_MAP] = &SCProg::opShowHideOnNavMap;
+    table[OP_JOIN_PLAYER_TEAM] = &SCProg::opJoinLeavePlayerTeam;
+    table[OP_LEAVE_PLAYER_TEAM] = &SCProg::opJoinLeavePlayerTeam;
+    table[OP_PACIFY_TARGET] = &SCProg::opPacifyTarget;
+    table[OP_SET_OBJ_PATROL_POSITION] = &SCProg::opSetObjPatrolPosition;
+    table[OP_ACTIVATE_OBJ] = &SCProg::opActivateObj;
+    table[OP_MOVE_FLAG_TO_WORK_REGISTER] = &SCProg::opMoveFlagToWorkRegister;
+    table[OP_SAVE_VALUE_TO_GAMFLOW_REGISTER] = &SCProg::opSaveValueToGameflowRegister;
+    table[OP_SET_EXIT_CODE] = &SCProg::opSetExitCode;
+    table[OP_MOVE_WORK_REGISTER_TO_FLAG] = &SCProg::opMoveWorkRegisterToFlag;
+    table[OP_EXECUTE_CALL] = &SCProg::opExecuteCall;
+    table[OP_EXEC_SUB_PROG] = &SCProg::opExecSubProg;
+    table[OP_CMP_WORK_WITH_VALUE] = &SCProg::opCmpWorkWithValue;
+    table[OP_CMP_VALUE_WITH_WORK] = &SCProg::opCmpValueWithWork;
+    table[OP_BRANCH_IF_EQUAL] = &SCProg::opBranchIfEqual;
+    table[OP_BRANCH_IF_NOT_EQUAL] = &SCProg::opBranchIfNotEqual;
+    table[OP_BRANCH_IF_LESS] = &SCProg::opBranchIfLess;
+    table[OP_BRANCH_IF_GREATER] = &SCProg::opBranchIfGreater;
+    table[OP_SELECT_FLAG_208] = &SCProg::opSelectFlag208;
+    table[OP_DIST_TO_TARGET] = &SCProg::opDistToTarget;
+    table[OP_DIST_TO_SPOT] = &SCProg::opDistToSpot;
+    table[OP_IS_TARGET_ALIVE] = &SCProg::opIsTargetAlive;
+    table[OP_IS_TARGET_ACTIVE] = &SCProg::opIsTargetActive;
+    table[OP_SET_FLAG_TO_TRUE] = &SCProg::opSetFlagToTrue;
+    table[OP_SET_FLAG_TO_FALSE] = &SCProg::opSetFlagToFalse;
+    table[OP_TEST_FLAG] = &SCProg::opTestFlag;
+    table[OP_MUL_VALUE_WITH_WORK] = &SCProg::opMulValueWithWork;
+    table[OP_ACTIVATE_SCENE] = &SCProg::opActivateScene;
+    table[OP_DEACTIVATE_SCENE] = &SCProg::opDeactivateScene;
+    return table;
 }
 
-// Parcourt le script : chaque instruction est passée à sa fonction (table instructions), qui tient compte de l'état
+// Construite au premier appel, puis partagée par tous les SCProg.
+const std::map<uint8_t, SCProg::Instruction> &SCProg::instructionTable() {
+    static const std::map<uint8_t, Instruction> table = SCProg::buildInstructionTable();
+    return table;
+}
+
+// Parcourt le script : chaque instruction est passée à sa fonction (instructionTable), qui tient compte de l'état
 // du processeur (exec faux pendant un saut vers jump_to). Une instruction jouée, ou le label qui termine un saut, est
 // notée dans les traces. OP_EXIT_PROG arrête le parcours (stopped).
 void SCProg::execute() {
@@ -73,12 +79,13 @@ void SCProg::execute() {
     this->actor->executed_opcodes.shrink_to_fit();
     this->mission->progs_traces[this->prog_id].clear();
     this->mission->progs_traces[this->prog_id].shrink_to_fit();
+    const std::map<uint8_t, Instruction> &table = this->instructionTable();
     for (this->pc = 0; this->pc < this->prog.size(); this->pc++) {
         const PROG &instruction = this->prog[this->pc];
         bool was_executing = this->exec;
-        auto found = this->instructions.find(instruction.opcode);
-        if (found != this->instructions.end()) {
-            found->second(instruction);
+        auto found = table.find(instruction.opcode);
+        if (found != table.end()) {
+            (this->*(found->second))(instruction);
         }
         if (was_executing || this->exec) {
             this->actor->executed_opcodes.push_back((uint8_t)this->pc);

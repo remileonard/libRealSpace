@@ -18,7 +18,6 @@ public:
         this->mission = mission;
         this->prog_id = prog_id;
         this->labels.clear();
-        this->initInstructions();
     };
     virtual ~SCProg() {
         this->prog.clear();
@@ -30,10 +29,12 @@ public:
     void execute();
 
 protected:
-    // Instructions du script : numéro → fonction (initInstructions). Chaque fonction lit et modifie l'état du
-    // processeur ci-dessous ; pendant un saut (exec faux), seul le label cherché agit.
-    std::map<uint8_t, std::function<void(const PROG &)>> instructions;
-    virtual void initInstructions();
+    // Instructions du script : numéro → fonction membre, table construite une seule fois et partagée. Chaque fonction
+    // lit et modifie l'état du processeur ci-dessous ; pendant un saut (exec faux), seul le label cherché agit. Une
+    // autre version du jeu redéfinit instructionTable pour rendre sa propre table.
+    typedef void (SCProg::*Instruction)(const PROG &);
+    virtual const std::map<uint8_t, Instruction> &instructionTable();
+    static std::map<uint8_t, Instruction> buildInstructionTable();
 
     // État du processeur, remis à zéro par execute.
     size_t pc{ 0 };

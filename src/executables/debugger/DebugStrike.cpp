@@ -1551,16 +1551,12 @@ void DebugStrike::radar() {
                 AreaOverlayTriangles triangle = runway.trianles[i];
                 std::vector<Vector3D> vertices;
                 for (auto vid : triangle.verticesIdx) {
-                    Vector3D v = {(float)runway.vertices[vid].x, (float)runway.vertices[vid].y,
-                                  (float)runway.vertices[vid].z};
+                    Vector3D v = {(float)runway.vertices[vid].x, (float)runway.vertices[vid].y, (float)runway.vertices[vid].z};
                     vertices.push_back(v);
                 }
-                ImVec2 p1 =
-                    ImVec2(canvas_center.x + vertices[0].x * scale_x, canvas_center.y - vertices[0].z * scale_z);
-                ImVec2 p2 =
-                    ImVec2(canvas_center.x + vertices[1].x * scale_x, canvas_center.y - vertices[1].z * scale_z);
-                ImVec2 p3 =
-                    ImVec2(canvas_center.x + vertices[2].x * scale_x, canvas_center.y - vertices[2].z * scale_z);
+                ImVec2 p1 = ImVec2(canvas_center.x + vertices[0].x * scale_x, canvas_center.y + vertices[0].z * scale_z);
+                ImVec2 p2 = ImVec2(canvas_center.x + vertices[1].x * scale_x, canvas_center.y + vertices[1].z * scale_z);
+                ImVec2 p3 = ImVec2(canvas_center.x + vertices[2].x * scale_x, canvas_center.y + vertices[2].z * scale_z);
                 runway_pos = p3;
                 draw_list->AddTriangleFilled(p1, p2, p3, IM_COL32(0, 255, 0, 100));
             }
