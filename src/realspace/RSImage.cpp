@@ -50,6 +50,7 @@ void RSImage::UpdateContent(uint8_t* src, size_t csize) {
 void RSImage::SyncTexture(void){
     SCRenderer &Renderer = SCRenderer::getInstance();
     //Check that we have a texture with an id on the GPU
+    
     if ((texture.locFlag & Texture::VRAM) != Texture::VRAM){
         //Create texture in the GPU
         Renderer.createTextureInGPU(&texture);

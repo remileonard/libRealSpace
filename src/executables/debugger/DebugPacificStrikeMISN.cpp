@@ -8,7 +8,7 @@ DebugPacificStrikeMISN::DebugPacificStrikeMISN() {
 }
 
 DebugPacificStrikeMISN::~DebugPacificStrikeMISN() {
-    
+    DebugStrike::current_mission = nullptr;
 }
 
 void DebugPacificStrikeMISN::setMission(std::string mission_name) { 

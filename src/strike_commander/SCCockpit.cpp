@@ -119,30 +119,32 @@ void SCCockpit::init() {
     }
     PakArchive *pak_crash{nullptr};
     TreEntry *crashed_animation_entry = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\EJECT.PAK");
-    pak_crash = new PakArchive();
-    pak_crash->InitFromRAM("EJECT", crashed_animation_entry->data, crashed_animation_entry->size);
-    this->crashed_animation_frames_p1 = new RSImageSet();
-    this->crashed_animation_frames_p2 = new RSImageSet();
-    for (size_t i = 0; i < 5; i++) {
-        ByteStream *reader = new ByteStream(pak_crash->GetEntry(i)->data, pak_crash->GetEntry(i)->size);
-        uint32_t size = reader->ReadUInt32LE();
-        uint8_t *data2 = (uint8_t*) malloc(size);
-        memcpy(data2, pak_crash->GetEntry(i)->data, size);
-        PakArchive *pak = new PakArchive();
-        pak->InitFromRAM("EJECT", data2, size);
-        this->crashed_animation_frames_p1->InitFromPakArchive(pak,0);
+    if (crashed_animation_entry != nullptr) {
+        pak_crash = new PakArchive();
+        pak_crash->InitFromRAM("EJECT", crashed_animation_entry->data, crashed_animation_entry->size);
+        this->crashed_animation_frames_p1 = new RSImageSet();
+        this->crashed_animation_frames_p2 = new RSImageSet();
+        for (size_t i = 0; i < 5; i++) {
+            ByteStream *reader = new ByteStream(pak_crash->GetEntry(i)->data, pak_crash->GetEntry(i)->size);
+            uint32_t size = reader->ReadUInt32LE();
+            uint8_t *data2 = (uint8_t*) malloc(size);
+            memcpy(data2, pak_crash->GetEntry(i)->data, size);
+            PakArchive *pak = new PakArchive();
+            pak->InitFromRAM("EJECT", data2, size);
+            this->crashed_animation_frames_p1->InitFromPakArchive(pak,0);
+        }
+        for (size_t i = 5; i < 8; i++) {
+            ByteStream *reader = new ByteStream(pak_crash->GetEntry(i)->data, pak_crash->GetEntry(i)->size);
+            uint32_t size = reader->ReadUInt32LE();
+            uint8_t *data2 = (uint8_t*) malloc(size);
+            memcpy(data2, pak_crash->GetEntry(i)->data, size);
+            PakArchive *pak = new PakArchive();
+            pak->InitFromRAM("EJECT", data2, size);
+            this->crashed_animation_frames_p2->InitFromPakArchive(pak,0);
+        }
+        this->eject_animation_frames = new RSImageSet();
+        this->eject_animation_frames->InitFromPakEntry(pak_crash->GetEntry(8));
     }
-    for (size_t i = 5; i < 8; i++) {
-        ByteStream *reader = new ByteStream(pak_crash->GetEntry(i)->data, pak_crash->GetEntry(i)->size);
-        uint32_t size = reader->ReadUInt32LE();
-        uint8_t *data2 = (uint8_t*) malloc(size);
-        memcpy(data2, pak_crash->GetEntry(i)->data, size);
-        PakArchive *pak = new PakArchive();
-        pak->InitFromRAM("EJECT", data2, size);
-        this->crashed_animation_frames_p2->InitFromPakArchive(pak,0);
-    }
-    this->eject_animation_frames = new RSImageSet();
-    this->eject_animation_frames->InitFromPakEntry(pak_crash->GetEntry(8));
     this->palette = *palette.GetColorPalette();
     cockpit = nullptr;
     TreEntry *cockpit_def = nullptr;
