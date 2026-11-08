@@ -167,7 +167,7 @@ protected:
     virtual void opIfResult6(EFCT *instruction);
     virtual void opIfLoadedFlag(EFCT *instruction);
     SCZone *CheckZones(void);
-    void createScen();
+    virtual void createScen();
     virtual void playMapShot(std::vector<MAP_POINT *> *points);
     virtual void flyMission(uint8_t missionid);
     virtual void playShot(uint8_t shotId);

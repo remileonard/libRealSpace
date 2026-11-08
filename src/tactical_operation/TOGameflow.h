@@ -17,6 +17,8 @@ public:
     // Fichier de partie de Tactical Operations : 598 octets (Gameflow_SaveGameFile_5357F).
     void loadGame(std::string filename) override;
     void saveGame(std::string filename) override;
+    // Écrans du déroulement avec les images et palettes d'OPTSHPS2.PAK et OPTPALS2.PAK (TOScene).
+    void createScen() override;
     // WEAPON_LOADOUT_ALT (43) : écran d'armement du F-22, test comme WEAPON_LOADOUT.
     virtual void opWeaponLoadoutAlt(EFCT *instruction);
     // IF_MISSION_SUCCESS (32) : de plus, vol terminé avec le code 2 et drapeau 88 posé : 7e valeur de STAT à 1.

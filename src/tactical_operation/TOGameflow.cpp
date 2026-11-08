@@ -2,6 +2,7 @@
 #include "TOConvPlayer.h"
 #include "TOF22LoadoutScene.h"
 #include "TOKillMarksScene.h"
+#include "TOScene.h"
 
 TOGameFlow::TOGameFlow() {
     TreEntry *shapes = Assets.GetEntryByName(Assets.gameflow_root_path + "OPTSHPS2.PAK");
@@ -174,4 +175,23 @@ void TOGameFlow::saveGame(std::string filename) {
 
     GameState.SaveTO(filename);
     this->frequest->requested_file = "";
+}
+
+// Copie de SCGameFlow::createScen : écran de Tactical Operations (TOScene).
+void TOGameFlow::createScen() {
+    if (this->zones != nullptr) {
+        this->zones->clear();
+    }
+
+    if (this->gameFlowParser.game.game[this->current_miss]->scen.size() > 0) {
+        uint8_t optionScenID = this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID;
+        if (this->scen != nullptr) {
+            // delete this->scen;
+        }
+        this->scen = new TOScene(&this->optShps, &this->optPals, &this->optShps2, &this->optPals2);
+        this->zones = this->scen->init(
+            this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen],
+            this->optionParser.opts[optionScenID],
+            std::bind(&TOGameFlow::clicked, this, std::placeholders::_1, std::placeholders::_2));
+    }
 }
