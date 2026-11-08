@@ -106,6 +106,8 @@ protected:
     bool mission_report_pending{false};
     // WEAPON_LOADOUT : le script attend la sortie de l'écran d'armement (loadoutExit).
     bool script_waiting{ false };
+    // Le script s'arrête après l'instruction en cours (commandes de Pacific Strike : PLAY_SCENE, RETURN_TO_MENU…).
+    bool script_stopped{ false };
     bool player_loadout_pending{false};
     uint8_t weapon_loadout_id{ 255 };
     void applyMissionReport(void);

@@ -259,6 +259,7 @@ void SCGameFlow::runEffect() {
         this->script_execute[0] = true;
         this->script_if_depth = 0;
         this->script_waiting = false;
+        this->script_stopped = false;
     }
     for (size_t i = this->currentOptCode; i < this->efect->size(); i++) {
         EFCT *instruction = this->efect->at(i);
@@ -267,6 +268,10 @@ void SCGameFlow::runEffect() {
             printf("Unkown opcode :%d, %d\n", instruction->opcode, instruction->value);
         } else {
             found->second(instruction);
+        }
+        if (this->script_stopped) {
+            printf("GAMEFLOW: script arrete apres l'instruction %zu\n", i);
+            break;
         }
         // Une commande jouée (plan, carte, cinématique, conversation, écran d'armement) suspend le script jusqu'à sa fin.
         if (!this->pending_activities.empty() || this->script_waiting) {

@@ -1,107 +1,185 @@
 #include "PSConvplayer.h"
 
-PSConvFrame::PSConvFrame() {}
-
-PSConvFrame::~PSConvFrame() {}
-
-void PSConvFrame::parse_GROUP_SHOT(ByteStream *conv) {
-    std::string loc_str = conv->ReadString(8);
-    ConvBackGround *bg = ConvAssets.GetBackGround(loc_str.c_str());
-
-    this->mode = ConvFrame::CONV_WIDE;
-    this->bgLayers   = &bg->layers;
-    this->bgPalettes = &bg->palettes;
-    this->participants.clear();
-    this->participants.shrink_to_fit();
-    while (conv->PeekByte(0) != 0x0A && !conv->IsEndOfStream()) {
-        conv->MoveForward(1);
-    }
-    uint8_t x = conv->ReadByte();
-    uint8_t y = conv->ReadByte();
-    this->SetSentenceFromConv(conv, 0);
-    this->textColor = 160;
+PSConvPlayer::PSConvPlayer() {
 }
 
-void PSConvFrame::parse_CLOSEUP(ByteStream *conv) {
-    std::string speaker_name_str = conv->ReadString(8);
-    conv->MoveForward(1);
-    this->face_expression = conv->ReadByte();
-    std::string location_set_name = conv->ReadString(8);
-    conv->MoveForward(2);
-    uint8_t pos = conv->ReadByte();
-    conv->MoveForward(2);
-    int next_frame_offset = SetSentenceFromConv(conv,0);
-    this->participants.clear();
-    this->participants.shrink_to_fit();
-    this->facePosition = static_cast<ConvFrame::FacePos>(pos);
-    this->mode         = ConvFrame::CONV_CLOSEUP;
-    this->face         = ConvAssets.GetCharFace(speaker_name_str.c_str());
-    ConvBackGround *bg        = ConvAssets.GetBackGround(location_set_name.c_str());
-    this->bgLayers     = &bg->layers;
-    this->bgPalettes   = &bg->palettes;
-    this->textColor            = 160;
-    const char *pszExt         = "normal";
-    this->facePaletteID = ConvAssets.GetFacePaletteID(const_cast<char *>(pszExt));
+PSConvPlayer::~PSConvPlayer() {
 }
 
-int PSConvFrame::SetSentenceFromConv(ByteStream *conv, int start_offset) {
-    conv->MoveForward(start_offset);
-    std::string sentence = conv->ReadStringNoSize(conv->GetSize() - conv->GetCurrentPosition());
-    int sound_offset = 0;
-    int decalage = 1;
-    
-    std::string *text = new std::string(sentence);
-    std::vector<uint8_t> end_frame_mark = conv->ReadBytes(4);
-    if (end_frame_mark[0] == 0xFF && end_frame_mark[0] == 0xFF) {
-        
-    } else if (end_frame_mark[0] == 0xF4 && end_frame_mark[0] == 0xFF) {
-
+bool PSConvPlayer::readByte(uint8_t &value) {
+    if (this->pos + 1 > this->script_size) {
+        return false;
     }
-    if (text->find("$N") != std::string::npos) {
-        text->replace(text->find("$N"), 2, GameState.player_firstname);
-    }
-    if (text->find("$S") != std::string::npos) {
-        text->replace(text->find("$S"), 2, GameState.player_name);
-    }
-    if (text->find("$C") != std::string::npos) {
-        text->replace(text->find("$C"), 2, GameState.player_callsign);
-    }
-    if (text->find("$W") != std::string::npos) {
-        text->replace(text->find("$W"), 2, GameState.wingman);
-    }
-    this->text         = (char *)text->c_str();
-    return 0;
+    value = this->script[this->pos];
+    this->pos += 1;
+    return true;
 }
 
-PSConvPlayer::PSConvPlayer() {}
+bool PSConvPlayer::readWord(uint16_t &value) {
+    if (this->pos + 2 > this->script_size) {
+        return false;
+    }
+    value = (uint16_t)(this->script[this->pos] | (this->script[this->pos + 1] << 8));
+    this->pos += 2;
+    return true;
+}
 
-PSConvPlayer::~PSConvPlayer() {}
+bool PSConvPlayer::readSignedWord(int16_t &value) {
+    uint16_t word = 0;
+    if (!this->readWord(word)) {
+        return false;
+    }
+    value = (int16_t)word;
+    return true;
+}
 
+// Nom sur 9 octets, terminé par 0.
+bool PSConvPlayer::readName(std::string &value) {
+    if (this->pos + 9 > this->script_size) {
+        return false;
+    }
+    value.clear();
+    for (size_t i = 0; i < 9 && this->script[this->pos + i] != 0; i++) {
+        value.push_back((char)this->script[this->pos + i]);
+    }
+    this->pos += 9;
+    return true;
+}
 
-bool psIsNextFrameIsConv(uint8_t type) {
-    switch (type) {
-        case 0x00:
-        case 0x03:
+// Texte terminé par 0, sans numéro de voix devant.
+bool PSConvPlayer::readText(ConvRecord &record) {
+    record.text.clear();
+    while (this->pos < this->script_size) {
+        uint8_t c = this->script[this->pos];
+        this->pos++;
+        if (c == 0) {
             return true;
-        default:
-            return false;
+        }
+        record.text.push_back((char)c);
     }
     return false;
 }
 
-void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
+// Un enregistrement d'un bloc IF_FLAG non retenu est lu sans être gardé.
+void PSConvPlayer::keep(const ConvRecord &record) {
+    if (!this->skipping) {
+        this->records.push_back(record);
+    }
+}
 
+// 1 GROUP_SHOT_ADD_CHARACTER : figure (9), x, y.
+bool PSConvPlayer::readFigure(size_t at, int level) {
+    ConvRecord figure;
+    figure.offset = at;
+    figure.op = CONV_GROUP_SHOT_ADD_CHARACTER;
+    figure.level = level;
+    if (!this->readName(figure.name) || !this->readSignedWord(figure.x) || !this->readSignedWord(figure.y)) {
+        return false;
+    }
+    this->keep(figure);
+    return true;
+}
+
+// 10 SHOW_TEXT : couleur, texte, voix (2 mots, non jouée). Après un CLOSEUP, la même personne continue de parler.
+bool PSConvPlayer::readShowText(size_t at, uint8_t op, int level) {
+    ConvRecord text;
+    text.offset = at;
+    text.op = op;
+    text.level = level;
+    uint16_t voice = 0;
+    uint16_t voice_extra = 0;
+    if (!this->readByte(text.color) || !this->readText(text) || !this->readWord(voice) || !this->readWord(voice_extra)) {
+        return false;
+    }
+    text.value = voice;
+    this->keep(text);
+    return true;
+}
+
+// 17 GROUP_SHOT_COMMANDER : n, n numéros d'image, x, y de la cible ; calque du commandant (PointerLayer_*) pas encore
+// porté, l'enregistrement n'est pas gardé.
+bool PSConvPlayer::readCommander(size_t at) {
+    uint16_t count = 0;
+    if (!this->readWord(count)) {
+        return false;
+    }
+    for (uint16_t k = 0; k < count; k++) {
+        uint16_t image = 0;
+        if (!this->readWord(image)) {
+            return false;
+        }
+    }
+    int16_t x = 0;
+    int16_t y = 0;
+    if (!this->readSignedWord(x) || !this->readSignedWord(y)) {
+        return false;
+    }
+    printf("CONV %d: GROUP_SHOT_COMMANDER (octet %zu), %d images, cible (%d, %d), calque pas encore porte\n", this->conversationID, at, count, x, y);
+    return true;
+}
+
+// 0 GROUP_SHOT : décor (9), puis les commandes 1, 10 et 17 qui suivent.
+bool PSConvPlayer::readGroupShot(size_t at) {
+    ConvRecord shot;
+    shot.offset = at;
+    shot.op = CONV_GROUP_SHOT;
+    shot.level = 0;
+    if (!this->readName(shot.background)) {
+        return false;
+    }
+    this->keep(shot);
+    while (this->pos < this->script_size) {
+        size_t sub = this->pos;
+        uint8_t op = this->script[this->pos];
+        bool ok = true;
+        if (op == CONV_GROUP_SHOT_ADD_CHARACTER) {
+            this->pos++;
+            ok = this->readFigure(sub, 1);
+        } else if (op == CONV_SHOW_TEXT) {
+            this->pos++;
+            ok = this->readShowText(sub, CONV_SHOW_TEXT, 1);
+        } else if (op == PS_CONV_GROUP_SHOT_COMMANDER) {
+            this->pos++;
+            ok = this->readCommander(sub);
+        } else {
+            break;
+        }
+        if (!ok) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 3 CLOSEUP : visage (9), image, décor (9), x, y, texte, couleur, voix (2 mots) ; puis les commandes 10 qui suivent.
+bool PSConvPlayer::readCloseUp(size_t at) {
+    ConvRecord line;
+    line.offset = at;
+    line.op = CONV_CLOSEUP;
+    line.level = 0;
+    uint16_t voice = 0;
+    uint16_t voice_extra = 0;
+    if (!this->readName(line.name) || !this->readByte(line.baseFrame) || !this->readName(line.background) || !this->readSignedWord(line.x) || !this->readSignedWord(line.y) || !this->readText(line) || !this->readByte(line.color) || !this->readWord(voice) || !this->readWord(voice_extra)) {
+        return false;
+    }
+    line.value = voice;
+    this->keep(line);
+    while (this->pos < this->script_size && this->script[this->pos] == CONV_SHOW_TEXT) {
+        size_t sub = this->pos;
+        this->pos++;
+        if (!this->readShowText(sub, CONV_CLOSEUP_CONTINUATION, 1)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
     if (convPakEntry->size == 0) {
         Game->log("Conversation entry is empty: Unable to load it.\n");
         stop();
         return;
     }
-
-    this->size = convPakEntry->size;
-
-    this->conv.Set(convPakEntry->data, convPakEntry->size);
-    end = convPakEntry->data + convPakEntry->size;
-
     if (this->conversation_frames.size() > 0) {
         for (auto frame : this->conversation_frames) {
             delete frame;
@@ -109,69 +187,57 @@ void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
         this->conversation_frames.clear();
         this->conversation_frames.shrink_to_fit();
     }
-    std::vector<uint8_t> *conv_frames_data;
-    uint16_t end_of_frames_marker = 65535;
-    int read_bytes = 0;
-    int conv_size = 0;
-    bool between_frames = false;
-    std::vector<uint8_t> *between_frame_bytes;
-    std::vector<std::vector<uint8_t> *> all_frames_data;
-    while (read_bytes < conv.GetSize()) {
-        if (!between_frames) {
-            if (conv_size == 0) {
-                conv_frames_data = new std::vector<uint8_t>();
-            }
-            conv_frames_data->push_back(conv.ReadByte());
-            read_bytes++;
-            conv_size++;
-            if (conv_frames_data->size() >= 2) {
-                uint16_t possible_end_marker = conv.PeekUShort();
-                if (possible_end_marker == end_of_frames_marker) {
-                    conv_frames_data->push_back(conv.ReadByte());
-                    conv_frames_data->push_back(conv.ReadByte());
-                    between_frames = true;
-                    between_frame_bytes = new std::vector<uint8_t>();
-                    conv_size = 0;
-                }
-            }
-        } else {
-            uint8_t b = conv.PeekByte(0);
-            uint8_t b1 = conv.PeekByte(1);
-            if (psIsNextFrameIsConv(b) && !psIsNextFrameIsConv(b1) && between_frame_bytes->size()>=2) {
-                all_frames_data.push_back(conv_frames_data);
-                between_frames = false;
-            } else {
-                between_frame_bytes->push_back(conv.ReadByte());
-                read_bytes++;
-            }
-        }
-    }
-    for (auto frame_data : all_frames_data) {
-        PSConvFrame *tmp_frame = new PSConvFrame();
-        ByteStream frame_stream;
-        frame_stream.Set(frame_data->data(), frame_data->size());
-        
-        tmp_frame->creationTime       = SDL_GetTicks();
-        tmp_frame->text               = nullptr;
-        tmp_frame->sound_file_name    = nullptr;
-        tmp_frame->facePaletteID      = 0;
-        tmp_frame->font = this->font;
-        tmp_frame->conversationID = this->conversationID;
-        tmp_frame->SetExpired(false);
-        
-        
-        uint8_t frame_type = frame_stream.ReadByte();
-        switch (frame_type) {
-        case 0x00: // Group plan
-            tmp_frame->parse_GROUP_SHOT(&frame_stream);
-        break;
-        case 0x03: // Person talking
-            tmp_frame->parse_CLOSEUP(&frame_stream);
-        break;
+    this->script = convPakEntry->data;
+    this->script_size = convPakEntry->size;
+    this->pos = 0;
+    this->skipping = false;
+    this->records.clear();
+    bool ok = true;
+    while (ok && this->pos < this->script_size) {
+        size_t at = this->pos;
+        uint8_t op = this->script[this->pos];
+        this->pos++;
+        switch (op) {
+        case CONV_GROUP_SHOT:
+            ok = this->readGroupShot(at);
+            break;
+        case CONV_GROUP_SHOT_ADD_CHARACTER:
+            ok = this->readFigure(at, 0);
+            break;
+        case CONV_CLOSEUP:
+            ok = this->readCloseUp(at);
+            break;
+        case PS_CONV_IF_FLAG: {
+            uint16_t number = 0;
+            ok = this->readWord(number);
+            this->skipping = GameState.getGameVar(number) == 0;
+            printf("CONV %d: IF_FLAG %d (octet %zu), valeur %d, %s\n", this->conversationID, number, at, GameState.getGameVar(number), this->skipping ? "bloc saute" : "bloc joue");
+        } break;
+        case CONV_SHOW_TEXT:
+            ok = this->readShowText(at, CONV_SHOW_TEXT, 0);
+            break;
+        case PS_CONV_ELSE:
+            this->skipping = !this->skipping;
+            printf("CONV %d: ELSE (octet %zu), %s\n", this->conversationID, at, this->skipping ? "bloc saute" : "bloc joue");
+            break;
+        case PS_CONV_ENDIF:
+            this->skipping = false;
+            break;
+        case CONV_NOP_16:
+            break;
+        case PS_CONV_GROUP_SHOT_COMMANDER:
+            ok = this->readCommander(at);
+            break;
         default:
+            printf("CONV %d: commande %d inconnue (octet %zu)\n", this->conversationID, op, at);
+            ok = false;
             break;
         }
-        this->conversation_frames.push_back(tmp_frame);
     }
+    if (!ok) {
+        printf("CONV %d: lecture arretee a l'octet %zu sur %zu\n", this->conversationID, this->pos, this->script_size);
+    }
+    printf("CONV %d: Pacific Strike, %zu enregistrements gardes\n", this->conversationID, this->records.size());
+    this->buildFrames(this->records, ConvFormat::Floppy);
     initialized = true;
 }

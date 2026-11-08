@@ -1,8 +1,9 @@
 #pragma once
 #include "../../strike_commander/precomp.h"
 #include "DebugGameFlow.h"
+#include "../../pacific_strike/PSGameFlow.h"
 
-class DebugPSGameFlow : public DebugGameFlow {
+class DebugPSGameFlow : public DebugGameFlow, public PSGameFlow {
 private:
     // Ajoutez ces membres pour gérer l'état des popups
     bool m_showMidGamePopup = false;
