@@ -90,8 +90,7 @@ void SCMission::onEvent(const EventMessage &event) {
         this->onActorDestroyed(destroyed_event->actor);
     }
 }
-// Scene_EnsureUnitsSpawned_530FF : un participant détruit est recréé à l'activation de sa scène, à partir des données
-// de son PART : l'acteur reprend son état de création, son avion et son pilote sont recréés.
+
 void SCMission::respawnActor(SCMissionActors *actor) {
     printf("MISSION: %s#%d remis à l'état de création par la scène\n", actor->actor_name.c_str(), actor->actor_id);
     *actor->object = actor->creation_part;
@@ -130,8 +129,7 @@ void SCMission::respawnActor(SCMissionActors *actor) {
     actor->pilot = nullptr;
     this->createAiPlane(actor);
 }
-// Pilote et avion d'un acteur IA, à partir des données de son PART : chargement de la mission et recréation par une
-// scène (respawnActor).
+
 void SCMission::createAiPlane(SCMissionActors *actor) {
     MISN_PART *part = actor->object;
     actor->pilot = new SCPilot();
@@ -174,8 +172,7 @@ void SCMission::createAiPlane(SCMissionActors *actor) {
     actor->plane->object = part;
     actor->plane->InitLoadout();
     actor->plane->pilot = actor;
-    // Vitesse initiale PART (octets 43-44, m/s) : un avion à 0 commence au sol, train sorti
-    // (PartEntry_ResolveSpawnPositionAndActivate_51EDC : catégorie 6 et vitesse nulle -> au sol, JDYN +0x75 |= 4).
+    
     if (abs(this->area->getY(part->position.x, part->position.z) - part->position.y) <= 10) {
         part->position.y = this->area->getY(part->position.x, part->position.z);
     }
@@ -192,7 +189,6 @@ void SCMission::createAiPlane(SCMissionActors *actor) {
         actor->plane->SetThrottle(100);
         actor->pilot->target_climb = (int)(part->position.y);
         actor->plane->vz = -20;
-        // Vitesse le long du nez (AIAircraft_SpawnAndConditionalLoadProfile_53363 : nez × vitesse).
         float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
         float spawn_speed = (float)part->speed;
         actor->plane->velocity = Vector3D(-sinf(spawn_yaw) * spawn_speed, 0.0f, -cosf(spawn_yaw) * spawn_speed);
@@ -215,8 +211,6 @@ void SCMission::loadMission() {
     TreEntry *mission_tre = Assets.GetEntryByName(miss_file_name.c_str());
     this->mission = new RSMission();
     this->mission->InitFromRAM(mission_tre->data, mission_tre->size);
-    // TRAINING MISSION : objets choisis aux écrans ajoutés au modèle avant la création des scènes et des acteurs
-    // (Training_BuildInstantMission_58EEA d'OPTEST, qui les écrit dans instant.iff).
     if (GameState.training_active) {
         SCTrainingMenu::applyTraining(this->mission, GameState.training);
     }
@@ -343,17 +337,12 @@ void SCMission::loadMission() {
                             actor->plane->system_health[sys.first][subsys.first] = subsys.second;
                         }
                     }
-                    // Cap en dixièmes de degré, comme SCStrike : le placement dans le repère du joueur le lit dès startScenes
-                    // (l'ancienne 2e affectation, en radians, l'écrasait).
                     actor->plane->yaw = (360 - part->azymuth) * 10.0f;
                     actor->plane->simple_simulation = false;
-                    // PartEntry_ResolveSpawnPositionAndActivate_51EDC : PART +0x12 non vide = emport imposé
-                    // (WeaponSys_LoadFromFile_9EFBE), pour le joueur comme pour les autres avions.
                     part->weapon_load.shrink_to_fit();
                     if (part->weapon_load.size() > 0) {
                         std::string weapon_path_name = Assets.object_root_path + part->weapon_load + ".IFF";
-                        std::transform(weapon_path_name.begin(), weapon_path_name.end(), weapon_path_name.begin(),
-                                       ::toupper);
+                        std::transform(weapon_path_name.begin(), weapon_path_name.end(), weapon_path_name.begin(), ::toupper);
                         TreEntry *weapon_entry = Assets.GetEntryByName(weapon_path_name.c_str());
                         part->entity->weaps.clear();
                         part->entity->weaps.shrink_to_fit();
@@ -365,7 +354,6 @@ void SCMission::loadMission() {
                     actor->plane->pilot = actor;
                     this->actors.push_back(actor);
                     this->player = actor;
-                    // MissionScenario_LoadMainRecord_A8331 : bits 4 et 5 de +0x39 poses sur l'objet du joueur
                     actor->on_nav_map = true;
                 } else {
                     this->actors.push_back(actor);
@@ -463,7 +451,6 @@ void SCMission::loadMission() {
     }
     for (auto spot: this->mission->mission_data.spots) {
         spot->origin = {spot->position.x, spot->position.y, spot->position.z};
-        // AreaRelPos_ToWorld_50EEB : zone absente ou hors liste -> décalage absolu.
         if (spot->area_id >= 0 && (size_t) spot->area_id < this->mission->mission_data.areas.size()) {
             AREA *ar = this->mission->mission_data.areas[spot->area_id];
             spot->position += ar->position;
@@ -476,7 +463,6 @@ void SCMission::loadMission() {
     this->startScenes();
 }
 
-// Musique de la mission : au départ du vol (SCStrike::start), pas au chargement de la mission.
 void SCMission::startMusic() {
     if (Mixer.isSoundPlaying(5)) {
         Mixer.stopSound(5);
@@ -484,13 +470,11 @@ void SCMission::startMusic() {
     this->Mixer.switchBank(2);
     this->musicRequest(this->mission->mission_data.tune, "TUNE de la mission");
 }
-// ajout a la liste des objets du monde (59C3h) : missile air-air (WDAT target_domain 1) -> byte_6E4C6
 void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
     if (weapon->obj->wdat->target_domain == 1) {
         this->aa_missile_launched = true;
     }
 }
-// retrait de la liste des objets du monde : les references SetReference sur l'arme se vident (+0x281)
 void SCMission::onWeaponRemoved(SCSimulatedObject *weapon) {
     for (auto actor : this->actors) {
         if (actor->brain != nullptr && actor->brain->missile_threat == weapon) {
@@ -545,15 +529,12 @@ void SCMission::update() {
         actor->updateSmoke(mission_update_event.delta_time);
     }
 
-    // Cadence IA fixe (~25 fps d'origine) : eviter un rattrapage explosif
-    // apres un hoquet en plafonnant l'accumulateur avant de vider le retard.
     this->ai_refresh_accumulator += mission_update_event.delta_time;
     if (this->ai_refresh_accumulator > 1.0f) {
         this->ai_refresh_accumulator = 1.0f;
     }
     while (this->ai_refresh_accumulator >= AI_REFRESH_INTERVAL) {
         this->ai_refresh_accumulator -= AI_REFRESH_INTERVAL;
-        // RadioFlags_ShiftHistory
         this->player_tail_threat = this->player_tail_seen;
         this->player_tail_seen = nullptr;
         this->aa_missile_launched_last = this->aa_missile_launched;
@@ -589,8 +570,6 @@ void SCMission::update() {
         this->musicRequest(20, "atterrissage");
     }
 
-    // MAIN_GAME_TICK : script de mise à jour de la scène globale, changement de scène courante
-    // (Scene_DetectAndActivateChange_532EA), script de mise à jour de la scène courante.
     if (this->global_scene != nullptr) {
         MissionEventSceneUpdate global_update;
         global_update.scene = this->global_scene->scene;
@@ -635,7 +614,6 @@ void SCMission::update() {
     }
 }
 
-// byte_706AF : une valeur non nulle termine la mission (STRIKE_EXE_MAIN_LOOP).
 void SCMission::setExitCode(uint8_t code, const char *reason) {
     printf("MISSION: code de sortie %d (%s), precedent %d\n", code, reason, this->exit_code);
     this->exit_code = code;
@@ -647,9 +625,6 @@ void SCMission::setExitCode(uint8_t code, const char *reason) {
     }
 }
 
-// Chargement de la mission (MissionScenario_LoadAndDecodeField_A9CC3, MissionScenario_DecodeFieldA_A9B14) : le stock
-// de la campagne est toujours copié ; s'il y a un chargement PLYR, chaque participant TEAM y prend ses armes, au plus
-// ce qui reste ; le canon n'est pas pris. Sans PLYR, aucun prélèvement (saut de la boucle dans le jeu).
 void SCMission::takeTeamWeaponsFromStock(bool take_from_stock) {
     this->stock_left.clear();
     for (size_t i = 0; i < 9; i++) {
@@ -688,8 +663,6 @@ void SCMission::takeTeamWeaponsFromStock(bool take_from_stock) {
         }
     }
 }
-
-// Compte rendu de vol MISN2OP.IFF (Mission_WriteResultReport_A8F22) ; le score n'est pas porte.
 MissionReport SCMission::buildReport(const std::string &report_name) {
     MissionReport report;
     report.exit_code = this->exit_code;
@@ -703,20 +676,17 @@ MissionReport SCMission::buildReport(const std::string &report_name) {
     if (std::find(this->team.begin(), this->team.end(), this->player) == this->team.end()) {
         printf("REPORT: le joueur n'est pas dans TEAM (%zu participants)\n", this->team.size());
     }
-    // WPNS : stock non emporte, puis armes restantes des avions revenus.
     if (this->stock_taken) {
         report.weapons_left = this->stock_left;
         report.weapons_reported = true;
     }
     for (auto member : this->team) {
         bool destroyed = !member->object->alive;
-        // Contrat conserve : l'avion du joueur ejecte compte comme perdu.
         bool lost = destroyed || (member == this->player && member->plane != nullptr && member->plane->ejected);
         bool f16 = member->object->member_name.rfind("F-16", 0) == 0;
         if (lost && f16) {
             report.planes_lost++;
         }
-        // MissionScenario_DispatchDecodeB_AA04B : les armes restantes d'un avion revenu retournent au stock.
         bool returned = this->stock_taken && !lost && member->plane != nullptr;
         if (returned) {
             for (auto hardpoint : member->plane->weaps_load) {
@@ -746,7 +716,6 @@ MissionReport SCMission::buildReport(const std::string &report_name) {
                member->actor_name.c_str(), member->object->member_name.c_str(), destroyed, lost, f16, returned, pilot_id,
                member->plane_down, member->ground_down);
     }
-    // DIED : noms d'ailiers venus de la campagne (TEAM d'OP2MISN.IFF), premier objet du CAST qui porte ce nom.
     const std::string &wingman = GameState.wingman;
     if (!wingman.empty()) {
         for (auto actor : this->actors) {
@@ -982,8 +951,6 @@ uint8_t SCMission::getAreaID(Vector3D position) {
     
     return area_id;
 }
-// Scene_FindMatchingByAreaContainment_53236 : première scène active, dans l'ordre du fichier, dont la zone
-// contient le point. Une scène sans zone (index -1 ou hors liste) n'est jamais choisie ici.
 SCMissionScene *SCMission::findSceneAt(Vector3D position) {
     std::vector<AREA *> &areas = this->mission->mission_data.areas;
     for (auto sc_scene: this->scenes) {
@@ -1001,14 +968,7 @@ SCMissionScene *SCMission::findSceneAt(Vector3D position) {
     }
     return nullptr;
 }
-// MissionScenario_LoadMainRecord_A8331 : la scène globale (Scene_FindByArea_532AD avec une zone nulle) est
-// activée, puis la scène où se trouve le joueur.
-// Objet de mode de placement non nul (PartEntry_ResolveSpawnPositionAndActivate_51EDC, cmp byte ptr es:[bx+1Ch], 0) :
-// le décalage du fichier est exprimé dans le repère de l'avion du joueur. Le jeu ajoute à la position du joueur
-// côté × aile droite + avant × nez + haut × dessus de l'avion (les trois lignes de sa matrice d'orientation), et le cap
-// de l'objet vaut le cap du nez du joueur (Math_HeadingAngle_553CF) + le cap du fichier. L'objet reste à plat.
-// Dans libRealSpace, le décalage lu (x = côté, y = haut, z = -avant) s'applique tel quel aux lignes de la matrice de
-// l'avion (ligne 0 = droite, ligne 1 = haut, ligne 2 = arrière), construite comme SCJetpPlane la construit.
+
 void SCMission::placeRelativeToPlayer(SCMissionActors *actor) {
     if (this->player == nullptr || this->player->plane == nullptr) {
         return;
@@ -1031,7 +991,6 @@ void SCMission::placeRelativeToPlayer(SCMissionActors *actor) {
     position.z += offset.x * orientation.v[0][2] + offset.y * orientation.v[1][2] + offset.z * orientation.v[2][2];
     part->position = position;
 
-    // Cap du nez du joueur dans la convention des fichiers (degrés, depuis le nord vers l'est) : atan2(x, -z) du nez.
     float nose_x = -orientation.v[2][0];
     float nose_z = -orientation.v[2][2];
     float heading = radToDegree(atan2f(nose_x, -nose_z)) + (float) part->relative_azymuth;
@@ -1089,8 +1048,6 @@ void SCMission::startScenes() {
         }
     }
 }
-// Fin de mission (STRIKE_EXE_MAIN_LOOP en sortie de boucle, puis MissionScenario_RecomputeFields_A9382) : script de
-// sortie de la scène globale (le bilan, qui écrit les variables de résultat), puis de la scène courante.
 void SCMission::finishScenes() {
     if (this->global_scene != nullptr) {
         this->global_scene->runLeaving();

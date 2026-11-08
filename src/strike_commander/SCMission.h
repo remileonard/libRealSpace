@@ -35,10 +35,7 @@ protected:
     uint32_t last_time{0};
     uint32_t last_tick{0};
     uint32_t tick_counter{0};
-    // Cadence de decision IA d'origine (~25 fps, cf. analysis/AI_SYSTEM.md
-    // §6) : AIRefreshEvent est publie a ce rythme fixe plutot qu'a chaque
-    // frame reelle du port, pour ne pas rendre l'IA statistiquement plus
-    // forte/reactive sur un framerate superieur a l'origine.
+    
     float ai_refresh_accumulator{0.0f};
     static constexpr float AI_REFRESH_INTERVAL = 1.0f / 25.0f;
     float music_accumulator{0.0f};
@@ -68,8 +65,8 @@ protected:
 public:
     void startMusic();
     std::vector<SCMissionScene *> scenes;
-    SCMissionScene *global_scene{nullptr};  // MissionScenario+78 : première scène sans zone
-    SCMissionScene *current_scene{nullptr}; // MissionScenario+80 : scène de la zone où est le joueur
+    SCMissionScene *global_scene{nullptr};
+    SCMissionScene *current_scene{nullptr};
     std::vector<SCMissionActors *> actors;
     std::vector<SCMissionActors *> enemies;
     std::vector<SCMissionActors *> friendlies;
@@ -80,20 +77,20 @@ public:
     bool success{false};
     bool failure{false};
     bool mission_ended{false};
-    uint8_t exit_code{ 0 };              // byte_706AF : chunk EXIT de MISN2OP.IFF
-    std::vector<SCMissionActors *> team; // participants du chunk TEAM, dans l'ordre
-    std::unordered_map<uint8_t, int16_t> stock_left; // stock de la campagne non emporte (table WPNS de STRIKE.EXE)
+    uint8_t exit_code{ 0 };
+    std::vector<SCMissionActors *> team;
+    std::unordered_map<uint8_t, int16_t> stock_left;
     bool stock_taken{false};
     uint8_t current_area_id{0};
     SCMissionActors *player{nullptr};
     RSArea *area{nullptr};
     RSMission *mission{nullptr};
     RSIntel intel;
-    SCMissionActors *player_tail_seen{nullptr};    // word_722EA
-    SCMissionActors *player_tail_threat{nullptr};  // word_722EE
-    bool aa_missile_launched{false};               // byte_6E4C6
-    bool aa_missile_launched_last{false};          // byte_6E4D7
-    float ai_clock_stagger{0.0f};                  // dword_6D3BE
+    SCMissionActors *player_tail_seen{nullptr};
+    SCMissionActors *player_tail_threat{nullptr};  
+    bool aa_missile_launched{false};               
+    bool aa_missile_launched_last{false};          
+    float ai_clock_stagger{0.0f};                  
     void onWeaponSpawned(SCSimulatedObject *weapon);
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
@@ -124,7 +121,7 @@ public:
     void takeTeamWeaponsFromStock(bool take_from_stock);
     MissionReport buildReport(const std::string &report_name);
     uint32_t tps{0};
-    float scene_wait_timer{0.0f};   // dword_706B0 : minuteur WAIT des scripts de scene
+    float scene_wait_timer{0.0f};
     int32_t difficulty{0};
 };
 
