@@ -7,6 +7,7 @@
 //
 
 #include "../../strike_commander/precomp.h"
+#include "../../tactical_operation/TOGameSelectMenu.h"
 #include "../../engine/gametimer.h"
 #include "../../engine/desktoptimer.h"
 #define FLOPPY 0
@@ -99,18 +100,22 @@ int main(int argc, char* argv[]) {
     }
     GameEngine *game = &GameEngine::instance();
     game->init();
-    //Add MainMenu activity on the game stack.
-    SCMainMenu* main = new SCMainMenu();
-    main->init();
-    game->addActivity(main);
-    SCAnimationPlayer *intro = new SCAnimationPlayer();
-    intro->init();
-    game->addActivity(intro);
-    // Version CD-ROM : l'animation DATA\FLIC\THEFLIC.FLX passe avant tout le reste, comme dans MENU.EXE.
+    // Version CD-ROM (MENU.EXE) : animation DATA\FLIC\THEFLIC.FLX, puis choix entre Strike Commander et Tactical
+    // Operations (TOGameSelectMenu). Sans l'animation : intro et menu principal de Strike Commander.
     if (SCFlicPlayer::IsAvailable()) {
+        TOGameSelectMenu *select = new TOGameSelectMenu();
+        select->init();
+        game->addActivity(select);
         SCFlicPlayer *flic = new SCFlicPlayer();
         flic->init();
         game->addActivity(flic);
+    } else {
+        SCMainMenu *main = new SCMainMenu();
+        main->init();
+        game->addActivity(main);
+        SCAnimationPlayer *intro = new SCAnimationPlayer();
+        intro->init();
+        game->addActivity(intro);
     }
     game->run();
 
