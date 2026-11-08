@@ -217,6 +217,239 @@ void SCState::Save(std::string filename) {
     file.close();
 }
 
+// Copie de Load pour le fichier de Tactical Operations (Gameflow_SaveGameFile_5357F de TOPTTST1.EXE, 598 octets) :
+// 0 à 579 comme Strike Commander ; 580 8 drapeaux de personnages ; 588 3e à 6e valeurs de STAT ; 592 7e valeur ;
+// 593 morceau de musique ; 594 score (dword).
+void SCState::LoadTO(std::string filename) {
+
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+        return;
+    }
+
+    std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    if (buffer.size() < 0x256) {
+        std::cerr << "File size is too small: " << filename << std::endl;
+        this->Reset();
+        return;
+    }
+    std::string header = std::string(buffer.begin(), buffer.begin() + 7);
+    if (header != "SCB1.22") {
+        std::cerr << "Invalid file header: " << header << std::endl;
+        this->Reset();
+        return;
+    }
+    for (int i = 0; i < 256; i++) {
+        this->requierd_flags[i] = buffer[0x0B + i];
+    }
+    for (int i = 0; i < 46; i++) {
+        this->mission_flyed_success[i] = buffer[0x10B + i];
+    }
+    /*
+        018D - 018E - Amount of money lost
+        0189 - 018A - Bank balance
+    */
+    this->proj_cash = (0 | (buffer[0x18A] << 8) | buffer[0x189]) * 1000;
+    this->cash = this->proj_cash;
+    this->over_head = (0 | (buffer[0x18E] << 8) | buffer[0x18D]) * 1000;
+    /*
+        0191 - 0194 - Achats du catalogue pas encore payes, en milliers (Gameflow_SaveGameFile_4DAE8 : dword [partie+643])
+    */
+    this->weapons_costs = (buffer[0x191] | (buffer[0x192] << 8) | (buffer[0x193] << 16) | (buffer[0x194] << 24)) * 1000;
+
+    this->score = buffer[0x252] | (buffer[0x253] << 8) | (buffer[0x254] << 16) | (buffer[0x255] << 24);
+    /*
+        0205 - 0206 - Total des avions perdus (Gameflow_SaveGameFile_4DAE8 : mot [partie+980])
+    */
+    this->lost_aircraft = (buffer[0x206] << 8) | buffer[0x205];
+    /*
+        019B - # of ground kills
+        0199 - # of Air Kills
+    */
+    /*
+        01C9 - 01DC - Player Last Name
+    */
+    this->player_name = std::string(buffer.begin() + 0x1C9, buffer.begin() + 0x1DC);
+    this->player_name = this->player_name.substr(0, this->player_name.find('\0'));
+    this->player_name.shrink_to_fit();
+    /*
+        01DD - 01F0 - Player First Name
+    */
+    this->player_firstname = std::string(buffer.begin() + 0x1DD, buffer.begin() + 0x1F0);
+    this->player_firstname = this->player_firstname.substr(0, this->player_firstname.find('\0'));
+    this->player_firstname.shrink_to_fit();
+    /*
+        01F1 - 0204 - Player Callsign
+    */
+    this->player_callsign = std::string(buffer.begin() + 0x1F1, buffer.begin() + 0x204);
+    this->player_callsign = this->player_callsign.substr(0, this->player_callsign.find('\0'));
+    this->player_callsign.shrink_to_fit();
+    /*
+        208 - 21B - WingMan
+    */
+    this->wingman = std::string(buffer.begin() + 0x208, buffer.begin() + 0x21B);
+    this->wingman.shrink_to_fit();
+    this->ground_kills = buffer[0x19B];
+    this->air_kills = buffer[0x199];
+    /* 19D - 1C5 killboard */
+    for (int i = 0; i < 6; i++) {
+        int alive = buffer[0x19D + i * 0x06];
+        int air_kills = (buffer[0x19D + i * 0x06 + 3] << 8) | buffer[0x19D + i * 0x06 + 2];
+        int ground_kills = (buffer[0x19D + i * 0x06 + 5] << 8) | buffer[0x19D + i * 0x06 + 4];
+        this->pilot_roaster[i + 1] = alive;
+        this->kill_board[i + 1][KillBoardType::AIR_KILL] = air_kills;
+        this->kill_board[i + 1][KillBoardType::GROUND_KILL] = ground_kills;
+    }
+    this->kill_board[0][KillBoardType::AIR_KILL] = this->air_kills;
+    this->kill_board[0][KillBoardType::GROUND_KILL] = this->ground_kills;
+
+    this->weapon_inventory = {
+        { ID_AIM9J, buffer[0x16F] },
+        { ID_AIM9M, buffer[0x171] },
+        { ID_AGM65D, buffer[0x173] },
+        { ID_LAU3, buffer[0x17D] },
+        { ID_MK20, buffer[0x177] },
+        { ID_MK82, buffer[0x179] },
+        { ID_DURANDAL, buffer[0x175] },
+        { ID_GBU15, buffer[0x17B] },
+        { ID_AIM120, buffer[0x17F] }
+    };
+    this->current_mission = buffer[0x08];
+    this->mission_id = buffer[0x09];
+    this->current_scene = buffer[0x0A];
+    for (int i = 0; i < 4; i++) {
+        this->mission_report.results[2 + i] = buffer[0x24C + i];
+    }
+    this->mission_report.results[6] = buffer[0x250];
+    this->tune_modifier = buffer[0x251];
+    printf("SAVE TO: %s lu, mission %d, scene %d, STAT 3-7 %d %d %d %d %d, morceau %d, score %d\n", filename.c_str(), this->current_mission, this->current_scene, this->mission_report.results[2], this->mission_report.results[3], this->mission_report.results[4], this->mission_report.results[5], this->mission_report.results[6], this->tune_modifier, this->score);
+}
+
+// Copie de Save pour le fichier de Tactical Operations (Gameflow_SaveGameFile_5357F de TOPTTST1.EXE, 598 octets).
+void SCState::SaveTO(std::string filename) {
+    std::vector<uint8_t> buffer(0x256, 0);
+
+    // Write header
+    std::string header = "SCB1.22";
+    std::copy(header.begin(), header.end(), buffer.begin());
+    buffer[0x07] = 0xFF;
+    // Current mission, mission ID, and scene
+    buffer[0x08] = this->current_mission;
+    buffer[0x09] = this->mission_id;
+    buffer[0x0A] = this->current_scene;
+
+    // Required flags
+    for (int i = 0; i < 256; i++) {
+        if (i < this->requierd_flags.size()) {
+            buffer[0x0B + i] = this->requierd_flags[i];
+        }
+    }
+
+    // Mission flown success
+    for (int i = 0; i < 46; i++) {
+        if (i < this->mission_flyed_success.size()) {
+            buffer[0x10B + i] = this->mission_flyed_success[i];
+        }
+    }
+
+    // Money values
+    buffer[0x189] = (this->proj_cash / 1000) & 0xFF;
+    buffer[0x18A] = ((this->proj_cash / 1000) >> 8) & 0xFF;
+    buffer[0x18D] = (this->over_head / 1000) & 0xFF;
+    buffer[0x18E] = ((this->over_head / 1000) >> 8) & 0xFF;
+    int32_t purchases = this->weapons_costs / 1000;
+    buffer[0x191] = purchases & 0xFF;
+    buffer[0x192] = (purchases >> 8) & 0xFF;
+    buffer[0x193] = (purchases >> 16) & 0xFF;
+    buffer[0x194] = (purchases >> 24) & 0xFF;
+
+    // Kills
+    buffer[0x19B] = this->ground_kills;
+    buffer[0x199] = this->air_kills;
+
+    // Kill board
+    for (int i = 0; i < 6; i++) {
+        buffer[0x19D + i * 0x06] = this->pilot_roaster[i + 1];
+        // Write air kills
+        buffer[0x19D + i * 0x06 + 2] = this->kill_board[i + 1][KillBoardType::AIR_KILL] & 0xFF;
+        buffer[0x19D + i * 0x06 + 3] = (this->kill_board[i + 1][KillBoardType::AIR_KILL] >> 8) & 0xFF;
+        // Write ground kills
+        buffer[0x19D + i * 0x06 + 4] = this->kill_board[i + 1][KillBoardType::GROUND_KILL] & 0xFF;
+        buffer[0x19D + i * 0x06 + 5] = (this->kill_board[i + 1][KillBoardType::GROUND_KILL] >> 8) & 0xFF;
+    }
+
+    // Weapon inventory
+    if (this->weapon_inventory.count(ID_AIM9J)) {
+        buffer[0x16F] = this->weapon_inventory[ID_AIM9J];
+    }
+    if (this->weapon_inventory.count(ID_AIM9M)) {
+        buffer[0x171] = this->weapon_inventory[ID_AIM9M];
+    }
+    if (this->weapon_inventory.count(ID_AGM65D)) {
+        buffer[0x173] = this->weapon_inventory[ID_AGM65D];
+    }
+    if (this->weapon_inventory.count(ID_DURANDAL)) {
+        buffer[0x175] = this->weapon_inventory[ID_DURANDAL];
+    }
+    if (this->weapon_inventory.count(ID_MK20)) {
+        buffer[0x177] = this->weapon_inventory[ID_MK20];
+    }
+    if (this->weapon_inventory.count(ID_MK82)) {
+        buffer[0x179] = this->weapon_inventory[ID_MK82];
+    }
+    if (this->weapon_inventory.count(ID_GBU15)) {
+        buffer[0x17B] = this->weapon_inventory[ID_GBU15];
+    }
+    if (this->weapon_inventory.count(ID_LAU3)) {
+        buffer[0x17D] = this->weapon_inventory[ID_LAU3];
+    }
+    if (this->weapon_inventory.count(ID_AIM120)) {
+        buffer[0x17F] = this->weapon_inventory[ID_AIM120];
+    }
+
+    // Player names
+    std::copy(this->player_name.begin(),
+              this->player_name.length() > 19 ? this->player_name.begin() + 19 : this->player_name.end(),
+              buffer.begin() + 0x1C9);
+
+    std::copy(this->player_firstname.begin(),
+              this->player_firstname.length() > 19 ? this->player_firstname.begin() + 19 : this->player_firstname.end(),
+              buffer.begin() + 0x1DD);
+
+    std::copy(this->player_callsign.begin(),
+              this->player_callsign.length() > 19 ? this->player_callsign.begin() + 19 : this->player_callsign.end(),
+              buffer.begin() + 0x1F1);
+
+    // Wingman
+    std::copy(this->wingman.begin(),
+              this->wingman.length() > 19 ? this->wingman.begin() + 19 : this->wingman.end(),
+              buffer.begin() + 0x208);
+
+    buffer[0x205] = this->lost_aircraft & 0xFF;
+    buffer[0x206] = (this->lost_aircraft >> 8) & 0xFF;
+    for (int i = 0; i < 4; i++) {
+        buffer[0x24C + i] = (uint8_t)this->mission_report.results[2 + i];
+    }
+    buffer[0x250] = (uint8_t)this->mission_report.results[6];
+    buffer[0x251] = this->tune_modifier;
+    buffer[0x252] = this->score & 0xFF;
+    buffer[0x253] = (this->score >> 8) & 0xFF;
+    buffer[0x254] = (this->score >> 16) & 0xFF;
+    buffer[0x255] = (this->score >> 24) & 0xFF;
+    printf("SAVE TO: %s ecrit, 598 octets, mission %d, scene %d\n", filename.c_str(), this->current_mission, this->current_scene);
+    // Write to file
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    file.write(reinterpret_cast<const char *>(buffer.data()), buffer.size());
+    file.close();
+}
+
 void SCState::Reset() {
     this->requierd_flags.clear();
     this->mission_flyed_success.clear();

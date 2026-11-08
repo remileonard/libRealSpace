@@ -111,8 +111,8 @@ protected:
     void applyMissionReport(void);
     void setMusic(uint8_t track);
     void clicked(std::vector<EFCT *> *script, uint8_t id);
-    void loadGame(std::string filename);
-    void saveGame(std::string filename);
+    virtual void loadGame(std::string filename);
+    virtual void saveGame(std::string filename);
     void returnFromScene(std::vector<EFCT *> *script, uint8_t id);
     void loadoutExit(bool fly);
     void runEffect();

@@ -95,5 +95,8 @@ public:
     SCState();
     void Load(std::string filename);
     void Save(std::string filename);
+    // Fichier de partie de Tactical Operations (598 octets).
+    void LoadTO(std::string filename);
+    void SaveTO(std::string filename);
     void Reset();
 };

@@ -134,3 +134,44 @@ void TOGameFlow::opShowKillMarksAlt(EFCT *instruction) {
         this->pending_activities.push(end);
     }
 }
+
+// Copie de SCGameFlow::loadGame : fichier de Tactical Operations (SCState::LoadTO).
+void TOGameFlow::loadGame(std::string filename) {
+    GameState.LoadTO(filename);
+    this->frequest->requested_file = "";
+    this->efect = nullptr;
+    this->current_miss = GameState.current_mission;
+    this->next_miss = GameState.next_mission;
+    int i = 0;
+    for (auto sc : this->gameFlowParser.game.game[this->current_miss]->scen) {
+        if (sc->info.ID == GameState.current_scene) {
+            this->current_scen = i;
+            break;
+        }
+        i++;
+    }
+    if (this->gameFlowParser.game.game[this->current_miss]->efct != nullptr) {
+        this->efect = this->gameFlowParser.game.game[this->current_miss]->efct;
+    }
+    this->runEffectAfterLoad();
+    this->efect = nullptr;
+    this->loadMiss();
+}
+
+// Copie de SCGameFlow::saveGame : fichier de Tactical Operations (SCState::SaveTO).
+void TOGameFlow::saveGame(std::string filename) {
+    if (filename.empty()) {
+        this->frequest->requested_file = "";
+        return;
+    }
+    // Der Lade-Dialog listet nur .sav/.SAV: Endung ergaenzen, falls sie fehlt
+    if (filename.size() < 4 || (filename.substr(filename.size() - 4) != ".SAV" && filename.substr(filename.size() - 4) != ".sav")) {
+        filename += ".SAV";
+    }
+    GameState.current_mission = this->current_miss;
+    GameState.next_mission = this->next_miss;
+    GameState.current_scene = this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen]->info.ID;
+
+    GameState.SaveTO(filename);
+    this->frequest->requested_file = "";
+}
