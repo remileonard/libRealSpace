@@ -163,9 +163,10 @@ public:
 };
 
 class KillBoardScene : public SCScene {
+protected:
     RSFont *font;
 public:
     KillBoardScene(PakArchive *optShps, PakArchive *optPals) : SCScene(optShps, optPals) {};
-    std::vector<SCZone *> * init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick);
+    virtual std::vector<SCZone *> * init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::function<void(std::vector<EFCT *> *script, uint8_t id)> onclick);
     void Render();
 };

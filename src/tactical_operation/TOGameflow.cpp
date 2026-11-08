@@ -3,6 +3,7 @@
 #include "TOF22LoadoutScene.h"
 #include "TOKillMarksScene.h"
 #include "TOScene.h"
+#include "TOKillBoardScene.h"
 
 TOGameFlow::TOGameFlow() {
     TreEntry *shapes = Assets.GetEntryByName(Assets.gameflow_root_path + "OPTSHPS2.PAK");
@@ -194,4 +195,14 @@ void TOGameFlow::createScen() {
             this->optionParser.opts[optionScenID],
             std::bind(&TOGameFlow::clicked, this, std::placeholders::_1, std::placeholders::_2));
     }
+}
+
+// Copie de SCGameFlow::lookAtKillBoard : indicatifs de Tactical Operations (TOKillBoardScene).
+void TOGameFlow::lookAtKillBoard() {
+    this->zones->clear();
+    if (this->scen != nullptr) {
+        delete this->scen;
+    }
+    this->scen = new TOKillBoardScene(&this->optShps, &this->optPals);
+    this->zones = this->scen->init(this->gameFlowParser.game.game[this->current_miss]->scen[this->current_scen], this->optionParser.opts[30], std::bind(&TOGameFlow::returnFromScene, this, std::placeholders::_1, std::placeholders::_2));
 }

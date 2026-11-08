@@ -694,6 +694,12 @@ void SCGameFlow::opApplyChange(EFCT *instruction) {
     }
     if (chng->pilt != nullptr) {
         for (auto pil : *chng->pilt) {
+            // Pilote sans ligne : créée avec ses deux valeurs (KillBoardScene lit toujours les deux).
+            if (GameState.kill_board.count(pil->pilot_id) == 0) {
+                GameState.kill_board[pil->pilot_id][KillBoardType::AIR_KILL] = 0;
+                GameState.kill_board[pil->pilot_id][KillBoardType::GROUND_KILL] = 0;
+                printf("GAMEFLOW: APPLY_CHANGE, pilote %d ajoute au tableau des victoires\n", pil->pilot_id);
+            }
             switch (pil->op) {
             case 2:
                 GameState.kill_board[pil->pilot_id][pil->air] = pil->value;

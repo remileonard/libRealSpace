@@ -100,8 +100,6 @@ int main(int argc, char* argv[]) {
     }
     GameEngine *game = &GameEngine::instance();
     game->init();
-    // Version CD-ROM (MENU.EXE) : animation DATA\FLIC\THEFLIC.FLX, puis choix entre Strike Commander et Tactical
-    // Operations (TOGameSelectMenu). Sans l'animation : intro et menu principal de Strike Commander.
     if (SCFlicPlayer::IsAvailable()) {
         TOGameSelectMenu *select = new TOGameSelectMenu();
         select->init();

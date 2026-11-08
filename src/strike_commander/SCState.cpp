@@ -468,4 +468,6 @@ void SCState::Reset() {
     this->player_ejected = false;
     this->lost_aircraft = 0;
     this->weapons_costs = 0;
+    this->kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] = 0;
+    this->kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = 0;
 }
