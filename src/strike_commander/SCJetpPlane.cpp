@@ -459,13 +459,8 @@ void SCJetpPlane::processInput() {
         refX = scr.width / 2.0f;
     }
     
-    // Signe conserve de l'implementation validee par Remi ("comportement des axes bon") :
-    // elevator NEGATIF quand on tire le manche.
     this->elevator = (std::clamp)(-(this->control_stick_y / refY), -1.0f, 1.0f);
     this->rollers = (std::clamp)(-(this->control_stick_x / refX), -1.0f, 1.0f);
-    if (this->control_stick_x != 0.0f || this->control_stick_y != 0.0f) {
-        printf("control_stick_x: %d, control_stick_y: %d, refX: %f, refY: %f\n", this->control_stick_x, this->control_stick_y, refX, refY);
-    }
     if (this->stick_normalized) {
         this->elevator = (std::clamp)(-this->stick_norm_y, -1.0f, 1.0f);
         this->rollers = (std::clamp)(-this->stick_norm_x, -1.0f, 1.0f);
