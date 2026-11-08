@@ -216,6 +216,9 @@ protected:
     int world_lod{BLOCK_LOD_MAX};
     std::vector<SCSimulatedObject*> simulated_objects;
     SCSimulatedObject* ejected_object{nullptr};
+    int max_stick_x{0};
+    int max_stick_y{0};
+    int stick_sensitivity{1};
 public:
     float verticalOffset{0.45f};
     // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).

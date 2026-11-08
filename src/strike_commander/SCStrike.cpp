@@ -142,8 +142,6 @@ void SCStrike::renderVirtualF16Cockpit() {
 
     Vector3D cockpit_pos = {0.0f, 0.0f, 0.0f};
 
-    
-
     Vector3D cockpit_rot;
     cockpit_rot = {(this->player_plane->azimuthf+900)/10.0f,
                     this->player_plane->elevationf/10.0f,
@@ -761,6 +759,9 @@ SCStrike::SCStrike() {
     if (this->Screen == nullptr) {
         this->Screen = &RSScreen::instance();
     }
+    RSScreen &scr = RSScreen::instance();
+    this->max_stick_x = scr.width / 2;
+    this->max_stick_y = scr.height / 2;
 }
 
 SCStrike::~SCStrike() {
@@ -1515,19 +1516,19 @@ void SCStrike::checkKeyboard(void) {
         this->pause_simu = !this->pause_simu;
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::PITCH_UP))) {
-        this->player_plane->control_stick_y = -150;
+        this->player_plane->control_stick_y = -this->max_stick_y;
         this->mouse_control = false;
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::PITCH_DOWN))) {
-        this->player_plane->control_stick_y = 150;
+        this->player_plane->control_stick_y = this->max_stick_y;
         this->mouse_control = false;
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::ROLL_LEFT))) {
-        this->player_plane->control_stick_x = -200;
+        this->player_plane->control_stick_x = -this->max_stick_x;
         this->mouse_control = false;
     }
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::ROLL_RIGHT))) {
-        this->player_plane->control_stick_x = 200;
+        this->player_plane->control_stick_x = this->max_stick_x;
         this->mouse_control = false;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::EYES_ON_TARGET))) {
