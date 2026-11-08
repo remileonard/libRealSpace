@@ -3,8 +3,7 @@
 #include "DebugPacificStrikeMISN.h"
 #include "../pacific_strike/PSGameFlowParser.h"
 #include <imgui.h>
-#include <imgui_impl_opengl2.h>
-#include <imgui_impl_sdl2.h>
+
 
 void DebugPSGameFlow::init() {
     TreEntry *gameflowIFF = Assets.GetEntryByName(Assets.gameflow_filename);
@@ -21,6 +20,10 @@ void DebugPSGameFlow::init() {
     this->optPals.InitFromRAM("OPTPALS.PAK", optPalettesEntry->data, optPalettesEntry->size);
     this->efect = nullptr;
     this->createMiss();
+    SCState &GameState = SCState::getInstance();
+    for (int i=0; i<4096; i++) {
+        GameState.requierd_flags[i] = false;
+    }
 }
 void DebugPSGameFlow::playConv(uint8_t convId) {
     SCConvPlayer *conv = new DebugPSConvPlayer();
@@ -30,7 +33,9 @@ void DebugPSGameFlow::playConv(uint8_t convId) {
 }
 void DebugPSGameFlow::playShot(uint8_t shotId) {}
 void DebugPSGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {}
-DebugPSGameFlow::DebugPSGameFlow() { printf("DebugPSGameFlow constructor\n"); }
+DebugPSGameFlow::DebugPSGameFlow() { 
+    printf("DebugPSGameFlow constructor\n");
+}
 
 DebugPSGameFlow::~DebugPSGameFlow() {}
 

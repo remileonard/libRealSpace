@@ -370,7 +370,7 @@ void DebugGameFlow::renderMissionInfos() {
                         ImGui::TreePop();
                         continue;
                     }
-                    if (zone->isActive(&GameState.requierd_flags)) {
+                    if (zone->active) {
                         ImGui::Text("Active");
                     }
                     if (ImGui::TreeNodeEx((void *)(intptr_t)sprite->shapid, tflag ,"Sprite, Frame %d, %d %d",
