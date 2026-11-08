@@ -38,7 +38,7 @@ void setPixel(std::vector<uint8_t> &px, size_t i, int r, int g, int b, float a) 
     px[i] = (uint8_t)r;
     px[i + 1] = (uint8_t)g;
     px[i + 2] = (uint8_t)b;
-    px[i + 3] = (uint8_t)(std::min(1.0f, ( std::max)(0.0f, a)) * 255.0f);
+    px[i + 3] = (uint8_t)(std::min(1.0f, (std::max)(0.0f, a)) * 255.0f);
 }
 
 // streaks: finer across the flow (x) than along it (y)
@@ -91,7 +91,7 @@ unsigned int makeSmoke() {
                       0.20f * noise2(lat, 16, 16, fx, fy);
             float edge = smooth(1.0f, 0.35f, r + (n - 0.5f) * 0.55f);
             float core = 0.55f + 0.45f * n;
-            float lit = ( std::min)(1.0f, ( std::max)(0.0f, 0.5f - 0.5f * (dx + dy) * 0.7f + (n - 0.5f) * 0.6f));
+            float lit = (std::min)(1.0f, (std::max)(0.0f, 0.5f - 0.5f * (dx + dy) * 0.7f + (n - 0.5f) * 0.6f));
             int shade = (int)(255.0f * (0.80f + 0.20f * lit));
             setPixel(px, ((size_t)y * N + x) * 4, shade, shade, shade, edge * core);
         }

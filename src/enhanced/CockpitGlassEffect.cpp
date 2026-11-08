@@ -47,7 +47,7 @@ float distanceToSegment(float px, float py, const Segment &s) {
     float dy = s.y1 - s.y0;
     float len2 = dx * dx + dy * dy;
     float t = len2 > 1e-9f ? ((px - s.x0) * dx + (py - s.y0) * dy) / len2 : 0.0f;
-    t = ( std::min)(1.0f, ( std::max)(0.0f, t));
+    t = (std::min)(1.0f, (std::max)(0.0f, t));
     float cx = s.x0 + dx * t - px;
     float cy = s.y0 + dy * t - py;
     return sqrtf(cx * cx + cy * cy);
@@ -105,12 +105,12 @@ unsigned int makeCracks() {
             float r = sqrtf(fx * fx + fy * fy);
             float best = 1.0f;
             for (const Segment &s : segments) {
-                best = ( std::min)(best, ( std::max)(0.0f, distanceToSegment(fx, fy, s) - s.width));
+                best = (std::min)(best, (std::max)(0.0f, distanceToSegment(fx, fy, s) - s.width));
             }
             float line = smooth(0.012f, 0.0f, best);
             float hole = smooth(0.055f, 0.030f, r);
             float fade = smooth(1.0f, 0.45f, r);
-            float a = ( std::max)(line * fade, hole);
+            float a = (std::max)(line * fade, hole);
             size_t i = ((size_t)y * N + x) * 4;
             px[i] = 255;
             px[i + 1] = 255;
@@ -137,7 +137,7 @@ unsigned int makeScratches() {
                 int y = cy + dy;
                 if (x >= 0 && y >= 0 && x < N && y < N) {
                     float d = sqrtf((float)(dx * dx + dy * dy)) / (radius + 0.5f);
-                    field[(size_t)y * N + x] += strength * ( std::max)(0.0f, 1.0f - d);
+                    field[(size_t)y * N + x] += strength * (std::max)(0.0f, 1.0f - d);
                 }
             }
         }
@@ -210,7 +210,7 @@ void CockpitGlassEffect::updateImpacts(float damage) {
     };
     int wanted = 0;
     if (damage >= 0.15f) {
-        wanted = ( std::min)(MAX_IMPACTS, 1 + (int)((damage - 0.15f) / 0.15f));
+        wanted = (std::min)(MAX_IMPACTS, 1 + (int)((damage - 0.15f) / 0.15f));
     }
     if (wanted == impactCount) {
         return;
@@ -259,15 +259,15 @@ void CockpitGlassEffect::addDome(Batch &batch, const ViewContext &v, const DomeS
             float a = (style.bottom.a + (style.top.a - style.bottom.a) * t + style.edgeAlpha * fabsf(side) * side * side) * fade;
             Color col = color(style.bottom.r + (style.top.r - style.bottom.r) * t,
                               style.bottom.g + (style.top.g - style.bottom.g) * t,
-                              style.bottom.b + (style.top.b - style.bottom.b) * t, ( std::max)(0.0f, a));
+                              style.bottom.b + (style.top.b - style.bottom.b) * t, (std::max)(0.0f, a));
             float u = 0.5f;
             float w = 0.5f;
             if (style.uvMode == 1) {
-                u = ( std::min)(1.0f, ( std::max)(0.0f, x * 0.5f + 0.5f));
+                u = (std::min)(1.0f, (std::max)(0.0f, x * 0.5f + 0.5f));
                 w = t;
             } else if (style.uvMode == 2) {
                 float s = x * cosf(style.bandAngle) + y * sinf(style.bandAngle) - style.bandOffset;
-                u = ( std::min)(1.0f, ( std::max)(0.0f, s / (2.0f * style.bandWidth) + 0.5f));
+                u = (std::min)(1.0f, (std::max)(0.0f, s / (2.0f * style.bandWidth) + 0.5f));
             }
             grid[r][c] = vert(this->screenPoint(v, x * v.aspectFix, y), u, w, col);
         }
@@ -315,7 +315,7 @@ void CockpitGlassEffect::draw(const float *view, const float *proj, Vector3D sun
     batch.flush(EffectTextures::get().glow, BlendMode::Additive);
 
     // soft diagonal streak that follows the sun
-    const float offset = ( std::max)(-0.6f, ( std::min)(0.6f, sx * 0.8f));
+    const float offset = (std::max)(-0.6f, (std::min)(0.6f, sx * 0.8f));
     style = {color(0.85f, 0.92f, 1.0f, 0.16f + 0.35f * glare), color(0.85f, 0.92f, 1.0f, 0.16f + 0.35f * glare), 0.0f, 2, 0.35f, offset, 0.12f};
     this->addDome(batch, v, style);
     batch.flush(streak, BlendMode::Additive);
@@ -330,8 +330,8 @@ void CockpitGlassEffect::draw(const float *view, const float *proj, Vector3D sun
         style = {color(1.0f, 0.95f, 0.85f, 0.30f * glare), color(1.0f, 0.95f, 0.85f, 0.30f * glare), 0.0f, 0, 0, 0, 0};
         this->addDome(batch, v, style);
         batch.flush(white, BlendMode::Additive);
-        float hx = ( std::max)(-1.5f, ( std::min)(1.5f, proj[0] * sx / sz));
-        float hy = ( std::max)(-1.5f, ( std::min)(1.5f, proj[5] * sy / sz));
+        float hx = (std::max)(-1.5f, (std::min)(1.5f, proj[0] * sx / sz));
+        float hy = (std::max)(-1.5f, (std::min)(1.5f, proj[5] * sy / sz));
         this->addScreenQuad(batch, v, hx, hy, 0.7f, 0.7f, 0.0f, color(1.0f, 0.93f, 0.8f, 0.40f * glare));
         batch.flush(EffectTextures::get().glow, BlendMode::Additive);
     }

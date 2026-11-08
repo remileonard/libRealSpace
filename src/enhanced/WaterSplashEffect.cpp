@@ -124,7 +124,7 @@ unsigned int WaterSplashEffect::puffTexture() {
             for (int x = 0; x < N; x++) {
                 const float dx = ((float)x + 0.5f) / N * 2.0f - 1.0f;
                 const float dy = ((float)y + 0.5f) / N * 2.0f - 1.0f;
-                const float r = ( std::min)(1.0f, sqrtf(dx * dx + dy * dy));
+                const float r = (std::min)(1.0f, sqrtf(dx * dx + dy * dy));
                 const float falloff = 1.0f - smooth(0.0f, 1.0f, r);
                 const float a = falloff * falloff;
                 const size_t i = ((size_t)y * N + x) * 4;
@@ -174,7 +174,7 @@ void WaterSplashEffect::addSpray(Batch &batch, const Splash &splash, float age) 
         if (y < 0.0f && t > 0.1f) {
             continue;
         }
-        const Vector3D pos = Vector3D(splash.position.x + cosf(angle) * speed * t, splash.position.y + ( std::max)(0.0f, y),
+        const Vector3D pos = Vector3D(splash.position.x + cosf(angle) * speed * t, splash.position.y + (std::max)(0.0f, y),
                               splash.position.z + sinf(angle) * speed * t);
         const float life = age / LIFE;
         const float size = (1.6f + 4.2f * life) * splash.scale * (0.7f + 0.6f * hash01(splash.seed, 70 + k));
@@ -194,7 +194,7 @@ void WaterSplashEffect::addDroplets(Batch &batch, const Splash &splash, float ag
         if (y < 0.0f && t > 0.1f) {
             continue;
         }
-        const Vector3D pos = Vector3D(splash.position.x + cosf(angle) * speed * t, splash.position.y + ( std::max)(0.0f, y),
+        const Vector3D pos = Vector3D(splash.position.x + cosf(angle) * speed * t, splash.position.y + (std::max)(0.0f, y),
                               splash.position.z + sinf(angle) * speed * t);
         this->addBillboard(batch, pos, 0.45f * splash.scale, color(0.85f, 0.94f, 1.0f, 0.9f));
     }

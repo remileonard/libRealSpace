@@ -28,8 +28,8 @@ const WingVortexEffect::WingTips &WingVortexEffect::wingTips(const RSEntity *ent
     float zmax = 0.0f;
     float zmin = 0.0f;
     for (const auto &v : entity->vertices) {
-        zmax = ( std::max)(zmax, (float)v.z);
-        zmin = ( std::min)(zmin, (float)v.z);
+        zmax = (std::max)(zmax, (float)v.z);
+        zmin = (std::min)(zmin, (float)v.z);
     }
     if (std::min(zmax, -zmin) > 1.0f) {
         for (int s = 0; s < 2; s++) {
@@ -122,7 +122,7 @@ void WingVortexEffect::addRibbon(int side, const RibbonStyle &st, float now) {
     EffectVertex prevRight;
     for (size_t i = 0; i < n; i++) {
         float age = now - points[i].t;
-        float u = ( std::min)(1.0f, age / LIFE);
+        float u = (std::min)(1.0f, age / LIFE);
         float a = st.alpha * points[i].s * powf(1.0f - u, 1.4f) * smooth(0.0f, 0.12f, u + 0.02f);
         float w = st.widthStart + (st.widthEnd - st.widthStart) * sqrtf(u);
         Vector3D c = points[i].p;
@@ -131,7 +131,7 @@ void WingVortexEffect::addRibbon(int side, const RibbonStyle &st, float now) {
             float hr = st.helixRadius * (0.4f + 1.6f * u);
             c = c + (frames[i].b1 * cosf(ph) + frames[i].b2 * sinf(ph)) * hr;
         }
-        Color col = color(st.tint.r, st.tint.g, st.tint.b, ( std::min)(1.0f, a));
+        Color col = color(st.tint.r, st.tint.g, st.tint.b, (std::min)(1.0f, a));
         float tv = distance[i] * 0.22f + (side ? 0.37f : 0.0f);
         EffectVertex left = vert(c + frames[i].s * w, 0.0f, tv, col);
         EffectVertex right = vert(c - frames[i].s * w, 1.0f, tv, col);

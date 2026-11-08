@@ -44,7 +44,7 @@ float EnhancedStrike::damageLevel(SCPlane *plane) const {
             lost += (float)(sub.second - std::min<uint16_t>(sub.second, current->second));
         }
     }
-    return total > 0.0f ? ( std::min)(1.0f, lost / total) : 0.0f;
+    return total > 0.0f ? (std::min)(1.0f, lost / total) : 0.0f;
 }
 
 // Same composition as SCRenderer::drawModelWithChilds: translate * yaw * pitch * roll
@@ -136,7 +136,7 @@ void EnhancedStrike::init() {
     this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
     this->cockpit3d = cfg.getString("Video", "cockpit", "2d") == "3d";
-    this->cockpitFov = ( std::min)(100.0f, ( std::max)(30.0f, (float)atof(cfg.getString("Video", "cockpit_fov", "45").c_str())));
+    this->cockpitFov = (std::min)(100.0f, (std::max)(30.0f, (float)atof(cfg.getString("Video", "cockpit_fov", "45").c_str())));
     printf("[enhanced] cockpit: %s, fov %.0f\n", this->cockpit3d ? "3d (forward, left, right and rear view)" : "2d", this->cockpitFov);
     this->waterSplashEnabled = cfg.getString("Video", "water_splash", "0") == "1";
     printf("[enhanced] water splash: %s\n", this->waterSplashEnabled ? "on" : "off");
@@ -192,13 +192,13 @@ void EnhancedStrike::updateOrbit() {
     const float halfHeight = (float)std::max(1, Screen->logical_height / 2);
     float mx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
     float my = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
-    float nx = ( std::min)(1.0f, ( std::max)(-1.0f, (mx - Screen->logical_width / 2) / halfWidth));
-    float ny = ( std::min)(1.0f, ( std::max)(-1.0f, (my - Screen->logical_height / 2) / halfHeight));
+    float nx = (std::min)(1.0f, (std::max)(-1.0f, (mx - Screen->logical_width / 2) / halfWidth));
+    float ny = (std::min)(1.0f, (std::max)(-1.0f, (my - Screen->logical_height / 2) / halfHeight));
     this->orbitYaw = nx * (float)M_PI;
-    this->orbitPitch = ( std::min)(1.35f, ( std::max)(-0.9f, (this->orbitInvertY ? -ny : ny) * 1.35f));
+    this->orbitPitch = (std::min)(1.35f, (std::max)(-0.9f, (this->orbitInvertY ? -ny : ny) * 1.35f));
     int wheel = EventManager::getInstance().getMouseWheel();
     if (wheel != 0) {
-        this->orbitZoom = ( std::min)(3.0f, ( std::max)(0.35f, this->orbitZoom * powf(0.9f, (float)wheel)));
+        this->orbitZoom = (std::min)(3.0f, (std::max)(0.35f, this->orbitZoom * powf(0.9f, (float)wheel)));
     }
     if (m_keyboard->isActionJustPressed(InputAction::MOUSE_MIDDLE)) {
         this->orbitZoom = 1.0f;

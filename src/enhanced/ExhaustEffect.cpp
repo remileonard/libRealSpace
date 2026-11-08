@@ -31,9 +31,9 @@ void ExhaustEffect::addStrip(float length, float width, float swell, Color c, fl
         float facing;
         Vector3D w = sideAxis(x, &facing);
         float r = NOZZLE_RADIUS * width * (1.0f + swell * sqrtf(u)) * (1.0f - powf(u, 1.7f)) + 0.02f;
-        float a = c.a * powf(1.0f - u, 1.1f) * ( std::min)(1.0f, 0.35f + u * 14.0f) * smooth(0.04f, 0.40f, facing);
+        float a = c.a * powf(1.0f - u, 1.1f) * (std::min)(1.0f, 0.35f + u * 14.0f) * smooth(0.04f, 0.40f, facing);
         float cool = 1.0f - 0.38f * u;
-        Color col = color(c.r * cool, c.g * cool * (1.0f - 0.25f * u), c.b * cool * (1.0f - 0.55f * u), ( std::min)(1.0f, a));
+        Color col = color(c.r * cool, c.g * cool * (1.0f - 0.25f * u), c.b * cool * (1.0f - 0.55f * u), (std::min)(1.0f, a));
         float tv = u * repeat - time * speed + phase;
         EffectVertex left = vert(toWorld(x, w.y * r, w.z * r), 0.0f, tv, col);
         EffectVertex right = vert(toWorld(x, -w.y * r, -w.z * r), 1.0f, tv, col);
@@ -49,7 +49,7 @@ void ExhaustEffect::addSprite(float x, float radius, Color c) {
     if (c.a <= 0.003f) {
         return;
     }
-    c.a = ( std::min)(1.0f, c.a);
+    c.a = (std::min)(1.0f, c.a);
     EffectVertex q[4];
     for (int k = 0; k < 4; k++) {
         float sx = (k == 0 || k == 3) ? -1.0f : 1.0f;
@@ -67,7 +67,7 @@ void ExhaustEffect::addDiamond(float x, float halfLength, float halfWidth, float
     }
     float facing;
     Vector3D w = sideAxis(x, &facing);
-    Color c = color(0.80f, 0.88f, 1.0f, ( std::min)(1.0f, alpha * smooth(0.05f, 0.4f, facing)));
+    Color c = color(0.80f, 0.88f, 1.0f, (std::min)(1.0f, alpha * smooth(0.05f, 0.4f, facing)));
     glows.quad(vert(toWorld(x - halfLength, -w.y * halfWidth, -w.z * halfWidth), 0.0f, 0.0f, c),
                vert(toWorld(x - halfLength, w.y * halfWidth, w.z * halfWidth), 1.0f, 0.0f, c),
                vert(toWorld(x + halfLength, w.y * halfWidth, w.z * halfWidth), 1.0f, 1.0f, c),
@@ -134,10 +134,10 @@ void ExhaustEffect::draw(const void *key, const Mat4 &modelMatrix, Vector3D nozz
     EffectTextures &tex = EffectTextures::get();
     model = modelMatrix;
     nozzle = nozzlePos;
-    t = ( std::min)(1.0f, ( std::max)(0.0f, thrust / 100.0f));
+    t = (std::min)(1.0f, (std::max)(0.0f, thrust / 100.0f));
     dry = smooth(0.08f, 0.72f, t);
     ab = smooth(0.70f, 0.76f, t);
-    abp = ( std::min)(1.0f, ( std::max)(0.0f, (t - 0.72f) / 0.28f));
+    abp = (std::min)(1.0f, (std::max)(0.0f, (t - 0.72f) / 0.28f));
     time = effectTime();
     flicker = 1.0f + 0.045f * sinf(time * 37.0f) + 0.035f * sinf(time * 61.0f + 1.3f) + 0.03f * sinf(time * 13.7f + 0.4f);
 
