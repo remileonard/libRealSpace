@@ -27,7 +27,7 @@ inline Color color(float r, float g, float b, float a) {
 }
 
 inline float smooth(float a, float b, float x) {
-    float t = std::min(1.0f, std::max(0.0f, (x - a) / (b - a)));
+    float t = ( std::min)(1.0f, ( std::max)(0.0f, (x - a) / (b - a)));
     return t * t * (3.0f - 2.0f * t);
 }
 

@@ -321,7 +321,7 @@ void SCRenderer::init(int width, int height) {
     Config &config = Config::instance();
     this->max_view_distance = config.getInt("Game", "max_view_distance", 160000);
     this->overlay_offset = config.getInt("Video", "overlay_offset", 200);
-    this->overlay_offset_distance = std::max(1, config.getInt("Video", "overlay_offset_distance", 250));
+    this->overlay_offset_distance = ( std::max)(1, config.getInt("Video", "overlay_offset_distance", 250));
     this->counter = 0;
 
     RSPalette palette;

@@ -21,7 +21,7 @@ int sliceAxis(int d, int total, int srcTotal) {
     if (d >= total - CORNER) {
         return srcTotal - (total - d);
     }
-    return CORNER + (d - CORNER) % std::max(1, srcTotal - 2 * CORNER);
+    return CORNER + (d - CORNER) % ( std::max)(1, srcTotal - 2 * CORNER);
 }
 
 }  // namespace
@@ -80,8 +80,8 @@ bool GameUI::init() {
     FrameBuffer source(UI_W, UI_H);
     source.fillWithColor(TRANSPARENT_INDEX);
     source.drawShape(&board);
-    this->plateW = std::min(board.GetWidth(), UI_W);
-    this->plateH = std::min(board.GetHeight(), UI_H);
+    this->plateW = ( std::min)(board.GetWidth(), UI_W);
+    this->plateH = ( std::min)(board.GetHeight(), UI_H);
     if (this->plateW < CORNER * 3 || this->plateH < CORNER * 3) {
         return false;
     }
@@ -107,13 +107,13 @@ bool GameUI::init() {
 void GameUI::begin(float mouseX, float mouseY, float logicalWidth, float logicalHeight, bool down, bool pressed) {
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    this->viewW = std::max(1.0f, (float)viewport[2]);
-    this->viewH = std::max(1.0f, (float)viewport[3]);
-    this->scale = std::max(1.0f, this->viewH * SCREEN_FRACTION / (float)UI_H);
+    this->viewW = ( std::max)(1.0f, (float)viewport[2]);
+    this->viewH = ( std::max)(1.0f, (float)viewport[3]);
+    this->scale = ( std::max)(1.0f, this->viewH * SCREEN_FRACTION / (float)UI_H);
     this->originX = std::floor((this->viewW - (float)UI_W * this->scale) * 0.5f);
     this->originY = std::floor((this->viewH - (float)UI_H * this->scale) * 0.5f);
-    this->cursorX = mouseX * this->viewW / std::max(1.0f, logicalWidth);
-    this->cursorY = mouseY * this->viewH / std::max(1.0f, logicalHeight);
+    this->cursorX = mouseX * this->viewW / ( std::max)(1.0f, logicalWidth);
+    this->cursorY = mouseY * this->viewH / ( std::max)(1.0f, logicalHeight);
     this->mouseX = (int)std::floor((this->cursorX - this->originX) / this->scale);
     this->mouseY = (int)std::floor((this->cursorY - this->originY) / this->scale);
     this->mouseDown = down;
@@ -134,8 +134,8 @@ void GameUI::fillRect(int x, int y, int w, int h, uint8_t color) {
 // The board carries the recessed button slots (and faint texts) in its middle, so only its clean margins are used:
 // corners and edges come from the margins, the inside repeats the brushed metal of the left margin column.
 void GameUI::panel(int x, int y, int w, int h) {
-    const int innerW = std::max(1, this->plateW - 2 * CORNER);
-    const int innerH = std::max(1, this->plateH - 2 * CORNER);
+    const int innerW = ( std::max)(1, this->plateW - 2 * CORNER);
+    const int innerH = ( std::max)(1, this->plateH - 2 * CORNER);
     for (int dy = 0; dy < h; dy++) {
         for (int dx = 0; dx < w; dx++) {
             const bool left = dx < CORNER;
@@ -179,8 +179,8 @@ void GameUI::label(const char *text, int centerX, int y, int scale) {
     scratch.fillWithColor(TRANSPARENT_INDEX);
     const int margin = 2;
     scratch.printText(this->font, {margin, margin}, s, TEXT_COLOR);
-    const int srcW = std::min(UI_W, width + margin * 2 + 2);
-    const int srcH = std::min(UI_H, this->capHeight + margin * 2 + 4);
+    const int srcW = ( std::min)(UI_W, width + margin * 2 + 2);
+    const int srcH = ( std::min)(UI_H, this->capHeight + margin * 2 + 4);
     const int destX = centerX - (width * scale) / 2 - margin * scale;
     const int destY = y - margin * scale;
     for (int sy = 0; sy < srcH; sy++) {
@@ -280,12 +280,12 @@ void GameUI::sheet(const char *name) {
         shape->SetPosition(&position);
         this->picture->drawShape(shape);
         x += w + 2;
-        rowHeight = std::max(rowHeight, h);
+        rowHeight = ( std::max)(rowHeight, h);
     }
 }
 
 void GameUI::drawCursor(float scale) const {
-    const float s = std::max(1.0f, scale * 0.9f);
+    const float s = ( std::max)(1.0f, scale * 0.9f);
     const float x = this->cursorX;
     const float y = this->cursorY;
     // arrow: head triangle and a short tail, black outline first
