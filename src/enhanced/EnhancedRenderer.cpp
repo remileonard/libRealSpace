@@ -328,7 +328,7 @@ void EnhancedRenderer::applyTextureFilter(const Texture *texture) {
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     if (this->texture_filter >= 2 && this->max_anisotropy > 1.0f) {
-        glTexParameterf(GL_TEXTURE_2D, SC_TEXTURE_MAX_ANISOTROPY, std::min(16.0f, this->max_anisotropy));
+        glTexParameterf(GL_TEXTURE_2D, SC_TEXTURE_MAX_ANISOTROPY, ( std::min)(16.0f, this->max_anisotropy));
     }
 }
 

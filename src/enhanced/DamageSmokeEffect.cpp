@@ -64,7 +64,7 @@ void DamageSmokeEffect::addSmoke(const std::vector<Vector3D> &points, float inte
             float size = base * (0.62f + 0.38f * hash01(h, 41 + k));
             float spin = hash01(h, 61 + k) * 0.12f + 0.10f;
             float rot = hash01(h, 51 + k) * 6.2831853f + time * spin * (k & 1 ? 1.0f : -1.0f);
-            addBillboard(batch, c, size, rot, color(g + tint, g + tint * 0.6f, g, std::min(1.0f, 0.95f * fade)));
+            addBillboard(batch, c, size, rot, color(g + tint, g + tint * 0.6f, g, ( std::min)(1.0f, 0.95f * fade)));
         }
     }
     batch.flush(EffectTextures::get().smoke, BlendMode::Alpha);
@@ -87,7 +87,7 @@ void DamageSmokeEffect::addFire(const std::vector<Vector3D> &points, float inten
             float size = (3.2f + 8.5f * t) * (0.75f + 0.5f * hash01(h, 101 + k)) * (0.85f + 0.25f * flick);
             // white-yellow core -> orange -> deep red towards the tip
             float a = powf(1.0f - t, 0.8f) * 0.60f * flick * strength;
-            addBillboard(batch, c, size, 0.0f, color(1.0f, 0.92f - 0.72f * t, 0.50f * (1.0f - t) * (1.0f - t), std::min(1.0f, a)));
+            addBillboard(batch, c, size, 0.0f, color(1.0f, 0.92f - 0.72f * t, 0.50f * (1.0f - t) * (1.0f - t), ( std::min)(1.0f, a)));
         }
     }
     const uint32_t tick = (uint32_t)(time * 14.0f);
@@ -111,7 +111,7 @@ void DamageSmokeEffect::draw(const std::vector<Vector3D> &points, float intensit
     }
     time = effectTime();
     eye = CameraBasis::fromView(view).eye;
-    float inten = std::min(1.0f, std::max(0.0f, intensity));
+    float inten = ( std::min)(1.0f, ( std::max)(0.0f, intensity));
     addSmoke(points, inten);
     if (burning) {
         addFire(points, inten);
