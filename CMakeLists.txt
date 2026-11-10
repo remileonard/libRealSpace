@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.26.0)
+foreach(policy CMP0156 CMP0167)
+    if(POLICY ${policy})
+        cmake_policy(SET ${policy} NEW)
+    endif()
+endforeach()
 project(LibRealSpace VERSION 0.7.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -81,7 +86,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/resources/MID_36.IFF" DESTINATION "${ASSETS_DIR}"
 file(COPY "${CMAKE_SOURCE_DIR}/resources/TO1MID1.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/TO1MID2.IFF" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/TO1MID3.IFF" DESTINATION "${ASSETS_DIR}")
-file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${FONTS_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/config.ini" DESTINATION "${CMAKE_BINARY_DIR}")
 # Installation des exécutables et des DLLs
 install(TARGETS ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${CONFIG_TARGET_NAME} DESTINATION ".")
