@@ -79,8 +79,12 @@ bool SCCockpit::project_to_screen(Vector3D coord, int &Xout, int &Yout) {
 }
 SCCockpit::SCCockpit() {
     this->cockpit_camera.setPersective(45.0f, 320.0f / 200.0f, 0.1f, 10000.0f);
+    this->subscription_id = MessageBus::getInstance().subscribeEvent(std::bind(&SCCockpit::onEvent, this, std::placeholders::_1));
 }
 SCCockpit::~SCCockpit() {
+    if (this->subscription_id != -1) {
+        MessageBus::getInstance().unsubscribe(this->subscription_id);
+    }
     if (this->hud_framebuffer) {
         delete this->hud_framebuffer;
         this->hud_framebuffer = nullptr;
@@ -92,6 +96,28 @@ SCCockpit::~SCCockpit() {
     if (this->mfd_left_framebuffer) {
         delete this->mfd_left_framebuffer;
         this->mfd_left_framebuffer = nullptr;
+    }
+}
+void SCCockpit::onEvent(const EventMessage &event) {
+    if (auto hit = dynamic_cast<const MissionEventActorHit *>(&event)) {
+        this->onPlayerHit(*hit);
+    }
+}
+
+void SCCockpit::onPlayerHit(const MissionEventActorHit &event) {
+    if (this->player_plane == nullptr || event.target == nullptr) {
+        return;
+    }
+    if (event.target->plane != this->player_plane) {
+        return;
+    }
+    if (!this->hit_animation_playing) {
+        this->cpt_x = 0;
+        this->cpt_y = 0;
+        this->spd_x = rand() % 2 + 1;
+        this->spd_y = rand() % 2 + 1;
+        this->nbframes = 20;
+        this->hit_animation_playing = true;
     }
 }
 /**
@@ -1473,12 +1499,37 @@ void SCCockpit::Render(CockpitFace face) {
                     this->hud->large_hud->HINF->center_x - this->hud_framebuffer->width / 2,
                     this->hud->large_hud->HINF->center_y - this->hud_framebuffer->height / 2
                 };
-                fb->blit(this->hud_framebuffer->framebuffer, hud_pos.x, hud_pos.y , this->hud_framebuffer->width,
-                            this->hud_framebuffer->height);
+                fb->blit(this->hud_framebuffer->framebuffer, hud_pos.x, hud_pos.y , this->hud_framebuffer->width, this->hud_framebuffer->height);
             }
         }
-        fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
-
+        if (!this->hit_animation_playing) {
+            fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
+        } else if (this->nbframes > 0) {
+            nbframes--;
+            FrameBuffer *hit_fb = new FrameBuffer(320,200);
+            hit_fb->clear();
+            hit_fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
+            cpt_y+=spd_y;
+            cpt_x+=spd_x;
+            fb->blit(hit_fb->framebuffer, cpt_x, cpt_y, hit_fb->width, hit_fb->height);
+            delete hit_fb;
+            if (cpt_x > 4) {
+                spd_x = -spd_x;
+            }
+            if (cpt_x < -4) {
+                spd_x = -spd_x;
+            }
+            if (cpt_y > 4) {
+                spd_y = -spd_y;
+            }
+            if (cpt_y < -4) {
+                spd_y = -spd_y;
+            }   
+            if (nbframes == 0) {
+                this->hit_animation_playing = false;
+            }
+        }
+        
         if (this->face  == CockpitFace::CP_FRONT || this->face  == CockpitFace::CP_BIG) {
             if (this->is_shooting && this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == ID_20MM) {
                 RSImageSet *muzzle_flash_set = nullptr;

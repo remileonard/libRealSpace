@@ -498,7 +498,7 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
         this->hasBeenHit(event.weapon, event.attacker);
         
         event.target->weapon_shooted_at_me = nullptr;
-        if (event.target->object->alive == true) {
+        if (event.target->object->alive == false) {
             this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
             if (this->mission->sound.sounds.size() > 0) {
                 RSMixer &Mixer = RSMixer::getInstance();

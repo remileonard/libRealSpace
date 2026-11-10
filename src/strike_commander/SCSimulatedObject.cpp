@@ -444,7 +444,9 @@ std::tuple<Vector3D, Vector3D> GunSimulatedObject::ComputeTrajectoryUntilGround(
     return { position, velocity };
 }
 void GunSimulatedObject::Simulate(int tps) {
-    
+    if (!this->alive) {
+        return;
+    }
     // Actualisation des attributs de l'objet
     Vector3D position;
     Vector3D velocity;
@@ -472,7 +474,13 @@ void GunSimulatedObject::Simulate(int tps) {
     if (!this->is_simulated) {
         for (auto entity: this->mission->actors) {
             if (this->CheckCollision(entity)) {
-                entity->hasBeenHit(this, this->shooter);
+                auto hit_event = std::make_unique<MissionEventActorHit>();
+                hit_event->attacker = this->shooter;
+                hit_event->target = entity;
+                hit_event->weapon = this;
+                hit_event->mission = this->mission;
+                MessageBus::getInstance().publish(std::move(hit_event));
+                
                 this->alive = false;
                 break;
             }
@@ -486,7 +494,12 @@ void GunSimulatedObject::Simulate(int tps) {
                         continue;
                     }
                     if (distance < this->obj->wdat->radius) {
-                        entity->hasBeenHit(this, this->shooter);
+                        auto hit_event = std::make_unique<MissionEventActorHit>();
+                        hit_event->attacker = this->shooter;
+                        hit_event->target = entity;
+                        hit_event->weapon = this;
+                        hit_event->mission = this->mission;
+                        MessageBus::getInstance().publish(std::move(hit_event));
                     }
                 }
             }

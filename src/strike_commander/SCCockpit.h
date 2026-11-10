@@ -35,6 +35,15 @@ private:
     Camera cockpit_camera;
     MISN_PART *current_target{nullptr};
     SCMissionActors *current_target_actor{nullptr};
+    bool hit_animation_playing{false};
+    int cpt_x{0};
+    int spd_x{0};
+    int cpt_y{0};
+    int spd_y{0};
+    int nbframes{0};
+    MessageBus::SubscriptionId subscription_id{-1};
+    void onEvent(const EventMessage &event);
+    void onPlayerHit(const MissionEventActorHit &event);
 
     bool project_to_screen(Vector3D coord, int &Xout, int &Yout);
     void IdentifyRAWSContact(SCMissionActors *actor, FrameBuffer *fb, float headingRad, Point2D pmfd_left, Point2D raws_size, bool is_zoomed, int rsize);
