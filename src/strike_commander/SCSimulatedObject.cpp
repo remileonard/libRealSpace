@@ -210,6 +210,9 @@ bool SCSimulatedObject::CheckCollision(SCMissionActors *entity) {
     return false;
 }
 void SCSimulatedObject::Simulate(int tps) {
+    if (!this->alive) {
+        return;
+    }
     Vector3D position, velocity;
     if (this->obj->dynn_miss != nullptr) {
         Vector3D current = {this->x, this->y, this->z};
@@ -299,7 +302,12 @@ void SCSimulatedObject::Simulate(int tps) {
     } else {
         for (auto entity: this->mission->actors) {
             if (this->CheckCollision(entity)) {
-                entity->hasBeenHit(this, this->shooter);
+                auto hit_event = std::make_unique<MissionEventActorHit>();
+                hit_event->attacker = this->shooter;
+                hit_event->target = entity;
+                hit_event->weapon = this;
+                hit_event->mission = this->mission;
+                MessageBus::getInstance().publish(std::move(hit_event));
                 this->alive = false;
                 if (this->target != nullptr) {
                     this->target->weapon_shooted_at_me = nullptr;
@@ -378,7 +386,12 @@ void SCSimulatedObject::Simulate(int tps) {
             }
             for (auto entity: this->mission->actors) {
                 if (this->CheckCollision(entity)) {
-                    entity->hasBeenHit(this, this->shooter);
+                    auto hit_event = std::make_unique<MissionEventActorHit>();
+                    hit_event->attacker = this->shooter;
+                    hit_event->target = entity;
+                    hit_event->weapon = this;
+                    hit_event->mission = this->mission;
+                    MessageBus::getInstance().publish(std::move(hit_event));
                 }
             }
         }
@@ -883,6 +896,9 @@ std::tuple<Vector3D, Vector3D> AgmSimulatedObject::ComputeTrajectory(int tps) {
 // au plus et dans le cône tracking_cone du nez), touché ; traînée allumée pendant tout le vol
 // (SmokeTrail_EnableIfModelHasSmok_3D566 au lancement).
 void AgmSimulatedObject::Simulate(int tps) {
+    if (!this->alive) {
+        return;
+    }
     this->tps = tps;
     Vector3D current = {
         this->x,
@@ -954,7 +970,12 @@ void AgmSimulatedObject::Simulate(int tps) {
             if (this->CheckCollision(entity)) {
                 printf("AGM %s t=%.2fs touche %s (sans cible)\n", this->obj->name.c_str(),
                        (float)this->run_iterations / (float)tps, entity->actor_name.c_str());
-                entity->hasBeenHit(this, this->shooter);
+                auto hit_event = std::make_unique<MissionEventActorHit>();
+                hit_event->attacker = this->shooter;
+                hit_event->target = entity;
+                hit_event->weapon = this;
+                hit_event->mission = this->mission;
+                MessageBus::getInstance().publish(std::move(hit_event));
                 this->alive = false;
                 if (entity->object->alive == true) {
                     this->explode(position);
@@ -1006,7 +1027,12 @@ void AgmSimulatedObject::Simulate(int tps) {
             for (auto entity : this->mission->actors) {
                 if (this->CheckCollision(entity)) {
                     printf("AGM %s : %s dans le rayon de l'impact\n", this->obj->name.c_str(), entity->actor_name.c_str());
-                    entity->hasBeenHit(this, this->shooter);
+                    auto hit_event = std::make_unique<MissionEventActorHit>();
+                    hit_event->attacker = this->shooter;
+                    hit_event->target = entity;
+                    hit_event->weapon = this;
+                    hit_event->mission = this->mission;
+                    MessageBus::getInstance().publish(std::move(hit_event));
                 }
             }
         }
