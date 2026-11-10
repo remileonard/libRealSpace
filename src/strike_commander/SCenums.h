@@ -358,7 +358,7 @@ enum SoundEffectIds {
     ENGINE_MIL_SHUT_DOWN = 28,
     ENGINE_AFB_SHUT_DOWN = 29,
     ENGINE_AFB_TO_MIL = 30,
-    DONT_KNOW = 31
+    GUN_HIT = 31
 };
 enum GameFlowOpCode {
     EFECT_OPT_CONV = 0,
