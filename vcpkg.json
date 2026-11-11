@@ -18,6 +18,7 @@
     "sdl2-ttf",
     "nativefiledialog-extended",
     "boost-filesystem",
+    "libmt32emu",
     "gtest"
   ]
 }

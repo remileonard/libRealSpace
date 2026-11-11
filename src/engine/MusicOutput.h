@@ -7,6 +7,7 @@
 //  with the files it plays (RSMixer::init):
 //    OplDevice           .ADL + STRIKE.AD, built-in OPL3 emulation
 //    Mt32Device          .ROL + STRIKE.MT, MIDI port (MusicOutputs.h)
+//    Mt32EmuDevice       .ROL + STRIKE.MT, MT-32 emulation libmt32emu (Mt32EmuOutput.h)
 //    GeneralMidiDevice   .MID, MIDI port or SoundFont (MusicOutputs.h)
 //
 #pragma once

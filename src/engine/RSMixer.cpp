@@ -69,6 +69,7 @@ void RSMixer::init() {
         int profile = cfg.getInt("Sound", "midi_music", 0);
         const std::string port = cfg.getString("Sound", "midi_port", "");
         const std::string soundfont = cfg.getString("Sound", "soundfont", "");
+        const std::string mt32RomDir = cfg.getString("Sound", "mt32_rom_dir", "./assets/mt32");
         const bool debug = cfg.getInt("Sound", "midi_debug", 0) != 0;
         std::lock_guard<std::recursive_mutex> lock(engineMutex);
         switch (profile) {
@@ -90,6 +91,14 @@ void RSMixer::init() {
             auto mt32 = std::make_unique<Mt32Device>(debug);
             if (!port.empty() && mt32->open(port.c_str())) {
                 this->device = std::move(mt32);
+                this->music = new RSMusic("ROL", "RMUSIC.PAK", "STRIKE.MT", "ROL", "STRIKE.MT");
+            }
+            break;
+        }
+        case 3: {
+            auto mt32emu = std::make_unique<Mt32EmuDevice>(debug);
+            if (mt32emu->open(mt32RomDir, this->sampleRate)) {
+                this->device = std::move(mt32emu);
                 this->music = new RSMusic("ROL", "RMUSIC.PAK", "STRIKE.MT", "ROL", "STRIKE.MT");
             }
             break;

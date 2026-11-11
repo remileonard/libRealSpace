@@ -82,10 +82,13 @@ int main(int argc, char* argv[]) {
     bool midi_debug = config.getInt("Sound", "midi_debug", 0) != 0;
     char soundfont[512];
     snprintf(soundfont, sizeof(soundfont), "%s", config.getString("Sound", "soundfont", "").c_str());
+    char mt32_rom_dir[512];
+    snprintf(mt32_rom_dir, sizeof(mt32_rom_dir), "%s", config.getString("Sound", "mt32_rom_dir", "./assets/mt32").c_str());
     const char *midi_music_labels[] = {
         "AdLib",
         "General MIDI (SC-155)",
         "Roland MT-32",
+        "Roland MT-32 (emulation)",
     };
     DebugControlMapping controlMapping;
     GameEngine::setInstance(std::make_unique<GameEngine>());
@@ -187,9 +190,10 @@ int main(int argc, char* argv[]) {
                     ImGui::InputText(_labelPrefix("Bindings File").c_str(), bindings_file, sizeof(bindings_file));
                 }
                 if (ImGui::CollapsingHeader("Sound", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::Combo(_labelPrefix("Music Output").c_str(), &midi_music, midi_music_labels, 3);
+                    ImGui::Combo(_labelPrefix("Music Output").c_str(), &midi_music, midi_music_labels, 4);
                     ImGui::InputText(_labelPrefix("MIDI Port").c_str(), midi_port, sizeof(midi_port));
                     ImGui::InputText(_labelPrefix("SoundFont").c_str(), soundfont, sizeof(soundfont));
+                    ImGui::InputText(_labelPrefix("MT-32 ROM Dir").c_str(), mt32_rom_dir, sizeof(mt32_rom_dir));
                     ImGui::Checkbox(_labelPrefix("MIDI Debug").c_str(), &midi_debug);
                 }
 
@@ -220,6 +224,7 @@ int main(int argc, char* argv[]) {
                     config.setInt ("Sound",  "midi_music", midi_music);
                     config.setString("Sound", "midi_port", midi_port);
                     config.setString("Sound", "soundfont", soundfont);
+                    config.setString("Sound", "mt32_rom_dir", mt32_rom_dir);
                     config.setInt ("Sound",  "midi_debug", midi_debug ? 1 : 0);
                     config.save(configPath);
                 }

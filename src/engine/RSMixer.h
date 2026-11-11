@@ -21,6 +21,7 @@
 #include "AILXmidiDriver.h"
 #include "SCMusicSequencer.h"
 #include "MusicOutputs.h"
+#include "Mt32EmuOutput.h"
 #include <memory>
 
 class RSMixer {
