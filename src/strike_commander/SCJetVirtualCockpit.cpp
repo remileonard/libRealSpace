@@ -50,36 +50,36 @@ const JetCockpitLayout &SCJetVirtualCockpit::f22Layout() {
 SCJetVirtualCockpit::SCJetVirtualCockpit(SCCockpit *cockpit, const JetCockpitLayout &layout)
     : SCVirtualCockpit(cockpit), layout(layout) {}
 
-void SCJetVirtualCockpit::drawInstruments(const VirtualCockpitContext &ctx) {
+void SCJetVirtualCockpit::updateInstruments(const VirtualCockpitContext &ctx) {
     this->renderHUD(ctx);
     if (this->cockpit->hud != nullptr) {
-        this->drawPanel(this->cockpit->hud_framebuffer, this->layout.hud);
+        this->addPanel(this->cockpit->hud_framebuffer, this->layout.hud);
     }
     if (this->cockpit->cockpit->MONI.SHAP.data != nullptr && this->cockpit->mfd_right_framebuffer != nullptr &&
         this->cockpit->mfd_left_framebuffer != nullptr) {
         this->renderMFDRight();
-        this->drawPanel(this->cockpit->mfd_right_framebuffer, this->layout.mfd_right);
+        this->addPanel(this->cockpit->mfd_right_framebuffer, this->layout.mfd_right);
         this->renderMFDLeft();
-        this->drawPanel(this->cockpit->mfd_left_framebuffer, this->layout.mfd_left);
+        this->addPanel(this->cockpit->mfd_left_framebuffer, this->layout.mfd_left);
     }
     if (this->cockpit->cockpit->MONI.INST.RAWS.NORM.data != nullptr && this->cockpit->raws_framebuffer != nullptr) {
         this->renderRAWS();
-        this->drawPanel(this->cockpit->raws_framebuffer, this->layout.raws);
+        this->addPanel(this->cockpit->raws_framebuffer, this->layout.raws);
     }
-    this->drawTargetCamera(ctx);
+    this->addTargetCamera(ctx);
     if (!this->layout.alti.empty() && this->cockpit->alti_framebuffer != nullptr) {
         this->renderAlti();
-        this->drawPanel(this->cockpit->alti_framebuffer, this->layout.alti);
+        this->addPanel(this->cockpit->alti_framebuffer, this->layout.alti);
     }
     if (!this->layout.speed.empty() && this->cockpit->speed_framebuffer != nullptr) {
         this->renderSpeed();
-        this->drawPanel(this->cockpit->speed_framebuffer, this->layout.speed);
+        this->addPanel(this->cockpit->speed_framebuffer, this->layout.speed);
     }
     if (this->cockpit->comm_framebuffer != nullptr && this->renderComm()) {
-        this->drawPanel(this->cockpit->comm_framebuffer, this->layout.comm);
+        this->addPanel(this->cockpit->comm_framebuffer, this->layout.comm);
     }
     if (ctx.mouse_control) {
         this->renderMouse();
-        this->drawPanel(this->mouse_framebuffer, this->layout.mouse);
+        this->addPanel(this->mouse_framebuffer, this->layout.mouse);
     }
 }

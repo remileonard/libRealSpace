@@ -35,7 +35,7 @@ public:
 
 protected:
     const JetCockpitLayout &layout;
-    void drawInstruments(const VirtualCockpitContext &ctx) override;
+    void updateInstruments(const VirtualCockpitContext &ctx) override;
 };
 
 #endif

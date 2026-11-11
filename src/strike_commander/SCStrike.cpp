@@ -1623,6 +1623,10 @@ void SCStrike::runFrame(void) {
     } break;
     }
     this->afterCameraPlaced();
+    if (this->virtual_cockpit != nullptr) {
+        // The instruments are updated once per frame, even when the cockpit is rendered for each VR eye.
+        this->virtual_cockpit->beginFrame();
+    }
 
     auto renderScene = [&](int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit) {
         Renderer.bindCameraProjectionAndViewViewport(viewportW, viewportH, projVerticalOffset);

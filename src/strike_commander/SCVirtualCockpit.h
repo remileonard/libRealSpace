@@ -27,13 +27,19 @@ struct VirtualCockpitContext {
  *
  * SCCockpit fills the instrument framebuffers (HUD, MFDs, ...), a virtual
  * cockpit decides where those instruments are displayed in 3D. Each aircraft
- * family provides its own subclass by implementing drawInstruments().
+ * family provides its own subclass by implementing updateInstruments().
+ *
+ * The instruments are updated once per frame (first render() after
+ * beginFrame()) and their GPU textures are reused, so rendering the cockpit
+ * for several views (VR eyes) only draws the geometry again.
  */
 class SCVirtualCockpit {
 public:
     explicit SCVirtualCockpit(SCCockpit *cockpit);
     virtual ~SCVirtualCockpit();
 
+    // Call once per frame, before the first render().
+    void beginFrame();
     void render(const VirtualCockpitContext &ctx);
     void releaseTextures();
 
@@ -43,12 +49,13 @@ protected:
 
     SCCockpit *cockpit{nullptr};
     FrameBuffer *mouse_framebuffer{nullptr};
-    // Cockpit frame used by drawPanel(), valid during render().
+    // Cockpit frame of the panels, valid during render().
     Vector3D cockpit_pos{0.0f, 0.0f, 0.0f};
     Vector3D cockpit_rot{0.0f, 0.0f, 0.0f};
 
     virtual void drawModel(const VirtualCockpitContext &ctx);
-    virtual void drawInstruments(const VirtualCockpitContext &ctx) = 0;
+    // Fills the instrument framebuffers and declares the panels to draw with addPanel().
+    virtual void updateInstruments(const VirtualCockpitContext &ctx) = 0;
 
     // Instrument framebuffer fillers, shared by the cockpit implementations.
     void renderHUD(const VirtualCockpitContext &ctx);
@@ -60,16 +67,24 @@ protected:
     bool renderComm();
     void renderMouse();
 
-    // Uploads fb as a texture and draws it on quad, given in the cockpit frame.
-    void drawPanel(FrameBuffer *fb, const std::vector<Vector3D> &quad);
-    void drawPanel(FrameBuffer *fb, Vector3D position, Vector3D orientation, const std::vector<Vector3D> &quad);
+    // Uploads fb to its texture and draws it this frame on quad, given in the cockpit frame.
+    void addPanel(FrameBuffer *fb, const std::vector<Vector3D> &quad);
     // Target camera view, drawn as a billboard in front of the camera.
-    void drawTargetCamera(const VirtualCockpitContext &ctx);
+    void addTargetCamera(const VirtualCockpitContext &ctx);
 
 private:
-    // Textures are kept one extra render so the GPU is done with them before deletion.
-    std::vector<Texture *> previous_textures;
-    std::vector<Texture *> current_textures;
+    enum class PanelSpace { COCKPIT, CAMERA_BILLBOARD };
+    struct Panel {
+        Texture *texture;
+        PanelSpace space;
+        std::vector<Vector3D> quad;
+    };
+    std::unordered_map<FrameBuffer *, Texture *> textures;
+    std::vector<Panel> panels;
+    bool instruments_dirty{true};
+
+    Texture *uploadFramebuffer(FrameBuffer *fb);
+    void drawPanel(const Panel &panel, const VirtualCockpitContext &ctx);
 };
 
 #endif

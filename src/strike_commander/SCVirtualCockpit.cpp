@@ -14,29 +14,23 @@ SCVirtualCockpit::~SCVirtualCockpit() {
     this->mouse_framebuffer = nullptr;
 }
 
+void SCVirtualCockpit::beginFrame() {
+    this->instruments_dirty = true;
+}
+
 void SCVirtualCockpit::releaseTextures() {
-    for (Texture *tex : this->previous_textures) {
-        delete tex;
+    this->panels.clear();
+    for (auto &entry : this->textures) {
+        delete entry.second;
     }
-    this->previous_textures.clear();
-    this->previous_textures.shrink_to_fit();
-    for (Texture *tex : this->current_textures) {
-        delete tex;
-    }
-    this->current_textures.clear();
-    this->current_textures.shrink_to_fit();
+    this->textures.clear();
+    this->instruments_dirty = true;
 }
 
 void SCVirtualCockpit::render(const VirtualCockpitContext &ctx) {
     if (this->cockpit == nullptr || this->cockpit->cockpit == nullptr || ctx.camera == nullptr || ctx.plane == nullptr) {
         return;
     }
-    for (Texture *tex : this->previous_textures) {
-        delete tex;
-    }
-    this->previous_textures.clear();
-    this->previous_textures.swap(this->current_textures);
-
     const Vector3D camPos = {
         ctx.camera->getPosition().x,
         ctx.camera->getPosition().y,
@@ -52,7 +46,14 @@ void SCVirtualCockpit::render(const VirtualCockpitContext &ctx) {
                          -ctx.plane->twist / 10.0f};
 
     this->drawModel(ctx);
-    this->drawInstruments(ctx);
+    if (this->instruments_dirty) {
+        this->panels.clear();
+        this->updateInstruments(ctx);
+        this->instruments_dirty = false;
+    }
+    for (const Panel &panel : this->panels) {
+        this->drawPanel(panel, ctx);
+    }
 
     glPopMatrix();
 }
@@ -127,16 +128,7 @@ void SCVirtualCockpit::renderMouse() {
     this->mouse_framebuffer->drawShape(Mouse.appearances[SCMouse::CURSOR]);
 }
 
-void SCVirtualCockpit::drawPanel(FrameBuffer *fb, const std::vector<Vector3D> &quad) {
-    this->drawPanel(fb, this->cockpit_pos, this->cockpit_rot, quad);
-}
-
-void SCVirtualCockpit::drawPanel(FrameBuffer *fb, Vector3D position, Vector3D orientation, const std::vector<Vector3D> &quad) {
-    if (fb == nullptr || quad.size() != 4) {
-        return;
-    }
-    Texture *texture = new Texture();
-    texture->animated = true;
+Texture *SCVirtualCockpit::uploadFramebuffer(FrameBuffer *fb) {
     RSImage image;
     image.name[0] = '\0';
     image.flags = 0;
@@ -144,22 +136,50 @@ void SCVirtualCockpit::drawPanel(FrameBuffer *fb, Vector3D position, Vector3D or
     image.data = fb->framebuffer;
     image.width = fb->width;
     image.height = fb->height;
-    texture->set(&image);
+
+    Texture *&texture = this->textures[fb];
+    if (texture != nullptr && (texture->width != (size_t)fb->width || texture->height != (size_t)fb->height)) {
+        delete texture;
+        texture = nullptr;
+    }
+    if (texture == nullptr) {
+        texture = new Texture();
+        texture->animated = true;
+        texture->set(&image);
+    }
     texture->updateContent(&image);
-    Renderer.drawTexturedQuad(position, orientation, quad, texture);
+    // A new texture is sent to the GPU by its first drawTexturedQuad.
+    if (texture->initialized) {
+        Renderer.uploadTextureContentToGPU(texture);
+    }
     // The pixels belong to the framebuffer, not to the image.
     image.data = nullptr;
-    this->current_textures.push_back(texture);
+    return texture;
 }
 
-void SCVirtualCockpit::drawTargetCamera(const VirtualCockpitContext &ctx) {
+void SCVirtualCockpit::addPanel(FrameBuffer *fb, const std::vector<Vector3D> &quad) {
+    if (fb == nullptr || quad.size() != 4) {
+        return;
+    }
+    this->panels.push_back({this->uploadFramebuffer(fb), PanelSpace::COCKPIT, quad});
+}
+
+void SCVirtualCockpit::addTargetCamera(const VirtualCockpitContext &ctx) {
     FrameBuffer *fb = this->cockpit->target_framebuffer;
     if (fb == nullptr || ctx.camera->isUsingCustomMatrices()) {
         return;
     }
     fb->fillWithColor(255);
     this->cockpit->RenderTargetWithCam({0, 0}, fb);
+    this->panels.push_back({this->uploadFramebuffer(fb), PanelSpace::CAMERA_BILLBOARD, {}});
+}
 
+void SCVirtualCockpit::drawPanel(const Panel &panel, const VirtualCockpitContext &ctx) {
+    if (panel.space == PanelSpace::COCKPIT) {
+        Renderer.drawTexturedQuad(this->cockpit_pos, this->cockpit_rot, panel.quad, panel.texture);
+        return;
+    }
+    // Billboard in front of the camera of the current view.
     Vector3D right = ctx.camera->getRight();
     Vector3D up = ctx.camera->getUp();
     Vector3D quadPos = ctx.camera->getPosition() + ctx.camera->getForward() * 8.0f;
@@ -170,10 +190,10 @@ void SCVirtualCockpit::drawTargetCamera(const VirtualCockpitContext &ctx) {
     const float projectionYOffset = -1.5f;
     Vector3D center = quadPos + up * projectionYOffset;
 
-    this->drawPanel(fb, {0, 0, 0}, {0, 0, 0}, {
+    Renderer.drawTexturedQuad({0, 0, 0}, {0, 0, 0}, {
         center + (up * height) - (right * width),
         center + (up * height) + (right * width),
         center - (up * height) + (right * width),
         center - (up * height) - (right * width)
-    });
+    }, panel.texture);
 }
