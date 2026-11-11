@@ -71,9 +71,14 @@ SCMissionActors *PSProg::actorOrSelf(uint16_t actor_id) {
     return this->findActor(actor_id);
 }
 
+// Chunk KIND de l'objet : une mission de Pacific Strike ne crée que des PSEntity (PSMission::createEntity).
+PSKind PSProg::actorKind(SCMissionActors *candidate) {
+    return static_cast<PSEntity *>(candidate->object->entity)->kind;
+}
+
 // MissionScript_PickRandomObjectOfType_545A4 : 6 objets au plus dont le chunk KIND vaut kind et, pour un avion,
 // dont le camp vaut team ; un tiré au hasard.
-SCMissionActors *PSProg::pickRandomOfKind(uint8_t kind, int team) {
+SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
     std::vector<SCMissionActors *> found;
     for (auto candidate : this->mission->actors) {
         if (found.size() >= 6) {
@@ -85,7 +90,7 @@ SCMissionActors *PSProg::pickRandomOfKind(uint8_t kind, int team) {
         if (!candidate->is_active && candidate != this->mission->player) {
             continue;
         }
-        if (static_cast<PSEntity *>(candidate->object->entity)->kind != kind) {
+        if (actorKind(candidate) != kind) {
             continue;
         }
         if (candidate->plane != nullptr && candidate->team_id != team) {
@@ -100,7 +105,7 @@ SCMissionActors *PSProg::pickRandomOfKind(uint8_t kind, int team) {
 }
 
 // Ordres 174 et 175 : la cible est tirée une fois dans le camp adverse, puis gardée.
-SCMissionActors *PSProg::randomEnemyOfKind(uint8_t kind) {
+SCMissionActors *PSProg::randomEnemyOfKind(PSKind kind) {
     PSMission *ps_mission = static_cast<PSMission *>(this->mission);
     SCMissionActors *enemy = nullptr;
     auto kept = ps_mission->random_targets.find(this->actor);
@@ -320,7 +325,7 @@ void PSProg::opOrderFriendlyOfType(const PROG &instruction) {
     }
     SCMissionActors *friendly = nullptr;
     if (this->actor->plane != nullptr) {
-        friendly = this->pickRandomOfKind((uint8_t)instruction.arg, this->actor->team_id);
+        friendly = this->pickRandomOfKind((PSKind)instruction.arg, this->actor->team_id);
     }
     if (friendly == nullptr) {
         this->task_state = 0;
@@ -420,7 +425,7 @@ void PSProg::opAttackRandomEnemyOfType(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    SCMissionActors *enemy = this->randomEnemyOfKind((uint8_t)instruction.arg);
+    SCMissionActors *enemy = this->randomEnemyOfKind((PSKind)instruction.arg);
     if (enemy == nullptr) {
         this->task_state = 0;
         return;
@@ -432,7 +437,7 @@ void PSProg::opDiveOnRandomEnemyOfType(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    SCMissionActors *enemy = this->randomEnemyOfKind((uint8_t)instruction.arg);
+    SCMissionActors *enemy = this->randomEnemyOfKind((PSKind)instruction.arg);
     if (enemy == nullptr) {
         this->task_state = 0;
         return;

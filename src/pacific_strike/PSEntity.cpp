@@ -33,7 +33,7 @@ void PSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
 
 void PSEntity::parseREAL_OBJT_KIND(uint8_t *data, size_t size) {
     if (size >= 1) {
-        this->kind = data[0];
+        this->kind = (PSKind)data[0];
     }
 }
 

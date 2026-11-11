@@ -1,5 +1,6 @@
 #pragma once
 #include "../strike_commander/precomp.h"
+#include "PSEntity.h"
 
 // Scripts de mission de Pacific Strike (strike_commander_re/analysis/pacific/README.md § 2.1, § 6.5 et § 6.7) :
 // les instructions de drapeau lisent et écrivent la table commune des variables et drapeaux
@@ -44,8 +45,9 @@ protected:
     void setVar(const char *name, uint16_t number, int value);
     uint16_t extraArg(size_t rank);
     SCMissionActors *actorOrSelf(uint16_t actor_id);
-    SCMissionActors *pickRandomOfKind(uint8_t kind, int team);
-    SCMissionActors *randomEnemyOfKind(uint8_t kind);
+    PSKind actorKind(SCMissionActors *candidate);
+    SCMissionActors *pickRandomOfKind(PSKind kind, int team);
+    SCMissionActors *randomEnemyOfKind(PSKind kind);
     void traceOnce(const char *text);
 
     void opAdd1ToFlag(const PROG &instruction) override;
