@@ -756,7 +756,7 @@ void SCJetpPlane::Simulate() {
     if (this->fuel_kg <= 0.0f) {
         this->fuel_kg = 0.0f;
         this->thrust_force = 0.0f;
-    } else {
+    } else if (this->thrust > 0) {
         float factor = (notch <= 5.0f) ? notch * (51.0f / 256.0f) : notch * (76.0f / 256.0f);
         float burn = (10.0f - 9.0f * this->g_fuel) * this->sfc;
         if (factor > 0.0f) {

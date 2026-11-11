@@ -94,7 +94,7 @@ protected:
     /* TRUE if wing g-limit is hit	*/
     short g_limit{0};
     /* fuel (0 - 12800)		*/
-    int fuel{0};
+    
     /* upper limit on engines	*/
     short max_throttle{0};
     /* lower limit on engines	*/
@@ -188,6 +188,7 @@ public:
     float chaff_timer{0.0f};
     int chaffs{30};
     int flares{30};
+    int fuel{0};
     void DeployCountermeasure(bool chaff);
     // WeaponSystem_FrameUpdate_3F8C0 : minuteurs +0x24 missiles, +0x28 bombes, +0x30 paniers, +0x2C canons
     float weapon_timers[4]{0.0f, 0.0f, 0.0f, 0.0f};

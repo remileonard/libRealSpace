@@ -1351,6 +1351,8 @@ void SCCockpit::RenderRAWS(Point2D pmfd_left = {84, 112}, FrameBuffer *fb = null
     }
     
     int heading = (int)this->heading;
+    heading -= 360;
+    heading += 90;
     heading = (heading + 360) % 360;
     float headingRad = heading / 180.0f * (float)M_PI;
     int rsize = this->cockpit->MONI.INST.RAWS.NORM.GetWidth() / 2;
@@ -1447,6 +1449,13 @@ void SCCockpit::RenderMFDSDamage(Point2D pmfd_left, FrameBuffer *fb) {
             }
         }
     }
+    std::string fuel_status = "FUEL:";
+    std::string fuel_amount = std::to_string(this->player_plane->fuel);
+    Point2D fuel_pos = {pmfd_left.x + 70, pmfd_left.y + 30};
+    fb->printText(this->big_font, &fuel_pos, (char *)fuel_status.c_str(), 0, 0, (uint32_t)fuel_status.length(), 1, 2);
+    fuel_pos.x = pmfd_left.x + 70;
+    fuel_pos.y += 6;
+    fb->printText(this->big_font, &fuel_pos, (char *)fuel_amount.c_str(), 0, 0, (uint32_t)fuel_amount.length(), 1, 2);
 }
 
 /**
