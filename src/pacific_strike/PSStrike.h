@@ -1,6 +1,7 @@
 #pragma once
 #include "../strike_commander/precomp.h"
 #include "PSMission.h"
+#include "PSCockpit.h"
 
 class PSStrike : public SCStrike {
 protected:
@@ -10,4 +11,5 @@ public:
     ~PSStrike();
     void setMission(char const *missionName);
     void start(void) override;
+    SCCockpit *createCockpit() override;
 };

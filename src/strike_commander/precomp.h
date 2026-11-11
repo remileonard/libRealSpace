@@ -60,6 +60,8 @@
 #include "SCNavMap.h"
 #include "SCFlightOptions.h"
 #include "SCCockpit.h"
+#include "SCVirtualCockpit.h"
+#include "SCJetVirtualCockpit.h"
 #include "SCStrike.h"
 #include "SCObjectViewer.h"
 #include "SCDogFightMenu.h"

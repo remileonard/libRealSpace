@@ -77,12 +77,7 @@ void PSStrike::setMission(char const *missionName) {
     
     this->player_plane->InitLoadout();
     this->player_prof = this->current_mission->player->profile;
-    this->cockpit = new SCCockpit();
-    this->cockpit->player_plane = this->player_plane;
-    this->cockpit->init();
-    
-    this->cockpit->current_mission = this->current_mission;
-    this->cockpit->nav_point_id = &this->nav_point_id;
+    this->initCockpit();
     Mixer.stopMusic();
     Mixer.switchBank(2);
     Mixer.playMusic(this->current_mission->mission->mission_data.tune+1);
@@ -94,3 +89,7 @@ void PSStrike::setMission(char const *missionName) {
 PSStrike::PSStrike() {}
 
 PSStrike::~PSStrike() {}
+
+SCCockpit *PSStrike::createCockpit() {
+    return new PSCockpit();
+}

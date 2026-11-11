@@ -206,13 +206,17 @@ protected:
     float mouseAxisAccumX = 0.0f;
     float mouseAxisAccumY = 0.0f;
     SCState &GameState = SCState::getInstance();
+    /**
+     * @brief The 3D cockpit, created by createVirtualCockpit once the cockpit is initialized
+     */
+    SCVirtualCockpit *virtual_cockpit{nullptr};
     void renderVirtualCockpit();
-    FrameBuffer *virtual_mouse_cockpit_buffer{nullptr};
-    static void cleanupVirtualCockpitTextures();
+    /**
+     * @brief Creates and initializes the cockpit and its virtual cockpit for the current mission and player plane
+     */
+    void initCockpit();
     Vector2D gunsight_hud_offset{0.0f, -0.077f};
     bool zoom_cockpit{false};
-    void renderVirtualF16Cockpit();
-    void renderVirtualF22Cockpit();
     int world_lod{BLOCK_LOD_MAX};
     std::vector<SCSimulatedObject*> simulated_objects;
     SCSimulatedObject* ejected_object{nullptr};
@@ -249,6 +253,10 @@ public:
      * @brief Creates the cockpit object for setMission, derived activities return their own cockpit type
      */
     virtual SCCockpit *createCockpit();
+    /**
+     * @brief Creates the 3D cockpit of an initialized cockpit, derived activities return their own virtual cockpits
+     */
+    virtual SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit);
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();
