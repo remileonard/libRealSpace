@@ -463,103 +463,65 @@ void RSEntity::parseREAL_OBJT_JETP(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::jet;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["EXPL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEBR"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEST"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["SMOK"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_SMOK, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEBR"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEST"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SMOK"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_SMOK, this, std::placeholders::_1, std::placeholders::_2);
 
-    handlers["CHLD"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_CHLD, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["JINF"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_JINF, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["EJEC"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_EJEC, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CHLD"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_CHLD, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["JINF"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_JINF, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["EJEC"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EJEC, this, std::placeholders::_1, std::placeholders::_2);
 
-    handlers["SIGN"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TRGT"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["CTRL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_CTRL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TOFF"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_TOFF, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CTRL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_CTRL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TOFF"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_TOFF, this, std::placeholders::_1, std::placeholders::_2);
 
-    handlers["LAND"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_LAND, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DYNM"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["WEAP"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["CKPT"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_CKPT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["LAND"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_LAND, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["WEAP"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CKPT"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_CKPT, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_ORNT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::ornt;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["EXPL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEBR"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEST"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TRGT"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["SIGN"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEBR"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEST"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_XMIT(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::xmit;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["EXPL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEBR"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEST"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TRGT"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["SIGN"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEBR"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEST"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_GRND(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::ground;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["EXPL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEBR"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEST"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TRGT"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DYNM"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEBR"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEST"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -568,24 +530,15 @@ void RSEntity::parseREAL_OBJT_SWPN(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::swpn;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["EXPL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEBR"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DEST"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["SIGN"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TRGT"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DYNM"] =
-        std::bind(&RSEntity::parseREAL_OBJT_SWPN_DYNM, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DATA"] =
-        std::bind(&RSEntity::parseREAL_OBJT_SWPN_DATA, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["ALGN"] =
-        std::bind(&RSEntity::parseREAL_OBJT_SWPN_ALGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["EXPL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEBR"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DEST"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SIGN"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRGT"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_TRGT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_SWPN_DYNM, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DATA"] = std::bind(&RSEntity::parseREAL_OBJT_SWPN_DATA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["ALGN"] = std::bind(&RSEntity::parseREAL_OBJT_SWPN_ALGN, this, std::placeholders::_1, std::placeholders::_2);
         
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -752,20 +705,13 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["DYNM"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["ORDY"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_ORDY, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["STBL"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_STBL, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["ATMO"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_ATMO, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["GRAV"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_GRAV, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["THRS"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_THRS, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["JDYN"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_DYNM, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["ORDY"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_ORDY, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["STBL"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_STBL, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["ATMO"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_ATMO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["GRAV"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_GRAV, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["THRS"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_THRS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["JDYN"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_DYNM_JDYN, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -861,16 +807,11 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["INFO"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_INFO, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DCOY"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DCOY, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["WPNS"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_WPNS, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["HPTS"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_HPTS, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DAMG"] =
-        std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DCOY"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DCOY, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["WPNS"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_WPNS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["HPTS"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_HPTS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DAMG"] = std::bind(&RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_JETP_WEAP_INFO(uint8_t *data, size_t size) {}
@@ -956,22 +897,14 @@ void RSEntity::parseREAL_APPR_POLY(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["INFO"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_INFO, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["VERT"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_VERT, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["DETA"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_DETA, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TRIS"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["QUAD"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["ATTR"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_ATTR, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TXMS"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["LNTH"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_LNTH, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_APPR_POLY_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["VERT"] = std::bind(&RSEntity::parseREAL_APPR_POLY_VERT, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["DETA"] = std::bind(&RSEntity::parseREAL_APPR_POLY_DETA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TRIS"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["QUAD"] = std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["ATTR"] = std::bind(&RSEntity::parseREAL_APPR_POLY_ATTR, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TXMS"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["LNTH"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_LNTH, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_LNTH(uint8_t *data, size_t size) {}
@@ -995,14 +928,10 @@ void RSEntity::parseREAL_APPR_POLY_DETA(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["LVL0"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["LVL1"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["LVL2"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["LVL3"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["LVL0"] = std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["LVL1"] = std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["LVL2"] = std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["LVL3"] = std::bind(&RSEntity::parseREAL_APPR_POLY_DETA_LVLX, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -1045,16 +974,11 @@ void RSEntity::parseREAL_APPR_POLY_TRIS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["VTRI"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_VTRI, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["FACE"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_FACE, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TXMS"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["UVXY"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_UVXY, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["MAPS"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_MAPS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["VTRI"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_VTRI, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["FACE"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_FACE, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TXMS"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["UVXY"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_UVXY, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["MAPS"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_MAPS, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -1096,11 +1020,6 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_FACE(uint8_t *data, size_t size) {
         triangle.ids[0] = stream.ReadUShort();
         triangle.ids[1] = stream.ReadUShort();
         triangle.ids[2] = stream.ReadUShort();
-        
-
-        //triangle.flags[0] = stream.ReadByte();
-        //triangle.flags[1] = stream.ReadByte();
-        //triangle.flags[2] = stream.ReadByte();
 
         AddTriangle(&triangle);
     }
@@ -1109,12 +1028,9 @@ void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
-    handlers["INFO"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_INFO, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TXMP"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMP, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["TXMA"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TXMP"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMP, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["TXMA"] = std::bind(&RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_TXMA, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_APPR_POLY_TRIS_TXMS_INFO(uint8_t *data, size_t size) {}
@@ -1340,10 +1256,8 @@ void RSEntity::parseREAL_APPR_POLY_QUAD(uint8_t *data, size_t size) {
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     
-    handlers["FACE"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD_FACE, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["MAPS"] =
-        std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD_MAPS, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["FACE"] = std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD_FACE, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["MAPS"] = std::bind(&RSEntity::parseREAL_APPR_POLY_QUAD_MAPS, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -1413,12 +1327,9 @@ void RSEntity::parseREAL_APPR_ANIM(uint8_t *data, size_t size) {
 
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     
-    handlers["INFO"] =
-        std::bind(&RSEntity::parseREAL_APPR_ANIM_INFO, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["SEQU"] =
-        std::bind(&RSEntity::parseREAL_APPR_ANIM_SEQU, this, std::placeholders::_1, std::placeholders::_2);
-    handlers["SHAP"] =
-        std::bind(&RSEntity::parseREAL_APPR_ANIM_SHAP, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_APPR_ANIM_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SEQU"] = std::bind(&RSEntity::parseREAL_APPR_ANIM_SEQU, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["SHAP"] = std::bind(&RSEntity::parseREAL_APPR_ANIM_SHAP, this, std::placeholders::_1, std::placeholders::_2);
 
     lexer.InitFromRAM(data, size, handlers);
 }
@@ -1504,8 +1415,7 @@ void RSEntity::parseREAL_OBJT_SMKG(uint8_t *data, size_t size) {
     this->entity_type = EntityType::destroyed_object;
     IFFSaxLexer lexer;
     std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> handlers;
-    handlers["INFO"] =
-        std::bind(&RSEntity::parseREAL_OBJT_SMKG_INFO, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_OBJT_SMKG_INFO, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_SMKG_INFO(uint8_t *data, size_t size) {
