@@ -363,6 +363,85 @@ void SCStrike::autopilotCompute() {
  *
  * @return None
  */
+// Appui sur la détente : tir de l'arme choisie.
+void SCStrike::firePrimary() {
+    if (target != nullptr) {
+        // WeaponSystem_FrameUpdate_3F8C0 : le missile ne recoit la cible que si le point d'emport est accroche (+0x0B)
+        SCMissionActors *weapon_target = target;
+        SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
+        if (station != nullptr && station->objct->wdat->weapon_aspec != 0 && !this->player_plane->seekerLocks(station->objct, target)) {
+            weapon_target = nullptr;
+        }
+        this->player_plane->Shoot(this->player_plane->selected_weapon, weapon_target, this->current_mission);
+        this->cockpit->is_shooting = true;
+    }
+}
+
+// Touche des armes : arme suivante et mode du viseur.
+void SCStrike::selectNextWeapon() {
+    if (this->cockpit->show_weapons) {
+        int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 + 1;
+        int next_weapon = (this->player_plane->selected_weapon + 1) % nb_hardpoint;
+        if (this->air_weapons_mode) {
+            while (true) {
+                SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[next_weapon];
+                if (station != nullptr) {
+                    int weapon_id = station->objct->wdat->weapon_id;
+                    if (weapon_id == weapon_ids::ID_20MM || weapon_id == weapon_ids::ID_AIM120 ||
+                        weapon_id == weapon_ids::ID_AIM9J || weapon_id == weapon_ids::ID_AIM9M) {
+                        break;
+                    }
+                }
+                next_weapon = (next_weapon + 1) % nb_hardpoint;
+                if (next_weapon == this->player_plane->selected_weapon) {
+                    break;
+                }
+            }
+        }
+        if ((this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) && (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == weapon_ids::ID_20MM) && (!this->air_weapons_mode && this->cockpit->weapon_mode == Hud_weapon_mode::WM_HUD_LCOS)) {
+            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
+        } else {
+            this->player_plane->selected_weapon = next_weapon;
+            if (this->player_plane->weaps_load[this->player_plane->selected_weapon] == nullptr) {
+                this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
+            } else {
+                switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
+                case weapon_ids::ID_20MM:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LCOS;
+                    break;
+                case weapon_ids::ID_AIM120:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LRM;
+                    break;
+                case weapon_ids::ID_AIM9J:
+                case weapon_ids::ID_AIM9M:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_SRM;
+                    break;
+                case weapon_ids::ID_AGM65D:
+                case weapon_ids::ID_GBU15:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_IRST;
+                    break;
+                case weapon_ids::ID_MK20:
+                case weapon_ids::ID_MK82:
+                case weapon_ids::ID_DURANDAL:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_CCIP;
+                    break;
+                case weapon_ids::ID_LAU3:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
+                    break;
+                default:
+                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
+                    break;
+                }
+            }
+        }
+
+        this->mfd_timeout = 400;
+    } else {
+        this->cockpit->show_weapons = !this->cockpit->show_weapons;
+        this->mfd_timeout = 400;
+    }
+}
+
 void SCStrike::checkKeyboard(void) {
     int msx = 0;
     int msy = 0;
@@ -466,16 +545,7 @@ void SCStrike::checkKeyboard(void) {
     }
     this->cockpit->is_shooting = false;
     if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
-        if (target != nullptr) {
-            // WeaponSystem_FrameUpdate_3F8C0 : le missile ne recoit la cible que si le point d'emport est accroche (+0x0B)
-            SCMissionActors *weapon_target = target;
-            SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
-            if (station != nullptr && station->objct->wdat->weapon_aspec != 0 && !this->player_plane->seekerLocks(station->objct, target)) {
-                weapon_target = nullptr;
-            }
-            this->player_plane->Shoot(this->player_plane->selected_weapon, weapon_target, this->current_mission);
-            this->cockpit->is_shooting = true;
-        }
+        this->firePrimary();
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_MOUSE))) {
         this->mouse_control = !this->mouse_control;
@@ -511,67 +581,7 @@ void SCStrike::checkKeyboard(void) {
         this->cockpit->show_damage = !this->cockpit->show_damage;
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_WEAPONS))) {
-        if (this->cockpit->show_weapons) {
-            int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 +1;
-            int next_weapon = (this->player_plane->selected_weapon + 1) % nb_hardpoint;
-            if (this->air_weapons_mode) {
-                while (true) {
-                    SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[next_weapon];
-                    if (station != nullptr) {
-                        int weapon_id = station->objct->wdat->weapon_id;
-                        if (weapon_id == weapon_ids::ID_20MM || weapon_id == weapon_ids::ID_AIM120 ||
-                            weapon_id == weapon_ids::ID_AIM9J || weapon_id == weapon_ids::ID_AIM9M) {
-                            break;
-                        }
-                    }
-                    next_weapon = (next_weapon + 1) % nb_hardpoint;
-                    if (next_weapon == this->player_plane->selected_weapon) {
-                        break;
-                    }
-                }
-            }
-            if ((this->player_plane->weaps_load[this->player_plane->selected_weapon] != nullptr) && (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id == weapon_ids::ID_20MM) && (!this->air_weapons_mode && this->cockpit->weapon_mode == Hud_weapon_mode::WM_HUD_LCOS)) {
-                this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
-            } else {
-                this->player_plane->selected_weapon = next_weapon;
-                if (this->player_plane->weaps_load[this->player_plane->selected_weapon] == nullptr) {
-                    this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
-                } else {
-                    switch (this->player_plane->weaps_load[this->player_plane->selected_weapon]->objct->wdat->weapon_id) {
-                        case weapon_ids::ID_20MM:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LCOS;
-                            break;
-                        case weapon_ids::ID_AIM120:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_LRM;
-                            break;
-                        case weapon_ids::ID_AIM9J:
-                        case weapon_ids::ID_AIM9M:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_SRM;
-                            break;
-                        case weapon_ids::ID_AGM65D:
-                        case weapon_ids::ID_GBU15:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_IRST;
-                            break;
-                        case weapon_ids::ID_MK20:
-                        case weapon_ids::ID_MK82:
-                        case weapon_ids::ID_DURANDAL:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_CCIP;
-                            break;
-                        case weapon_ids::ID_LAU3:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_STRAF;
-                            break;
-                        default:
-                            this->cockpit->weapon_mode = Hud_weapon_mode::WM_HUD_NONE;
-                            break;
-                    }
-                }
-            }
-
-            this->mfd_timeout = 400;
-        } else {
-            this->cockpit->show_weapons = !this->cockpit->show_weapons;
-            this->mfd_timeout = 400;
-        }
+        this->selectNextWeapon();
     }
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP))) {
         SCNavMap *nav_screen = new SCNavMap();

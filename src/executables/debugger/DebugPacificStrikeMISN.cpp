@@ -9,6 +9,17 @@ DebugPacificStrikeMISN::DebugPacificStrikeMISN() {
 
 DebugPacificStrikeMISN::~DebugPacificStrikeMISN() {
     DebugStrike::current_mission = nullptr;
+    DebugStrike::virtual_cockpit = nullptr;
+}
+
+// La frame tourne sur la partie DebugStrike de l'objet : le tir et le choix de l'arme sont rendus à PSStrike.
+void DebugPacificStrikeMISN::firePrimary() {
+    PSStrike::target = DebugStrike::target;
+    PSStrike::firePrimary();
+}
+
+void DebugPacificStrikeMISN::selectNextWeapon() {
+    PSStrike::selectNextWeapon();
 }
 
 void DebugPacificStrikeMISN::setMission(std::string mission_name) { 
@@ -19,6 +30,7 @@ void DebugPacificStrikeMISN::setMission(std::string mission_name) {
     DebugStrike::cockpit = PSStrike::cockpit;
     DebugStrike::area = PSStrike::area;
     DebugStrike::camera = PSStrike::camera;
+    DebugStrike::virtual_cockpit = PSStrike::virtual_cockpit;
     
 }
 

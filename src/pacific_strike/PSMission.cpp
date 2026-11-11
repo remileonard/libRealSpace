@@ -2,6 +2,7 @@
 #include "PSMissionParser.h"
 #include "PSArea.h"
 #include "PSEntity.h"
+#include "PSPlane.h"
 #include "PSProg.h"
 #include "../strike_commander/SCAIBrain.h"
 
@@ -29,12 +30,12 @@ RSEntity *PSMission::createEntity() {
     return new PSEntity();
 }
 
-// Avion d'un objet de mission : copie de SCMission::createAiPlane avec le modèle de vol employé pour Pacific Strike.
+// Avion d'un objet de mission : copie de SCMission::createAiPlane, avec un PSPlane.
 void PSMission::createAiPlane(SCMissionActors *actor) {
     MISN_PART *part = actor->object;
     actor->pilot = new SCPilot();
     actor->pilot->actor = actor;
-    actor->plane = new SCJdynPlane(10.0f, -7.0f, 40.0f, 40.0f, 30.0f, 100.0f, actor->object->entity->wing_area, (float)actor->object->entity->weight_in_kg, (float)actor->object->entity->jdyn->fuel_capacity, (float)actor->object->entity->thrust_in_newton, sqrtf(actor->object->entity->wing_area / ((float)M_PI * 0.83f * actor->object->entity->jdyn->induced_drag_k)), actor->object->entity->jdyn->induced_drag_k, (int)actor->object->entity->jdyn->stall_speed_ms, this->area, part->position.x, part->position.y, part->position.z);
+    actor->plane = new PSPlane(actor->object->entity->jdyn->max_g, -(float)actor->object->entity->jdyn->max_g / 2.0f, 40.0f, 60.0f, (float)actor->object->entity->jdyn->pitch_rate_limit_dps / 2.0f, (float)actor->object->entity->jdyn->rate_limit_dps / 2.0f, actor->object->entity->wing_area, (float)actor->object->entity->weight_in_kg, (float)actor->object->entity->jdyn->fuel_capacity, (float)actor->object->entity->thrust_in_newton, sqrtf(actor->object->entity->wing_area / ((float)M_PI * 0.83f * actor->object->entity->jdyn->induced_drag_k)), actor->object->entity->jdyn->induced_drag_k, (int)actor->object->entity->jdyn->stall_speed_ms, this->area, part->position.x, part->position.y, part->position.z);
     actor->plane->yaw = (360 - part->azymuth) * 10.0f;
     for (auto &sys : actor->object->entity->sysm) {
         for (auto &subsys : sys.second) {
@@ -48,7 +49,7 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
         TreEntry *weapon_entry = Assets.GetEntryByName(weapon_path_name.c_str());
         part->entity->weaps.clear();
         part->entity->weaps.shrink_to_fit();
-        part->entity->parseREAL_OBJT_JETP(weapon_entry->data, weapon_entry->size);
+        static_cast<PSEntity *>(part->entity)->loadWeaponLoad(weapon_entry->data, weapon_entry->size);
     }
     actor->plane->object = part;
     actor->plane->InitLoadout();
@@ -236,7 +237,7 @@ void PSMission::loadMission() {
                     }
                     this->actors.push_back(actor);
                 } else if (actor->profile != nullptr && cast->actor == "PLAYER") {
-                    actor->plane = new SCJdynPlane(10.0f, -7.0f, 40.0f, 40.0f, 30.0f, 100.0f, actor->object->entity->wing_area, (float)actor->object->entity->weight_in_kg, (float)actor->object->entity->jdyn->fuel_capacity, (float)actor->object->entity->thrust_in_newton, sqrtf(actor->object->entity->wing_area / ((float)M_PI * 0.83f * actor->object->entity->jdyn->induced_drag_k)), actor->object->entity->jdyn->induced_drag_k, (int)actor->object->entity->jdyn->stall_speed_ms, this->area, part->position.x, part->position.y, part->position.z);
+                    actor->plane = new PSPlane(actor->object->entity->jdyn->max_g, -(float)actor->object->entity->jdyn->max_g / 2.0f, 40.0f, 60.0f, (float)actor->object->entity->jdyn->pitch_rate_limit_dps / 2.0f, (float)actor->object->entity->jdyn->rate_limit_dps / 2.0f, actor->object->entity->wing_area, (float)actor->object->entity->weight_in_kg, (float)actor->object->entity->jdyn->fuel_capacity, (float)actor->object->entity->thrust_in_newton, sqrtf(actor->object->entity->wing_area / ((float)M_PI * 0.83f * actor->object->entity->jdyn->induced_drag_k)), actor->object->entity->jdyn->induced_drag_k, (int)actor->object->entity->jdyn->stall_speed_ms, this->area, part->position.x, part->position.y, part->position.z);
                     for (auto &sys : actor->object->entity->sysm) {
                         for (auto &subsys : sys.second) {
                             actor->plane->system_health[sys.first][subsys.first] = subsys.second;
@@ -251,7 +252,7 @@ void PSMission::loadMission() {
                         TreEntry *weapon_entry = Assets.GetEntryByName(weapon_path_name.c_str());
                         part->entity->weaps.clear();
                         part->entity->weaps.shrink_to_fit();
-                        part->entity->parseREAL_OBJT_JETP(weapon_entry->data, weapon_entry->size);
+                        static_cast<PSEntity *>(part->entity)->loadWeaponLoad(weapon_entry->data, weapon_entry->size);
                         printf("PSMission: emport impose du joueur %s\n", part->weapon_load.c_str());
                     }
                     actor->plane->object = part;

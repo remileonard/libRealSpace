@@ -171,7 +171,7 @@ typedef struct JDYN {
 } JDYN;
 
 class RSEntity {
-
+protected:
     struct CHLD {
         std::string name;
         int32_t x;

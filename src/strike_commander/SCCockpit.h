@@ -18,7 +18,7 @@ struct HudLine {
 };
 
 class SCCockpit {
-private:
+protected:
     AssetManager &Assets = AssetManager::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
@@ -131,7 +131,7 @@ public:
     ~SCCockpit();
     virtual void init();
     void Update();
-    void Render(CockpitFace face);
+    virtual void Render(CockpitFace face);
     void RenderHUD();
     void RenderHUD(Point2D position, FrameBuffer *fb);
     void RenderMFDSWeapon(Point2D pmfd_right, FrameBuffer *fb);

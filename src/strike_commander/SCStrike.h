@@ -257,6 +257,8 @@ public:
      * @brief Creates the 3D cockpit of an initialized cockpit, derived activities return their own virtual cockpits
      */
     virtual SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit);
+    virtual void firePrimary();
+    virtual void selectNextWeapon();
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();

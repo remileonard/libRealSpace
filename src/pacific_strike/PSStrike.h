@@ -11,5 +11,9 @@ public:
     void setMission(char const *missionName);
     void start(void) override;
     SCCockpit *createCockpit() override;
+    SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit) override;
+    void firePrimary() override;
+    void selectNextWeapon() override;
+    void selectFirstWeapon();
     SCMission *createMission(char const *missionName) override;
 };

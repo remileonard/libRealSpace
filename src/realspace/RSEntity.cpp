@@ -758,13 +758,6 @@ void RSEntity::parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size) {
             this->thrust_ref_alt_fraction = bs.ReadByte() / 256.0f;
         if (remaining >= 3)
             this->thrust_cutoff_alt_raw = bs.ReadByte();
-    } else if (size == 19 || size == 20) {
-        bs.ReadByte();
-        bs.ReadByte();
-        bs.ReadByte();
-        bs.ReadByte();
-        bs.ReadByte();
-        this->thrust_in_newton = bs.ReadInt24LEByte3()*15;
     }
     
 }

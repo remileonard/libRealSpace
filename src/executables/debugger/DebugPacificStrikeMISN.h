@@ -14,4 +14,6 @@ public:
     virtual void renderMenu() override { DebugStrike::renderMenu(); }
     virtual void renderUI() override { DebugStrike::renderUI(); }
     virtual void runFrame(void) override { DebugStrike::runFrame(); }
+    void firePrimary() override;
+    void selectNextWeapon() override;
 };  

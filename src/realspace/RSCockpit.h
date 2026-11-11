@@ -137,7 +137,7 @@ struct Moni {
  */
 class RSCockpit {
 
-private:
+protected:
     AssetManager *asset_manager;
     std::vector<uint8_t> INFO;
     
@@ -147,7 +147,8 @@ private:
     
     std::vector<uint8_t> FADE;
 
-    void parseCKPT(uint8_t* data, size_t size);
+    // Chunks du FORM CKPT ; Pacific Strike a les siens (PSCockpitDef).
+    virtual void parseCKPT(uint8_t* data, size_t size);
     void parseINFO(uint8_t* data, size_t size);
     void parseARTP(uint8_t* data, size_t size);
     void parseVTMP(uint8_t* data, size_t size);
@@ -214,6 +215,6 @@ public:
     RSPlaque PLAQ;
     
     RSCockpit();
-    ~RSCockpit();
+    virtual ~RSCockpit();
     void InitFromRam(uint8_t* data, size_t size);
 };

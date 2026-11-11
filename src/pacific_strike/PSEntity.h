@@ -55,10 +55,44 @@ enum PSKind : uint8_t {
     PS_KIND_DEPOTS = 28
 };
 
+// Numéro d'arme de l'octet 5 du chunk WDAT (PACIFIC.EXE, sub_B0360 de ovr315), nommé d'après les objets qui le portent.
+enum PSWeaponId : uint8_t {
+    PS_WEAPON_NONE = 0,
+    // B100LB
+    PS_WEAPON_BOMB_100LB = 1,
+    // B500LB
+    PS_WEAPON_BOMB_500LB = 2,
+    // HVAR
+    PS_WEAPON_ROCKET = 3,
+    // B1000LB
+    PS_WEAPON_BOMB_1000LB = 4,
+    // MK-13
+    PS_WEAPON_TORPEDO = 5,
+    // NAPALM
+    PS_WEAPON_NAPALM = 6,
+    // 12-7MM, 20MM, 20MM99-1, 30CAL, 50CAL, 7-7MM97 (classe TRCR)
+    PS_WEAPON_GUN = 7
+};
+
 class PSEntity : public RSEntity {
 public:
     // Chunk KIND : type cherché par les scripts de mission ; 22 quand le chunk est absent (PACIFIC.EXE).
     PSKind kind{ PS_KIND_NONE };
+    // Numéro d'arme du WDAT de Pacific Strike ; wdat->weapon_id reçoit l'arme de libRealSpace qui se tire de la même
+    // façon (canon, bombe, missile).
+    PSWeaponId ps_weapon_id{ PS_WEAPON_NONE };
+    static PSWeaponId weaponId(RSEntity *weapon);
+    void loadWeaponLoad(uint8_t *data, size_t size);
+    // Chunk THRS de Pacific Strike (19 octets, AircraftDynamics_ReadThrustChunk_B81AC) : puissance du moteur (ch),
+    // plafond (m), un u32 non employé par la poussée, vitesse de décrochage (m/s, sa moitié = vitesse plancher de la poussée).
+    float engine_power_hp{ 0.0f };
+    float ceiling_m{ 0.0f };
+    float thrs_field_6{ 0.0f };
+    float stall_speed_ms{ 0.0f };
+    // JDYN champ 23 (mot, octet 61) : vitesse de référence de l'hélice (m/s) ; champ 26 (u32 entier, octet 67) :
+    // altitude à partir de laquelle le moteur perd de la puissance (m).
+    float reference_speed_ms{ 0.0f };
+    float rated_altitude_m{ 0.0f };
 
 protected:
     void parseREAL_OBJT(uint8_t *data, size_t size) override;
@@ -81,4 +115,10 @@ protected:
     void parseREAL_OBJT_TORP(uint8_t *data, size_t size);
     void parseREAL_OBJT_NPLM(uint8_t *data, size_t size);
     void parseREAL_OBJT_KIND(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size);
+    void parseREAL_OBJT_MISS_WDAT(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_WEAP_WPNS(uint8_t *data, size_t size);
 };
