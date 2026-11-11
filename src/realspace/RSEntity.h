@@ -328,7 +328,7 @@ public:
     void parseREAL_OBJT_JETP(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_WEAP(uint8_t *data, size_t size);
     BoudingBox bb;
-private:
+protected:
     void CalcBoundingBox(void);
     void calcWingArea(void);
     void AddImage(RSImage *image);
@@ -339,7 +339,8 @@ private:
 
     void parseREAL(uint8_t *data, size_t size);
     void parseREAL_INFO(uint8_t *data, size_t size);
-    void parseREAL_OBJT(uint8_t *data, size_t size);
+    // Classes d'objets du fichier ; un autre jeu (PSEntity) y ajoute les siennes.
+    virtual void parseREAL_OBJT(uint8_t *data, size_t size);
     void parseREAL_OBJT_INFO(uint8_t *data, size_t size);
     void parseREAL_OBJT_GRND(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN(uint8_t *data, size_t size);

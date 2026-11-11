@@ -267,7 +267,7 @@ bool SCMissionActors::activateTarget(uint8_t arg) {
             }
             actor->wait_timer = 0.0f;
             if (actor->on_is_activated.size() > 0) {
-                SCProg *p = new SCProg(actor, actor->on_is_activated, this->mission, actor->object->on_is_activated);
+                SCProg *p = this->mission->createProg(actor, actor->on_is_activated, actor->object->on_is_activated);
                 p->execute();
             }
             if (actor->object->entity->entity_type == EntityType::rnwy) {
@@ -560,7 +560,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         return;
     }
     if (ai_actor->profile->radi.info.callsign == "Strike Base") {
-        SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
+        SCProg *p = mission->createProg(ai_actor, ai_actor->on_update, ai_actor->object->on_mission_update);
         p->execute();
         delete p;
         return;
@@ -571,7 +571,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
 
     if (ai_actor->on_update.size() > 0 && ai_actor->is_destroyed == false && ai_actor->override_progs.size() == 0) {
         mission->in_combat = ai_actor->target != nullptr && ai_actor->target == mission->player;
-        SCProg *p = new SCProg(ai_actor, ai_actor->on_update, mission, ai_actor->object->on_mission_update);
+        SCProg *p = mission->createProg(ai_actor, ai_actor->on_update, ai_actor->object->on_mission_update);
         p->execute();
         delete p;
     }
@@ -635,7 +635,7 @@ void SCMissionActors::onAIRefresh(const AIRefreshEvent &event) {
     }
     // ordre radio accepte : pose l'objectif comme le script (Goal_SetObjective_A307)
     if (!this->override_progs.empty()) {
-        SCProg *p = new SCProg(this, this->override_progs, this->mission, 255);
+        SCProg *p = this->mission->createProg(this, this->override_progs, 255);
         p->execute();
         delete p;
         if (this->current_command_executed) {
@@ -656,7 +656,7 @@ void SCMissionActors::onActorDestroyed(const MissionEventActorDestroyed &event) 
         printf("Actor's plane is destroyed\n");
     }
     if (ai_actor->on_is_destroyed.size() > 0) {
-        SCProg *p = new SCProg(ai_actor, ai_actor->on_is_destroyed, mission, ai_actor->object->on_is_destroyed);
+        SCProg *p = mission->createProg(ai_actor, ai_actor->on_is_destroyed, ai_actor->object->on_is_destroyed);
         p->execute();
         delete p;
     }

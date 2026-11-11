@@ -441,11 +441,11 @@ void SCMission::loadMission() {
     }
     this->applyDifficulty();
     if (this->player->on_is_activated.size() > 0) {
-        SCProg *p = new SCProg(this->player, this->player->on_is_activated, this, this->player->object->on_is_activated);
+        SCProg *p = this->createProg(this->player, this->player->on_is_activated, this->player->object->on_is_activated);
         p->execute();
     }
     if (this->player->on_mission_start.size() > 0 && this->player->prog_executed == false) {
-        SCProg *p = new SCProg(this->player, this->player->on_mission_start, this, this->player->object->on_missions_init);
+        SCProg *p = this->createProg(this->player, this->player->on_mission_start, this->player->object->on_missions_init);
         p->execute();
         this->player->prog_executed = true;
     }
@@ -1055,4 +1055,8 @@ void SCMission::finishScenes() {
     if (this->current_scene != nullptr && this->current_scene != this->global_scene) {
         this->current_scene->runLeaving();
     }
+}
+
+SCProg *SCMission::createProg(SCMissionActors *actor, std::vector<PROG> prog, uint8_t prog_id) {
+    return new SCProg(actor, prog, this, prog_id);
 }

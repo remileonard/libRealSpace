@@ -30,7 +30,7 @@ void SCMissionScene::runProg(int16_t prog_id) {
     for (auto prg: *this->mission->mission->mission_data.prog[prog_id]) {
         prog.push_back(prg);
     }
-    SCProg *p = new SCProg(this->mission->player, prog, this->mission, prog_id);
+    SCProg *p = this->mission->createProg(this->mission->player, prog, prog_id);
     p->scene_script = true;
     p->execute();
     delete p;
@@ -100,7 +100,7 @@ void SCMissionScene::activate() {
                         }
                         actor->wait_timer = 0.0f;
                         if (actor->on_is_activated.size() > 0) {
-                            SCProg *p = new SCProg(actor, actor->on_is_activated, sc_mission, actor->object->on_is_activated);
+                            SCProg *p = sc_mission->createProg(actor, actor->on_is_activated, actor->object->on_is_activated);
                             p->execute();
                             delete p;
                         }

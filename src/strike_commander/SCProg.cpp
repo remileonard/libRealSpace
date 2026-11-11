@@ -433,7 +433,7 @@ void SCProg::opExecSubProg(const PROG &instruction) {
     }
     if (instruction.arg < this->mission->mission->mission_data.prog.size()) {
         std::vector<PROG> *sub_prog = this->mission->mission->mission_data.prog[instruction.arg];
-        SCProg *sub_prog_obj = new SCProg(this->actor, *sub_prog, this->mission, instruction.arg);
+        SCProg *sub_prog_obj = this->mission->createProg(this->actor, *sub_prog, instruction.arg);
         sub_prog_obj->task_state = this->task_state;
         sub_prog_obj->scene_script = this->scene_script;
         sub_prog_obj->execute();

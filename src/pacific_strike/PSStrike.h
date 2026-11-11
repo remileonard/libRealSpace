@@ -5,11 +5,11 @@
 
 class PSStrike : public SCStrike {
 protected:
-
 public:
     PSStrike();
     ~PSStrike();
     void setMission(char const *missionName);
     void start(void) override;
     SCCockpit *createCockpit() override;
+    SCMission *createMission(char const *missionName) override;
 };

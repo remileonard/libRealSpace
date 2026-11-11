@@ -106,6 +106,7 @@ public:
     virtual void loadMission();
     void cleanup();
     virtual void update();
+    virtual SCProg *createProg(SCMissionActors *actor, std::vector<PROG> prog, uint8_t prog_id);
     void executeProg(std::vector<PROG> *prog);
     uint8_t getAreaID(Vector3D position);
     virtual RSEntity *createEntity();
@@ -113,7 +114,7 @@ public:
     void startScenes();
     void placeRelativeToPlayer(SCMissionActors *actor);
     void respawnActor(SCMissionActors *actor);
-    void createAiPlane(SCMissionActors *actor);
+    virtual void createAiPlane(SCMissionActors *actor);
     void finishScenes();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();

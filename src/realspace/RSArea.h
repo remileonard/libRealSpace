@@ -131,13 +131,16 @@ public:
     bool isTerrainFlat() const;
     void setTerrainFlat(bool flat);
 
+protected:
+    // Lecture d'une région de pistes ; Pacific Strike a son propre format (PSArea).
+    virtual void ParseTriFile(PakEntry* entry);
+
 private:
     AssetManager &assetsManager = AssetManager::getInstance();
     SCRenderer &Renderer = SCRenderer::getInstance();
     void ParseObjects(void );
     
     void ParseTrigo(void );
-    void ParseTriFile(PakEntry* entry);
     
     //Temporary name: I don't know yet what is in there.
     void ParseHeightMap(void);

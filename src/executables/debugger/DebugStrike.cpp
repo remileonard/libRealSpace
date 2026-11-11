@@ -2829,7 +2829,7 @@ void DebugStrike::renderUI() {
                 if (progs[selectedProgIndex]) {
                     printProgTable(*progs[selectedProgIndex], this->current_mission->player, selectedProgIndex);
                     if (ImGui::Button("Run Program")) {
-                        SCProg *program = new SCProg(this->current_mission->player, *progs[selectedProgIndex], this->current_mission, selectedProgIndex);
+                        SCProg *program = this->current_mission->createProg(this->current_mission->player, *progs[selectedProgIndex], selectedProgIndex);
                         program->execute();
                         delete program;
                     }
