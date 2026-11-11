@@ -10,6 +10,7 @@
 #include "imgui_impl_opengl2.h"
 #include "imgui_impl_sdl2.h"
 #include "DebugGame.h"
+#include "../../pacific_strike/PSState.h"
 #include "DebugStrike.h"
 #include "DebugGameFlow.h"
 #include "DebugObjectViewer.h"
@@ -449,6 +450,7 @@ void DebugGame::loadPacificConv() {
     DebugPSGameFlow* main = new DebugPSGameFlow();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
+    PSState::getInstance().Reset();
     GameState.player_callsign = "Debug";
     GameState.player_name = "Debug Player";
     GameState.player_firstname = "Debug";
@@ -495,6 +497,7 @@ void DebugGame::loadPacificMISN() {
     DebugPacificStrikeMISN* main = new DebugPacificStrikeMISN();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
+    PSState::getInstance().Reset();
     GameState.player_callsign = "Debug";
     GameState.player_name = "Debug Player";
     GameState.player_firstname = "Debug";

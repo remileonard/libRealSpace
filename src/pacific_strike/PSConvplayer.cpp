@@ -210,8 +210,8 @@ void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
         case PS_CONV_IF_FLAG: {
             uint16_t number = 0;
             ok = this->readWord(number);
-            this->skipping = GameState.getGameVar(number) == 0;
-            printf("CONV %d: IF_FLAG %d (octet %zu), valeur %d, %s\n", this->conversationID, number, at, GameState.getGameVar(number), this->skipping ? "bloc saute" : "bloc joue");
+            this->skipping = PSGameState.getFlag(number) == 0;
+            printf("CONV %d: IF_FLAG %d (octet %zu), valeur %d, %s\n", this->conversationID, number, at, PSGameState.getFlag(number), this->skipping ? "bloc saute" : "bloc joue");
         } break;
         case CONV_SHOW_TEXT:
             ok = this->readShowText(at, CONV_SHOW_TEXT, 0);

@@ -2486,8 +2486,11 @@ void DebugStrike::renderMenu() {
         }
         if (ImGui::TreeNode("Flags")) {
             int cpt_flags = 0;
+            bool only_set = this->current_mission->mission->mission_data.flags.size() > 256;
             for (auto flag : this->current_mission->mission->mission_data.flags) {
-                ImGui::Text("Flag %d : %d", cpt_flags, flag);
+                if (!only_set || flag != 0) {
+                    ImGui::Text("Flag %d : %d", cpt_flags, flag);
+                }
                 cpt_flags++;
             }
             ImGui::TreePop();

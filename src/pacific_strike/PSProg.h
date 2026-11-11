@@ -1,16 +1,17 @@
 #pragma once
 #include "../strike_commander/precomp.h"
 #include "PSEntity.h"
+#include "PSState.h"
 
 // Scripts de mission de Pacific Strike (strike_commander_re/analysis/pacific/README.md § 2.1, § 6.5 et § 6.7) :
-// les instructions de drapeau lisent et écrivent la table commune des variables et drapeaux
-// (GameState.getGameVar / setGameVar), et la table des instructions reçoit celles que Strike Commander n'a pas.
+// les instructions de drapeau lisent et écrivent les drapeaux de la mission (mission_data.flags), recopiés dans PSState
+// pour le déroulement et les conversations ; la table des instructions reçoit celles que Strike Commander n'a pas.
 class PSProg : public SCProg {
 public:
     PSProg(SCMissionActors *profile, std::vector<PROG> prog, SCMission *mission, uint8_t prog_id = 0);
 
 protected:
-    SCState &GameState = SCState::getInstance();
+    PSState &PSGameState = PSState::getInstance();
     // Noms de MISSION_SCRIPT_OPCODES.md et du README de Pacific Strike.
     enum PSProgOp : uint8_t {
         PS_OP_NOOP_5 = 5,
@@ -42,6 +43,7 @@ protected:
     const std::map<uint8_t, Instruction> &instructionTable() override;
     static std::map<uint8_t, Instruction> buildInstructionTable();
 
+    int16_t flag(uint16_t number);
     void setVar(const char *name, uint16_t number, int value);
     uint16_t extraArg(size_t rank);
     SCMissionActors *actorOrSelf(uint16_t actor_id);

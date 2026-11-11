@@ -105,6 +105,31 @@ void PSPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
     this->firePacific(weapon_hard_point_id, target, mission);
 }
 
+// SCPlane::launchDirect, puis le projectile créé est déplacé de la position de l'avion à celle du point d'emport :
+// coordonnées HPTS (24.8, repère de l'objet : x = envergure, z = nez, y = haut) tournées comme le modèle de l'avion
+// (lacet + 90° autour de Y, tangage autour de Z, −roulis autour de X ; objet : x = nez, y = haut, z = envergure).
+void PSPlane::launchFromHardpoint(int hardpoint, SCMissionActors *target, SCMission *mission) {
+    size_t before = this->weaps_object.size();
+    Vector3D local(this->weaps_load[hardpoint]->position.z / 256.0f, this->weaps_load[hardpoint]->position.y / 256.0f, this->weaps_load[hardpoint]->position.x / 256.0f);
+    this->launchDirect(hardpoint, target, mission);
+    if (this->weaps_object.size() <= before) {
+        return;
+    }
+    Matrix orientation;
+    orientation.Identity();
+    orientation.rotateM(tenthOfDegreeToRad(this->yaw + 900.0f), 0, 1, 0);
+    orientation.rotateM(tenthOfDegreeToRad(this->pitch), 0, 0, 1);
+    orientation.rotateM(tenthOfDegreeToRad(-this->roll), 1, 0, 0);
+    Vector3D offset;
+    offset.x = local.x * orientation.v[0][0] + local.y * orientation.v[1][0] + local.z * orientation.v[2][0];
+    offset.y = local.x * orientation.v[0][1] + local.y * orientation.v[1][1] + local.z * orientation.v[2][1];
+    offset.z = local.x * orientation.v[0][2] + local.y * orientation.v[1][2] + local.z * orientation.v[2][2];
+    SCSimulatedObject *projectile = this->weaps_object.back();
+    projectile->x += offset.x;
+    projectile->y += offset.y;
+    projectile->z += offset.z;
+}
+
 // Tir de l'arme du point d'emport avec les objets de libRealSpace (SCPlane::launchDirect), selon la catégorie du
 // WDAT : 13 = canon, tous les points qui portent cette arme font feu ensemble (WeaponSystem_LaunchFromStation_3E2EC) ;
 // 9 = bombe, lâchée du point le plus chargé qui porte cette arme ; 8 = roquette, lancée sans cible (non guidée).
@@ -127,7 +152,7 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
             if (station == nullptr || station->objct != launcher || station->hpts_type != selected->hpts_type || station->nb_weap <= 0) {
                 continue;
             }
-            this->launchDirect(i, target, mission);
+            this->launchFromHardpoint(i, target, mission);
         }
     } else if (launcher->wdat->launch_class == 9) {
         int fullest = -1;
@@ -142,7 +167,7 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
         if (fullest < 0) {
             return;
         }
-        this->launchDirect(fullest, target, mission);
+        this->launchFromHardpoint(fullest, target, mission);
         printf("PSPlane: %s lache %s du point %d, reste %d\n", this->object->member_name.c_str(), selected->name.c_str(), fullest, this->weaps_load[fullest]->nb_weap);
     } else if (launcher->wdat->launch_class == 8) {
         int fullest = -1;
@@ -157,7 +182,7 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
         if (fullest < 0) {
             return;
         }
-        this->launchDirect(fullest, nullptr, mission);
+        this->launchFromHardpoint(fullest, nullptr, mission);
         printf("PSPlane: %s tire %s du point %d, reste %d\n", this->object->member_name.c_str(), selected->name.c_str(), fullest, this->weaps_load[fullest]->nb_weap);
     } else {
         return;

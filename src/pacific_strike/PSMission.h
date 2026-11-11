@@ -2,6 +2,7 @@
 
 class PSMission: public SCMission {
 public:
+    static const size_t FLAG_COUNT = 65536;
     PSMission();
     PSMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache);
     ~PSMission();

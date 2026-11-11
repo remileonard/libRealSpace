@@ -4,6 +4,7 @@
 #include "PSEntity.h"
 #include "PSPlane.h"
 #include "PSProg.h"
+#include "PSState.h"
 #include "../strike_commander/SCAIBrain.h"
 
 PSMission::PSMission() {
@@ -154,8 +155,11 @@ void PSMission::loadMission() {
 
     Renderer.InvalidateAABBCache();
     Renderer.PrecomputeAABBs(this->area, 0, 1);
-    for (int i = 0; i < 256; i++) {
-        this->mission->mission_data.flags.push_back(0);
+    // Drapeaux de la mission : un par numéro de 2 octets, pour qu'aucune lecture ni écriture d'un script ne tombe hors
+    // de la table ; ils partent des drapeaux de la partie (PSState), posés par le déroulement et les missions précédentes.
+    this->mission->mission_data.flags.assign(FLAG_COUNT, 0);
+    for (auto &flag : PSState::getInstance().flags) {
+        this->mission->mission_data.flags[flag.first] = flag.second;
     }
     for (auto &area_entity : this->area->objects) {
         area_entity.entity = LoadEntity(area_entity.name);

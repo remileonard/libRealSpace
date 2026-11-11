@@ -42,11 +42,23 @@ const std::map<uint8_t, SCProg::Instruction> &PSProg::instructionTable() {
     return table;
 }
 
-// GameVar_Set_564BB ; la trace ne sort que si la valeur change (un script est rejoué à chaque image).
+// Drapeau de la mission (mission_data.flags, la table que le débogueur affiche) ; la table couvre tous les numéros
+// qu'un script peut écrire (2 octets).
+int16_t PSProg::flag(uint16_t number) {
+    return this->mission->mission->mission_data.flags[number];
+}
+
+// Écrit le drapeau de la mission et le recopie dans PSState, que lisent le déroulement et les conversations. À partir
+// de 256, un drapeau vaut 0 ou 1. La trace ne sort que si la valeur change (un script est rejoué à chaque image).
 void PSProg::setVar(const char *name, uint16_t number, int value) {
-    int16_t before = GameState.getGameVar(number);
-    GameState.setGameVar(number, (int16_t)value);
-    int16_t after = GameState.getGameVar(number);
+    std::vector<int16_t> &flags = this->mission->mission->mission_data.flags;
+    int16_t before = flags[number];
+    int16_t after = (int16_t)value;
+    if (number >= 256) {
+        after = value != 0 ? 1 : 0;
+    }
+    flags[number] = after;
+    PSGameState.setFlag(number, after);
     if (before != after) {
         printf("PSProg %d: %s %d, %d -> %d\n", this->prog_id, name, number, before, after);
     }
@@ -136,28 +148,28 @@ void PSProg::opAdd1ToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_ADD_1_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) + 1);
+    this->setVar("OP_ADD_1_TO_FLAG", instruction.arg, this->flag(instruction.arg) + 1);
 }
 
 void PSProg::opRemove1ToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_REMOVE_1_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) - 1);
+    this->setVar("OP_REMOVE_1_TO_FLAG", instruction.arg, this->flag(instruction.arg) - 1);
 }
 
 void PSProg::opAddWorkRegisterToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_ADD_WORK_REGISTER_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) + this->work_register);
+    this->setVar("OP_ADD_WORK_REGISTER_TO_FLAG", instruction.arg, this->flag(instruction.arg) + this->work_register);
 }
 
 void PSProg::opMoveFlagToWorkRegister(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register = GameState.getGameVar(instruction.arg);
+    this->work_register = this->flag(instruction.arg);
 }
 
 void PSProg::opMoveWorkRegisterToFlag(const PROG &instruction) {
@@ -185,7 +197,7 @@ void PSProg::opTestFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    if (GameState.getGameVar(instruction.arg) != 0) {
+    if (this->flag(instruction.arg) != 0) {
         this->compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
     } else {
         this->compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
@@ -203,7 +215,7 @@ void PSProg::opSwapWorkAndFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    int flag = GameState.getGameVar(instruction.arg);
+    int flag = this->flag(instruction.arg);
     this->setVar("OP_SWAP_WORK_AND_FLAG", instruction.arg, this->work_register);
     this->work_register = flag;
 }
@@ -212,77 +224,77 @@ void PSProg::opAddFlagToWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register += GameState.getGameVar(instruction.arg);
+    this->work_register += this->flag(instruction.arg);
 }
 
 void PSProg::opAddValueToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_ADD_VALUE_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) + instruction.arg);
+    this->setVar("OP_ADD_VALUE_TO_FLAG", instruction.arg, this->flag(instruction.arg) + instruction.arg);
 }
 
 void PSProg::opSubFlagFromWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register -= GameState.getGameVar(instruction.arg);
+    this->work_register -= this->flag(instruction.arg);
 }
 
 void PSProg::opSubValueFromFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_SUB_VALUE_FROM_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) - instruction.arg);
+    this->setVar("OP_SUB_VALUE_FROM_FLAG", instruction.arg, this->flag(instruction.arg) - instruction.arg);
 }
 
 void PSProg::opSubWorkFromFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_SUB_WORK_FROM_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) - this->work_register);
+    this->setVar("OP_SUB_WORK_FROM_FLAG", instruction.arg, this->flag(instruction.arg) - this->work_register);
 }
 
 void PSProg::opOrFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register |= GameState.getGameVar(instruction.arg);
+    this->work_register |= this->flag(instruction.arg);
 }
 
 void PSProg::opAndFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register &= GameState.getGameVar(instruction.arg);
+    this->work_register &= this->flag(instruction.arg);
 }
 
 void PSProg::opXorFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register ^= GameState.getGameVar(instruction.arg);
+    this->work_register ^= this->flag(instruction.arg);
 }
 
 void PSProg::opMulFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register *= GameState.getGameVar(instruction.arg);
+    this->work_register *= this->flag(instruction.arg);
 }
 
 void PSProg::opDivWorkByFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register /= GameState.getGameVar(instruction.arg);
+    this->work_register /= this->flag(instruction.arg);
 }
 
 void PSProg::opCmpWorkWithFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    int flag = GameState.getGameVar(instruction.arg);
+    int flag = this->flag(instruction.arg);
     this->compare_flag = prog_compare_return_values::PROG_CMP_UNSET;
     if (this->work_register == flag) {
         this->compare_flag |= PROG_CMP_EQUAL;
@@ -299,7 +311,7 @@ void PSProg::opCmpFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    int flag = GameState.getGameVar(instruction.arg);
+    int flag = this->flag(instruction.arg);
     this->compare_flag = prog_compare_return_values::PROG_CMP_UNSET;
     if (flag == this->work_register) {
         this->compare_flag |= PROG_CMP_EQUAL;

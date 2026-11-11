@@ -98,7 +98,7 @@ void PSGameFlow::opSetFlag(EFCT *instruction) {
     if (!this->scriptExecuting()) {
         return;
     }
-    GameState.setGameFlag(instruction->value);
+    PSGameState.setFlag(instruction->value, 1);
     printf("PS GAMEFLOW: SET_FLAG %d\n", instruction->value);
 }
 
@@ -107,18 +107,18 @@ void PSGameFlow::opClearFlag(EFCT *instruction) {
     if (!this->scriptExecuting()) {
         return;
     }
-    GameState.clearGameFlag(instruction->value);
+    PSGameState.setFlag(instruction->value, 0);
     printf("PS GAMEFLOW: CLEAR_FLAG %d\n", instruction->value);
 }
 
 // IF_NOT_FLAG (9) : réussit si GameVar_Get_56414(n) = 0.
 void PSGameFlow::opIfNotGameFlag(EFCT *instruction) {
-    this->openTest(GameState.getGameVar(instruction->value) == 0, "IF_NOT_FLAG");
+    this->openTest(PSGameState.getFlag(instruction->value) == 0, "IF_NOT_FLAG");
 }
 
 // IF_FLAG (10) : réussit si GameVar_Get_56414(n) != 0.
 void PSGameFlow::opIfGameFlag(EFCT *instruction) {
-    this->openTest(GameState.getGameVar(instruction->value) != 0, "IF_FLAG");
+    this->openTest(PSGameState.getFlag(instruction->value) != 0, "IF_FLAG");
 }
 
 // RETURN_TO_MENU (11) : [partie+1254] = 0 et arrêt du script.
@@ -189,15 +189,15 @@ void PSGameFlow::opSetVariable(EFCT *instruction) {
     }
     uint16_t number = instruction->value & 0xFF;
     int16_t value = (int16_t)(instruction->value >> 8);
-    GameState.setGameVar(number, value);
+    PSGameState.setFlag(number, value);
     printf("PS GAMEFLOW: SET_VARIABLE %d = %d\n", number, value);
 }
 
 void PSGameFlow::setDate(int total_months) {
     int year = total_months / 12;
     int month = total_months - year * 12;
-    GameState.setGameVar(VAR_MONTH, (int16_t)month);
-    GameState.setGameVar(VAR_YEAR, (int16_t)year);
+    PSGameState.setFlag(VAR_MONTH, (int16_t)month);
+    PSGameState.setFlag(VAR_YEAR, (int16_t)year);
     printf("PS GAMEFLOW: date, mois %d, annee %d\n", month, year);
 }
 
@@ -212,7 +212,7 @@ void PSGameFlow::opSetDate(EFCT *instruction) {
     int year = instruction->value >> 8;
     int total = year * 12 + month;
     for (int rank = 1; rank <= this->current_miss; rank++) {
-        bool set = GameState.getGameVar((uint16_t)(400 + rank)) != 0;
+        bool set = PSGameState.getFlag((uint16_t)(400 + rank)) != 0;
         if (rank % 2 == 0 && !set) {
             total += 2;
         } else if (rank % 2 == 1 && set) {
@@ -220,12 +220,12 @@ void PSGameFlow::opSetDate(EFCT *instruction) {
         }
     }
     for (uint16_t number = 170; number <= 182; number++) {
-        total -= GameState.getGameVar(number);
+        total -= PSGameState.getFlag(number);
     }
     for (uint16_t number = 185; number <= 194; number++) {
-        total += 2 * GameState.getGameVar(number);
+        total += 2 * PSGameState.getFlag(number);
     }
-    int current = GameState.getGameVar(VAR_YEAR) * 12 + GameState.getGameVar(VAR_MONTH);
+    int current = PSGameState.getFlag(VAR_YEAR) * 12 + PSGameState.getFlag(VAR_MONTH);
     if (total < current + 1) {
         total = current + 1;
     }
@@ -238,7 +238,7 @@ void PSGameFlow::opAdvanceMonths(EFCT *instruction) {
     if (!this->scriptExecuting()) {
         return;
     }
-    int total = GameState.getGameVar(VAR_YEAR) * 12 + GameState.getGameVar(VAR_MONTH) + instruction->value;
+    int total = PSGameState.getFlag(VAR_YEAR) * 12 + PSGameState.getFlag(VAR_MONTH) + instruction->value;
     printf("PS GAMEFLOW: ADVANCE_MONTHS %d\n", instruction->value);
     this->setDate(total);
 }
@@ -257,7 +257,7 @@ void PSGameFlow::opSaveMissionIndex(EFCT *instruction) {
     if (!this->scriptExecuting()) {
         return;
     }
-    GameState.setGameVar(VAR_SAVED_MISSION, (int16_t)this->current_miss);
+    PSGameState.setFlag(VAR_SAVED_MISSION, (int16_t)this->current_miss);
     printf("PS GAMEFLOW: SAVE_MISSION_INDEX %d\n", this->current_miss);
 }
 
@@ -266,6 +266,6 @@ void PSGameFlow::opRestoreMissionIndex(EFCT *instruction) {
     if (!this->scriptExecuting()) {
         return;
     }
-    this->current_miss = (uint8_t)GameState.getGameVar(VAR_SAVED_MISSION);
+    this->current_miss = (uint8_t)PSGameState.getFlag(VAR_SAVED_MISSION);
     printf("PS GAMEFLOW: RESTORE_MISSION_INDEX %d\n", this->current_miss);
 }

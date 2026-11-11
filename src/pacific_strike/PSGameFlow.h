@@ -8,8 +8,12 @@
 //
 
 #include "../strike_commander/precomp.h"
+#include "PSState.h"
 
 class PSGameFlow : public virtual SCGameFlow {
+protected:
+    PSState &PSGameState = PSState::getInstance();
+
 public:
     // Commandes propres à Pacific Strike (noms proposés dans l'analyse).
     enum PSGameflowCommand : uint8_t {
@@ -28,7 +32,7 @@ public:
         PS_SAVE_MISSION_INDEX = 40,
         PS_RESTORE_MISSION_INDEX = 41
     };
-    // Variables de la table commune (§ 2 et § 3.4).
+    // Drapeaux de PSState qui portent une valeur (§ 2 et § 3.4).
     static const uint16_t VAR_MONTH = 82;
     static const uint16_t VAR_YEAR = 83;
     static const uint16_t VAR_SAVED_MISSION = 130;

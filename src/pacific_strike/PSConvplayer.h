@@ -1,7 +1,11 @@
 #pragma once
 #include "../strike_commander/precomp.h"
+#include "PSState.h"
 
 class PSConvPlayer : public virtual SCConvPlayer {
+protected:
+    PSState &PSGameState = PSState::getInstance();
+
 protected:
     // Conv_PlayScript_C2ED0 de PACIFIC.EXE (strike_commander_re/analysis/pacific/README.md § 4.2) : la grammaire de
     // Pacific Strike est lue en ConvRecord, affichés ensuite par SCConvPlayer::buildFrames.
