@@ -1809,16 +1809,17 @@ void SCStrike::runFrame(void) {
                 }
                 break;
             }
-        case View::EJECT_VIEW_P2:
-        case View::EJECT_VIEW_P3:
-            this->player_plane->Render();
-            this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
-            break;
         case View::EYE_ON_TARGET:
         case View::REAL:
         case View::CONTROLLER_LOOK:
             this->renderVirtualCockpit();
             break;
+        case View::EJECT_VIEW_P2:
+        case View::EJECT_VIEW_P3:
+            this->player_plane->Render();
+            this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
+            break;
+        
         }
     };
 
