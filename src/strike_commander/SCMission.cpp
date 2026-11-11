@@ -778,7 +778,8 @@ uint8_t SCMission::musicScanEnemies(SCMissionActors *excluded) {
         if (actor->plane != nullptr && type == EntityType::jet && !actor->plane->ejected) {
             flags |= 1;
         }
-        if (type == EntityType::swpn || type == EntityType::ground || type == EntityType::xmit) {
+        if (type == EntityType::swpn || type == EntityType::ground || type == EntityType::xmit ||
+            type == EntityType::ship || type == EntityType::carr) {
             flags |= 2;
         }
     }
@@ -889,7 +890,7 @@ void SCMission::onActorDestroyed(SCMissionActors *actor) {
     }
     EntityType type = actor->object->entity->entity_type;
     if (type != EntityType::jet && type != EntityType::swpn && type != EntityType::ground && type != EntityType::ornt &&
-        type != EntityType::xmit) {
+        type != EntityType::xmit && type != EntityType::ship && type != EntityType::carr && type != EntityType::lson) {
         return;
     }
     printf("MUSIC destroyed %s#%d team=%d by=%s\n", actor->actor_name.c_str(), actor->actor_id, actor->team_id,
@@ -911,7 +912,8 @@ void SCMission::onActorDestroyed(SCMissionActors *actor) {
         int punctuation = 18;
         if (type == EntityType::jet) {
             punctuation = 16;
-        } else if (type == EntityType::swpn || type == EntityType::ground) {
+        } else if (type == EntityType::swpn || type == EntityType::ground || type == EntityType::ship ||
+                   type == EntityType::carr) {
             punctuation = 17;
         }
         int current = (int)this->Mixer.getMusicID();

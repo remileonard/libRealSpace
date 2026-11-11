@@ -500,7 +500,9 @@ void GunSimulatedObject::Simulate(int tps) {
         }
         if (this->y < this->mission->area->getY(this->x, this->z)) {
             this->alive = false;
-            if (this->obj->wdat->radius > 5 && this->obj->entity_type == EntityType::bomb) {
+            if (this->obj->wdat->radius > 5 && (this->obj->entity_type == EntityType::bomb ||
+                                                this->obj->entity_type == EntityType::torp ||
+                                                this->obj->entity_type == EntityType::nplm)) {
                 for (auto entity : this->mission->actors) {
                     float distance = entity->object->position.Distance(&position);
                     if (!entity->object->alive) {

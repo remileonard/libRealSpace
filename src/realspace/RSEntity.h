@@ -115,7 +115,13 @@ enum EntityType {
     destroyed_object = 12,
     rnwy = 13,
     podr = 14,
-    xmit = 15
+    xmit = 15,
+    ship = 16,
+    carr = 17,
+    torp = 18,
+    nplm = 19,
+    lson = 20,
+    ejec = 21
 };
 class RSImage;
 

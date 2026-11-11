@@ -1747,9 +1747,12 @@ void DebugStrike::radar() {
                 } 
                 break;
             case EntityType::ornt:
+            case EntityType::lson:
                 color = IM_COL32(255, 255, 0, 255);
                 break;
             case EntityType::ground:
+            case EntityType::ship:
+            case EntityType::carr:
                 color = IM_COL32(240, 255, 255, 255);
                 if (!actor->is_active) {
                     color = IM_COL32(120, 128, 128, 255);

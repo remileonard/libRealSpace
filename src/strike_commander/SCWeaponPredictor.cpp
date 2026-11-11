@@ -20,7 +20,8 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
         this->sim_object = nullptr;
     }
     
-    if (obj->entity_type == EntityType::tracer || obj->entity_type == EntityType::bomb) {
+    if (obj->entity_type == EntityType::tracer || obj->entity_type == EntityType::bomb ||
+        obj->entity_type == EntityType::torp || obj->entity_type == EntityType::nplm) {
         this->sim_object = new GunSimulatedObject();
     } else {
         this->sim_object = new SCSimulatedObject();
@@ -124,7 +125,8 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
                 target->object->position.z
             };
         }
-        if (obj->entity_type == EntityType::bomb) {
+        if (obj->entity_type == EntityType::bomb || obj->entity_type == EntityType::torp ||
+            obj->entity_type == EntityType::nplm) {
             // Pour les bombes, la probabilité dépend de l'impact au sol et du rayon d'explosion
             if (has_hit_ground) {
                 Vector3D impact_pos = this->trajectory.back();
@@ -171,7 +173,8 @@ Vector3D SCWeaponPredictor::PredictTrajectory(RSEntity* obj, SCMissionActors* sh
         // Ajustement différent selon le type d'arme
         float adjustment_factor = 0.0f;
         
-        if (obj->entity_type == EntityType::bomb) {
+        if (obj->entity_type == EntityType::bomb || obj->entity_type == EntityType::torp ||
+            obj->entity_type == EntityType::nplm) {
             // Ajustement minimal pour les bombes (principalement guidé par la gravité)
             adjustment_factor = 0.02f;
         } else if (obj->entity_type == EntityType::tracer) {

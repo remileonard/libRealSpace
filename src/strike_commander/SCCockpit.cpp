@@ -1132,7 +1132,10 @@ void SCCockpit::RenderMFDSRadarImplementation(Point2D pmfd_left, float range, co
         } else {
             valid_entity = (object->object->entity->entity_type == EntityType::ground ||
                             object->object->entity->entity_type == EntityType::ornt ||
-                            object->object->entity->entity_type == EntityType::swpn);
+                            object->object->entity->entity_type == EntityType::swpn ||
+                            object->object->entity->entity_type == EntityType::ship ||
+                            object->object->entity->entity_type == EntityType::carr ||
+                            object->object->entity->entity_type == EntityType::lson);
         }
 
         if (!valid_entity)
@@ -1717,7 +1720,8 @@ void SCCockpit::Update() {
             }
             break;
         case RadarMode::AGRD:
-            if (this->target->entity->entity_type == EntityType::ground || this->target->entity->entity_type == EntityType::ornt || this->target->entity->entity_type == EntityType::swpn) {
+            if (this->target->entity->entity_type == EntityType::ground || this->target->entity->entity_type == EntityType::ornt || this->target->entity->entity_type == EntityType::swpn ||
+                this->target->entity->entity_type == EntityType::ship || this->target->entity->entity_type == EntityType::carr || this->target->entity->entity_type == EntityType::lson) {
                 this->current_target = this->target;
             }
             break;

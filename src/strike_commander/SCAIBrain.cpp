@@ -1524,7 +1524,8 @@ float SCAIBrain::headingDelta(Vector3D direction) {
 bool SCAIBrain::guidedWeaponLock(RSEntity *weapon, SCMissionActors *target) {
     Vector3D to_target = target->object->position - owner->plane->position;
     float distance = to_target.Length();
-    if (weapon->entity_type != EntityType::bomb) {
+    if (weapon->entity_type != EntityType::bomb && weapon->entity_type != EntityType::torp &&
+        weapon->entity_type != EntityType::nplm) {
         return distance < (float) weapon->wdat->effective_range;
     }
     if (weapon->bomb_guided == 0) {
