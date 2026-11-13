@@ -48,6 +48,7 @@ private:
 
     bool orbitAllowed() const;
     void updateOrbit();
+    void setOrbitRelativeMouse(bool on);
     void updateCockpit3D();
     void debugDamage();
     Vector3D orbitedPosition(Vector3D pivot, Vector3D position) const;
@@ -63,6 +64,7 @@ private:
 
     bool orbitActive{false};
     bool orbitInvertY{true};
+    bool orbitRelativeMouse{false};
     float orbitYaw{0.0f};
     float orbitPitch{0.0f};
     float orbitZoom{1.0f};
