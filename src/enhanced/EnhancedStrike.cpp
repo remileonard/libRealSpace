@@ -13,6 +13,7 @@
 #endif
 #include "EnhancedEntity.h"
 #include "../engine/SCRenderer.h"
+#include "EnhancedRenderer.h"
 #include "../realspace/RSEntity.h"
 #include "../realspace/RSMission.h"
 #include "../strike_commander/SCPlane.h"
@@ -170,6 +171,17 @@ void EnhancedStrike::init() {
     this->applyTerrain();
     this->options.push_back({"ENHANCED WATER", &this->enhancedWater});
     this->options.push_back({"ENHANCED TERRAIN TEXTURES", &this->enhancedTerrain});
+    // Enhanced Clouds = clouds lit by the sun (cloud_shading), only with the enhanced renderer
+    EnhancedRenderer *enhancedRenderer = dynamic_cast<EnhancedRenderer *>(&renderer);
+    if (enhancedRenderer != nullptr) {
+        this->cloudStrength = enhancedRenderer->cloud_shading > 0 ? enhancedRenderer->cloud_shading : 70;
+        this->enhancedClouds = enhancedRenderer->cloud_shading > 0;
+        this->options.push_back({"ENHANCED CLOUDS", &this->enhancedClouds});
+        // Enhanced Runway = high resolution runway and taxiway textures (runway_texture, the value is the tile size)
+        this->runwaySize = enhancedRenderer->runway_texture >= 128 ? enhancedRenderer->runway_texture : 2048;
+        this->enhancedRunway = enhancedRenderer->runway_texture >= 128;
+        this->options.push_back({"ENHANCED RUNWAY", &this->enhancedRunway});
+    }
     this->options.push_back({"ENHANCED COCKPIT", &this->cockpit3d});
     this->options.push_back({"ENHANCED OUTSIDE CAMERA", &this->orbitEnabled});
     this->enhancedModel = cfg.getString("Video", "enhanced_f16_model", "1") != "0";
@@ -443,6 +455,12 @@ void EnhancedStrike::applyOption(int index) {
     if (value == &this->enhancedTerrain) {
         this->applyTerrain();
     }
+    if (value == &this->enhancedClouds) {
+        this->applyClouds();
+    }
+    if (value == &this->enhancedRunway) {
+        this->applyRunway();
+    }
     if (value == &this->enhancedModel) {
         EnhancedEntity::setReplacementsActive(this->enhancedModel);
     }
@@ -455,6 +473,8 @@ void EnhancedStrike::saveConfig() const {
     cfg.setString("Video", "water_splash", this->waterSplashEnabled ? "1" : "0");
     cfg.setString("Video", "water_waves", std::to_string(this->enhancedWater ? this->waveStrength : 0));
     cfg.setString("Video", "terrain_detail", std::to_string(this->enhancedTerrain ? this->detailStrength : 0));
+    cfg.setString("Video", "cloud_shading", std::to_string(this->enhancedClouds ? this->cloudStrength : 0));
+    cfg.setString("Video", "runway_texture", std::to_string(this->enhancedRunway ? this->runwaySize : 0));
     cfg.setString("Video", "cockpit", this->cockpit3d ? "3d" : "2d");
     cfg.setString("Video", "camera_mouse_orbit", this->orbitEnabled ? "1" : "0");
     cfg.setString("Video", "enhanced_f16_model", this->enhancedModel ? "1" : "0");
@@ -486,6 +506,20 @@ void EnhancedStrike::applyMsaa() {
 void EnhancedStrike::applyWater() {
     this->waterSplashEnabled = this->enhancedWater;
     SCRenderer::getInstance().water_waves = this->enhancedWater ? this->waveStrength : 0;
+}
+
+void EnhancedStrike::applyRunway() {
+    EnhancedRenderer *enhancedRenderer = dynamic_cast<EnhancedRenderer *>(&SCRenderer::getInstance());
+    if (enhancedRenderer != nullptr) {
+        enhancedRenderer->runway_texture = this->enhancedRunway ? this->runwaySize : 0;
+    }
+}
+
+void EnhancedStrike::applyClouds() {
+    EnhancedRenderer *enhancedRenderer = dynamic_cast<EnhancedRenderer *>(&SCRenderer::getInstance());
+    if (enhancedRenderer != nullptr) {
+        enhancedRenderer->cloud_shading = this->enhancedClouds ? this->cloudStrength : 0;
+    }
 }
 
 void EnhancedStrike::applyTerrain() {
