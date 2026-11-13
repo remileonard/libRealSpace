@@ -21,4 +21,13 @@ public:
     void drawTexturedQuad(Vector3D pos, Vector3D orientation, std::vector<Vector3D> quad, Texture *tex) override;
     void drawBillboard(Vector3D pos, Texture *tex, float size, float alpha) override;
     void applyTextureFilter(const Texture *texture) override;
+    void renderClouds(RSArea *area) override;
+
+    // [Video] cloud_shading: 0 = off (default, the classic flat white clouds), 1..100 = clouds lit by the sun
+    // (bright tops, grey-blue undersides) with soft sprites on their surface; the value is the contrast
+    int cloud_shading{0};
+    GLuint cloud_tex{0};
+
+protected:
+    void ensureCloudTexture();
 };
