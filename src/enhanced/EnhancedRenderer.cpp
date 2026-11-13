@@ -1,6 +1,8 @@
 #include "EnhancedRenderer.h"
 #include "../engine/Config.hpp"
 #include "../realspace/RSArea.h"
+#include "../realspace/RSImage.h"
+#include "RunwayTexture.h"
 
 
 #define SC_TEXTURE_MAX_ANISOTROPY 0x84FE
@@ -489,11 +491,121 @@ void EnhancedRenderer::createTextureInGPU(Texture *texture) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 }
 
+// runway_texture = 0 keeps the original overlay. Otherwise the textured polygons use the high resolution tiles and the
+// flat painted markings a grain texture; the rest is the same drawing as SCRenderer::renderMapOverlay.
+void EnhancedRenderer::renderMapOverlay(RSArea *area) {
+    if (this->runway_texture < 128 || area == nullptr) {
+        SCRenderer::renderMapOverlay(area);
+        return;
+    }
+    // the tiles belong to one map: make them on the first frame and again when the map or its textures change
+    GLuint source = 0;
+    for (size_t i = 0; i < area->objectOverlay.size() && source == 0; i++) {
+        const AreaOverlay &ov = area->objectOverlay[i];
+        for (size_t k = 0; k < ov.drawList.size(); k++) {
+            const AreaOverlayTriangles &tri = ov.trianles[ov.drawList[k]];
+            if (tri.color != 255) {
+                RSImage *image = area->GetImageByID(tri.color + 255);
+                if (image != nullptr) {
+                    source = image->GetTexture()->id;
+                    break;
+                }
+            }
+        }
+    }
+    if (area != this->overlay_hd_area || source != this->overlay_hd_source) {
+        this->overlay_hd_area = area;
+        this->overlay_hd_source = source;
+        enhanced::RunwayTexture::upgrade(*this, area, this->runway_texture);
+    }
+
+    glDepthMask(GL_FALSE);
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(-1.0f, -(float)this->overlay_offset);
+    GLfloat overlayMV[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, overlayMV);
+    // UV of the .TRI file: integers 0..125, 128 = one full tile
+    const float TRI_UV_SCALE = 128.0f;
+    // the grain of the markings is mapped by the position on the ground (128 units per repeat)
+    const float GRAIN_SCALE = 1.0f / 128.0f;
+
+    for (size_t i = 0; i < area->objectOverlay.size(); i++) {
+        AreaOverlay &ov = area->objectOverlay[i];
+        if (ov.vertices != nullptr && ov.nbTriangles > 0) {
+            // distance of the overlay to the eye, the depth offset grows with it
+            const float px = (float)ov.vertices[0].x;
+            const float py = (float)ov.vertices[0].y;
+            const float pz = (float)ov.vertices[0].z;
+            const float ex = overlayMV[0] * px + overlayMV[4] * py + overlayMV[8] * pz + overlayMV[12];
+            const float ey = overlayMV[1] * px + overlayMV[5] * py + overlayMV[9] * pz + overlayMV[13];
+            const float ez = overlayMV[2] * px + overlayMV[6] * py + overlayMV[10] * pz + overlayMV[14];
+            const float eyeDistance = sqrtf(ex * ex + ey * ey + ez * ez);
+            glPolygonOffset(-1.0f, -((float)this->overlay_offset + eyeDistance / (float)this->overlay_offset_distance));
+        }
+        for (size_t k = 0; k < ov.drawList.size(); k++) {
+            const AreaOverlayTriangles &tri = ov.trianles[ov.drawList[k]];
+            const AoVPoints v1 = ov.vertices[tri.verticesIdx[0]];
+            const AoVPoints v2 = ov.vertices[tri.verticesIdx[1]];
+            const AoVPoints v3 = ov.vertices[tri.verticesIdx[2]];
+            const Texel *texel = palette.GetRGBColor(tri.color);
+            glColor4f(texel->r / 255.0f, texel->g / 255.0f, texel->b / 255.0f, 1.0f);
+
+            const bool textured = this->show_textured && (tri.color != 255);
+            if (textured) {
+                GLuint tile = tri.color < 256 ? this->overlay_hd_tile[tri.color] : 0;
+                if (tile == 0) {
+                    RSImage *image = area->GetImageByID(tri.color + 255);
+                    if (image != nullptr) {
+                        tile = image->GetTexture()->id;
+                    }
+                }
+                if (tile != 0) {
+                    glEnable(GL_TEXTURE_2D);
+                    glBindTexture(GL_TEXTURE_2D, tile);
+                }
+                glBegin(GL_TRIANGLES);
+                glTexCoord2f(tri.uv[0].u / TRI_UV_SCALE, tri.uv[0].v / TRI_UV_SCALE);
+                glVertex3f((GLfloat)v1.x, (GLfloat)v1.y, (GLfloat)v1.z);
+                glTexCoord2f(tri.uv[1].u / TRI_UV_SCALE, tri.uv[1].v / TRI_UV_SCALE);
+                glVertex3f((GLfloat)v2.x, (GLfloat)v2.y, (GLfloat)v2.z);
+                glTexCoord2f(tri.uv[2].u / TRI_UV_SCALE, tri.uv[2].v / TRI_UV_SCALE);
+                glVertex3f((GLfloat)v3.x, (GLfloat)v3.y, (GLfloat)v3.z);
+                glEnd();
+            } else if (this->overlay_grain_tex != 0) {
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(GL_TEXTURE_2D, this->overlay_grain_tex);
+                glBegin(GL_TRIANGLES);
+                glTexCoord2f(v1.x * GRAIN_SCALE, v1.z * GRAIN_SCALE);
+                glVertex3f((GLfloat)v1.x, (GLfloat)v1.y, (GLfloat)v1.z);
+                glTexCoord2f(v2.x * GRAIN_SCALE, v2.z * GRAIN_SCALE);
+                glVertex3f((GLfloat)v2.x, (GLfloat)v2.y, (GLfloat)v2.z);
+                glTexCoord2f(v3.x * GRAIN_SCALE, v3.z * GRAIN_SCALE);
+                glVertex3f((GLfloat)v3.x, (GLfloat)v3.y, (GLfloat)v3.z);
+                glEnd();
+            } else {
+                glDisable(GL_TEXTURE_2D);
+                glBegin(GL_TRIANGLES);
+                glVertex3f((GLfloat)v1.x, (GLfloat)v1.y, (GLfloat)v1.z);
+                glVertex3f((GLfloat)v2.x, (GLfloat)v2.y, (GLfloat)v2.z);
+                glVertex3f((GLfloat)v3.x, (GLfloat)v3.y, (GLfloat)v3.z);
+                glEnd();
+            }
+        }
+    }
+
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+}
+
 void EnhancedRenderer::init(int width, int height) {
     SCRenderer::init(width, height);
     Config &config = Config::instance();
     this->water_waves = config.getInt("Video", "water_waves", 0);
     this->texture_filter = config.getInt("Video", "texture_filter", 0);
+    this->runway_texture = config.getInt("Video", "runway_texture", 0);
 
     if (this->texture_filter >= 2) {
         const char *ext = (const char *)glGetString(GL_EXTENSIONS);
