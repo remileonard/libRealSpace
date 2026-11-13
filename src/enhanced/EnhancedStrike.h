@@ -32,6 +32,8 @@ protected:
     void handleOptionsKey();
     void drawOptions();
     void applyOption(int index);
+    void applyWater();
+    void applyTerrain();
     void saveConfig() const;
 
 private:
@@ -81,7 +83,19 @@ private:
     bool waterSplashEnabled{false};
     bool glassEnabled{true};
     bool enhancedModel{true};
+    bool enhancedWater{false};
+    bool enhancedTerrain{false};
+    int waveStrength{25};
+    int detailStrength{25};
     bool orbitEnabled{true};
+    bool msaaAvailable{false};
+    bool msaaOn{true};
+    bool showFps{false};
+    enhanced::GameUI fpsUi;
+    uint32_t fpsStart{0};
+    int fpsFrames{0};
+    float fpsValue{0.0f};
+    void applyMsaa();
     bool optionsOpen{false};
     bool optionsWasPaused{false};
     std::vector<enhanced::OptionEntry> options;

@@ -12,6 +12,8 @@ const uint8_t TRANSPARENT_INDEX = 255;
 const uint8_t TEXT_COLOR = 0;
 const int CORNER = 8;
 const float SCREEN_FRACTION = 0.85f;
+// pixels between two letters
+const int LETTER_SPACE = 1;
 
 // source coordinate in the board for a destination coordinate: fixed corners, repeated middle
 int sliceAxis(int d, int total, int srcTotal) {
@@ -166,19 +168,28 @@ void GameUI::panel(int x, int y, int w, int h) {
     }
 }
 
+// The width is measured with the same letter space the text is drawn with, so centered texts stay centered.
+int GameUI::textWidth(const std::string &text) const {
+    return this->picture->getJustifiedTextWidth(this->font, text, LETTER_SPACE);
+}
+
+void GameUI::drawText(FrameBuffer *target, int x, int y, const std::string &text) {
+    Point2D position = {x, y};
+    target->printText(this->font, &position, (char *)text.c_str(), TEXT_COLOR, 0, (uint32_t)text.size(), LETTER_SPACE, 0);
+}
+
 void GameUI::label(const char *text, int centerX, int y, int scale) {
     std::string s = text;
-    // printText advances by the glyph advance plus 2, so measure the same way
-    const int width = this->picture->getJustifiedTextWidth(this->font, s, 2);
+    const int width = this->textWidth(s);
     if (scale <= 1) {
-        this->picture->printText(this->font, {centerX - width / 2, y}, s, TEXT_COLOR);
+        this->drawText(this->picture, centerX - width / 2, y, s);
         return;
     }
     // draw once at font size on a scratch picture, then copy every pixel as a scale x scale block
     FrameBuffer scratch(UI_W, UI_H);
     scratch.fillWithColor(TRANSPARENT_INDEX);
     const int margin = 2;
-    scratch.printText(this->font, {margin, margin}, s, TEXT_COLOR);
+    this->drawText(&scratch, margin, margin, s);
     const int srcW = (std::min)(UI_W, width + margin * 2 + 2);
     const int srcH = (std::min)(UI_H, this->capHeight + margin * 2 + 4);
     const int destX = centerX - (width * scale) / 2 - margin * scale;
@@ -228,11 +239,10 @@ bool GameUI::drawButton(int x, int y, int w, int h, const char *text, bool press
         this->fillRect(x + w - 2, y + 1, 1, h - 2, bottomRight);
     }
     std::string s = text;
-    // printText advances by the glyph advance plus 2, so measure the same way
-    const int width = this->picture->getJustifiedTextWidth(this->font, s, 2);
+    const int width = this->textWidth(s);
     const int shift = pressed ? 1 : 0;
-    this->picture->printText(this->font, {x + (w - width) / 2 + shift, y + 2 + shift}, s,
-                             TEXT_COLOR);
+    // printText puts the top of the capitals one pixel below the given position
+    this->drawText(this->picture, x + (w - width) / 2 + shift, y + (h - this->capHeight) / 2 - 1 + shift, s);
     return this->mouseX >= x && this->mouseX < x + w && this->mouseY >= y && this->mouseY < y + h && this->mousePressed;
 }
 
@@ -310,7 +320,32 @@ void GameUI::drawCursor(float scale) const {
     }
 }
 
-void GameUI::end() {
+void GameUI::hud(const char *text) {
+    if (!this->ready) {
+        return;
+    }
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    this->viewW = (std::max)(1.0f, (float)viewport[2]);
+    this->viewH = (std::max)(1.0f, (float)viewport[3]);
+    this->scale = (std::max)(1.0f, std::floor(this->viewH / 500.0f));
+    this->originX = 8.0f;
+    this->originY = 8.0f;
+    this->cursorX = -1.0f;
+    this->cursorY = -1.0f;
+    this->mouseX = -1;
+    this->mouseY = -1;
+    this->mouseDown = false;
+    this->mousePressed = false;
+    this->picture->fillWithColor(TRANSPARENT_INDEX);
+    const std::string s = text;
+    const int width = this->textWidth(s);
+    this->fillRect(0, 0, width + 8, this->capHeight + 8, this->body);
+    this->drawText(this->picture, 4, 3, s);
+    this->end(false);
+}
+
+void GameUI::end(bool menu) {
     std::vector<unsigned char> rgba((size_t)UI_W * UI_H * 4);
     Texel *texels = this->picture->getTexture(this->palette);
     const Texel edge = this->palette->colors[this->dark];
@@ -343,13 +378,15 @@ void GameUI::end() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glDisable(GL_TEXTURE_2D);
-    glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
-    glBegin(GL_QUADS);
-    glVertex2f(0.0f, 0.0f);
-    glVertex2f(this->viewW, 0.0f);
-    glVertex2f(this->viewW, this->viewH);
-    glVertex2f(0.0f, this->viewH);
-    glEnd();
+    if (menu) {
+        glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
+        glBegin(GL_QUADS);
+        glVertex2f(0.0f, 0.0f);
+        glVertex2f(this->viewW, 0.0f);
+        glVertex2f(this->viewW, this->viewH);
+        glVertex2f(0.0f, this->viewH);
+        glEnd();
+    }
 
     if (this->texture != 0) {
         glEnable(GL_TEXTURE_2D);
@@ -371,7 +408,9 @@ void GameUI::end() {
         glEnd();
         glDisable(GL_TEXTURE_2D);
     }
-    this->drawCursor(this->scale);
+    if (menu) {
+        this->drawCursor(this->scale);
+    }
 
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
