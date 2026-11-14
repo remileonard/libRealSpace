@@ -481,3 +481,36 @@ bool PSBrain::orderInProgress() {
         return !owner->current_command_executed;
     }
 }
+
+// GroundAttack_PhaseDispatch_13C9B : le sol est-il au-dessus du point où sera l'avion dans 40 s en ligne droite
+bool PSBrain::groundAhead() {
+    Vector3D ahead = owner->plane->position + owner->plane->worldVelocity() * 40.0f;
+    float ground = owner->plane->area->getY(ahead.x, ahead.z);
+    return ground >= ahead.y;
+}
+
+// GroundAttack_PhaseDispatch_13C9B : avant chaque phase de l'attaque au sol, si le sol est devant, phase 10 (sub_14325,
+// fonction pas encore nommée) pendant 4 s : nez à +8°, ailes à plat, vitesse du champ 23 du JDYN ; puis l'attaque s'arrête
+void PSBrain::updateGroundAttack(SCMissionActors *target) {
+    if (pull_up_timer <= 0.0f && this->groundAhead()) {
+        pull_up_timer = 4.0f;
+        owner->pilot->disengageAutopilot();
+        printf("PSBrain %s#%d attaque au sol : sol devant (altitude %.0f, sol %.0f, vitesse verticale %.1f), ressource 4 s\n", owner->actor_name.c_str(), owner->actor_id, owner->plane->y, owner->plane->groundlevel, owner->plane->worldVelocity().y);
+    }
+    if (pull_up_timer <= 0.0f) {
+        SCAIBrain::updateGroundAttack(target);
+        return;
+    }
+    pull_up_timer -= TICK_DURATION;
+    Vector3D direction(owner->plane->forward.x, 0.0f, owner->plane->forward.z);
+    direction.Normalize();
+    direction.y = tanf(degreeToRad(8.0f));
+    owner->pilot->SetGuidanceDirection(direction);
+    this->speedThrottle((float)owner->object->entity->jdyn->ai_speed_max);
+    ground_attack_active = true;
+    this->decide("attaque au sol : ressource %.1f s", pull_up_timer);
+    if (pull_up_timer <= 0.0f) {
+        printf("PSBrain %s#%d attaque au sol : fin de la ressource, attaque arretee\n", owner->actor_name.c_str(), owner->actor_id);
+        this->resetGroundAttack(false);
+    }
+}

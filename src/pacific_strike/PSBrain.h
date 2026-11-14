@@ -70,4 +70,7 @@ protected:
     void startFollowLeader(SCMissionActors *leader);
     bool tickFollowLeader();
     int pilotLevel();
+    void updateGroundAttack(SCMissionActors *target) override;
+    bool groundAhead();
+    float pull_up_timer{ 0.0f };
 };

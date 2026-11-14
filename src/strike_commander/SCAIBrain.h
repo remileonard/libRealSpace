@@ -228,7 +228,7 @@ protected:
     bool reactionThreshold(int quality);
     bool weaponRecoveryBusy();
     bool behaviorSelector();
-    void updateGroundAttack(SCMissionActors *target);
+    virtual void updateGroundAttack(SCMissionActors *target);
     bool combatStep(bool ground_allowed);
     bool destroyTargetOrder(uint8_t arg);
     bool takeoffOrder();
