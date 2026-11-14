@@ -99,7 +99,7 @@ class RSArea{
 public:
     
     RSArea();
-    ~RSArea();
+    virtual ~RSArea();
     
     void InitFromPAKFileName(const char* pakFilename);
     void InitFromZipFileName(std::string zipFilename);
@@ -124,7 +124,8 @@ public:
     float elevation[BLOCKS_PER_MAP];
 	TreArchive *tre;
     float getGroundLevel(int BLOC, float x, float y);
-    float getY(float x, float z);
+    // Altitude du sol sous un point ; un autre jeu y ajoute ses surfaces (PSArea : pont d'un porte-avions).
+    virtual float getY(float x, float z);
     void BuildSkirts();                  // pré-calcul des jupes (une fois après ParseHeightMap)
     void generateClouds(int count, float altitude, float spread);
     const PrecomputedSkirts& GetSkirts() const { return skirts_; }

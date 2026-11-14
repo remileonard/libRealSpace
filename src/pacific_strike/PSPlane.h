@@ -32,6 +32,7 @@ public:
     PSPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELEVF_CSTE, float ROLLFF_CSTE, float s, float W, float fuel_weight, float Mthrust, float b, float ie_pi_AR, int MIN_LIFT_SPEED, RSArea *area, float x, float y, float z);
     void computeThrust() override;
     void InitLoadout() override;
+    int isOnRunWay() override;
     void Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) override;
     void ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) override;
     void firePacific(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);

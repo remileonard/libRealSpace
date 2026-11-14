@@ -115,7 +115,7 @@ public:
     void placeRelativeToPlayer(SCMissionActors *actor);
     void respawnActor(SCMissionActors *actor);
     virtual void createAiPlane(SCMissionActors *actor);
-    void finishScenes();
+    virtual void finishScenes();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
     void setExitCode(uint8_t code, const char *reason);

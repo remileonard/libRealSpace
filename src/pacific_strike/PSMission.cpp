@@ -1,6 +1,7 @@
 #include "PSMission.h"
 #include "PSMissionParser.h"
 #include "PSArea.h"
+#include "PSBrain.h"
 #include "PSEntity.h"
 #include "PSPlane.h"
 #include "PSProg.h"
@@ -188,7 +189,12 @@ void PSMission::loadMission() {
             part->entity = this->createRunwayEntity(part);
         }
         if (part->entity == nullptr) {
-            printf("PSMission: objet %d %s sans fichier objet\n", part->id, part->member_name.c_str());
+            // Entité vide : l'objet existe pour les scripts et les scènes, sans modèle ni avion.
+            part->entity = this->createEntity();
+            part->entity->name = part->member_name;
+            part->entity->entity_type = EntityType::ornt;
+            part->entity->health = 50;
+            printf("PSMission: objet %d %s sans fichier objet, entite vide\n", part->id, part->member_name.c_str());
         }
         for (auto cast : mission->mission_data.casting) {
             if (part->id == search_id) {
@@ -244,7 +250,7 @@ void PSMission::loadMission() {
                 printf("PSMission: objet %d %s (%s), zone %d, placement %d, position (%.1f, %.1f, %.1f), cap %d, camp %d, scripts %d %d %d %d\n", part->id, cast->actor.c_str(), part->member_name.c_str(), part->area_id, part->placement, part->position.x, part->position.y, part->position.z, part->azymuth, part->team, part->on_is_activated, part->on_mission_update, part->on_is_destroyed, part->on_missions_init);
                 bool has_plane_data = actor->object->entity != nullptr && actor->object->entity->jdyn != nullptr;
                 if (actor->profile != nullptr && actor->profile->ai.isAI && cast->actor != "PLAYER") {
-                    actor->brain = new SCAIBrain(actor);
+                    actor->brain = new PSBrain(actor);
                     if (actor->profile->ai.goal.size() > 0 && has_plane_data) {
                         this->createAiPlane(actor);
                     }
@@ -283,6 +289,14 @@ void PSMission::loadMission() {
             search_id++;
         }
     }
+    // Un script désigne un objet par le numéro de son PART, pas par son rang : les objets du terrain prennent des
+    // numéros au-dessus du plus grand numéro de PART.
+    int terrain_id = 0;
+    for (auto part : mission->mission_data.parts) {
+        if (part->id >= terrain_id) {
+            terrain_id = part->id + 1;
+        }
+    }
     for (auto area_actor : this->area->objects) {
         if (area_actor.entity == nullptr) {
             continue;
@@ -292,7 +306,7 @@ void PSMission::loadMission() {
             actor = new SCMissionActorsSwpn();
         }
         MISN_PART *part = new MISN_PART();
-        part->id = cpt_actor++;
+        part->id = terrain_id++;
         part->member_name = area_actor.name;
         part->member_name_destroyed = area_actor.destroyedName;
         part->entity = area_actor.entity;
@@ -327,6 +341,17 @@ void PSMission::loadMission() {
             }
         }
         this->actors.push_back(actor);
+    }
+    PSArea *ps_area = static_cast<PSArea *>(this->area);
+    ps_area->carriers.clear();
+    for (auto actor : this->actors) {
+        if (actor->object == nullptr || actor->object->entity == nullptr || actor->object->entity->entity_type != EntityType::carr) {
+            continue;
+        }
+        if (static_cast<PSEntity *>(actor->object->entity)->has_carrier_deck) {
+            ps_area->carriers.push_back(actor);
+            printf("PSMission: porte-avions %s#%d donne a la carte, position (%.1f, %.1f, %.1f), cap %d\n", actor->actor_name.c_str(), actor->actor_id, actor->object->position.x, actor->object->position.y, actor->object->position.z, actor->object->azymuth);
+        }
     }
     for (auto member : this->mission->mission_data.team) {
         MISN_PART *part = this->mission->mission_data.parts[member];
@@ -375,4 +400,15 @@ void PSMission::update() {
 
 SCProg *PSMission::createProg(SCMissionActors *actor, std::vector<PROG> prog, uint8_t prog_id) {
     return new PSProg(actor, prog, this, prog_id);
+}
+
+// Fin de mission, ordre de PACIFIC.EXE (sub_BE97E de ovr344, pas encore nommée) : script de sortie de la scène courante,
+// puis celui de la scène globale.
+void PSMission::finishScenes() {
+    if (this->current_scene != nullptr && this->current_scene != this->global_scene) {
+        this->current_scene->runLeaving();
+    }
+    if (this->global_scene != nullptr) {
+        this->global_scene->runLeaving();
+    }
 }

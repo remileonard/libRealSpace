@@ -1,4 +1,5 @@
 #include "PSPlane.h"
+#include "PSArea.h"
 
 PSPlane::PSPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELEVF_CSTE, float ROLLFF_CSTE, float s, float W, float fuel_weight, float Mthrust, float b, float ie_pi_AR, int MIN_LIFT_SPEED, RSArea *area, float x, float y, float z) : SCJetpPlane(LmaxDEF, LminDEF, Fmax, Smax, ELEVF_CSTE, ROLLFF_CSTE, s, W, fuel_weight, Mthrust, b, ie_pi_AR, MIN_LIFT_SPEED, area, x, y, z) {
 }
@@ -288,4 +289,14 @@ void PSPlane::InitLoadout() {
             printf("PSPlane: %s point %zu (type %d) : %d %s\n", this->object->member_name.c_str(), i, this->weaps_load[i]->hpts_type, this->weaps_load[i]->nb_weap, this->weaps_load[i]->name.c_str());
         }
     }
+}
+
+// Le pont d'un porte-avions est une piste : l'avion qui s'y pose ne s'écrase pas (Aircraft_ContactWithObject_3CA69).
+// C'est la carte (PSArea) qui sait s'il y a un pont sous l'avion.
+int PSPlane::isOnRunWay() {
+    float deck = 0.0f;
+    if (static_cast<PSArea *>(this->area)->carrierDeckAt(this->x, this->z, deck)) {
+        return 1;
+    }
+    return SCPlane::isOnRunWay();
 }

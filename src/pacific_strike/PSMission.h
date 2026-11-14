@@ -9,6 +9,7 @@ public:
     void loadMission() override;
     void update() override;
     void createAiPlane(SCMissionActors *actor) override;
+    void finishScenes() override;
     RSEntity *createEntity() override;
     static bool isRunwayName(const std::string &name);
     RSEntity *createRunwayEntity(MISN_PART *part);

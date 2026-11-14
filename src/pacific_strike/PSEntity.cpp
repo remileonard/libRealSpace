@@ -238,11 +238,32 @@ void PSEntity::parseREAL_OBJT_SHIP(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 
-// Les chunks CHLD, CARD et LSOD ne sont pas lus.
+// 8 entiers en 24.8 ; un point du fichier (c0, c1, c2) se lit x = c0, y = c2, z = -c1.
+void PSEntity::parseREAL_OBJT_CARR_CARD(uint8_t *data, size_t size) {
+    if (size < 32) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->deck_height = bs.ReadFixedFloatLE();
+    this->deck_value_2 = bs.ReadFixedFloatLE();
+    float a0 = bs.ReadFixedFloatLE();
+    float a1 = bs.ReadFixedFloatLE();
+    float a2 = bs.ReadFixedFloatLE();
+    this->deck_point_a = Vector3D(a0, a2, -a1);
+    float b0 = bs.ReadFixedFloatLE();
+    float b1 = bs.ReadFixedFloatLE();
+    float b2 = bs.ReadFixedFloatLE();
+    this->deck_point_b = Vector3D(b0, b2, -b1);
+    this->has_carrier_deck = true;
+    printf("PSEntity: %s CARD pont a %.1f m, valeur 2 %.1f, point A (%.1f, %.1f, %.1f), point B (%.1f, %.1f, %.1f)\n", this->name.c_str(), this->deck_height, this->deck_value_2, this->deck_point_a.x, this->deck_point_a.y, this->deck_point_a.z, this->deck_point_b.x, this->deck_point_b.y, this->deck_point_b.z);
+}
+
+// Les chunks CHLD et LSOD ne sont pas lus.
 void PSEntity::parseREAL_OBJT_CARR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::carr;
     std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> handlers;
+    handlers["CARD"] = std::bind(&PSEntity::parseREAL_OBJT_CARR_CARD, this, std::placeholders::_1, std::placeholders::_2);
     handlers["EXPL"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEST"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);

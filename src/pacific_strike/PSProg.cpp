@@ -103,6 +103,9 @@ SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
         if (!candidate->is_active && candidate != this->mission->player) {
             continue;
         }
+        if (candidate->is_hidden && candidate != this->mission->player) {
+            continue;
+        }
         if (actorKind(candidate) != kind) {
             continue;
         }

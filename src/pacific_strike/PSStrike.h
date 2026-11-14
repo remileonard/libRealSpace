@@ -15,5 +15,6 @@ public:
     void firePrimary() override;
     void selectNextWeapon() override;
     void selectFirstWeapon();
+    void placePlayerOnGround();
     SCMission *createMission(char const *missionName) override;
 };

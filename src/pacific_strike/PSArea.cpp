@@ -1,4 +1,5 @@
 #include "PSArea.h"
+#include "PSEntity.h"
 
 void PSArea::ParseTriFile(PakEntry *entry) {
     if (entry->size <= 0) {
@@ -117,4 +118,45 @@ void PSArea::ParseTriFile(PakEntry *entry) {
         printf("PSArea: region lue sur %zu octets, l'entree en fait %zu\n", read, entry->size);
     }
     objectOverlay.push_back(overlay);
+}
+
+// Pont d'un porte-avions actif sous le point : le point est ramené dans le repère du navire (position et cap de son
+// PART, modèle : x = longueur, z = largeur) et comparé à la boîte du modèle ; hauteur = navire + hauteur du chunk CARD
+// (Aircraft_ContactWithObject_3CA69 pose l'avion à cette hauteur). Le point d'origine du navire lui-même n'est pas
+// sur son pont : c'est la question que pose le placement du navire.
+bool PSArea::carrierDeckAt(float x, float z, float &deck) {
+    bool found = false;
+    for (auto carrier : this->carriers) {
+        if (!carrier->is_active || carrier->is_destroyed) {
+            continue;
+        }
+        float dx = x - carrier->object->position.x;
+        float dz = z - carrier->object->position.z;
+        if (fabsf(dx) < 1.0f && fabsf(dz) < 1.0f) {
+            continue;
+        }
+        PSEntity *entity = static_cast<PSEntity *>(carrier->object->entity);
+        float angle = (360.0f - (float)carrier->object->azymuth + 90.0f) * (float)M_PI / 180.0f;
+        float local_x = dx * cosf(angle) - dz * sinf(angle);
+        float local_z = dx * sinf(angle) + dz * cosf(angle);
+        BoudingBox *box = entity->GetBoudingBpx();
+        if (local_x < box->min.x || local_x > box->max.x || local_z < box->min.z || local_z > box->max.z) {
+            continue;
+        }
+        float height = carrier->object->position.y + entity->deck_height;
+        if (!found || height > deck) {
+            deck = height;
+        }
+        found = true;
+    }
+    return found;
+}
+
+float PSArea::getY(float x, float z) {
+    float ground = RSArea::getY(x, z);
+    float deck = 0.0f;
+    if (this->carrierDeckAt(x, z, deck) && deck > ground) {
+        return deck;
+    }
+    return ground;
 }

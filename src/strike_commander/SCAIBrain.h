@@ -172,10 +172,11 @@ class SCAIBrain {
 public:
     static constexpr float TICK_DURATION = 1.0f / 25.0f;
     SCAIBrain(SCMissionActors *owner);
+    virtual ~SCAIBrain() = default;
     void tick();
     void updateTimers();
     void topLevelThink();
-    bool runGoalSelectors();
+    virtual bool runGoalSelectors();
 
     SCMissionActors *air_target{nullptr};
     SCMissionActors *ground_target{nullptr};
@@ -189,14 +190,14 @@ public:
     int morale{2};
     int fire_solution_quality{0};
 
-    bool acquireBestThreat(bool allow_new_target);
+    virtual bool acquireBestThreat(bool allow_new_target);
     void onObjectiveSet(bool assigned);
     char decision[480]{};           // chemin de decision du dernier tick (trace de DebugStrike)
     char tournament_scores[160]{};  // dernier tournoi : identifiant:note des candidats retenus
     void decide(const char *format, ...);
     std::string behaviorLabel();
 
-private:
+protected:
     SCMissionActors *owner{nullptr};
     RetargetClock retarget;
     ManeuverState maneuver;
@@ -247,10 +248,10 @@ private:
     void applyManeuver(int id, SCMissionActors *target, uint8_t level);
     void endManeuver(bool finished);
     void onBehaviorEnded(bool finished);
-    bool tickManeuver();
+    virtual bool tickManeuver();
     bool tickSegment();
     void maneuverSpeed(float wanted);
-    void speedThrottle(float wanted);
+    virtual void speedThrottle(float wanted);
     bool ejectDecision(int mode);
     bool runReflexes();
     bool scanCollisionThreats();
@@ -262,7 +263,8 @@ private:
     void incomingThreatWarning();
     int computeMorale();
     bool canHoldOrder();
-    bool moraleReaction();
+    virtual bool moraleReaction();
+    virtual bool canTargetAircraft();
     void leaveFight();
     SCMissionActors *playerActor();
     SCMissionActors *leaderActor();
