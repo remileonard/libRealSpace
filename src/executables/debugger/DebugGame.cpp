@@ -18,6 +18,7 @@
 #include "DebugControlMapping.h"
 #include "DebugAnimationPlayer.h"
 #include "../../tactical_operation/TOConvAssetManager.h"
+#include "../../pacific_strike/PSConvAssetManager.h"
 #include "DebugConvPlayer.h"
 #include "DebugPacificStrikeMISN.h"
 #include "DebugPSConvPlayer.h"
@@ -446,6 +447,7 @@ void DebugGame::loadPacificConv() {
     RSMixer::getInstance().init();
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
+    ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
     ConvAssetManager::getInstance().init();
     DebugPSGameFlow* main = new DebugPSGameFlow();
     SCState &GameState = SCState::getInstance();
@@ -493,6 +495,7 @@ void DebugGame::loadPacificMISN() {
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
     SCMouse::getInstance().init();
+    ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
     ConvAssetManager::getInstance().init();
     DebugPacificStrikeMISN* main = new DebugPacificStrikeMISN();
     SCState &GameState = SCState::getInstance();

@@ -8,6 +8,7 @@
 #include "../../strike_commander/precomp.h"
 #include "../../pacific_strike/PSGameFlow.h"
 #include "../../pacific_strike/PSState.h"
+#include "../../pacific_strike/PSConvAssetManager.h"
 #include "../../engine/gametimer.h"
 #include "../../engine/desktoptimer.h"
 
@@ -70,6 +71,7 @@ int main(int argc, char* argv[]) {
         loader->setProgress(60.0f);
         RSFontManager::getInstance().init();
         loader->setProgress(70.0f);
+        ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
         ConvAssetManager::getInstance().init();
         loader->setProgress(90.0f);
         RSSound::getInstance().init();

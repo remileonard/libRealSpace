@@ -1,4 +1,5 @@
 #include "PSConvplayer.h"
+#include "PSConvAssetManager.h"
 
 PSConvPlayer::PSConvPlayer() {
 }
@@ -96,9 +97,10 @@ bool PSConvPlayer::readShowText(size_t at, uint8_t op, int level) {
     return true;
 }
 
-// 17 GROUP_SHOT_COMMANDER : n, n numéros d'image, x, y de la cible ; calque du commandant (PointerLayer_*) pas encore
-// porté, l'enregistrement n'est pas gardé.
+// 17 GROUP_SHOT_COMMANDER : n, n numéros d'image, x, y de la cible ; gardé pour les plans de son GROUP_SHOT (le plan
+// sans texte et chaque réplique), dessiné par drawCommander.
 bool PSConvPlayer::readCommander(size_t at) {
+    ConvCommander commander;
     uint16_t count = 0;
     if (!this->readWord(count)) {
         return false;
@@ -108,13 +110,17 @@ bool PSConvPlayer::readCommander(size_t at) {
         if (!this->readWord(image)) {
             return false;
         }
+        commander.images.push_back(image);
     }
-    int16_t x = 0;
-    int16_t y = 0;
-    if (!this->readSignedWord(x) || !this->readSignedWord(y)) {
+    if (!this->readSignedWord(commander.x) || !this->readSignedWord(commander.y)) {
         return false;
     }
-    printf("CONV %d: GROUP_SHOT_COMMANDER (octet %zu), %d images, cible (%d, %d), calque pas encore porte\n", this->conversationID, at, count, x, y);
+    if (!this->skipping && !commander.images.empty()) {
+        this->commanders[this->group_offset] = commander;
+        this->open_commander = commander;
+        this->commander_open = true;
+    }
+    printf("CONV %d: GROUP_SHOT_COMMANDER (octet %zu), %d images, cible (%d, %d)\n", this->conversationID, at, count, commander.x, commander.y);
     return true;
 }
 
@@ -128,6 +134,8 @@ bool PSConvPlayer::readGroupShot(size_t at) {
         return false;
     }
     this->keep(shot);
+    this->group_offset = at;
+    this->commander_open = false;
     while (this->pos < this->script_size) {
         size_t sub = this->pos;
         uint8_t op = this->script[this->pos];
@@ -138,6 +146,9 @@ bool PSConvPlayer::readGroupShot(size_t at) {
         } else if (op == CONV_SHOW_TEXT) {
             this->pos++;
             ok = this->readShowText(sub, CONV_SHOW_TEXT, 1);
+            if (ok && this->commander_open && !this->skipping) {
+                this->commanders[sub] = this->open_commander;
+            }
         } else if (op == PS_CONV_GROUP_SHOT_COMMANDER) {
             this->pos++;
             ok = this->readCommander(sub);
@@ -148,6 +159,7 @@ bool PSConvPlayer::readGroupShot(size_t at) {
             return false;
         }
     }
+    this->commander_open = false;
     return true;
 }
 
@@ -240,4 +252,75 @@ void PSConvPlayer::SetArchive(PakEntry *convPakEntry) {
     printf("CONV %d: Pacific Strike, %zu enregistrements gardes\n", this->conversationID, this->records.size());
     this->buildFrames(this->records, ConvFormat::Floppy);
     initialized = true;
+}
+
+void PSConvPlayer::applyGroupPalette(void) {
+    VGA.setPalette(&this->palette);
+}
+
+void PSConvPlayer::pushFrame(ConvFrame *frame, const std::vector<ConvRecord> &records, const ConvRecord &record) {
+    SCConvPlayer::pushFrame(frame, records, record);
+    auto found = this->commanders.find(record.offset);
+    if (found != this->commanders.end()) {
+        this->frame_commanders[frame] = found->second;
+    }
+}
+
+// image qui couvre l'écran (en-tête 0 à 319 x 0 à 199), placée comme un élément de décor
+void PSConvPlayer::drawFullScreenImage(RLEShape *shape) {
+    if (shape == nullptr) {
+        return;
+    }
+    Point2D saved = shape->position;
+    Point2D position;
+    position.x = -shape->GetLeft();
+    position.y = CONV_TOP_BAR_HEIGHT + 1 - shape->GetTop();
+    shape->SetPosition(&position);
+    VGA.getFrameBuffer()->drawShape(shape);
+    shape->SetPosition(&saved);
+}
+
+// PointerLayer_Draw_62EF2 : la baguette (PointerLayer_DrawStick_630DA), l'image 0, puis l'image courante. Scène à 10
+// images par seconde (LayerGroup_Construct_66650) : l'image courante avance d'une étape toutes les 6 tics
+// (PointerLayer_Advance_62F57) et reste sur la dernière.
+void PSConvPlayer::drawCommander(const ConvCommander &commander) {
+    std::vector<Point2D> &hand_points = static_cast<PSConvAssetManager &>(ConvAssetManager::getInstance()).pointer.hand_points;
+    CharFigure *figure = ConvAssetManager::getInstance().GetFigure(PSGameState.getFlag(2128) != 0 ? "yucmndr" : "commndr");
+    if (figure == nullptr || figure->appearances == nullptr) {
+        return;
+    }
+    uint32_t ticks = (SDL_GetTicks() - this->current_frame->creationTime) * 60 / 1000;
+    size_t last = commander.images.size() - 1;
+    size_t step = (std::min)((size_t)(ticks / 6), last);
+    uint16_t image = commander.images[step];
+    int top = CONV_TOP_BAR_HEIGHT + 1;
+    if (image < hand_points.size() && commander.images[last] < hand_points.size()) {
+        Point2D hand = hand_points[image];
+        Point2D last_hand = hand_points[commander.images[last]];
+        int end_x = commander.x;
+        int end_y = commander.y;
+        if (step != last) {
+            end_x = hand.x - std::abs(last_hand.x - commander.x);
+            end_y = hand.y - std::abs(last_hand.y - commander.y);
+        }
+        VGA.getFrameBuffer()->line(hand.x, hand.y + top, end_x, end_y + top, 15);
+    }
+    // image n du jeu = entrée n + image_offset du jeu d'images (entrée 0 vide quand il porte une palette)
+    this->drawFullScreenImage(figure->appearances->GetShape(figure->image_offset));
+    this->drawFullScreenImage(figure->appearances->GetShape(image + figure->image_offset));
+}
+
+void PSConvPlayer::drawGroupScene(void) {
+    SCConvPlayer::drawGroupScene();
+    auto found = this->frame_commanders.find(this->current_frame);
+    if (found == this->frame_commanders.end()) {
+        return;
+    }
+    this->drawCommander(found->second);
+    for (size_t i = 0; i < CONV_TOP_BAR_HEIGHT + 1; i++) {
+        VGA.getFrameBuffer()->fillLineColor(i, 0x00);
+    }
+    for (size_t i = 0; i < CONV_BOTTOM_BAR_HEIGHT; i++) {
+        VGA.getFrameBuffer()->fillLineColor(199 - i, 0x00);
+    }
 }

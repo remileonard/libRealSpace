@@ -89,9 +89,9 @@ protected:
     size_t buildGroupShot(const std::vector<ConvRecord> &records, size_t index, ConvFormat format);
     ConvFrame *newFrame(void);
     void addFrame(ConvFrame *frame);
-    void pushFrame(ConvFrame *frame, const std::vector<ConvRecord> &records, const ConvRecord &record);
-    void applyGroupPalette(void);
-    void drawGroupScene(void);
+    virtual void pushFrame(ConvFrame *frame, const std::vector<ConvRecord> &records, const ConvRecord &record);
+    virtual void applyGroupPalette(void);
+    virtual void drawGroupScene(void);
     void applyFacePalette(void);
     void startVoice(void);
     void drawCloseUpFace(int mouth);
