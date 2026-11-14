@@ -11,10 +11,6 @@ PSVirtualCockpit::~PSVirtualCockpit() {
     this->instrument_framebuffers.clear();
 }
 
-// L'objet du cockpit a son origine au point de l'oeil : le tableau de bord de CORPIT est 2,5 m devant et 0,8 m sous
-// l'origine, là où les chunks 3SPC placent les instruments. Il se dessine donc à la caméra, sans décalage. Les 3
-// entiers du chunk INFO du FORM REAL (Corsair : 2,40 m vers le nez, 3,30 m vers le haut) placent ce point par rapport
-// à l'avion dans le jeu (Cockpit_UpdateView_1699B) ; libRealSpace place sa caméra à eye_y au-dessus de l'avion.
 Vector3D PSVirtualCockpit::modelOffset(const VirtualCockpitContext &ctx) {
     return Vector3D(0.0f, 0.0f, 0.0f);
 }
@@ -27,9 +23,6 @@ void PSVirtualCockpit::drawModel(const VirtualCockpitContext &ctx) {
     Renderer.drawModel(def->REAL.OBJS, Renderer.lodLevel, this->cockpit_pos, this->cockpit_rot, this->modelOffset(ctx));
 }
 
-// Un instrument avec un chunk 3SPC et une image 1 : sa texture a la taille de cette image ; son quadrilatère part du
-// point (x, y, z) du 3SPC dans le repère de l'objet du cockpit, large de w vers la droite et haut de h vers le bas
-// (sub_237B0). Valeurs en 24.8.
 void PSVirtualCockpit::updateInstruments(const VirtualCockpitContext &ctx) {
     PSCockpitDef *def = this->ps_cockpit->definition();
     if (def == nullptr) {
@@ -68,7 +61,6 @@ void PSVirtualCockpit::updateInstruments(const VirtualCockpitContext &ctx) {
         }
         this->addPanel(fb, quad);
     }
-    // Message radio : bandeau de PLAQUES.IFF, à la place que lui donne SCJetVirtualCockpit devant la caméra.
     if (this->cockpit->comm_framebuffer != nullptr && this->renderComm()) {
         std::vector<Vector3D> comm;
         comm.push_back(Vector3D(6.1f, -0.95f, -1.90f));

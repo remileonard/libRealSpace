@@ -4,8 +4,7 @@
 PSPlane::PSPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELEVF_CSTE, float ROLLFF_CSTE, float s, float W, float fuel_weight, float Mthrust, float b, float ie_pi_AR, int MIN_LIFT_SPEED, RSArea *area, float x, float y, float z) : SCJetpPlane(LmaxDEF, LminDEF, Fmax, Smax, ELEVF_CSTE, ROLLFF_CSTE, s, W, fuel_weight, Mthrust, b, ie_pi_AR, MIN_LIFT_SPEED, area, x, y, z) {
 }
 
-// Facteur k de la puissance à basse vitesse : avion du joueur selon Flight Model:, objet du camp 255 selon Enemy AI:,
-// 1 sinon.
+
 float PSPlane::lowSpeedPowerFactor() {
     if (this->pilot == nullptr) {
         return 1.0f;
@@ -31,8 +30,6 @@ float PSPlane::lowSpeedPowerFactor() {
     return 1.0f;
 }
 
-// Aero_PropellerThrust_4710B : poussée de l'hélice, recalculée quand le cran change, sinon une image sur 8. Le plafond
-// du cran par le gain moteur et l'arrêt sans carburant viennent de SCJetpPlane::computeThrust.
 void PSPlane::computeThrust() {
     int max_notch = (int)lroundf(10.0f * this->g_engine);
     if (this->thrust > max_notch * 10) {
@@ -98,7 +95,6 @@ PSPlane::PSWeaponMask PSPlane::weaponMask(RSEntity *weapon) {
     }
 }
 
-// premier point d'emport chargé d'un canon (masque 64, WeaponStation_FindLoadedCompatible) ; −1 sans canon
 int PSPlane::gunHardpoint() {
     for (int i = 0; i < (int)this->weaps_load.size(); i++) {
         SCWeaponLoadoutHardPoint *station = this->weaps_load[i];
@@ -117,9 +113,7 @@ void PSPlane::ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCM
     this->firePacific(weapon_hard_point_id, target, mission);
 }
 
-// SCPlane::launchDirect, puis le projectile créé est déplacé de la position de l'avion à celle du point d'emport :
-// coordonnées HPTS (24.8, repère de l'objet : x = envergure, z = nez, y = haut) tournées comme le modèle de l'avion
-// (lacet + 90° autour de Y, tangage autour de Z, −roulis autour de X ; objet : x = nez, y = haut, z = envergure).
+
 void PSPlane::launchFromHardpoint(int hardpoint, SCMissionActors *target, SCMission *mission) {
     size_t before = this->weaps_object.size();
     Vector3D local(this->weaps_load[hardpoint]->position.z / 256.0f, this->weaps_load[hardpoint]->position.y / 256.0f, this->weaps_load[hardpoint]->position.x / 256.0f);
@@ -142,9 +136,6 @@ void PSPlane::launchFromHardpoint(int hardpoint, SCMissionActors *target, SCMiss
     projectile->z += offset.z;
 }
 
-// Tir de l'arme du point d'emport avec les objets de libRealSpace (SCPlane::launchDirect), selon la catégorie du
-// WDAT : 13 = canon, tous les points qui portent cette arme font feu ensemble (WeaponSystem_LaunchFromStation_3E2EC) ;
-// 9 = bombe, lâchée du point le plus chargé qui porte cette arme ; 8 = roquette, lancée sans cible (non guidée).
 void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     if (weapon_hard_point_id < 0 || (size_t)weapon_hard_point_id >= this->weaps_load.size()) {
         return;
@@ -202,9 +193,7 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
     this->weapon_timers[slot] = launcher->wdat->fire_interval;
 }
 
-// sub_AE513 de ovr311 : charge au plus count armes sur un point d'emport libre ; capacité selon le type du point
-// (HPTS) : 0 et 4 = canon, toute la quantité ; 1 = roquette ×1 ; 2 = bombe de 100 lb ×1 ; 3 = bombe de 500 ou
-// 1000 lb, torpille ou napalm ×1. Rend le nombre chargé.
+
 int PSPlane::loadOnHardpoint(size_t hardpoint, RSEntity::WEAPS *weapon, int count) {
     if (this->weaps_load[hardpoint] != nullptr) {
         return 0;
@@ -252,10 +241,7 @@ int PSPlane::loadOnHardpoint(size_t hardpoint, RSEntity::WEAPS *weapon, int coun
     return loaded;
 }
 
-// sub_AEC5A de ovr311 : le premier canon de la liste WPNS va sur tous les points de type 0, les canons suivants sur
-// les points de type 4, chacun avec toute sa quantité. Les autres armes se répartissent depuis les deux bouts de la
-// liste HPTS : quand les deux points ont le même type, chacun reçoit la moitié du reste ; sinon le premier reçoit tout
-// et seul lui avance.
+
 void PSPlane::InitLoadout() {
     std::vector<HPTS *> &hardpoints = this->object->entity->hpts;
     this->weaps_load.resize(hardpoints.size());
@@ -302,8 +288,7 @@ void PSPlane::InitLoadout() {
     }
 }
 
-// Le pont d'un porte-avions est une piste : l'avion qui s'y pose ne s'écrase pas (Aircraft_ContactWithObject_3CA69).
-// C'est la carte (PSArea) qui sait s'il y a un pont sous l'avion.
+
 int PSPlane::isOnRunWay() {
     float deck = 0.0f;
     if (static_cast<PSArea *>(this->area)->carrierDeckAt(this->x, this->z, deck)) {

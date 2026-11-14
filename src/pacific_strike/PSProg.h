@@ -3,16 +3,12 @@
 #include "PSEntity.h"
 #include "PSState.h"
 
-// Scripts de mission de Pacific Strike (strike_commander_re/analysis/pacific/README.md § 2.1, § 6.5 et § 6.7) :
-// les instructions de drapeau lisent et écrivent les drapeaux de la mission (mission_data.flags), recopiés dans PSState
-// pour le déroulement et les conversations ; la table des instructions reçoit celles que Strike Commander n'a pas.
 class PSProg : public SCProg {
 public:
     PSProg(SCMissionActors *profile, std::vector<PROG> prog, SCMission *mission, uint8_t prog_id = 0);
 
 protected:
     PSState &PSGameState = PSState::getInstance();
-    // Noms de MISSION_SCRIPT_OPCODES.md et du README de Pacific Strike.
     enum PSProgOp : uint8_t {
         PS_OP_NOOP_5 = 5,
         PS_OP_SWAP_WORK_AND_FLAG = 18,

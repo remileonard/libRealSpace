@@ -2,8 +2,6 @@
 #include "../strike_commander/precomp.h"
 #include "PSCockpit.h"
 
-// Cockpit 3D de Pacific Strike : l'objet du FORM REAL du fichier de cockpit, placé par son chunk INFO, et l'image de
-// chaque instrument posée au point de son chunk 3SPC (CockpitInstrument_DrawIn3D_185B9 et sub_237B0 de PACIFIC.EXE).
 class PSVirtualCockpit : public SCVirtualCockpit {
 public:
     explicit PSVirtualCockpit(PSCockpit *cockpit);

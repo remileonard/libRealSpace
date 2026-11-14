@@ -3,11 +3,10 @@
 #include "../strike_commander/SCJetpPlane.h"
 #include "PSEntity.h"
 
-// Avion de Pacific Strike : modèle de vol de SCJetpPlane, avec la poussée de l'hélice et la répartition des armes de
-// PACIFIC.EXE (strike_commander_re/analysis/pacific/README.md § 9).
+
 class PSPlane : public SCJetpPlane {
 protected:
-    // Masque d'arme (sub_ADEA0 de ovr311), testé par les points d'emport.
+
     enum PSWeaponMask : uint8_t {
         PS_MASK_NONE = 0,
         PS_MASK_BOMB_100LB = 1,
@@ -18,7 +17,6 @@ protected:
         PS_MASK_NAPALM = 32,
         PS_MASK_GUN = 64
     };
-    // Options de l'écran des options : 0 Ace, 1 Veteran, 2 Rookie (valeurs par défaut du jeu).
     int flight_model{ 1 };
     int enemy_ai{ 0 };
     int thrust_notch_computed{ -1 };

@@ -532,13 +532,18 @@ void SCStrike::checkKeyboard(void) {
         }
         if (this->player_plane->GetThrottle() == 0) {
             if (!Mixer.isSoundPlaying(5)) {
+                MemSound *engine = nullptr;
+                int can_repeat = 0;
                 if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                    engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
+                    can_repeat = -1;
                 } else if (this->current_mission->sound.sounds.size() > 0) {
-                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
-                }    
+                    engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
+                    can_repeat = 0;
+                }
+                if (engine != nullptr) {
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, can_repeat);
+                }
             }
             
         }
@@ -720,14 +725,19 @@ void SCStrike::checkKeyboard(void) {
             this->player_plane->SetThrottle(10);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                if (engine != nullptr) {
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                }
+                
             }
         }
         if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_20))) {
             this->player_plane->SetThrottle(20);
             if (this->current_mission->sound.sounds.size() > 0) {
                 MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                if (engine != nullptr) {
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                }
             }
         }
         if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_30))) {

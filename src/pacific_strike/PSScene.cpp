@@ -13,8 +13,6 @@ std::vector<SCZone *> *PSScene::init(GAMEFLOW_SCEN *gf, SCEN *sc_opts, std::func
     return zones;
 }
 
-// Copie de SCZone::isActive sur les drapeaux de PSState : un numéro jamais posé vaut 0 (GameVar_Get_56414).
-// 0 et 2 : drapeau non posé ; 1 et 3 : drapeau posé ; 2 et 3 : la condition suivante est en « ou ».
 bool PSScene::zoneActive(SCZone *zone) {
     if (zone->sprite == nullptr || zone->sprite->requ == nullptr) {
         return true;

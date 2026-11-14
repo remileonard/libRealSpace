@@ -6,7 +6,6 @@
 PSProg::PSProg(SCMissionActors *profile, std::vector<PROG> prog, SCMission *mission, uint8_t prog_id) : SCProg(profile, prog, mission, prog_id) {
 }
 
-// Table de Strike Commander, plus les instructions propres à Pacific Strike.
 std::map<uint8_t, SCProg::Instruction> PSProg::buildInstructionTable() {
     std::map<uint8_t, Instruction> table = SCProg::buildInstructionTable();
     table[PS_OP_NOOP_5] = static_cast<Instruction>(&PSProg::opNoop5);
@@ -43,14 +42,11 @@ const std::map<uint8_t, SCProg::Instruction> &PSProg::instructionTable() {
     return table;
 }
 
-// Drapeau de la mission (mission_data.flags, la table que le débogueur affiche) ; la table couvre tous les numéros
-// qu'un script peut écrire (2 octets).
+
 int16_t PSProg::flag(uint16_t number) {
     return this->mission->mission->mission_data.flags[number];
 }
 
-// Écrit le drapeau de la mission et le recopie dans PSState, que lisent le déroulement et les conversations. À partir
-// de 256, un drapeau vaut 0 ou 1. La trace ne sort que si la valeur change (un script est rejoué à chaque image).
 void PSProg::setVar(const char *name, uint16_t number, int value) {
     std::vector<int16_t> &flags = this->mission->mission->mission_data.flags;
     int16_t before = flags[number];
@@ -65,8 +61,7 @@ void PSProg::setVar(const char *name, uint16_t number, int value) {
     }
 }
 
-// Argument supplémentaire de l'instruction en cours (1 à 3), rangé par PSMissionParser dans les OP_SPOT_DATA qui
-// la suivent ; 65 535 s'il est absent.
+
 uint16_t PSProg::extraArg(size_t rank) {
     for (size_t k = 1; k <= rank; k++) {
         if (this->pc + k >= this->prog.size() || this->prog[this->pc + k].opcode != OP_SPOT_DATA) {
@@ -76,7 +71,6 @@ uint16_t PSProg::extraArg(size_t rank) {
     return this->prog[this->pc + rank].arg;
 }
 
-// 255 = l'objet qui joue le script (Expr_VM_ReadVarOrOverride_51EEA).
 SCMissionActors *PSProg::actorOrSelf(uint16_t actor_id) {
     if (actor_id == 255) {
         return this->actor;
@@ -84,13 +78,11 @@ SCMissionActors *PSProg::actorOrSelf(uint16_t actor_id) {
     return this->findActor(actor_id);
 }
 
-// Chunk KIND de l'objet : une mission de Pacific Strike ne crée que des PSEntity (PSMission::createEntity).
 PSKind PSProg::actorKind(SCMissionActors *candidate) {
     return static_cast<PSEntity *>(candidate->object->entity)->kind;
 }
 
-// MissionScript_PickRandomObjectOfType_545A4 : 6 objets au plus dont le chunk KIND vaut kind et, pour un avion,
-// dont le camp vaut team ; un tiré au hasard.
+
 SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
     std::vector<SCMissionActors *> found;
     for (auto candidate : this->mission->actors) {
@@ -120,7 +112,6 @@ SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
     return found[rand() % found.size()];
 }
 
-// Ordres 174 et 175 : la cible est tirée une fois dans le camp adverse, puis gardée.
 SCMissionActors *PSProg::randomEnemyOfKind(PSKind kind) {
     PSMission *ps_mission = static_cast<PSMission *>(this->mission);
     SCMissionActors *enemy = nullptr;
@@ -139,7 +130,6 @@ SCMissionActors *PSProg::randomEnemyOfKind(PSKind kind) {
     return enemy;
 }
 
-// Une seule fois par texte : un script est rejoué à chaque image.
 void PSProg::traceOnce(const char *text) {
     static std::set<std::string> done;
     std::string line = "PSProg " + std::to_string(this->prog_id) + ", " + this->actor->actor_name + "#" + std::to_string(this->actor->actor_id) + ": " + text;
@@ -350,8 +340,6 @@ void PSProg::opOrderFriendlyOfType(const PROG &instruction) {
     this->task_state = this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, (uint8_t)friendly->actor_id) ? 1 : 0;
 }
 
-// OP_ACTIVATE_OBJ : copie de SCMissionActors::activateTarget ; l'objet placé dans une zone va à son décalage plus le
-// centre de la zone (AreaRelPos_ToWorld_50EEB dans STRIKE.EXE), et non au premier SPOT de la zone.
 void PSProg::opActivateObj(const PROG &instruction) {
     if (!this->exec) {
         return;
@@ -423,7 +411,6 @@ void PSProg::opActivateObj(const PROG &instruction) {
     }
 }
 
-// Expr_VM_Interpreter_51F24, instruction 130 : « égal » si la scène de la zone n est enabled (Scene_FindByArea_54B92).
 void PSProg::opIsSceneEnabled(const PROG &instruction) {
     if (!this->exec) {
         return;
@@ -554,10 +541,7 @@ void PSProg::opDiveOnRandomEnemyOfType(const PROG &instruction) {
     this->task_state = this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, (uint8_t)enemy->actor_id) ? 1 : 0;
 }
 
-// MissionScript_CallNativeHandler_53B0B cas 193, puis Goal_SetObjective_C2A8 cas 193 : atterrissage sur un objet.
-// Point de toucher = position de l'objet + position du SPOT ; second point 3000 m plus loin et 1000 m plus haut ;
-// l'ordre devient OP_SET_OBJ_LAND. Les deux points sont rangés dans deux SPOT ajoutés à la liste, que l'ordre
-// d'atterrissage lit par leur rang.
+
 void PSProg::opOrderObjAndSpot(const PROG &instruction) {
     if (!this->exec) {
         return;

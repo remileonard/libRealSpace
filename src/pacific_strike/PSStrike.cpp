@@ -1,7 +1,6 @@
 #include "PSStrike.h"
 #include "PSVirtualCockpit.h"
 
-// Pacific Strike choisit sa musique de mission dans setMission (numéro + 1).
 void PSStrike::start(void) {
     IActivity::start();
 }
@@ -10,8 +9,6 @@ SCMission *PSStrike::createMission(char const *missionName) {
     return new PSMission(missionName, &object_cache);
 }
 
-// Chargement de SCStrike (mission créée par createMission, caméra d'ouverture STARTCAM), puis la musique de
-// Pacific Strike : numéro TUNE + 1.
 void PSStrike::setMission(char const *missionName) {
     if (Mixer.isSoundPlaying(5)) {
         Mixer.stopSound(5);
@@ -21,7 +18,7 @@ void PSStrike::setMission(char const *missionName) {
     this->placePlayerOnGround();
     this->selectFirstWeapon();
     Mixer.switchBank(2);
-    Mixer.playMusic(this->current_mission->mission->mission_data.tune + 1);
+    Mixer.playMusic(this->current_mission->mission->mission_data.tune);
     printf("PSStrike: mission %s, musique %d\n", missionName, this->current_mission->mission->mission_data.tune + 1);
     verticalOffset = 0.0f;
     SCStrike::verticalOffset = 0.0f;
