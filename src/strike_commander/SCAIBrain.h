@@ -244,7 +244,7 @@ protected:
     int decisionWeight();
     void buildCombatContext(SCMissionActors *target);
     int scoreManeuver(int id, SCMissionActors *target);
-    bool runTournament();
+    virtual bool runTournament();
     void applyManeuver(int id, SCMissionActors *target, uint8_t level);
     void endManeuver(bool finished);
     void onBehaviorEnded(bool finished);

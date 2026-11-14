@@ -72,5 +72,11 @@ protected:
     int pilotLevel();
     void updateGroundAttack(SCMissionActors *target) override;
     bool groundAhead();
+    bool runTournament() override;
+    int scoreGunAttack(SCMissionActors *target);
+    int gunAimQuality(SCMissionActors *target);
+    void startGunAttack(SCMissionActors *target);
+    bool tickGunAttack();
+    int gun_bursts{ 0 };
     float pull_up_timer{ 0.0f };
 };

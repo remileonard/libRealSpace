@@ -262,6 +262,9 @@ void PSBrain::startFollowLeader(SCMissionActors *leader) {
 }
 
 bool PSBrain::tickManeuver() {
+    if (maneuver.id == 22) {
+        return this->tickGunAttack();
+    }
     if (maneuver.id != 7) {
         return SCAIBrain::tickManeuver();
     }
@@ -513,4 +516,171 @@ void PSBrain::updateGroundAttack(SCMissionActors *target) {
         printf("PSBrain %s#%d attaque au sol : fin de la ressource, attaque arretee\n", owner->actor_name.c_str(), owner->actor_id);
         this->resetGroundAttack(false);
     }
+}
+
+// AI_BehaviorStateMachine_B968 : tournoi sur la liste MVRS de l'entité, construite au chargement (ovr236) :
+// 5 nœuds fixes de poids 0 (19 attaque au sol, 22, 14 évitement du sol, 15 sortie de décrochage, 7 vol vers la cible),
+// puis les manœuvres du profil que sub_84B24 (fonction pas encore nommée) sait créer (3, 4, 5, 6), 10 au plus.
+// total = note + poids ± 1, le plus grand au-dessus de −1000 gagne ; le nœud 19 vise la cible au sol.
+bool PSBrain::runTournament() {
+    tournament_scores[0] = '\0';
+    int ids[10];
+    int weights[10];
+    int count = 0;
+    static const int fixed_ids[5] = {
+        19,
+        22,
+        14,
+        15,
+        7
+    };
+    for (int i = 0; i < 5; i++) {
+        ids[count] = fixed_ids[i];
+        weights[count] = 0;
+        count++;
+    }
+    for (auto &entry : owner->profile->ai.mvrs) {
+        if (count >= 10) {
+            break;
+        }
+        if (entry.node_id < 3 || entry.node_id > 6) {
+            continue;
+        }
+        ids[count] = entry.node_id;
+        weights[count] = entry.value;
+        count++;
+    }
+    int best = -1000;
+    int best_id = 0;
+    int best_hint = 0;
+    uint8_t best_bits = 0;
+    Vector3D best_point = maneuver.point;
+    for (int i = 0; i < count; i++) {
+        SCMissionActors *target = ids[i] == 19 ? ground_target : air_target;
+        maneuver.phase_hint = 0;
+        maneuver.bits = 0;
+        int score = ids[i] == 22 ? this->scoreGunAttack(target) : this->scoreManeuver(ids[i], target);
+        if (score == 0) {
+            continue;
+        }
+        int total = score + weights[i] + ((std::rand() & 1) ? 1 : -1);
+        size_t used = strlen(tournament_scores);
+        snprintf(tournament_scores + used, sizeof(tournament_scores) - used, "%s%d:%d", used > 0 ? " " : "", ids[i], total);
+        if (total > best) {
+            best = total;
+            best_id = ids[i];
+            best_hint = maneuver.phase_hint;
+            best_bits = maneuver.bits;
+            best_point = maneuver.point;
+        }
+    }
+    if (best_id == 0) {
+        return false;
+    }
+    maneuver.phase_hint = best_hint;
+    maneuver.bits = best_bits;
+    maneuver.point = best_point;
+    SCMissionActors *target = best_id == 19 ? ground_target : air_target;
+    printf("PSBrain %s#%d tournoi : manoeuvre %d gagne (%s)\n", owner->actor_name.c_str(), owner->actor_id, best_id, tournament_scores);
+    if (best_id == 22) {
+        this->startGunAttack(target);
+        return true;
+    }
+    if (best_id == 7 && target != nullptr && target->plane != nullptr) {
+        this->startFollowLeader(target);
+        return true;
+    }
+    this->applyManeuver(best_id, target, REACT_NONE);
+    return true;
+}
+
+// MVRS_ID22_AimQuality_1125E, avec la visée de libRealSpace : écart = angle entre le nez et la direction de la cible
+int PSBrain::gunAimQuality(SCMissionActors *target) {
+    if (target == nullptr || target->plane == nullptr) {
+        return 0;
+    }
+    Vector3D delta = target->plane->position - owner->plane->position;
+    float distance = delta.Length();
+    float error = owner->plane->forward.AngleBetween(delta);
+    int quality = 0;
+    if (distance < 2000.0f) {
+        quality = 100 - (int)(error * error);
+    } else if (distance < 4000.0f && error <= 1.0f) {
+        quality = 15;
+    }
+    if (gun_bursts != 0) {
+        quality += (error > 30.0f ? 20 : 10) - gun_bursts;
+    }
+    if (distance < 500.0f) {
+        quality += (int)((500.0f - distance) / 20.0f);
+    }
+    quality += owner->profile->ai.atrb.TH;
+    return (std::max)(quality, 0);
+}
+
+// MVRS_ID22_ScoreGunAttack_10C89 : attaque au canon contre un avion
+int PSBrain::scoreGunAttack(SCMissionActors *target) {
+    static const float floor_by_level[3] = {
+        250.0f,
+        200.0f,
+        150.0f
+    };
+    if (target == nullptr || target->plane == nullptr || target->is_destroyed) {
+        return 0;
+    }
+    float height = owner->plane->y - owner->plane->groundlevel;
+    if (owner->pilot->NosePitch() < 0.0f && height < floor_by_level[this->pilotLevel()]) {
+        return 0;
+    }
+    if ((this->loadedWeaponMask() & (1 << (PS_WEAPON_GUN - 1))) == 0) {
+        return 0;
+    }
+    int quality = this->gunAimQuality(target) + 2 * owner->profile->ai.atrb.AR;
+    return quality >= 100 ? 10 : quality / 10;
+}
+
+// MVRS_ID22_ApplyGunAttack_10D3C : 2 s d'attaque, compteur de rafales à 0
+void PSBrain::startGunAttack(SCMissionActors *target) {
+    this->applyManeuver(22, target, REACT_NONE);
+    maneuver.timer = 2.0f;
+    gun_bursts = 0;
+    this->tickGunAttack();
+}
+
+// MVRS_ID22_TickGunAttack_10D82 : visée de libRealSpace (gunSnap, sinon vers la cible), vitesses de Pacific Strike,
+// tir au canon quand la qualité de visée dépasse 75
+bool PSBrain::tickGunAttack() {
+    maneuver.timer -= TICK_DURATION;
+    SCMissionActors *target = maneuver.target;
+    bool has_target = target != nullptr && target->plane != nullptr && !target->is_destroyed;
+    if (has_target) {
+        SCPilot *pilot = owner->pilot;
+        pilot->BeginManual();
+        Vector3D delta = target->plane->position - owner->plane->position;
+        int distance = (int)delta.Length();
+        pilot->target_waypoint = target->plane->position;
+        if (!this->gunSnap(target)) {
+            pilot->CmdGuidance(delta);
+        }
+        float target_speed = target->plane->worldVelocity().Length();
+        float wanted = (float)owner->object->entity->jdyn->ai_speed_max;
+        if ((int)this->headingDelta(target->plane->forward) < 90 && 2000 / 2 > distance) {
+            wanted = this->pilotLevel() != 0 ? target_speed : target_speed + 30.0f;
+        }
+        this->speedThrottle(wanted);
+        int quality = this->gunAimQuality(target);
+        if (quality > 75) {
+            pilot->Fire(1 << (PS_WEAPON_GUN - 1), target);
+            gun_bursts++;
+        }
+        this->decide("manoeuvre 22 : d %d m, visee %d, rafales %d", distance, quality, gun_bursts);
+    }
+    if (!has_target || maneuver.timer < 0.0f) {
+        maneuver.end_reason = has_target ? "minuteur" : "sans cible";
+        printf("PSBrain %s#%d manoeuvre 22 finie (%s), %d rafales\n", owner->actor_name.c_str(), owner->actor_id, maneuver.end_reason, gun_bursts);
+        this->endManeuver(true);
+        owner->pilot->ClearGuidance();
+        return false;
+    }
+    return true;
 }
