@@ -518,6 +518,16 @@ void RSMixer::stopSoundFx(int fxChannel) {
     }
 }
 
+void RSMixer::stopAllSoundFx() {
+    if (shuttingDown) {
+        return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(engineMutex);
+    for (int c = 0; c < SFX_CHANNELS; c++) {
+        stopSoundFx(c);
+    }
+}
+
 bool RSMixer::isSoundFxPlaying(int fxChannel) {
     if (fxChannel < 0 || fxChannel >= SFX_CHANNELS) {
         return false;

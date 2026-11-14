@@ -128,6 +128,7 @@ SCStrike::SCStrike() {
 
 SCStrike::~SCStrike() {
     Game->direct_mouse_control = false;
+    Mixer.stopAllSoundFx();
     delete this->flight_options;
     this->flight_options = nullptr;
     delete this->virtual_cockpit;
@@ -484,6 +485,7 @@ void SCStrike::checkKeyboard(void) {
         }
         Mixer.stopSound();
         Mixer.stopSound(5);
+        Mixer.stopAllSoundFx();
     }
     if (this->player_plane->crached || this->player_plane->ejected) {
         return;
@@ -1912,6 +1914,7 @@ void SCStrike::openFlightOptions() {
     Game->direct_mouse_control = false;
     Mixer.stopSound();
     Mixer.stopSound(5);
+    Mixer.stopAllSoundFx();
     this->flight_options->open();
 }
 

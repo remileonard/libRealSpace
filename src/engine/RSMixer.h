@@ -122,6 +122,7 @@ public:
     void setSoundFxVolume(int fxChannel, int volume);
     void stopSoundFx(int fxChannel); // SoundFX_StopEffect_59A8A : Note Off seulement
     bool isSoundFxPlaying(int fxChannel);
+    void stopAllSoundFx(); // SoundFX_StopAll_5AA95 : arrete les effets et rend leurs canaux verrouilles
     // SoundFX_PlayOrUpdate_5A906 : effet de SOUNDFX.ADL pour cet emetteur, volume selon la distance
     // au point de vue (SoundFX_Play3D_59902) ; demarre s'il ne joue pas, sinon met a jour son volume.
     void playOrUpdateSoundFx(int effect, const void *emitter, float distance);
