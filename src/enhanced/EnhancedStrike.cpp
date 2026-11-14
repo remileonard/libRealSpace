@@ -205,13 +205,21 @@ void EnhancedStrike::updateOrbit() {
     }
 }
 
+// The explicit cockpit key keeps the classic free mouse look (see updateCockpit3D).
+void EnhancedStrike::keyViewCockpit() {
+    SCStrike::keyViewCockpit();
+    this->cockpitKeyPressed = true;
+}
+
 // [Video] cockpit = 3d: the forward and the left/right/rear views use the 3D virtual cockpit with the head fixed in that
 // direction (the mouse keeps flying the aircraft). The explicit cockpit key keeps the classic free mouse look.
 void EnhancedStrike::updateCockpit3D() {
+    const bool cockpitKey = this->cockpitKeyPressed;
+    this->cockpitKeyPressed = false;
     if (!this->cockpit3d || this->cockpit == nullptr) {
         return;
     }
-    if (this->m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
+    if (cockpitKey) {
         this->cockpitLookFixed = false;
         return;
     }
@@ -418,6 +426,7 @@ void EnhancedStrike::finishEndPrompt(bool end) {
         this->current_mission->mission_ended = true;
         Mixer.stopSound();
         Mixer.stopSound(5);
+        Mixer.stopAllSoundFx();
     }
     printf("[enhanced] end mission asked: %s\n", end ? "end" : "continue");
 }

@@ -7,6 +7,7 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 #include "precomp.h"
+#include <map>
 
 #ifndef __libRealSpace__SCStrike__
 #define __libRealSpace__SCStrike__
@@ -223,6 +224,85 @@ protected:
     int max_stick_x{0};
     int max_stick_y{0};
     int stick_sensitivity{1};
+
+    // Touches du simulateur : action (SimActionOfst) → fonction membre, table construite une seule fois et partagée,
+    // parcourue par checkKeyboard dans l'ordre des actions. Une autre version du jeu redéfinit keyCommandTable pour rendre
+    // sa propre table, ou seulement la fonction d'une touche (elles sont virtuelles).
+    typedef void (SCStrike::*KeyHandler)();
+    struct KeyCommand {
+        KeyHandler handler;
+        bool held{false};         // vrai : chaque frame tant que la touche est enfoncée, sinon à l'appui seulement
+        bool when_disabled{false}; // vrai : aussi après un écrasement ou une éjection
+    };
+    virtual const std::map<int, KeyCommand> &keyCommandTable();
+    static std::map<int, KeyCommand> buildKeyCommandTable();
+    // Posé par keyRudderLeft / keyRudderRight pendant le parcours de la table ; sans palonnier, il revient au centre.
+    bool rudder_pressed{false};
+
+    void setThrottlePreset(int throttle);
+    void sendCommRadioMessage(int message);
+
+    virtual void keyEndMission();
+    virtual void keyRudderLeft();
+    virtual void keyRudderRight();
+    virtual void keyThrottleUp();
+    virtual void keyThrottleDown();
+    virtual void keyFirePrimary();
+    virtual void keyToggleMouse();
+    virtual void keyAutopilot();
+    virtual void keyLandingGear();
+    virtual void keyToggleBrakes();
+    virtual void keyToggleFlaps();
+    virtual void keyTargetNearest();
+    virtual void keyMfdRadar();
+    virtual void keyMfdDamage();
+    virtual void keyMfdWeapons();
+    virtual void keyShowNavMap();
+    virtual void keyChaff();
+    virtual void keyFlare();
+    virtual void keyRadarZoomIn();
+    virtual void keyRadarZoomOut();
+    virtual void keyCommRadio();
+    virtual void keyEject();
+    virtual void keyViewTarget();
+    virtual void keyViewBehind();
+    virtual void keyViewCockpit();
+    virtual void keyRadarModeToggle();
+    virtual void keyViewWeapons();
+    virtual void keyLookForward();
+    virtual void keyLookLeft();
+    virtual void keyLookRight();
+    virtual void keyLookBehind();
+    virtual void keyMfdTargetCamera();
+    virtual void keyWeaponModeToggle();
+    virtual void keyInfiniteAmmoToggle();
+    virtual void keySingleTargetMode();
+    virtual void keyThrottle10();
+    virtual void keyThrottle20();
+    virtual void keyThrottle30();
+    virtual void keyThrottle40();
+    virtual void keyThrottle50();
+    virtual void keyThrottle60();
+    virtual void keyThrottle70();
+    virtual void keyThrottle80();
+    virtual void keyThrottle90();
+    virtual void keyThrottle100();
+    virtual void keyCommRadioM1();
+    virtual void keyCommRadioM2();
+    virtual void keyCommRadioM3();
+    virtual void keyCommRadioM4();
+    virtual void keyCommRadioM5();
+    virtual void keyCommRadioM6();
+    virtual void keyCommRadioM7();
+    virtual void keyCommRadioM8();
+    virtual void keyPause();
+    virtual void keyPitchUp();
+    virtual void keyPitchDown();
+    virtual void keyRollLeft();
+    virtual void keyRollRight();
+    virtual void keyEyesOnTarget();
+    virtual void keySpecKey1();
+    virtual void keySpecKey2();
 public:
     float verticalOffset{0.45f};
     // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).

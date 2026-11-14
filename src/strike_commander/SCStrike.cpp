@@ -443,6 +443,79 @@ void SCStrike::selectNextWeapon() {
     }
 }
 
+// Table des touches du simulateur de Strike Commander : action → fonction membre.
+std::map<int, SCStrike::KeyCommand> SCStrike::buildKeyCommandTable() {
+    std::map<int, KeyCommand> table;
+    table[SimActionOfst::THROTTLE_UP] = { &SCStrike::keyThrottleUp, true };
+    table[SimActionOfst::THROTTLE_DOWN] = { &SCStrike::keyThrottleDown, true };
+    table[SimActionOfst::THROTTLE_10] = { &SCStrike::keyThrottle10 };
+    table[SimActionOfst::THROTTLE_20] = { &SCStrike::keyThrottle20 };
+    table[SimActionOfst::THROTTLE_30] = { &SCStrike::keyThrottle30 };
+    table[SimActionOfst::THROTTLE_40] = { &SCStrike::keyThrottle40 };
+    table[SimActionOfst::THROTTLE_50] = { &SCStrike::keyThrottle50 };
+    table[SimActionOfst::THROTTLE_60] = { &SCStrike::keyThrottle60 };
+    table[SimActionOfst::THROTTLE_70] = { &SCStrike::keyThrottle70 };
+    table[SimActionOfst::THROTTLE_80] = { &SCStrike::keyThrottle80 };
+    table[SimActionOfst::THROTTLE_90] = { &SCStrike::keyThrottle90 };
+    table[SimActionOfst::THROTTLE_100] = { &SCStrike::keyThrottle100 };
+    table[SimActionOfst::AUTOPILOT] = { &SCStrike::keyAutopilot };
+    table[SimActionOfst::LOOK_LEFT] = { &SCStrike::keyLookLeft };
+    table[SimActionOfst::LOOK_RIGHT] = { &SCStrike::keyLookRight };
+    table[SimActionOfst::LOOK_BEHIND] = { &SCStrike::keyLookBehind };
+    table[SimActionOfst::LOOK_FORWARD] = { &SCStrike::keyLookForward };
+    table[SimActionOfst::PITCH_UP] = { &SCStrike::keyPitchUp, true };
+    table[SimActionOfst::PITCH_DOWN] = { &SCStrike::keyPitchDown, true };
+    table[SimActionOfst::ROLL_LEFT] = { &SCStrike::keyRollLeft, true };
+    table[SimActionOfst::ROLL_RIGHT] = { &SCStrike::keyRollRight, true };
+    table[SimActionOfst::FIRE_PRIMARY] = { &SCStrike::keyFirePrimary, true };
+    table[SimActionOfst::TOGGLE_MOUSE] = { &SCStrike::keyToggleMouse };
+    table[SimActionOfst::LANDING_GEAR] = { &SCStrike::keyLandingGear };
+    table[SimActionOfst::TOGGLE_BRAKES] = { &SCStrike::keyToggleBrakes };
+    table[SimActionOfst::TOGGLE_FLAPS] = { &SCStrike::keyToggleFlaps };
+    table[SimActionOfst::TARGET_NEAREST] = { &SCStrike::keyTargetNearest };
+    table[SimActionOfst::MDFS_RADAR] = { &SCStrike::keyMfdRadar };
+    table[SimActionOfst::MDFS_DAMAGE] = { &SCStrike::keyMfdDamage };
+    table[SimActionOfst::MDFS_WEAPONS] = { &SCStrike::keyMfdWeapons };
+    table[SimActionOfst::SHOW_NAVMAP] = { &SCStrike::keyShowNavMap };
+    table[SimActionOfst::CHAFF] = { &SCStrike::keyChaff };
+    table[SimActionOfst::FLARE] = { &SCStrike::keyFlare };
+    table[SimActionOfst::RADAR_ZOOM_IN] = { &SCStrike::keyRadarZoomIn };
+    table[SimActionOfst::RADAR_ZOOM_OUT] = { &SCStrike::keyRadarZoomOut };
+    table[SimActionOfst::COMM_RADIO] = { &SCStrike::keyCommRadio };
+    table[SimActionOfst::COMM_RADIO_M1] = { &SCStrike::keyCommRadioM1 };
+    table[SimActionOfst::COMM_RADIO_M2] = { &SCStrike::keyCommRadioM2 };
+    table[SimActionOfst::COMM_RADIO_M3] = { &SCStrike::keyCommRadioM3 };
+    table[SimActionOfst::COMM_RADIO_M4] = { &SCStrike::keyCommRadioM4 };
+    table[SimActionOfst::COMM_RADIO_M5] = { &SCStrike::keyCommRadioM5 };
+    table[SimActionOfst::VIEW_TARGET] = { &SCStrike::keyViewTarget };
+    table[SimActionOfst::VIEW_BEHIND] = { &SCStrike::keyViewBehind };
+    table[SimActionOfst::VIEW_COCKPIT] = { &SCStrike::keyViewCockpit };
+    table[SimActionOfst::VIEW_WEAPONS] = { &SCStrike::keyViewWeapons };
+    table[SimActionOfst::MDFS_TARGET_CAMERA] = { &SCStrike::keyMfdTargetCamera };
+    table[SimActionOfst::PAUSE] = { &SCStrike::keyPause };
+    table[SimActionOfst::EYES_ON_TARGET] = { &SCStrike::keyEyesOnTarget };
+    table[SimActionOfst::END_MISSION] = { &SCStrike::keyEndMission, false, true };
+    table[SimActionOfst::COMM_RADIO_M6] = { &SCStrike::keyCommRadioM6 };
+    table[SimActionOfst::COMM_RADIO_M7] = { &SCStrike::keyCommRadioM7 };
+    table[SimActionOfst::COMM_RADIO_M8] = { &SCStrike::keyCommRadioM8 };
+    table[SimActionOfst::RADAR_MODE_TOGGLE] = { &SCStrike::keyRadarModeToggle };
+    table[SimActionOfst::SPEC_KEY_1] = { &SCStrike::keySpecKey1 };
+    table[SimActionOfst::SPEC_KEY_2] = { &SCStrike::keySpecKey2 };
+    table[SimActionOfst::WEAPON_MODE_TOGGLE] = { &SCStrike::keyWeaponModeToggle };
+    table[SimActionOfst::INFINIT_AMMO_TOGGLE] = { &SCStrike::keyInfiniteAmmoToggle };
+    table[SimActionOfst::SINGLE_TARGET_MODE] = { &SCStrike::keySingleTargetMode };
+    table[SimActionOfst::RUDDER_LEFT] = { &SCStrike::keyRudderLeft, true };
+    table[SimActionOfst::RUDDER_RIGHT] = { &SCStrike::keyRudderRight, true };
+    table[SimActionOfst::EJECT] = { &SCStrike::keyEject };
+    return table;
+}
+
+// Construite au premier appel, puis partagée par tous les SCStrike.
+const std::map<int, SCStrike::KeyCommand> &SCStrike::keyCommandTable() {
+    static const std::map<int, KeyCommand> table = SCStrike::buildKeyCommandTable();
+    return table;
+}
+
 void SCStrike::checkKeyboard(void) {
     int msx = 0;
     int msy = 0;
@@ -478,463 +551,30 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::END_MISSION)) && this->confirmEndMission()) {
-        // Code du jeu pour cette touche non etabli ; regle conservee : ecrasement = 2.
-        if (this->current_mission->exit_code == 0) {
-            this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
-        }
-        Mixer.stopSound();
-        Mixer.stopSound(5);
-        Mixer.stopAllSoundFx();
+    // Après un écrasement ou une éjection, seules les touches when_disabled agissent.
+    bool disabled = this->player_plane->crached || this->player_plane->ejected;
+    if (!disabled) {
+        this->cockpit->is_shooting = false;
     }
-    if (this->player_plane->crached || this->player_plane->ejected) {
+    this->rudder_pressed = false;
+    for (const auto &entry : this->keyCommandTable()) {
+        const KeyCommand &command = entry.second;
+        if (disabled && !command.when_disabled) {
+            continue;
+        }
+        InputAction action = CreateAction(InputAction::SIM_START, entry.first);
+        bool active = command.held ? m_keyboard->isActionPressed(action) : m_keyboard->isActionJustPressed(action);
+        if (active) {
+            (this->*(command.handler))();
+        }
+    }
+    if (disabled) {
         return;
     }
-    bool is_rudder_pressed = false;
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_LEFT))) {
-        this->player_plane->rudder -= 0.1f;
-        is_rudder_pressed = true;
-    }
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RUDDER_RIGHT))) {
-        this->player_plane->rudder += 0.1f;
-        is_rudder_pressed = true;
-    }
-    if (!is_rudder_pressed) {
+    if (!this->rudder_pressed) {
         this->player_plane->rudder = 0;
     } else {
         this->player_plane->rudder = (std::clamp)(this->player_plane->rudder, -10.0f, 10.0f);
-    }
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_UP))) {
-        if (this->player_plane->GetThrottle() == 0) {
-            this->player_plane->SetThrottle(21);
-            if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_START_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
-            }
-        }
-        if (this->player_plane->GetThrottle() < 100) {
-            this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
-        }
-        if (this->current_mission->sound.sounds.size() > 0) {
-            if (!Mixer.isSoundPlaying(5)) {
-                if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-                } else if (this->player_plane->GetThrottle() >= 60) {
-                    MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-                }
-            }
-        }
-    }
-    
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_DOWN))) {
-        if (this->player_plane->GetThrottle() > -30) {
-            this->player_plane->SetThrottle(this->player_plane->GetThrottle() - 1);
-        }
-        if (this->player_plane->GetThrottle() == 0) {
-            if (!Mixer.isSoundPlaying(5)) {
-                MemSound *engine = nullptr;
-                int can_repeat = 0;
-                if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                    engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                    can_repeat = -1;
-                } else if (this->current_mission->sound.sounds.size() > 0) {
-                    engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
-                    can_repeat = 0;
-                }
-                if (engine != nullptr) {
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, can_repeat);
-                }
-            }
-            
-        }
-    }
-    this->cockpit->is_shooting = false;
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FIRE_PRIMARY))) {
-        this->firePrimary();
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_MOUSE))) {
-        this->mouse_control = !this->mouse_control;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::AUTOPILOT))) {
-        this->autopilotCompute();
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LANDING_GEAR))) {
-        this->player_plane->SetWheel();
-        if (this->current_mission->sound.sounds.size() > 0) {
-            if (this->player_plane->GetWheel()) {
-                MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_UP];
-                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
-            } else {
-                MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_DOWN];
-                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
-            }
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_BRAKES))) {
-        this->player_plane->SetSpoilers();
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TOGGLE_FLAPS))) {
-        this->player_plane->SetFlaps();
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::TARGET_NEAREST))) {
-        this->findTarget();
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_RADAR))) {
-        this->cockpit->show_radars = !this->cockpit->show_radars;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_DAMAGE))) {
-        this->cockpit->show_damage = !this->cockpit->show_damage;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_WEAPONS))) {
-        this->selectNextWeapon();
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP))) {
-        SCNavMap *nav_screen = new SCNavMap();
-        nav_screen->init();
-        nav_screen->SetName((char *)this->current_mission->world->tera.c_str());
-        nav_screen->mission = this->current_mission;
-        nav_screen->missionObj = this->current_mission->mission = this->current_mission->mission;
-        nav_screen->current_nav_point = &this->nav_point_id;
-        Game->addActivity(nav_screen);
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::CHAFF))) {
-        //this->player_plane->LaunchChaff(this->current_mission);
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLARE))) {
-        //this->player_plane->LaunchFlares(this->current_mission);
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_ZOOM_IN))) {
-        this->cockpit->radar_zoom -= 1;
-        if (this->cockpit->radar_zoom < 1) {
-            this->cockpit->radar_zoom = 1;
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_ZOOM_OUT))) {
-        this->cockpit->radar_zoom += 1;
-        if (this->cockpit->radar_zoom > 4) {
-            this->cockpit->radar_zoom = 4;
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO))) {
-        this->cockpit->show_comm = !this->cockpit->show_comm;
-        this->mfd_timeout = 400;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::CHAFF))) {
-        this->player_plane->DeployCountermeasure(true);
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::EJECT))) {
-        this->cockpit->frame = 0;
-        this->camera_mode = View::EJECT_VIEW_P1;
-        this->player_plane->ejected = true;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLARE))) {
-        this->player_plane->DeployCountermeasure(false);
-    }
-    
-    
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_TARGET))) {
-        //this->camera_mode = View::TARGET;
-        CameraViewRequest target_req;
-        this->camera_mode = View::CAM_DIRECTOR;
-        target_req.camera_type = RSCameraType::RSCAM_TARG;
-
-        SCMissionActors *player = this->current_mission->player;
-        SCMissionActors *enemy  = player->target;
-        bool already_on_target = this->current_mission->camera_director->activeCameraType() == RSCameraType::RSCAM_TARG;
-        bool player_is_subject = this->current_mission->camera_director->activeSubject() == player;
-
-        if (already_on_target && player_is_subject) {
-            target_req.subject = enemy;
-            target_req.target  = player;
-        } else {
-            target_req.subject = player;
-            target_req.target  = enemy;
-        }
-        MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(target_req));
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_BEHIND))) {
-        /*if (this->camera_mode != View::FOLLOW) {
-            this->follow_dynamic = false;
-        }
-        if (this->camera_mode == View::FOLLOW) {
-            this->follow_dynamic = !this->follow_dynamic;
-        }
-        this->camera_mode = View::FOLLOW;*/
-        CameraViewRequest chase;
-        this->camera_mode = View::CAM_DIRECTOR;
-        chase.camera_type = RSCameraType::RSCAM_CHAS;   // = 3, défini dans RSWorld.h
-        chase.subject = this->current_mission->player;
-        MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(chase));
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
-        this->mouse_control = false;
-        this->zoom_cockpit = false;
-        this->camera_mode = View::REAL;
-        this->cockpit->is_3d_cockpit = true;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::RADAR_MODE_TOGGLE))) {
-        if (this->cockpit->radar_mode == RadarMode::AARD) {
-            this->cockpit->radar_mode = RadarMode::AGRD;
-        } else if (this->cockpit->radar_mode == RadarMode::AGRD) {
-            this->cockpit->radar_mode = RadarMode::AARD;
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_WEAPONS))) {
-        if (this->camera_mode != View::MISSILE_CAM) {
-            this->camera_mode = View::MISSILE_CAM;
-        } else {
-            this->camera_mode = View::REAL;
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_FORWARD))) {
-        this->camera_mode = View::FRONT;
-        this->cockpit->is_3d_cockpit = false;
-        zoom_cockpit = !zoom_cockpit;
-        this->pilote_lookat.x = 0;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_LEFT))) {
-        this->camera_mode = View::LEFT;
-        this->pilote_lookat.x = 270;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_RIGHT))) {
-        this->camera_mode = View::RIGHT;
-        this->pilote_lookat.x = 90;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::LOOK_BEHIND))) {
-        this->camera_mode = View::REAR;
-        this->pilote_lookat.x = 180;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::MDFS_TARGET_CAMERA))) {
-        this->cockpit->show_cam = !this->cockpit->show_cam;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::WEAPON_MODE_TOGGLE))) {
-        this->air_weapons_mode = !this->air_weapons_mode;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::INFINIT_AMMO_TOGGLE))) {
-        this->player_plane->infinite_ammo = !this->player_plane->infinite_ammo;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SINGLE_TARGET_MODE))) {
-        if (this->cockpit->radar_mode != RadarMode::ASST && this->target != nullptr) {
-            this->cockpit->radar_mode = RadarMode::ASST;
-        } else {
-            this->cockpit->radar_mode = RadarMode::AARD;
-        }
-    }
-    if (!this->cockpit->show_comm) {
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_10))) {
-            this->player_plane->SetThrottle(10);
-            if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                if (engine != nullptr) {
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-                }
-                
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_20))) {
-            this->player_plane->SetThrottle(20);
-            if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                if (engine != nullptr) {
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-                }
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_30))) {
-            this->player_plane->SetThrottle(30);
-            if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_40))) {
-            this->player_plane->SetThrottle(40);
-            if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_50))) {
-            this->player_plane->SetThrottle(50);
-            if (this->current_mission->sound.sounds.size() > 0) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-            }
-        }
-    }
-    if (this->cockpit->show_comm) {
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M1))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(1);
-            } else {
-                // send message 1 to ai comm_target
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(1), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M2))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(2);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(2), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M3))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(3);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(3), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M4))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(4);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(4), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M5))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(5);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(5), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M6))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(6);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(6), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M7))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(7);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(7), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }
-        if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::COMM_RADIO_M8))) {
-            if (this->cockpit->comm_target == 0) {
-                this->cockpit->SetCommActorTarget(8);
-            } else {
-                if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(8), this->current_mission, this->current_mission->player);
-                    this->cockpit->show_comm = false;
-                }
-                this->cockpit->comm_target = 0;
-                this->mfd_timeout = 400;
-            }
-        }   
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_60))) {
-        this->player_plane->SetThrottle(60);
-        if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_70))) {
-        this->player_plane->SetThrottle(70);
-        if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_80))) {
-        this->player_plane->SetThrottle(80);
-        if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_90))) {
-        this->player_plane->SetThrottle(90);
-        if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::THROTTLE_100))) {
-        this->player_plane->SetThrottle(100);
-        if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-        }
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE))) {
-        this->pause_simu = !this->pause_simu;
-    }
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::PITCH_UP))) {
-        this->player_plane->control_stick_y = -this->max_stick_y;
-        this->mouse_control = false;
-    }
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::PITCH_DOWN))) {
-        this->player_plane->control_stick_y = this->max_stick_y;
-        this->mouse_control = false;
-    }
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::ROLL_LEFT))) {
-        this->player_plane->control_stick_x = -this->max_stick_x;
-        this->mouse_control = false;
-    }
-    if (m_keyboard->isActionPressed(CreateAction(InputAction::SIM_START, SimActionOfst::ROLL_RIGHT))) {
-        this->player_plane->control_stick_x = this->max_stick_x;
-        this->mouse_control = false;
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::EYES_ON_TARGET))) {
-        if (this->camera_mode != View::EYE_ON_TARGET) {
-            this->camera_mode = View::EYE_ON_TARGET;
-            this->cockpit->is_3d_cockpit = true;
-        } else {
-            this->camera_mode = View::FRONT;
-            this->cockpit->is_3d_cockpit = false;
-        }
-    }
-    
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_1))) {
-        this->current_mission->gameflow_registers[0] = 1;
-        this->current_mission->gameflow_registers[1] = 2;
-        this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_1");
-    }
-    if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::SPEC_KEY_2))) {
-        this->current_mission->gameflow_registers[0] = 0;
-        this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_2");
     }
     float lx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X)); 
     float ly = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y)); 
@@ -964,6 +604,416 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.y = 0;
     }
     this->cockpit->mouse_control = this->mouse_control;
+}
+
+void SCStrike::keyEndMission() {
+    if (!this->confirmEndMission()) {
+        return;
+    }
+    // Code du jeu pour cette touche non etabli ; regle conservee : ecrasement = 2.
+    if (this->current_mission->exit_code == 0) {
+        this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
+    }
+    Mixer.stopSound();
+    Mixer.stopSound(5);
+    Mixer.stopAllSoundFx();
+}
+
+void SCStrike::keyRudderLeft() {
+    this->player_plane->rudder -= 0.1f;
+    this->rudder_pressed = true;
+}
+
+void SCStrike::keyRudderRight() {
+    this->player_plane->rudder += 0.1f;
+    this->rudder_pressed = true;
+}
+
+void SCStrike::keyThrottleUp() {
+    if (this->player_plane->GetThrottle() == 0) {
+        this->player_plane->SetThrottle(21);
+        if (this->current_mission->sound.sounds.size() > 0) {
+            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_START_MIL];
+            Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
+        }
+    }
+    if (this->player_plane->GetThrottle() < 100) {
+        this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
+    }
+    if (this->current_mission->sound.sounds.size() > 0) {
+        if (!Mixer.isSoundPlaying(5)) {
+            if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
+                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+            } else if (this->player_plane->GetThrottle() >= 60) {
+                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
+                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+            }
+        }
+    }
+}
+
+void SCStrike::keyThrottleDown() {
+    if (this->player_plane->GetThrottle() > -30) {
+        this->player_plane->SetThrottle(this->player_plane->GetThrottle() - 1);
+    }
+    if (this->player_plane->GetThrottle() == 0) {
+        if (!Mixer.isSoundPlaying(5)) {
+            MemSound *engine = nullptr;
+            int can_repeat = 0;
+            if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
+                engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
+                can_repeat = -1;
+            } else if (this->current_mission->sound.sounds.size() > 0) {
+                engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
+                can_repeat = 0;
+            }
+            if (engine != nullptr) {
+                Mixer.playSoundVoc(engine->data, engine->size, 5, can_repeat);
+            }
+        }
+    }
+}
+
+void SCStrike::keyFirePrimary() {
+    this->firePrimary();
+}
+
+void SCStrike::keyToggleMouse() {
+    this->mouse_control = !this->mouse_control;
+}
+
+void SCStrike::keyAutopilot() {
+    this->autopilotCompute();
+}
+
+void SCStrike::keyLandingGear() {
+    this->player_plane->SetWheel();
+    if (this->current_mission->sound.sounds.size() > 0) {
+        if (this->player_plane->GetWheel()) {
+            MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_UP];
+            Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
+        } else {
+            MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_DOWN];
+            Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
+        }
+    }
+}
+
+void SCStrike::keyToggleBrakes() {
+    this->player_plane->SetSpoilers();
+}
+
+void SCStrike::keyToggleFlaps() {
+    this->player_plane->SetFlaps();
+}
+
+void SCStrike::keyTargetNearest() {
+    this->findTarget();
+}
+
+void SCStrike::keyMfdRadar() {
+    this->cockpit->show_radars = !this->cockpit->show_radars;
+}
+
+void SCStrike::keyMfdDamage() {
+    this->cockpit->show_damage = !this->cockpit->show_damage;
+}
+
+void SCStrike::keyMfdWeapons() {
+    this->selectNextWeapon();
+}
+
+void SCStrike::keyShowNavMap() {
+    SCNavMap *nav_screen = new SCNavMap();
+    nav_screen->init();
+    nav_screen->SetName((char *)this->current_mission->world->tera.c_str());
+    nav_screen->mission = this->current_mission;
+    nav_screen->missionObj = this->current_mission->mission = this->current_mission->mission;
+    nav_screen->current_nav_point = &this->nav_point_id;
+    Game->addActivity(nav_screen);
+}
+
+void SCStrike::keyChaff() {
+    this->player_plane->DeployCountermeasure(true);
+}
+
+void SCStrike::keyFlare() {
+    this->player_plane->DeployCountermeasure(false);
+}
+
+void SCStrike::keyRadarZoomIn() {
+    this->cockpit->radar_zoom -= 1;
+    if (this->cockpit->radar_zoom < 1) {
+        this->cockpit->radar_zoom = 1;
+    }
+}
+
+void SCStrike::keyRadarZoomOut() {
+    this->cockpit->radar_zoom += 1;
+    if (this->cockpit->radar_zoom > 4) {
+        this->cockpit->radar_zoom = 4;
+    }
+}
+
+void SCStrike::keyCommRadio() {
+    this->cockpit->show_comm = !this->cockpit->show_comm;
+    this->mfd_timeout = 400;
+}
+
+void SCStrike::keyEject() {
+    this->cockpit->frame = 0;
+    this->camera_mode = View::EJECT_VIEW_P1;
+    this->player_plane->ejected = true;
+}
+
+void SCStrike::keyViewTarget() {
+    CameraViewRequest target_req;
+    this->camera_mode = View::CAM_DIRECTOR;
+    target_req.camera_type = RSCameraType::RSCAM_TARG;
+
+    SCMissionActors *player = this->current_mission->player;
+    SCMissionActors *enemy  = player->target;
+    bool already_on_target = this->current_mission->camera_director->activeCameraType() == RSCameraType::RSCAM_TARG;
+    bool player_is_subject = this->current_mission->camera_director->activeSubject() == player;
+
+    if (already_on_target && player_is_subject) {
+        target_req.subject = enemy;
+        target_req.target  = player;
+    } else {
+        target_req.subject = player;
+        target_req.target  = enemy;
+    }
+    MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(target_req));
+}
+
+void SCStrike::keyViewBehind() {
+    CameraViewRequest chase;
+    this->camera_mode = View::CAM_DIRECTOR;
+    chase.camera_type = RSCameraType::RSCAM_CHAS;   // = 3, défini dans RSWorld.h
+    chase.subject = this->current_mission->player;
+    MessageBus::getInstance().publish(std::make_unique<CameraViewRequest>(chase));
+}
+
+void SCStrike::keyViewCockpit() {
+    this->mouse_control = false;
+    this->zoom_cockpit = false;
+    this->camera_mode = View::REAL;
+    this->cockpit->is_3d_cockpit = true;
+}
+
+void SCStrike::keyRadarModeToggle() {
+    if (this->cockpit->radar_mode == RadarMode::AARD) {
+        this->cockpit->radar_mode = RadarMode::AGRD;
+    } else if (this->cockpit->radar_mode == RadarMode::AGRD) {
+        this->cockpit->radar_mode = RadarMode::AARD;
+    }
+}
+
+void SCStrike::keyViewWeapons() {
+    if (this->camera_mode != View::MISSILE_CAM) {
+        this->camera_mode = View::MISSILE_CAM;
+    } else {
+        this->camera_mode = View::REAL;
+    }
+}
+
+void SCStrike::keyLookForward() {
+    this->camera_mode = View::FRONT;
+    this->cockpit->is_3d_cockpit = false;
+    zoom_cockpit = !zoom_cockpit;
+    this->pilote_lookat.x = 0;
+}
+
+void SCStrike::keyLookLeft() {
+    this->camera_mode = View::LEFT;
+    this->pilote_lookat.x = 270;
+}
+
+void SCStrike::keyLookRight() {
+    this->camera_mode = View::RIGHT;
+    this->pilote_lookat.x = 90;
+}
+
+void SCStrike::keyLookBehind() {
+    this->camera_mode = View::REAR;
+    this->pilote_lookat.x = 180;
+}
+
+void SCStrike::keyMfdTargetCamera() {
+    this->cockpit->show_cam = !this->cockpit->show_cam;
+}
+
+void SCStrike::keyWeaponModeToggle() {
+    this->air_weapons_mode = !this->air_weapons_mode;
+}
+
+void SCStrike::keyInfiniteAmmoToggle() {
+    this->player_plane->infinite_ammo = !this->player_plane->infinite_ammo;
+}
+
+void SCStrike::keySingleTargetMode() {
+    if (this->cockpit->radar_mode != RadarMode::ASST && this->target != nullptr) {
+        this->cockpit->radar_mode = RadarMode::ASST;
+    } else {
+        this->cockpit->radar_mode = RadarMode::AARD;
+    }
+}
+
+// Cran de manette des gaz : son moteur militaire sous 60 %, postcombustion au-delà.
+void SCStrike::setThrottlePreset(int throttle) {
+    this->player_plane->SetThrottle(throttle);
+    if (this->current_mission->sound.sounds.size() > 0) {
+        MemSound *engine = this->current_mission->sound.sounds[throttle < 60 ? SoundEffectIds::ENGINE_MIL : SoundEffectIds::ENGINE_AFB];
+        if (engine != nullptr) {
+            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+        }
+    }
+}
+
+// Les crans 10 à 50 partagent leurs touches avec les messages radio : inactifs quand le menu radio est ouvert.
+void SCStrike::keyThrottle10() {
+    if (!this->cockpit->show_comm) {
+        this->setThrottlePreset(10);
+    }
+}
+
+void SCStrike::keyThrottle20() {
+    if (!this->cockpit->show_comm) {
+        this->setThrottlePreset(20);
+    }
+}
+
+void SCStrike::keyThrottle30() {
+    if (!this->cockpit->show_comm) {
+        this->setThrottlePreset(30);
+    }
+}
+
+void SCStrike::keyThrottle40() {
+    if (!this->cockpit->show_comm) {
+        this->setThrottlePreset(40);
+    }
+}
+
+void SCStrike::keyThrottle50() {
+    if (!this->cockpit->show_comm) {
+        this->setThrottlePreset(50);
+    }
+}
+
+void SCStrike::keyThrottle60() {
+    this->setThrottlePreset(60);
+}
+
+void SCStrike::keyThrottle70() {
+    this->setThrottlePreset(70);
+}
+
+void SCStrike::keyThrottle80() {
+    this->setThrottlePreset(80);
+}
+
+void SCStrike::keyThrottle90() {
+    this->setThrottlePreset(90);
+}
+
+void SCStrike::keyThrottle100() {
+    this->setThrottlePreset(100);
+}
+
+// Menu radio ouvert : premier appui, choix du destinataire ; second appui, envoi du message.
+void SCStrike::sendCommRadioMessage(int message) {
+    if (!this->cockpit->show_comm) {
+        return;
+    }
+    if (this->cockpit->comm_target == 0) {
+        this->cockpit->SetCommActorTarget(message);
+        return;
+    }
+    if (this->cockpit->comm_actor != nullptr) {
+        this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(message), this->current_mission, this->current_mission->player);
+        this->cockpit->show_comm = false;
+    }
+    this->cockpit->comm_target = 0;
+    this->mfd_timeout = 400;
+}
+
+void SCStrike::keyCommRadioM1() {
+    this->sendCommRadioMessage(1);
+}
+
+void SCStrike::keyCommRadioM2() {
+    this->sendCommRadioMessage(2);
+}
+
+void SCStrike::keyCommRadioM3() {
+    this->sendCommRadioMessage(3);
+}
+
+void SCStrike::keyCommRadioM4() {
+    this->sendCommRadioMessage(4);
+}
+
+void SCStrike::keyCommRadioM5() {
+    this->sendCommRadioMessage(5);
+}
+
+void SCStrike::keyCommRadioM6() {
+    this->sendCommRadioMessage(6);
+}
+
+void SCStrike::keyCommRadioM7() {
+    this->sendCommRadioMessage(7);
+}
+
+void SCStrike::keyCommRadioM8() {
+    this->sendCommRadioMessage(8);
+}
+
+void SCStrike::keyPause() {
+    this->pause_simu = !this->pause_simu;
+}
+
+void SCStrike::keyPitchUp() {
+    this->player_plane->control_stick_y = -this->max_stick_y;
+    this->mouse_control = false;
+}
+
+void SCStrike::keyPitchDown() {
+    this->player_plane->control_stick_y = this->max_stick_y;
+    this->mouse_control = false;
+}
+
+void SCStrike::keyRollLeft() {
+    this->player_plane->control_stick_x = -this->max_stick_x;
+    this->mouse_control = false;
+}
+
+void SCStrike::keyRollRight() {
+    this->player_plane->control_stick_x = this->max_stick_x;
+    this->mouse_control = false;
+}
+
+void SCStrike::keyEyesOnTarget() {
+    if (this->camera_mode != View::EYE_ON_TARGET) {
+        this->camera_mode = View::EYE_ON_TARGET;
+        this->cockpit->is_3d_cockpit = true;
+    } else {
+        this->camera_mode = View::FRONT;
+        this->cockpit->is_3d_cockpit = false;
+    }
+}
+
+void SCStrike::keySpecKey1() {
+    this->current_mission->gameflow_registers[0] = 1;
+    this->current_mission->gameflow_registers[1] = 2;
+    this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_1");
+}
+
+void SCStrike::keySpecKey2() {
+    this->current_mission->gameflow_registers[0] = 0;
+    this->current_mission->setExitCode(1, "touche de mise au point SPEC_KEY_2");
 }
 void SCStrike::findTarget() {
     const float target_range = 30000.0f;

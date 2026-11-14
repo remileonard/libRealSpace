@@ -27,6 +27,7 @@ protected:
     void afterCameraPlaced() override;
     void afterCockpitSceneRendered() override;
     bool confirmEndMission() override;
+    void keyViewCockpit() override;
     void afterFrameRendered() override;
     void finishEndPrompt(bool end);
     void handleOptionsKey();
@@ -59,6 +60,7 @@ private:
     bool cockpit3d{false};
     float cockpitFov{45.0f};
     bool cockpitLookFixed{false};
+    bool cockpitKeyPressed{false}; // posé par keyViewCockpit, lu par updateCockpit3D dans la même frame
     float cockpitLookYaw{0.0f};
 
     bool orbitActive{false};
