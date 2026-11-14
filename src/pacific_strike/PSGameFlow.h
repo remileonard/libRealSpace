@@ -39,8 +39,11 @@ public:
 
     PSGameFlow();
     ~PSGameFlow();
+    void init() override;
     void initInstructions() override;
     void createScen() override;
+    void playConv(uint8_t convId) override;
+    void flyMission(uint8_t missionid) override;
 
 protected:
     // [partie+1382], posé par SET_BYTE_1382 ; rôle non établi.

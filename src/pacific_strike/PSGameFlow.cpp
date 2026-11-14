@@ -5,12 +5,51 @@
 
 #include "PSGameFlow.h"
 #include "PSScene.h"
+#include "PSGameFlowParser.h"
+#include "PSConvplayer.h"
+#include "PSStrike.h"
 
 PSGameFlow::PSGameFlow() {
     this->initInstructions();
 }
 
 PSGameFlow::~PSGameFlow() {
+}
+
+// Copie de SCGameFlow::init avec le lecteur de GAMEFLOW.IFF de Pacific Strike.
+void PSGameFlow::init() {
+    TreEntry *gameflowIFF = Assets.GetEntryByName(Assets.gameflow_filename);
+    TreEntry *optionIFF = Assets.GetEntryByName(Assets.option_filename);
+    this->optionParser.InitFromRam(optionIFF->data, optionIFF->size);
+    PSGameFlowParser psParser;
+    psParser.InitFromRam(gameflowIFF->data, gameflowIFF->size);
+    this->gameFlowParser = psParser;
+
+    TreEntry *optShapEntry = Assets.GetEntryByName(Assets.optshps_filename);
+    this->optShps.InitFromRAM("OPTSHPS.PAK", optShapEntry->data, optShapEntry->size);
+    TreEntry *optPalettesEntry = Assets.GetEntryByName(Assets.optpals_filename);
+    this->optPals.InitFromRAM("OPTPALS.PAK", optPalettesEntry->data, optPalettesEntry->size);
+    this->efect = nullptr;
+    this->createMiss();
+}
+
+void PSGameFlow::playConv(uint8_t convId) {
+    SCConvPlayer *conv = new PSConvPlayer();
+    conv->init();
+    conv->SetID(convId);
+    this->pending_activities.push(conv);
+}
+
+// Copie de SCGameFlow::flyMission avec PSStrike.
+void PSGameFlow::flyMission(uint8_t missionid) {
+    PSStrike *fly = new PSStrike();
+    fly->init();
+    fly->player_loadout = this->player_loadout_pending;
+    this->player_loadout_pending = false;
+    fly->setMission(this->missionToFly);
+    this->missionToFly = nullptr;
+    fly_mission.push(fly);
+    this->next_miss = GameState.mission_id;
 }
 
 // Table de Gameflow_RunScript_604D4 (§ 3.3). 27, 28, 33 et 39 sont des erreurs dans le jeu : absentes de la table.
