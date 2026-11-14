@@ -33,13 +33,15 @@ typedef struct MapVertex {
 
     uint8_t flag;
     uint8_t type;
-    uint8_t lowerImageID;
-    uint8_t upperImageID;
+    uint16_t lowerImageID;
+    uint16_t upperImageID;
 
     float color[4];
     float waterShare{1.0f};     // share of water vertices around the vertex, 0 on land
     float lowerColors[3][4];
     float upperColors[3][4];
+    float lowerUV[3][2];        // u, v du triangle bas (sommet, en bas à droite, en bas), posés par la carte
+    float upperUV[3][2];        // u, v du triangle haut (sommet, à droite, en bas à droite)
 
 } MapVertex;
 

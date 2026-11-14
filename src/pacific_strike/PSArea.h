@@ -13,4 +13,10 @@ public:
 
 protected:
     void ParseTriFile(PakEntry *entry) override;
+    void ParseBlocks(size_t lod, PakEntry *entry, size_t verticePerBlock) override;
+    MapVertex *blockVertex(size_t lod, int block, int x, int y, int side);
+    bool seaTriangle(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2);
+    void seaUV(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2, float uv[3][2]);
+    uint16_t waterImage();
+    uint16_t water_image_id{ 0xFF };
 };

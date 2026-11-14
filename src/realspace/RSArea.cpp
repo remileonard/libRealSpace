@@ -235,6 +235,43 @@ void RSArea::ParseTrigo() {
     (byte & 0x80 ? 1 : 0), (byte & 0x40 ? 1 : 0), (byte & 0x20 ? 1 : 0), (byte & 0x10 ? 1 : 0), (byte & 0x08 ? 1 : 0), \
         (byte & 0x04 ? 1 : 0), (byte & 0x02 ? 1 : 0), (byte & 0x01 ? 1 : 0)
 
+#define TEX_ZERO (0 / 64.0f)
+#define TEX_ONE (64 / 64.0f)
+
+// What is this offset ? It is used to get rid of the red delimitations
+// in the 64x64 textures.
+#define OFFSET (2.0f / 64.0f)
+static const float textTrianCoo64[2][3][2] = {
+
+    {{TEX_ZERO, TEX_ZERO + OFFSET},
+     {TEX_ONE - 2 * OFFSET, TEX_ONE - OFFSET},
+     {TEX_ZERO, TEX_ONE - OFFSET}}, // LOWER_TRIANGE
+
+    {{TEX_ZERO + 2 * OFFSET, TEX_ZERO + OFFSET},
+     {TEX_ONE, TEX_ZERO + OFFSET},
+     {TEX_ONE, TEX_ONE - OFFSET}} // UPPER_TRIANGE
+};
+
+static const float textTrianCoo[2][3][2] = {
+
+    {{TEX_ZERO, TEX_ZERO}, {TEX_ONE, TEX_ONE}, {TEX_ZERO, TEX_ONE}}, // LOWER_TRIANGE
+
+    {{TEX_ZERO, TEX_ZERO}, {TEX_ONE, TEX_ZERO}, {TEX_ONE, TEX_ONE}} // UPPER_TRIANGE
+};
+
+// u, v d'une texture du sol : l'image entière sur la case (table selon la largeur de l'image)
+void RSArea::cellUV(uint16_t imageID, int triangle, float uv[3][2]) {
+    const float (*coords)[3][2] = textTrianCoo;
+    RSImage *image = imageID != 0xFF ? this->GetImageByID(imageID) : nullptr;
+    if (image != nullptr && image->width < 128) {
+        coords = textTrianCoo64;
+    }
+    for (int corner = 0; corner < 3; corner++) {
+        uv[corner][0] = coords[triangle][corner][0];
+        uv[corner][1] = coords[triangle][corner][1];
+    }
+}
+
 // A lod features
 // A block features either 25, 100 or 400 vertex
 void RSArea::ParseBlocks(size_t lod, PakEntry *entry, size_t blockDim) {
@@ -264,6 +301,8 @@ void RSArea::ParseBlocks(size_t lod, PakEntry *entry, size_t blockDim) {
 
             vertex->upperImageID = vertStream.ReadByte();
             vertex->lowerImageID = vertStream.ReadByte();
+            this->cellUV(vertex->lowerImageID, 0, vertex->lowerUV);
+            this->cellUV(vertex->upperImageID, 1, vertex->upperUV);
             vertex->height = height;
             this->terrainColor(vertex->type, vertex->flag, vertex->color);
 

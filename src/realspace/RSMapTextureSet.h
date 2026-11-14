@@ -38,6 +38,7 @@ public:
     
     size_t GetNumImages(void);
     RSImage* GetImageById(size_t index);
+    size_t AddImage(RSImage *image);
     
     void List(FILE* output);
     

@@ -1370,30 +1370,6 @@ void SCRenderer::displayModel(RSEntity *object, size_t lodLevel) {
     }
 }
 
-#define TEX_ZERO (0 / 64.0f)
-#define TEX_ONE (64 / 64.0f)
-
-// What is this offset ? It is used to get rid of the red delimitations
-// in the 64x64 textures.
-#define OFFSET (2.0f / 64.0f)
-float textTrianCoo64[2][3][2] = {
-
-    {{TEX_ZERO, TEX_ZERO + OFFSET},
-     {TEX_ONE - 2 * OFFSET, TEX_ONE - OFFSET},
-     {TEX_ZERO, TEX_ONE - OFFSET}}, // LOWER_TRIANGE
-
-    {{TEX_ZERO + 2 * OFFSET, TEX_ZERO + OFFSET},
-     {TEX_ONE, TEX_ZERO + OFFSET},
-     {TEX_ONE, TEX_ONE - OFFSET}} // UPPER_TRIANGE
-};
-
-float textTrianCoo[2][3][2] = {
-
-    {{TEX_ZERO, TEX_ZERO}, {TEX_ONE, TEX_ONE}, {TEX_ZERO, TEX_ONE}}, // LOWER_TRIANGE
-
-    {{TEX_ZERO, TEX_ZERO}, {TEX_ONE, TEX_ZERO}, {TEX_ONE, TEX_ONE}} // UPPER_TRIANGE
-};
-
 #define LOWER_TRIANGE 0
 #define UPPER_TRIANGE 1
 
@@ -1404,21 +1380,18 @@ void SCRenderer::renderTexturedTriangle(MapVertex *tri0, MapVertex *tri1, MapVer
                                         int triangleType, RSImage *image, float colors[3][4]) {
 
     
-    float (*coords)[3][2] = textTrianCoo;
-    if (image->width < 128) {
-        coords = textTrianCoo64;
-    }
+    float (*coords)[2] = triangleType == LOWER_TRIANGE ? tri0->lowerUV : tri0->upperUV;
 
     glColor4fv(colors[0]);
-    glTexCoord2fv(coords[triangleType][0]);
+    glTexCoord2fv(coords[0]);
     glVertex3f(tri0->v.x, tri0->v.y, tri0->v.z);
 
     glColor4fv(colors[1]);
-    glTexCoord2fv(coords[triangleType][1]);
+    glTexCoord2fv(coords[1]);
     glVertex3f(tri1->v.x, tri1->v.y, tri1->v.z);
 
     glColor4fv(colors[2]);
-    glTexCoord2fv(coords[triangleType][2]);
+    glTexCoord2fv(coords[2]);
     glVertex3f(tri2->v.x, tri2->v.y, tri2->v.z);
 }
 

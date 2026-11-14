@@ -160,3 +160,125 @@ float PSArea::getY(float x, float z) {
     }
     return ground;
 }
+
+// sommet (x, y) d'un bloc, pris dans le bloc voisin à droite ou en bas quand il déborde ; nul hors de la carte
+MapVertex *PSArea::blockVertex(size_t lod, int block, int x, int y, int side) {
+    if (x >= side) {
+        if (block % BLOCK_PER_MAP_SIDE == BLOCK_PER_MAP_SIDE - 1) {
+            return nullptr;
+        }
+        block += 1;
+        x -= side;
+    }
+    if (y >= side) {
+        if (block / BLOCK_PER_MAP_SIDE == BLOCK_PER_MAP_SIDE - 1) {
+            return nullptr;
+        }
+        block += BLOCK_PER_MAP_SIDE;
+        y -= side;
+    }
+    return this->GetAreaBlockByID(lod, block)->GetVertice(x, y);
+}
+
+// Render_TerrainPipelineMain_3362C : un triangle dont le sommet le plus haut est de couleur 0 est de la mer
+bool PSArea::seaTriangle(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2) {
+    MapVertex *highest = tri0;
+    if ((uint16_t)tri1->height >= (uint16_t)highest->height) {
+        highest = tri1;
+    }
+    if ((uint16_t)tri2->height >= (uint16_t)highest->height) {
+        highest = tri2;
+    }
+    return highest->type == 0;
+}
+
+// Render_WaterOrSkyPlane_2CDA0 : u, v = position / 16 en points de l'image, fixes sur le monde (asm c0 = x, c1 = −z) ;
+// water1 (128 points) revient tous les 2048 m
+static const float SEA_TILE_METERS = 2048.0f;
+// image de la mer : water1 répétée 4 x 4 (8192 m), pour qu'un triangle de 4000 m ne sorte jamais de l'image
+static const int SEA_TILES = 4;
+
+// Render_SkyAndSeaBackground_2D6FC : water1 = place 7 de TXM\ACC_LIST.IFF, entrée 7 d'ACCPACK.PAK (128 x 128)
+uint16_t PSArea::waterImage() {
+    if (this->water_image_id != 0xFF) {
+        return this->water_image_id;
+    }
+    if (this->textures.size() < 2) {
+        return 0xFF;
+    }
+    RSImage *water = this->textures[1]->GetImageById(7);
+    if (water == nullptr || water->width < 2) {
+        return 0xFF;
+    }
+    int width = (int)water->width;
+    int height = (int)water->height;
+    std::vector<uint8_t> pixels((size_t)(width * SEA_TILES) * (size_t)(height * SEA_TILES));
+    for (int y = 0; y < height * SEA_TILES; y++) {
+        for (int x = 0; x < width * SEA_TILES; x++) {
+            pixels[(size_t)y * (size_t)(width * SEA_TILES) + (size_t)x] = water->data[(y % height) * width + (x % width)];
+        }
+    }
+    RSImage *sea = new RSImage();
+    sea->Create("SEA", (uint32_t)(width * SEA_TILES), (uint32_t)(height * SEA_TILES), 1);
+    sea->UpdateContent(pixels.data());
+    size_t place = this->textures[1]->AddImage(sea);
+    this->water_image_id = (uint16_t)(this->textures[0]->GetNumImages() + place);
+    printf("PSArea: image de mer %d (water1 %d x %d répétée %d x %d)\n", this->water_image_id, width, height, SEA_TILES, SEA_TILES);
+    return this->water_image_id;
+}
+
+// u, v du triangle dans l'image de mer, à partir de la répétition de 2048 m qui contient son coin le plus petit
+void PSArea::seaUV(MapVertex *tri0, MapVertex *tri1, MapVertex *tri2, float uv[3][2]) {
+    MapVertex *corners[3];
+    corners[0] = tri0;
+    corners[1] = tri1;
+    corners[2] = tri2;
+    float min_u = tri0->v.x;
+    float min_v = -tri0->v.z;
+    for (int i = 1; i < 3; i++) {
+        min_u = (std::min)(min_u, corners[i]->v.x);
+        min_v = (std::min)(min_v, -corners[i]->v.z);
+    }
+    float origin_u = floorf(min_u / SEA_TILE_METERS) * SEA_TILE_METERS;
+    float origin_v = floorf(min_v / SEA_TILE_METERS) * SEA_TILE_METERS;
+    float extent = SEA_TILE_METERS * (float)SEA_TILES;
+    for (int i = 0; i < 3; i++) {
+        uv[i][0] = (corners[i]->v.x - origin_u) / extent;
+        uv[i][1] = (-corners[i]->v.z - origin_v) / extent;
+    }
+}
+
+// Render_TerrainPipelineMain_3362C : la mer n'est pas du terrain, elle prend ici l'image de mer avec ses u, v du monde
+void PSArea::ParseBlocks(size_t lod, PakEntry *entry, size_t verticePerBlock) {
+    RSArea::ParseBlocks(lod, entry, verticePerBlock);
+    uint16_t water = this->waterImage();
+    if (water == 0xFF) {
+        return;
+    }
+    int side = (int)verticePerBlock;
+    int sea_triangles = 0;
+    for (int block = 0; block < BLOCKS_PER_MAP; block++) {
+        for (int y = 0; y < side; y++) {
+            for (int x = 0; x < side; x++) {
+                MapVertex *current = this->blockVertex(lod, block, x, y, side);
+                MapVertex *right = this->blockVertex(lod, block, x + 1, y, side);
+                MapVertex *bottom_right = this->blockVertex(lod, block, x + 1, y + 1, side);
+                MapVertex *bottom = this->blockVertex(lod, block, x, y + 1, side);
+                if (right == nullptr || bottom_right == nullptr || bottom == nullptr) {
+                    continue;
+                }
+                if (current->lowerImageID == 0xFF && this->seaTriangle(current, bottom_right, bottom)) {
+                    current->lowerImageID = water;
+                    this->seaUV(current, bottom_right, bottom, current->lowerUV);
+                    sea_triangles++;
+                }
+                if (current->upperImageID == 0xFF && this->seaTriangle(current, right, bottom_right)) {
+                    current->upperImageID = water;
+                    this->seaUV(current, right, bottom_right, current->upperUV);
+                    sea_triangles++;
+                }
+            }
+        }
+    }
+    printf("PSArea: niveau %zu, %d triangles de mer avec l'image %d\n", lod, sea_triangles, water);
+}

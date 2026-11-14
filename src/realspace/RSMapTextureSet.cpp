@@ -39,6 +39,11 @@ RSImage* RSMapTextureSet::GetImageById(size_t index){
 }
 
 
+size_t RSMapTextureSet::AddImage(RSImage *image) {
+    images.push_back(image);
+    return images.size() - 1;
+}
+
 void RSMapTextureSet::Parse(PakArchive* archive){
     
     
