@@ -95,3 +95,28 @@ bool PSMissionActors::respondToRadioMessage(int message_id, SCMission *mission, 
     }
     return true;
 }
+
+// Goal_SetObjective_C2A8 : ordres refusés après un ordre radio ou en fuite ; OP_SET_OBJ_FOLLOW_ALLY ne change pas l'ordre
+// en cours ; la réponse au script est celle de Goal_IsComplete_C73C sur l'ordre en cours
+bool PSMissionActors::setObjective(prog_op command, uint8_t arg) {
+    PSBrain *brain = dynamic_cast<PSBrain *>(this->brain);
+    if (brain == nullptr) {
+        return SCMissionActors::setObjective(command, arg);
+    }
+    if (brain->objective_locked) {
+        brain->onObjectiveSet(false);
+        return true;
+    }
+    if (command == OP_SET_OBJ_FLY_TO_AREA) {
+        return false;
+    }
+    if (command != OP_SET_OBJ_FOLLOW_ALLY) {
+        SCMissionActors::setObjective(command, arg);
+    }
+    bool in_progress = brain->orderInProgress();
+    if (in_progress != this->last_in_progress) {
+        printf("PSMissionActors %s#%d ordre %d (%d) : %s\n", this->actor_name.c_str(), this->actor_id, (int)this->current_command, this->current_command_arg, in_progress ? "en cours" : "termine");
+        this->last_in_progress = in_progress;
+    }
+    return in_progress;
+}

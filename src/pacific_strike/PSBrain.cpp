@@ -16,6 +16,10 @@ PSBrain::PSBrain(SCMissionActors *owner) : SCAIBrain(owner) {
 // AI_TopLevelThink_B0C4 : au sol Goal_ExecuteObjective_C9E4, en vol les gestionnaires GOAL du profil
 bool PSBrain::runGoalSelectors() {
     if (owner->plane->on_ground) {
+        if (!this->orderInProgress()) {
+            this->decide("au sol, ordre termine");
+            return false;
+        }
         this->decide("au sol");
         return this->executeGoalAction();
     }
@@ -24,6 +28,10 @@ bool PSBrain::runGoalSelectors() {
         bool acted = false;
         switch ((PSGoalSelector)rawSelector) {
         case PS_GOAL_EXECUTE_OBJECTIVE:
+            if (!this->orderInProgress()) {
+                this->decide("GOAL %d ordre termine", rawSelector);
+                break;
+            }
             this->decide("GOAL %d action", rawSelector);
             acted = this->executeGoalAction();
             break;
@@ -441,4 +449,35 @@ bool PSBrain::enemiesActive() {
 
 bool PSBrain::unarmed() {
     return this->loadedWeaponMask() == 0;
+}
+
+// Goal_IsComplete_C73C : l'ordre en cours est-il encore à exécuter
+bool PSBrain::orderInProgress() {
+    SCMissionActors *target = owner->target;
+    std::vector<SPOT *> &spots = owner->mission->mission->mission_data.spots;
+    switch (owner->current_command) {
+    case OP_SET_OBJ_TAKE_OFF:
+        return this->isRunning(BEHAVIOR_TAKEOFF) || owner->plane == nullptr || owner->plane->on_ground || !owner->taken_off;
+    case OP_SET_OBJ_LAND:
+        return last_finished_behavior != 0x12;
+    case OP_SET_OBJ_FLY_TO_WP: {
+        if (owner->plane == nullptr || owner->current_command_arg >= spots.size()) {
+            return false;
+        }
+        Vector3D delta = spots[owner->current_command_arg]->position - owner->plane->position;
+        delta.y = 0.0f;
+        return delta.Length() > 500.0f;
+    }
+    case OP_SET_OBJ_DESTROY_TARGET:
+    case OP_SET_OBJ_DEFEND_TARGET:
+        return target != nullptr && !target->is_destroyed;
+    case OP_SET_OBJ_DEFEND_AREA:
+        return this->opposingCampAlive() == 0;
+    case OP_SET_OBJ_FOLLOW_ALLY:
+        return false;
+    case OP_SET_OBJ_PATROL_POSITION:
+        return true;
+    default:
+        return !owner->current_command_executed;
+    }
 }

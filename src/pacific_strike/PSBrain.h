@@ -50,6 +50,7 @@ public:
     bool enemiesActive();
     bool unarmed();
     void fleeHome();
+    bool orderInProgress();
     void joinFormation();
     void leaveFormation();
 
