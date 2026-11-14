@@ -43,6 +43,15 @@ public:
     bool runGoalSelectors() override;
     bool acquireBestThreat(bool allow_new_target) override;
     bool in_formation{ true };
+    bool isFleeing();
+    uint8_t statusReply();
+    bool lowFuel();
+    bool seriouslyDamaged();
+    bool enemiesActive();
+    bool unarmed();
+    void fleeHome();
+    void joinFormation();
+    void leaveFormation();
 
 protected:
     bool formation_targeting{ false };
@@ -51,9 +60,7 @@ protected:
     bool followLeaderInFormation();
     bool followLeader();
     void formationFlight(SCMissionActors *leader);
-    void fleeHome();
     bool isFighter();
-    bool seriouslyDamaged();
     int systemDamagePercent(const std::string &name);
     PSSpeedState speed_state{ PS_SPEED_NONE };
     void speedThrottle(float wanted) override;

@@ -534,6 +534,9 @@ void PSCockpit::Render(CockpitFace face) {
             }
         }
     }
+    if (this->ps_cockpit != nullptr && this->show_comm) {
+        this->RenderCommMenu(fb);
+    }
     if (this->ps_cockpit != nullptr) {
         Point2D comm_position;
         comm_position.x = 0;
@@ -546,4 +549,141 @@ void PSCockpit::Render(CockpitFace face) {
     VGA.vSync();
     VGA.upscale = upscale;
     VGA.wide_screen = wide_screen;
+}
+
+// sub_97C10 (ovr257) : destinataires = avions du camp du joueur qui ont des ordres (OPTS), 8 au plus
+std::vector<SCMissionActors *> PSCockpit::commReceivers() {
+    std::vector<SCMissionActors *> receivers;
+    SCMissionActors *player = this->current_mission->player;
+    for (auto actor : this->current_mission->actors) {
+        if (receivers.size() >= 8) {
+            break;
+        }
+        if (actor == player || actor->plane == nullptr || actor->is_destroyed || !actor->is_active) {
+            continue;
+        }
+        if (actor->team_id != player->team_id || actor->profile == nullptr || actor->profile->radi.opts.empty()) {
+            continue;
+        }
+        receivers.push_back(actor);
+    }
+    return receivers;
+}
+
+// sub_97C10, table off_98940 : un ordre n'est proposé que s'il a un sens
+bool PSCockpit::commOptionAvailable(char ask, SCMissionActors *receiver) {
+    SCMissionActors *player = this->current_mission->player;
+    PSBrain *brain = dynamic_cast<PSBrain *>(receiver->brain);
+    bool airborne = !this->player_plane->on_ground;
+    float distance = (this->player_plane->position - receiver->plane->position).Length();
+    switch (ask) {
+        case 'd':
+            return true;
+        case 'e':
+            return !airborne;
+        case 'f':
+            return airborne && distance < 5000.0f;
+        case 'g':
+            return brain != nullptr && brain->in_formation;
+        case 'h':
+            return brain != nullptr && !brain->in_formation;
+        case 'i':
+            return player->target != nullptr;
+        case 'j':
+            return brain != nullptr && !brain->isFleeing();
+        case 'l':
+            return receiver->talkative;
+        case 'm':
+            return !receiver->talkative;
+        case 'n':
+            return airborne && distance < 5000.0f;
+        default:
+            return false;
+    }
+}
+
+std::vector<char> PSCockpit::commOptions(SCMissionActors *receiver) {
+    std::vector<char> options;
+    for (char ask : receiver->profile->radi.opts) {
+        if (this->commOptionAvailable(ask, receiver)) {
+            options.push_back(ask);
+        }
+    }
+    return options;
+}
+
+// une case de 130 x 11 à partir de (90, 40), comme les boutons de sub_97C10
+void PSCockpit::drawCommLine(FrameBuffer *fb, int row, std::string text) {
+    int left = 90;
+    int top = 40 + 11 * row;
+    for (int y = top; y < top + 11; y++) {
+        fb->line(left, y, left + 130, y, 0xC0);
+    }
+    RSFont *font = this->cockpit->PLAQ.fonts[1].font;
+    Point2D position;
+    position.x = left + 4;
+    position.y = top + 2;
+    fb->printText(font, &position, (char *)text.c_str(), 0, 0, (uint32_t)text.size(), 1, 2);
+}
+
+void PSCockpit::RenderCommMenu(FrameBuffer *fb) {
+    if (this->cockpit->PLAQ.fonts.size() < 2) {
+        return;
+    }
+    if (this->comm_target == 0 || this->comm_actor == nullptr) {
+        this->drawCommLine(fb, 0, "Select Frequency");
+        std::vector<SCMissionActors *> receivers = this->commReceivers();
+        int row = 1;
+        for (auto receiver : receivers) {
+            this->drawCommLine(fb, row, std::to_string(row) + ": " + receiver->profile->radi.info.callsign);
+            row++;
+        }
+        this->drawCommLine(fb, row, "No One");
+        return;
+    }
+    this->drawCommLine(fb, 0, this->comm_actor->profile->radi.info.callsign);
+    std::vector<char> options = this->commOptions(this->comm_actor);
+    int row = 1;
+    for (char ask : options) {
+        std::string key(1, ask);
+        auto text = this->current_mission->player->profile->radi.asks.find(key);
+        std::string label = text != this->current_mission->player->profile->radi.asks.end() ? text->second : key;
+        this->drawCommLine(fb, row, std::to_string(row) + ": " + label);
+        row++;
+    }
+    this->drawCommLine(fb, row, "nothing");
+}
+
+void PSCockpit::SetCommActorTarget(int target) {
+    this->comm_actor = nullptr;
+    this->comm_target = 0;
+    if (target == 0) {
+        return;
+    }
+    std::vector<SCMissionActors *> receivers = this->commReceivers();
+    if (target > (int)receivers.size()) {
+        this->show_comm = false;
+        return;
+    }
+    this->comm_actor = receivers[target - 1];
+    this->comm_target = target;
+    printf("PSCockpit: radio vers %s#%d\n", this->comm_actor->actor_name.c_str(), this->comm_actor->actor_id);
+}
+
+// le menu n'affiche que les ordres possibles : la ligne est ramenée au rang de l'ordre dans OPTS
+int PSCockpit::CommMessageId(int line) {
+    if (this->comm_actor == nullptr) {
+        return 0;
+    }
+    std::vector<char> options = this->commOptions(this->comm_actor);
+    if (line < 1 || line > (int)options.size()) {
+        return 0;
+    }
+    std::vector<char> &opts = this->comm_actor->profile->radi.opts;
+    for (size_t i = 0; i < opts.size(); i++) {
+        if (opts[i] == options[line - 1]) {
+            return (int)i + 1;
+        }
+    }
+    return 0;
 }

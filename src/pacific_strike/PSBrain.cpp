@@ -388,3 +388,57 @@ PSSpeedState PSBrain::nextSpeedState(PSSpeedState measured, PSSpeedState previou
         return measured;
     }
 }
+
+bool PSBrain::isFleeing() {
+    return formation.leader_state == 2;
+}
+
+// AI_JoinFormation_E36E
+void PSBrain::joinFormation() {
+    in_formation = true;
+    formation.leader_state = 0;
+    objective_locked = false;
+    owner->target = nullptr;
+    printf("PSBrain %s#%d rejoint la formation\n", owner->actor_name.c_str(), owner->actor_id);
+}
+
+// AI_LeaveFormation_E39C
+void PSBrain::leaveFormation() {
+    in_formation = false;
+    formation.leader_state = 0;
+    objective_locked = false;
+    owner->target = nullptr;
+    printf("PSBrain %s#%d quitte la formation\n", owner->actor_name.c_str(), owner->actor_id);
+}
+
+// AI_FuelPercent_EFF3 : moins de 55 %
+bool PSBrain::lowFuel() {
+    float capacity = (float)owner->object->entity->jdyn->fuel_capacity;
+    if (capacity <= 0.0f) {
+        return false;
+    }
+    return 100.0f * owner->plane->GetFuel() / capacity < 55.0f;
+}
+
+// AI_StatusReportMessage_EDC7 : la dernière condition vraie l'emporte
+uint8_t PSBrain::statusReply() {
+    uint8_t reply = 2;
+    if (this->seriouslyDamaged()) {
+        reply = 29;
+    }
+    if (this->lowFuel()) {
+        reply = 4;
+    }
+    if (this->isFleeing()) {
+        reply = 8;
+    }
+    return reply;
+}
+
+bool PSBrain::enemiesActive() {
+    return mood.enemies_active;
+}
+
+bool PSBrain::unarmed() {
+    return this->loadedWeaponMask() == 0;
+}

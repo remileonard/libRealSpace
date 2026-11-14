@@ -759,7 +759,7 @@ void SCStrike::checkKeyboard(void) {
             } else {
                 // send message 1 to ai comm_target
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(1, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(1), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -771,7 +771,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(2);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(2, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(2), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -783,7 +783,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(3);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(3, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(3), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -795,7 +795,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(4);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(4, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(4), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -807,7 +807,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(5);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(5), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -819,7 +819,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(6);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(6), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -831,7 +831,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(7);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(7), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;
@@ -843,7 +843,7 @@ void SCStrike::checkKeyboard(void) {
                 this->cockpit->SetCommActorTarget(8);
             } else {
                 if (this->cockpit->comm_actor != nullptr) {
-                    this->cockpit->comm_actor->respondToRadioMessage(5, this->current_mission, this->current_mission->player);
+                    this->cockpit->comm_actor->respondToRadioMessage(this->cockpit->CommMessageId(8), this->current_mission, this->current_mission->player);
                     this->cockpit->show_comm = false;
                 }
                 this->cockpit->comm_target = 0;

@@ -2,6 +2,7 @@
 #include "PSMissionParser.h"
 #include "PSArea.h"
 #include "PSBrain.h"
+#include "PSMissionActors.h"
 #include "PSEntity.h"
 #include "PSPlane.h"
 #include "PSProg.h"
@@ -198,7 +199,7 @@ void PSMission::loadMission() {
         }
         for (auto cast : mission->mission_data.casting) {
             if (part->id == search_id) {
-                SCMissionActors *actor = new SCMissionActors();
+                SCMissionActors *actor = new PSMissionActors();
                 if (cast->actor == "PLAYER") {
                     actor = new SCMissionActorsPlayer();
                     if (part->area_id != 255 && part->placement == 0) {

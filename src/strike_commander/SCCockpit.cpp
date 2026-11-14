@@ -2154,6 +2154,10 @@ void SCCockpit::SetCommActorTarget(int target) {
         }
     }
 }
+// numéro de message de respondToRadioMessage pour la ligne choisie du menu
+int SCCockpit::CommMessageId(int line) {
+    return line;
+}
 void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font) {
     Point2D tag_pos = {pos.x+tag.x, pos.y+tag.y};
     if (tag.z == 0) {
