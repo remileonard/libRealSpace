@@ -130,8 +130,13 @@ void SCZone::draw(void) {
     if (this->sprite != nullptr) {
         RLEShape *spr_shape = this->sprite->img->GetShape(0);
         Point2D spr_pos = {0,0};
-        if (spr_shape->leftDist < 0) {
+        // image recadrée : son en-tête porte le décalage (gauche ou haut négatif)
+        if (spr_shape->leftDist < 0 || spr_shape->topDist < 0) {
             spr_pos = {-spr_shape->leftDist, -spr_shape->topDist};
+        }
+        if (!this->position_traced) {
+            printf("SCZone %d: sprite %d, %zu images, image 0 gauche %d haut %d largeur %d hauteur %d, position (%d, %d), zone (%d, %d) %dx%d\n", this->id, this->sprite->id, this->sprite->img->GetNumImages(), spr_shape->leftDist, spr_shape->topDist, spr_shape->GetWidth(), spr_shape->GetHeight(), spr_pos.x, spr_pos.y, this->position.x, this->position.y, this->dimension.x, this->dimension.y);
+            this->position_traced = true;
         }
         
         spr_shape->SetPosition(&spr_pos);
