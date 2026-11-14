@@ -2627,6 +2627,9 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
 }
 
 bool SCCockpit::RenderOverlayAnimation(RSImageSet *overlay_animation) {
+    if (overlay_animation == nullptr) {
+        return true;
+    }
     static int frame_counter = 0;
     if (frame_counter == 0) {
         frame++;

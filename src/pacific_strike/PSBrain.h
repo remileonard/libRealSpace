@@ -73,10 +73,14 @@ protected:
     void updateGroundAttack(SCMissionActors *target) override;
     bool groundAhead();
     bool runTournament() override;
+    bool behaviorStateMachine();
+    bool combatStep(bool ground_allowed) override;
     int scoreGunAttack(SCMissionActors *target);
-    int gunAimQuality(SCMissionActors *target);
+    int gunAimQuality(SCMissionActors *target, float error);
+    int scoreFollowTarget(SCMissionActors *target);
     void startGunAttack(SCMissionActors *target);
     bool tickGunAttack();
     int gun_bursts{ 0 };
+    const char *last_gun_refusal{ nullptr };
     float pull_up_timer{ 0.0f };
 };

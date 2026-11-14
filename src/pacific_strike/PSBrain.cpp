@@ -1,6 +1,7 @@
 #include "../strike_commander/precomp.h"
 #include "PSBrain.h"
 #include "PSEntity.h"
+#include "PSPlane.h"
 
 // AI_FleeHome_E8E5 : vitesse voulue (125, 100, 0) en axes asm
 static const Vector3D PS_FLEE_VELOCITY(125.0f, 0.0f, -100.0f);
@@ -559,7 +560,14 @@ bool PSBrain::runTournament() {
         SCMissionActors *target = ids[i] == 19 ? ground_target : air_target;
         maneuver.phase_hint = 0;
         maneuver.bits = 0;
-        int score = ids[i] == 22 ? this->scoreGunAttack(target) : this->scoreManeuver(ids[i], target);
+        int score = 0;
+        if (ids[i] == 22) {
+            score = this->scoreGunAttack(target);
+        } else if (ids[i] == 7) {
+            score = this->scoreFollowTarget(target);
+        } else {
+            score = this->scoreManeuver(ids[i], target);
+        }
         if (score == 0) {
             continue;
         }
@@ -594,14 +602,23 @@ bool PSBrain::runTournament() {
     return true;
 }
 
-// MVRS_ID22_AimQuality_1125E, avec la visée de libRealSpace : écart = angle entre le nez et la direction de la cible
-int PSBrain::gunAimQuality(SCMissionActors *target) {
+// sub_A1A8 (fonction pas encore nommée), note du nœud 7 : 5 si la cible est un avion
+int PSBrain::scoreFollowTarget(SCMissionActors *target) {
+    if (target == nullptr || target->plane == nullptr || target->is_destroyed) {
+        return 0;
+    }
+    return 5;
+}
+
+// MVRS_ID22_AimQuality_1125E : error = angle entre la direction voulue et le nez ; pendant la note, la direction voulue
+// est le nez (MVRS_SetupOwnState_9578), l'écart vaut 0
+int PSBrain::gunAimQuality(SCMissionActors *target, float error) {
     if (target == nullptr || target->plane == nullptr) {
         return 0;
     }
     Vector3D delta = target->plane->position - owner->plane->position;
     float distance = delta.Length();
-    float error = owner->plane->forward.AngleBetween(delta);
+    float off_nose = owner->plane->forward.AngleBetween(delta);
     int quality = 0;
     if (distance < 2000.0f) {
         quality = 100 - (int)(error * error);
@@ -609,7 +626,7 @@ int PSBrain::gunAimQuality(SCMissionActors *target) {
         quality = 15;
     }
     if (gun_bursts != 0) {
-        quality += (error > 30.0f ? 20 : 10) - gun_bursts;
+        quality += (off_nose > 30.0f ? 20 : 10) - gun_bursts;
     }
     if (distance < 500.0f) {
         quality += (int)((500.0f - distance) / 20.0f);
@@ -625,18 +642,28 @@ int PSBrain::scoreGunAttack(SCMissionActors *target) {
         200.0f,
         150.0f
     };
-    if (target == nullptr || target->plane == nullptr || target->is_destroyed) {
-        return 0;
-    }
+    const char *refused = nullptr;
     float height = owner->plane->y - owner->plane->groundlevel;
-    if (owner->pilot->NosePitch() < 0.0f && height < floor_by_level[this->pilotLevel()]) {
+    if (target == nullptr || target->plane == nullptr || target->is_destroyed) {
+        refused = "pas de cible avion";
+    } else if (owner->pilot->NosePitch() < 0.0f && height < floor_by_level[this->pilotLevel()]) {
+        refused = "pique trop bas";
+    } else if (static_cast<PSPlane *>(owner->plane)->gunHardpoint() < 0) {
+        refused = "pas de canon charge";
+    }
+    if (refused != nullptr) {
+        if (refused != last_gun_refusal) {
+            printf("PSBrain %s#%d manoeuvre 22 notee 0 : %s (hauteur %.0f m, assiette %.0f)\n", owner->actor_name.c_str(), owner->actor_id, refused, height, owner->pilot->NosePitch());
+            last_gun_refusal = refused;
+        }
         return 0;
     }
-    if ((this->loadedWeaponMask() & (1 << (PS_WEAPON_GUN - 1))) == 0) {
-        return 0;
-    }
-    int quality = this->gunAimQuality(target) + 2 * owner->profile->ai.atrb.AR;
-    return quality >= 100 ? 10 : quality / 10;
+    last_gun_refusal = nullptr;
+    gun_bursts = 0;
+    int quality = this->gunAimQuality(target, 0.0f) + 2 * owner->profile->ai.atrb.AR;
+    int score = quality >= 100 ? 10 : quality / 10;
+    printf("PSBrain %s#%d manoeuvre 22 : distance %.0f m, qualite %d, note %d\n", owner->actor_name.c_str(), owner->actor_id, (target->plane->position - owner->plane->position).Length(), quality, score);
+    return score;
 }
 
 // MVRS_ID22_ApplyGunAttack_10D3C : 2 s d'attaque, compteur de rafales à 0
@@ -668,9 +695,17 @@ bool PSBrain::tickGunAttack() {
             wanted = this->pilotLevel() != 0 ? target_speed : target_speed + 30.0f;
         }
         this->speedThrottle(wanted);
-        int quality = this->gunAimQuality(target);
+        int quality = this->gunAimQuality(target, owner->plane->forward.AngleBetween(delta));
         if (quality > 75) {
-            pilot->Fire(1 << (PS_WEAPON_GUN - 1), target);
+            int hardpoint = static_cast<PSPlane *>(owner->plane)->gunHardpoint();
+            if (hardpoint >= 0) {
+                PlaneFireEvent fire;
+                fire.plane = owner->plane;
+                fire.hardpoint = hardpoint;
+                fire.target = target;
+                fire.mission = owner->mission;
+                MessageBus::getInstance().publish(std::make_unique<PlaneFireEvent>(fire));
+            }
             gun_bursts++;
         }
         this->decide("manoeuvre 22 : d %d m, visee %d, rafales %d", distance, quality, gun_bursts);
@@ -683,4 +718,34 @@ bool PSBrain::tickGunAttack() {
         return false;
     }
     return true;
+}
+
+// AI_BehaviorStateMachine_B968 (GOAL 4) : le comportement en cours tourne ; sinon cible (aérienne, au sol, ou cherchée
+// par Targeting_SelectBestTarget_BEB6), puis le tournoi. Pas de tir hors des manœuvres : en combat aérien, seul le
+// nœud 22 tire.
+bool PSBrain::behaviorStateMachine() {
+    if (this->behaviorRunning()) {
+        this->decide("%s en cours", this->behaviorLabel().c_str());
+        this->tickBehavior();
+        return true;
+    }
+    if (air_target == nullptr && ground_target == nullptr) {
+        this->acquireBestThreat(true);
+    }
+    if (air_target == nullptr && ground_target == nullptr) {
+        this->decide("aucune cible");
+        return false;
+    }
+    bool won = this->runTournament();
+    if (won) {
+        this->decide("tournoi : ID %d (%s)", maneuver.id, tournament_scores);
+    } else {
+        this->decide("tournoi sans gagnant (%s)", tournament_scores);
+    }
+    return won;
+}
+
+// les ordres du script (Goal_ExecuteObjective_C9E4, cas 167) et les réactions passent par le GOAL 4 de Pacific Strike
+bool PSBrain::combatStep(bool ground_allowed) {
+    return this->behaviorStateMachine();
 }

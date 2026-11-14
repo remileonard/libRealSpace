@@ -33,6 +33,7 @@ public:
     void computeThrust() override;
     void InitLoadout() override;
     int isOnRunWay() override;
+    int gunHardpoint();
     void Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) override;
     void ShootDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) override;
     void firePacific(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission);

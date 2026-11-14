@@ -229,7 +229,7 @@ protected:
     bool weaponRecoveryBusy();
     bool behaviorSelector();
     virtual void updateGroundAttack(SCMissionActors *target);
-    bool combatStep(bool ground_allowed);
+    virtual bool combatStep(bool ground_allowed);
     bool destroyTargetOrder(uint8_t arg);
     bool takeoffOrder();
     bool landingOrder(uint8_t approach_spot, uint8_t touchdown_spot);

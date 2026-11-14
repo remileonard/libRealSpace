@@ -98,6 +98,17 @@ PSPlane::PSWeaponMask PSPlane::weaponMask(RSEntity *weapon) {
     }
 }
 
+// premier point d'emport chargé d'un canon (masque 64, WeaponStation_FindLoadedCompatible) ; −1 sans canon
+int PSPlane::gunHardpoint() {
+    for (int i = 0; i < (int)this->weaps_load.size(); i++) {
+        SCWeaponLoadoutHardPoint *station = this->weaps_load[i];
+        if (station != nullptr && station->nb_weap > 0 && weaponMask(station->objct) == PS_MASK_GUN) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void PSPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     this->firePacific(weapon_hard_point_id, target, mission);
 }
