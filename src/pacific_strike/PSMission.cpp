@@ -55,11 +55,20 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
     actor->plane->object = part;
     actor->plane->InitLoadout();
     actor->plane->pilot = actor;
-    if (abs(this->area->getY(part->position.x, part->position.z) - part->position.y) <= 10) {
-        part->position.y = this->area->getY(part->position.x, part->position.z);
+    // Un objet placé dans une zone n'a ici que son décalage : le centre de la zone est ajouté à l'activation. Au sol
+    // ou en vol, manette et vitesse se décident à la position réelle (le jeu ne crée l'objet qu'à l'activation, à sa
+    // position finale : PartEntry_ResolveSpawnPositionAndActivate_5313D).
+    Vector3D spawn = part->position;
+    bool in_area = part->placement == 0 && part->area_id < this->mission->mission_data.areas.size();
+    if (in_area) {
+        spawn += this->mission->mission_data.areas[part->area_id]->position;
+    }
+    float spawn_ground = this->area->getY(spawn.x, spawn.z);
+    if (!in_area && abs(spawn_ground - part->position.y) <= 10) {
+        part->position.y = spawn_ground;
     }
     actor->plane->on_ground = part->speed == 0;
-    if (part->position.y < this->area->getY(part->position.x, part->position.z)) {
+    if (spawn.y < spawn_ground) {
         actor->plane->on_ground = true;
     }
     if (actor->plane->on_ground) {
@@ -69,7 +78,7 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
     }
     if (!actor->plane->on_ground) {
         actor->plane->SetThrottle(100);
-        actor->pilot->target_climb = (int)(part->position.y);
+        actor->pilot->target_climb = (int)(spawn.y);
         actor->plane->vz = -20;
         float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
         float spawn_speed = (float)part->speed;
@@ -84,7 +93,7 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
         actor->pilot->target_speed = 0;
     }
     actor->pilot->plane = actor->plane;
-    printf("PSMission: avion de %s#%d a (%.1f, %.1f, %.1f), cap %d, vitesse %d, %s\n", actor->actor_name.c_str(), actor->actor_id, part->position.x, part->position.y, part->position.z, part->azymuth, part->speed, actor->plane->on_ground ? "au sol" : "en vol");
+    printf("PSMission: avion de %s#%d, decalage (%.1f, %.1f, %.1f), position reelle (%.1f, %.1f, %.1f), sol %.1f, cap %d, vitesse %d, %s\n", actor->actor_name.c_str(), actor->actor_id, part->position.x, part->position.y, part->position.z, spawn.x, spawn.y, spawn.z, spawn_ground, part->azymuth, part->speed, actor->plane->on_ground ? "au sol" : "en vol");
 }
 
 // Pistes des missions de Pacific Strike : RWAYS, RWAYM1, RWAYM2, RWAYN et RUNWAYZ n'ont pas de fichier objet.

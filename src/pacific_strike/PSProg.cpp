@@ -25,6 +25,7 @@ std::map<uint8_t, SCProg::Instruction> PSProg::buildInstructionTable() {
     table[PS_OP_CMP_FLAG_WITH_WORK] = static_cast<Instruction>(&PSProg::opCmpFlagWithWork);
     table[PS_OP_MOVE_RESULT_TO_FLAG] = static_cast<Instruction>(&PSProg::opMoveResultToFlag);
     table[PS_OP_ORDER_FRIENDLY_OF_TYPE] = static_cast<Instruction>(&PSProg::opOrderFriendlyOfType);
+    table[PS_OP_IS_SCENE_ENABLED] = static_cast<Instruction>(&PSProg::opIsSceneEnabled);
     table[PS_OP_SPAWN_EFFECT_ON_OBJ] = static_cast<Instruction>(&PSProg::opSpawnEffectOnObj);
     table[PS_OP_FIRE_AT_SPOT] = static_cast<Instruction>(&PSProg::opFireAtSpot);
     table[PS_OP_SPAWN_AT_SPOT] = static_cast<Instruction>(&PSProg::opSpawnAtSpot);
@@ -344,6 +345,98 @@ void PSProg::opOrderFriendlyOfType(const PROG &instruction) {
         return;
     }
     this->task_state = this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, (uint8_t)friendly->actor_id) ? 1 : 0;
+}
+
+// OP_ACTIVATE_OBJ : copie de SCMissionActors::activateTarget ; l'objet placé dans une zone va à son décalage plus le
+// centre de la zone (AreaRelPos_ToWorld_50EEB dans STRIKE.EXE), et non au premier SPOT de la zone.
+void PSProg::opActivateObj(const PROG &instruction) {
+    if (!this->exec) {
+        return;
+    }
+    for (auto target : this->mission->actors) {
+        if (target->actor_id != instruction.arg || target->is_active) {
+            continue;
+        }
+        if (target->is_destroyed) {
+            this->mission->respawnActor(target);
+        }
+        target->is_active = true;
+        target->is_hidden = false;
+        MISN_PART *part = target->object;
+        if (part->placement != 0) {
+            this->mission->placeRelativeToPlayer(target);
+        } else if (part->area_id < this->mission->mission->mission_data.areas.size()) {
+            part->position += this->mission->mission->mission_data.areas[part->area_id]->position;
+        }
+        float ground_y = this->mission->area->getY(part->position.x, part->position.z);
+        if (part->position.y < ground_y) {
+            part->position.y = ground_y;
+        } else if (target->plane != nullptr && part->speed != 0) {
+            target->pilot->target_climb = (int)(part->position.y);
+            target->pilot->target_speed = -20;
+            target->plane->vz = -20;
+        }
+        if (target->plane != nullptr) {
+            if (part->position.y <= ground_y) {
+                part->position.y = ground_y + 10.0f;
+                target->plane->on_ground = true;
+            } else {
+                target->plane->on_ground = part->speed == 0;
+            }
+            if (target->plane->on_ground && target->plane->GetWheel() == 0) {
+                target->plane->SetWheel();
+            }
+            target->plane->x = part->position.x;
+            target->plane->y = part->position.y;
+            target->plane->z = part->position.z;
+        } else if (part->position.y != ground_y) {
+            part->position.y = ground_y + 2.0f;
+        }
+        target->wait_timer = 0.0f;
+        printf("PSProg %d: OP_ACTIVATE_OBJ %s#%d, zone %d, placement %d, position (%.1f, %.1f, %.1f), sol %.1f\n", this->prog_id, target->actor_name.c_str(), target->actor_id, part->area_id, part->placement, part->position.x, part->position.y, part->position.z, ground_y);
+        if (target->on_is_activated.size() > 0) {
+            SCProg *activation = this->mission->createProg(target, target->on_is_activated, part->on_is_activated);
+            activation->execute();
+            delete activation;
+        }
+        if (part->entity != nullptr && part->entity->entity_type == EntityType::rnwy) {
+            for (auto runway : this->mission->area->objectOverlay) {
+                if (part->position.x >= runway.lx && part->position.x <= runway.hx && part->position.z >= runway.ly && part->position.z <= runway.hy) {
+                    float width = (float)std::abs(runway.lx - runway.hx);
+                    float length = (float)std::abs(runway.ly - runway.hy);
+                    float angle = (float)std::atan2(runway.ly - runway.hy, runway.lx - runway.hx);
+                    part->entity->bb.min.x = -width / 2.0f;
+                    part->entity->bb.max.x = width / 2.0f;
+                    part->entity->bb.min.y = -5;
+                    part->entity->bb.max.y = 5;
+                    part->entity->bb.min.z = -length / 2.0f;
+                    part->entity->bb.max.z = length / 2.0f;
+                    part->azymuth = angle * 180.0f / M_PI;
+                    break;
+                }
+            }
+        }
+        return;
+    }
+}
+
+// Expr_VM_Interpreter_51F24, instruction 130 : « égal » si la scène de la zone n est enabled (Scene_FindByArea_54B92).
+void PSProg::opIsSceneEnabled(const PROG &instruction) {
+    if (!this->exec) {
+        return;
+    }
+    this->compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+    for (auto scene : this->mission->mission->mission_data.scenes) {
+        if (scene->area_id == (int16_t)instruction.arg) {
+            if (scene->is_enabled != 0) {
+                this->compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+            }
+            break;
+        }
+    }
+    char text[120];
+    snprintf(text, sizeof(text), "OP_IS_SCENE_ENABLED zone %d : %s", instruction.arg, this->compare_flag == prog_compare_return_values::PROG_CMP_EQUAL ? "oui" : "non");
+    this->traceOnce(text);
 }
 
 void PSProg::opSpawnEffectOnObj(const PROG &instruction) {

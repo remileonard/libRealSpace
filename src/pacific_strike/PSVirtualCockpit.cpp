@@ -68,5 +68,14 @@ void PSVirtualCockpit::updateInstruments(const VirtualCockpitContext &ctx) {
         }
         this->addPanel(fb, quad);
     }
+    // Message radio : bandeau de PLAQUES.IFF, à la place que lui donne SCJetVirtualCockpit devant la caméra.
+    if (this->cockpit->comm_framebuffer != nullptr && this->renderComm()) {
+        std::vector<Vector3D> comm;
+        comm.push_back(Vector3D(6.1f, -0.95f, -1.90f));
+        comm.push_back(Vector3D(6.1f, -0.95f, 2.020f));
+        comm.push_back(Vector3D(6.1f, -1.10f, 2.020f));
+        comm.push_back(Vector3D(6.1f, -1.10f, -1.90f));
+        this->addPanel(this->cockpit->comm_framebuffer, comm);
+    }
     this->traced = true;
 }

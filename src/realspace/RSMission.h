@@ -86,7 +86,8 @@ struct PROG {
     uint16_t arg;
 };
 struct MISN_SCEN {
-    uint8_t is_active {0};
+    // enabled : la scène peut devenir celle du joueur (1er octet du SCNE, OP_ENABLE_SCENE / OP_DISABLE_SCENE).
+    uint8_t is_enabled {0};
     uint8_t has_been_activated {0};
     int16_t area_id {0};
     std::vector<int16_t> progs_id;

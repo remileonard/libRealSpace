@@ -158,7 +158,7 @@ void SCStrike::autopilotCompute() {
             bool area_active = false;
             for (auto scen: this->current_mission->mission->mission_data.scenes) {
                 if (scen->area_id == area->id-1) {
-                    area_active = area_active || scen->is_active;
+                    area_active = area_active || scen->is_enabled;
                 }
             }
             if (!area_active) {

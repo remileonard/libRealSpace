@@ -957,7 +957,7 @@ SCMissionScene *SCMission::findSceneAt(Vector3D position) {
     std::vector<AREA *> &areas = this->mission->mission_data.areas;
     for (auto sc_scene: this->scenes) {
         MISN_SCEN *scene = sc_scene->scene;
-        if (scene->is_active == 0) {
+        if (scene->is_enabled == 0) {
             continue;
         }
         uint16_t area_index = (uint16_t) scene->area_id;

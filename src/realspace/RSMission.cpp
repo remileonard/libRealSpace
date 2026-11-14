@@ -343,7 +343,7 @@ void RSMission::parseMISN_PLAY(uint8_t *data, size_t size) {
 void RSMission::parseMISN_PLAY_SCEN(uint8_t *data, size_t size) {
     MISN_SCEN *scen = new MISN_SCEN();
     ByteStream stream(data, size);
-    scen->is_active = stream.ReadByte();
+    scen->is_enabled = stream.ReadByte();
     scen->area_id = stream.ReadShort();
     int16_t prog_id = 0;
     for (int i = 0; i < 3; i++) {
@@ -425,7 +425,7 @@ void RSMission::updateMission(Vector3D player_position, uint16_t player_azymuth,
         return;
     }
     MISN_SCEN *scene = new MISN_SCEN();
-    scene->is_active = 1;
+    scene->is_enabled = 1;
     scene->area_id = (int16_t)area_count;
     for (int i = 0; i < 3; i++) {
         scene->progs_id.push_back(-1);

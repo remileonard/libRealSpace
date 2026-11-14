@@ -30,6 +30,7 @@ protected:
         PS_OP_CMP_FLAG_WITH_WORK = 67,
         PS_OP_MOVE_RESULT_TO_FLAG = 81,
         PS_OP_ORDER_FRIENDLY_OF_TYPE = 112,
+        PS_OP_IS_SCENE_ENABLED = 130,
         PS_OP_SPAWN_EFFECT_ON_OBJ = 153,
         PS_OP_FIRE_AT_SPOT = 154,
         PS_OP_SPAWN_AT_SPOT = 155,
@@ -60,6 +61,7 @@ protected:
     void opSetFlagToTrue(const PROG &instruction) override;
     void opSetFlagToFalse(const PROG &instruction) override;
     void opTestFlag(const PROG &instruction) override;
+    void opActivateObj(const PROG &instruction) override;
     void opNoop5(const PROG &instruction);
     void opSwapWorkAndFlag(const PROG &instruction);
     void opAddFlagToWork(const PROG &instruction);
@@ -76,6 +78,7 @@ protected:
     void opCmpFlagWithWork(const PROG &instruction);
     void opMoveResultToFlag(const PROG &instruction);
     void opOrderFriendlyOfType(const PROG &instruction);
+    void opIsSceneEnabled(const PROG &instruction);
     void opSpawnEffectOnObj(const PROG &instruction);
     void opFireAtSpot(const PROG &instruction);
     void opSpawnAtSpot(const PROG &instruction);

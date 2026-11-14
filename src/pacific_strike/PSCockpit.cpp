@@ -25,6 +25,7 @@ void PSCockpit::init() {
     this->ps_cockpit->InitFromRam(cockpit_def->data, cockpit_def->size);
     this->cockpit = this->ps_cockpit;
     this->debug_framebuffer = new FrameBuffer(320, 200);
+    this->comm_framebuffer = new FrameBuffer(320, 13);
     printf("PSCockpit: %s charge, %d images ARTP, %zu instruments\n", name.c_str(), (int)this->ps_cockpit->ARTP.GetNumImages(), this->ps_cockpit->instruments.size());
 }
 
@@ -532,6 +533,12 @@ void PSCockpit::Render(CockpitFace face) {
                 }
             }
         }
+    }
+    if (this->ps_cockpit != nullptr) {
+        Point2D comm_position;
+        comm_position.x = 0;
+        comm_position.y = 200;
+        this->RenderCommMessages(comm_position, fb);
     }
     if (this->mouse_control) {
         Mouse.draw();
