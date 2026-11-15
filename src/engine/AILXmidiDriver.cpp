@@ -321,6 +321,12 @@ void AILXmidiDriver::xmidiControl(XmidiSequence *s, int chan, int con, int val) 
         return;
     case CHAN_LOCK:
         if (val >= SWITCH_ON) {
+            // Une sequence qui boucle repasse sur son CHAN_LOCK : garder le canal deja verrouille au lieu d'en
+            // prendre un autre, sinon les canaux s'accumulent et resetSequence ne libere que le dernier.
+            int cur = s->chan_map[chan];
+            if (cur != chan && (lock_status[cur] & LOCKED)) {
+                return;
+            }
             int c = lockChannel() - 1;
             s->chan_map[chan] = (uint8_t)(c == -1 ? chan : c);
         } else {

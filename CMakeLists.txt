@@ -4,7 +4,7 @@ foreach(policy CMP0156 CMP0167)
         cmake_policy(SET ${policy} NEW)
     endif()
 endforeach()
-project(LibRealSpace VERSION 0.7.0 LANGUAGES C CXX)
+project(LibRealSpace VERSION 0.8.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -29,10 +29,13 @@ find_package(MT32Emu CONFIG REQUIRED)
 add_subdirectory(src/executables/sc)
 add_subdirectory(src/executables/strike_commander_enhanced)
 add_subdirectory(src/executables/to)
+add_subdirectory(src/executables/ps)
 add_subdirectory(src/executables/debugger)
 add_subdirectory(src/executables/config)
 if (WIN32)
+    add_compile_definitions(NOMINMAX)
     add_subdirectory(src/executables/vrstrike)
+    add_subdirectory(src/executables/vrpacific)
 endif()
 add_subdirectory(src/strike_commander)
 add_subdirectory(src/tactical_operation)
@@ -90,9 +93,9 @@ file(COPY "${CMAKE_SOURCE_DIR}/resources/TO1MID3.IFF" DESTINATION "${ASSETS_DIR}
 file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/config.ini" DESTINATION "${CMAKE_BINARY_DIR}")
 # Installation des exécutables et des DLLs
-install(TARGETS ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${CONFIG_TARGET_NAME} DESTINATION ".")
+install(TARGETS ${SCE_TARGET_NAME} ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${PS_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${CONFIG_TARGET_NAME} DESTINATION ".")
 if (NOT APPLE)
-    install(TARGETS ${VRSTRIKE_TARGET_NAME} DESTINATION ".")
+    install(TARGETS ${VRSTRIKE_TARGET_NAME} ${VRPACIFIC_TARGET_NAME} DESTINATION ".")
 endif()
 # Installation des assets
 install(DIRECTORY "${ASSETS_DIR}/" DESTINATION "assets")
@@ -142,6 +145,7 @@ if(WIN32)
             "${VCPKG_BIN_DIR}/boost_atomic-vc144-mt-x64-1_85.dll"
             "${VCPKG_BIN_DIR}/boost_filesystem-vc144-mt-x64-1_85.dll"
             "${VCPKG_BIN_DIR}/boost_system-vc144-mt-x64-1_85.dll"
+            "${VCPKG_BIN_DIR}/mt32emu-2.dll"
         )
         
         message(STATUS "VCPKG DLLs: ${VCPKG_DLLS}")

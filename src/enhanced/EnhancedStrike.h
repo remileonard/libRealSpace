@@ -27,11 +27,14 @@ protected:
     void afterCameraPlaced() override;
     void afterCockpitSceneRendered() override;
     bool confirmEndMission() override;
+    void keyViewCockpit() override;
     void afterFrameRendered() override;
     void finishEndPrompt(bool end);
     void handleOptionsKey();
     void drawOptions();
     void applyOption(int index);
+    void applyWater();
+    void applyTerrain();
     void saveConfig() const;
 
 private:
@@ -48,6 +51,7 @@ private:
 
     bool orbitAllowed() const;
     void updateOrbit();
+    void setOrbitRelativeMouse(bool on);
     void updateCockpit3D();
     void debugDamage();
     Vector3D orbitedPosition(Vector3D pivot, Vector3D position) const;
@@ -59,10 +63,12 @@ private:
     bool cockpit3d{false};
     float cockpitFov{45.0f};
     bool cockpitLookFixed{false};
+    bool cockpitKeyPressed{false}; // posé par keyViewCockpit, lu par updateCockpit3D dans la même frame
     float cockpitLookYaw{0.0f};
 
     bool orbitActive{false};
     bool orbitInvertY{true};
+    bool orbitRelativeMouse{false};
     float orbitYaw{0.0f};
     float orbitPitch{0.0f};
     float orbitZoom{1.0f};
@@ -81,7 +87,19 @@ private:
     bool waterSplashEnabled{false};
     bool glassEnabled{true};
     bool enhancedModel{true};
+    bool enhancedWater{false};
+    bool enhancedTerrain{false};
+    int waveStrength{25};
+    int detailStrength{25};
     bool orbitEnabled{true};
+    bool msaaAvailable{false};
+    bool msaaOn{true};
+    bool showFps{false};
+    enhanced::GameUI fpsUi;
+    uint32_t fpsStart{0};
+    int fpsFrames{0};
+    float fpsValue{0.0f};
+    void applyMsaa();
     bool optionsOpen{false};
     bool optionsWasPaused{false};
     std::vector<enhanced::OptionEntry> options;

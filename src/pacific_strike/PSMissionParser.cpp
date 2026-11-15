@@ -1,8 +1,7 @@
 #include "PSMissionParser.h"
 #include "../strike_commander/SCenums.h"
 
-// Instructions de drapeau (strike_commander_re/analysis/pacific/README.md § 6.7, règle 5) : 4 octets, numéro de
-// variable sur 2 octets (bas puis haut) suivi de la marque 5.
+
 bool PSMissionParser::isFlagInstruction(uint8_t opcode) {
     switch (opcode) {
     case 17:
@@ -33,10 +32,7 @@ bool PSMissionParser::isFlagInstruction(uint8_t opcode) {
     }
 }
 
-// Expr_VM_ReadNextToken_51D33 de PACIFIC.EXE : une instruction a 2 octets, plus 2 octets par argument
-// supplémentaire (marque 9 puis valeur, 3 au plus), ou 4 octets pour une instruction de drapeau. Un mot nul ferme
-// le programme. Un argument supplémentaire est rangé comme une instruction OP_SPOT_DATA à la suite, là où SCProg
-// le cherche déjà.
+
 void PSMissionParser::paseMissionScript(uint8_t *data, size_t size) {
     std::vector<PROG> *prog = new std::vector<PROG>();
     size_t i = 0;

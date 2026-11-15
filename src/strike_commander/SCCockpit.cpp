@@ -2154,6 +2154,10 @@ void SCCockpit::SetCommActorTarget(int target) {
         }
     }
 }
+// numéro de message de respondToRadioMessage pour la ligne choisie du menu
+int SCCockpit::CommMessageId(int line) {
+    return line;
+}
 void SCCockpit::printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font) {
     Point2D tag_pos = {pos.x+tag.x, pos.y+tag.y};
     if (tag.z == 0) {
@@ -2623,6 +2627,9 @@ void SCCockpit::RenderPitchLadder(Point2D center, Point2D clip_size, FrameBuffer
 }
 
 bool SCCockpit::RenderOverlayAnimation(RSImageSet *overlay_animation) {
+    if (overlay_animation == nullptr) {
+        return true;
+    }
     static int frame_counter = 0;
     if (frame_counter == 0) {
         frame++;

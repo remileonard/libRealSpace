@@ -6,7 +6,6 @@
 PSProg::PSProg(SCMissionActors *profile, std::vector<PROG> prog, SCMission *mission, uint8_t prog_id) : SCProg(profile, prog, mission, prog_id) {
 }
 
-// Table de Strike Commander, plus les instructions propres à Pacific Strike.
 std::map<uint8_t, SCProg::Instruction> PSProg::buildInstructionTable() {
     std::map<uint8_t, Instruction> table = SCProg::buildInstructionTable();
     table[PS_OP_NOOP_5] = static_cast<Instruction>(&PSProg::opNoop5);
@@ -25,6 +24,7 @@ std::map<uint8_t, SCProg::Instruction> PSProg::buildInstructionTable() {
     table[PS_OP_CMP_FLAG_WITH_WORK] = static_cast<Instruction>(&PSProg::opCmpFlagWithWork);
     table[PS_OP_MOVE_RESULT_TO_FLAG] = static_cast<Instruction>(&PSProg::opMoveResultToFlag);
     table[PS_OP_ORDER_FRIENDLY_OF_TYPE] = static_cast<Instruction>(&PSProg::opOrderFriendlyOfType);
+    table[PS_OP_IS_SCENE_ENABLED] = static_cast<Instruction>(&PSProg::opIsSceneEnabled);
     table[PS_OP_SPAWN_EFFECT_ON_OBJ] = static_cast<Instruction>(&PSProg::opSpawnEffectOnObj);
     table[PS_OP_FIRE_AT_SPOT] = static_cast<Instruction>(&PSProg::opFireAtSpot);
     table[PS_OP_SPAWN_AT_SPOT] = static_cast<Instruction>(&PSProg::opSpawnAtSpot);
@@ -42,18 +42,26 @@ const std::map<uint8_t, SCProg::Instruction> &PSProg::instructionTable() {
     return table;
 }
 
-// GameVar_Set_564BB ; la trace ne sort que si la valeur change (un script est rejoué à chaque image).
+
+int16_t PSProg::flag(uint16_t number) {
+    return this->mission->mission->mission_data.flags[number];
+}
+
 void PSProg::setVar(const char *name, uint16_t number, int value) {
-    int16_t before = GameState.getGameVar(number);
-    GameState.setGameVar(number, (int16_t)value);
-    int16_t after = GameState.getGameVar(number);
+    std::vector<int16_t> &flags = this->mission->mission->mission_data.flags;
+    int16_t before = flags[number];
+    int16_t after = (int16_t)value;
+    if (number >= 256) {
+        after = value != 0 ? 1 : 0;
+    }
+    flags[number] = after;
+    PSGameState.setFlag(number, after);
     if (before != after) {
         printf("PSProg %d: %s %d, %d -> %d\n", this->prog_id, name, number, before, after);
     }
 }
 
-// Argument supplémentaire de l'instruction en cours (1 à 3), rangé par PSMissionParser dans les OP_SPOT_DATA qui
-// la suivent ; 65 535 s'il est absent.
+
 uint16_t PSProg::extraArg(size_t rank) {
     for (size_t k = 1; k <= rank; k++) {
         if (this->pc + k >= this->prog.size() || this->prog[this->pc + k].opcode != OP_SPOT_DATA) {
@@ -63,7 +71,6 @@ uint16_t PSProg::extraArg(size_t rank) {
     return this->prog[this->pc + rank].arg;
 }
 
-// 255 = l'objet qui joue le script (Expr_VM_ReadVarOrOverride_51EEA).
 SCMissionActors *PSProg::actorOrSelf(uint16_t actor_id) {
     if (actor_id == 255) {
         return this->actor;
@@ -71,13 +78,11 @@ SCMissionActors *PSProg::actorOrSelf(uint16_t actor_id) {
     return this->findActor(actor_id);
 }
 
-// Chunk KIND de l'objet : une mission de Pacific Strike ne crée que des PSEntity (PSMission::createEntity).
 PSKind PSProg::actorKind(SCMissionActors *candidate) {
     return static_cast<PSEntity *>(candidate->object->entity)->kind;
 }
 
-// MissionScript_PickRandomObjectOfType_545A4 : 6 objets au plus dont le chunk KIND vaut kind et, pour un avion,
-// dont le camp vaut team ; un tiré au hasard.
+
 SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
     std::vector<SCMissionActors *> found;
     for (auto candidate : this->mission->actors) {
@@ -88,6 +93,9 @@ SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
             continue;
         }
         if (!candidate->is_active && candidate != this->mission->player) {
+            continue;
+        }
+        if (candidate->is_hidden && candidate != this->mission->player) {
             continue;
         }
         if (actorKind(candidate) != kind) {
@@ -104,7 +112,6 @@ SCMissionActors *PSProg::pickRandomOfKind(PSKind kind, int team) {
     return found[rand() % found.size()];
 }
 
-// Ordres 174 et 175 : la cible est tirée une fois dans le camp adverse, puis gardée.
 SCMissionActors *PSProg::randomEnemyOfKind(PSKind kind) {
     PSMission *ps_mission = static_cast<PSMission *>(this->mission);
     SCMissionActors *enemy = nullptr;
@@ -123,7 +130,6 @@ SCMissionActors *PSProg::randomEnemyOfKind(PSKind kind) {
     return enemy;
 }
 
-// Une seule fois par texte : un script est rejoué à chaque image.
 void PSProg::traceOnce(const char *text) {
     static std::set<std::string> done;
     std::string line = "PSProg " + std::to_string(this->prog_id) + ", " + this->actor->actor_name + "#" + std::to_string(this->actor->actor_id) + ": " + text;
@@ -136,28 +142,28 @@ void PSProg::opAdd1ToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_ADD_1_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) + 1);
+    this->setVar("OP_ADD_1_TO_FLAG", instruction.arg, this->flag(instruction.arg) + 1);
 }
 
 void PSProg::opRemove1ToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_REMOVE_1_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) - 1);
+    this->setVar("OP_REMOVE_1_TO_FLAG", instruction.arg, this->flag(instruction.arg) - 1);
 }
 
 void PSProg::opAddWorkRegisterToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_ADD_WORK_REGISTER_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) + this->work_register);
+    this->setVar("OP_ADD_WORK_REGISTER_TO_FLAG", instruction.arg, this->flag(instruction.arg) + this->work_register);
 }
 
 void PSProg::opMoveFlagToWorkRegister(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register = GameState.getGameVar(instruction.arg);
+    this->work_register = this->flag(instruction.arg);
 }
 
 void PSProg::opMoveWorkRegisterToFlag(const PROG &instruction) {
@@ -185,7 +191,7 @@ void PSProg::opTestFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    if (GameState.getGameVar(instruction.arg) != 0) {
+    if (this->flag(instruction.arg) != 0) {
         this->compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
     } else {
         this->compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
@@ -203,7 +209,7 @@ void PSProg::opSwapWorkAndFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    int flag = GameState.getGameVar(instruction.arg);
+    int flag = this->flag(instruction.arg);
     this->setVar("OP_SWAP_WORK_AND_FLAG", instruction.arg, this->work_register);
     this->work_register = flag;
 }
@@ -212,77 +218,77 @@ void PSProg::opAddFlagToWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register += GameState.getGameVar(instruction.arg);
+    this->work_register += this->flag(instruction.arg);
 }
 
 void PSProg::opAddValueToFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_ADD_VALUE_TO_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) + instruction.arg);
+    this->setVar("OP_ADD_VALUE_TO_FLAG", instruction.arg, this->flag(instruction.arg) + instruction.arg);
 }
 
 void PSProg::opSubFlagFromWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register -= GameState.getGameVar(instruction.arg);
+    this->work_register -= this->flag(instruction.arg);
 }
 
 void PSProg::opSubValueFromFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_SUB_VALUE_FROM_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) - instruction.arg);
+    this->setVar("OP_SUB_VALUE_FROM_FLAG", instruction.arg, this->flag(instruction.arg) - instruction.arg);
 }
 
 void PSProg::opSubWorkFromFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->setVar("OP_SUB_WORK_FROM_FLAG", instruction.arg, GameState.getGameVar(instruction.arg) - this->work_register);
+    this->setVar("OP_SUB_WORK_FROM_FLAG", instruction.arg, this->flag(instruction.arg) - this->work_register);
 }
 
 void PSProg::opOrFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register |= GameState.getGameVar(instruction.arg);
+    this->work_register |= this->flag(instruction.arg);
 }
 
 void PSProg::opAndFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register &= GameState.getGameVar(instruction.arg);
+    this->work_register &= this->flag(instruction.arg);
 }
 
 void PSProg::opXorFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register ^= GameState.getGameVar(instruction.arg);
+    this->work_register ^= this->flag(instruction.arg);
 }
 
 void PSProg::opMulFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register *= GameState.getGameVar(instruction.arg);
+    this->work_register *= this->flag(instruction.arg);
 }
 
 void PSProg::opDivWorkByFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    this->work_register /= GameState.getGameVar(instruction.arg);
+    this->work_register /= this->flag(instruction.arg);
 }
 
 void PSProg::opCmpWorkWithFlag(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    int flag = GameState.getGameVar(instruction.arg);
+    int flag = this->flag(instruction.arg);
     this->compare_flag = prog_compare_return_values::PROG_CMP_UNSET;
     if (this->work_register == flag) {
         this->compare_flag |= PROG_CMP_EQUAL;
@@ -299,7 +305,7 @@ void PSProg::opCmpFlagWithWork(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
-    int flag = GameState.getGameVar(instruction.arg);
+    int flag = this->flag(instruction.arg);
     this->compare_flag = prog_compare_return_values::PROG_CMP_UNSET;
     if (flag == this->work_register) {
         this->compare_flag |= PROG_CMP_EQUAL;
@@ -332,6 +338,95 @@ void PSProg::opOrderFriendlyOfType(const PROG &instruction) {
         return;
     }
     this->task_state = this->actor->setObjective(OP_SET_OBJ_DEFEND_TARGET, (uint8_t)friendly->actor_id) ? 1 : 0;
+}
+
+void PSProg::opActivateObj(const PROG &instruction) {
+    if (!this->exec) {
+        return;
+    }
+    for (auto target : this->mission->actors) {
+        if (target->actor_id != instruction.arg || target->is_active) {
+            continue;
+        }
+        if (target->is_destroyed) {
+            this->mission->respawnActor(target);
+        }
+        target->is_active = true;
+        target->is_hidden = false;
+        MISN_PART *part = target->object;
+        if (part->placement != 0) {
+            this->mission->placeRelativeToPlayer(target);
+        } else if (part->area_id < this->mission->mission->mission_data.areas.size()) {
+            part->position += this->mission->mission->mission_data.areas[part->area_id]->position;
+        }
+        float ground_y = this->mission->area->getY(part->position.x, part->position.z);
+        if (part->position.y < ground_y) {
+            part->position.y = ground_y;
+        } else if (target->plane != nullptr && part->speed != 0) {
+            target->pilot->target_climb = (int)(part->position.y);
+            target->pilot->target_speed = -20;
+            target->plane->vz = -20;
+        }
+        if (target->plane != nullptr) {
+            if (part->position.y <= ground_y) {
+                part->position.y = ground_y + 10.0f;
+                target->plane->on_ground = true;
+            } else {
+                target->plane->on_ground = part->speed == 0;
+            }
+            if (target->plane->on_ground && target->plane->GetWheel() == 0) {
+                target->plane->SetWheel();
+            }
+            target->plane->x = part->position.x;
+            target->plane->y = part->position.y;
+            target->plane->z = part->position.z;
+        } else if (part->position.y != ground_y) {
+            part->position.y = ground_y + 2.0f;
+        }
+        target->wait_timer = 0.0f;
+        printf("PSProg %d: OP_ACTIVATE_OBJ %s#%d, zone %d, placement %d, position (%.1f, %.1f, %.1f), sol %.1f\n", this->prog_id, target->actor_name.c_str(), target->actor_id, part->area_id, part->placement, part->position.x, part->position.y, part->position.z, ground_y);
+        if (target->on_is_activated.size() > 0) {
+            SCProg *activation = this->mission->createProg(target, target->on_is_activated, part->on_is_activated);
+            activation->execute();
+            delete activation;
+        }
+        if (part->entity != nullptr && part->entity->entity_type == EntityType::rnwy) {
+            for (auto runway : this->mission->area->objectOverlay) {
+                if (part->position.x >= runway.lx && part->position.x <= runway.hx && part->position.z >= runway.ly && part->position.z <= runway.hy) {
+                    float width = (float)std::abs(runway.lx - runway.hx);
+                    float length = (float)std::abs(runway.ly - runway.hy);
+                    float angle = (float)std::atan2(runway.ly - runway.hy, runway.lx - runway.hx);
+                    part->entity->bb.min.x = -width / 2.0f;
+                    part->entity->bb.max.x = width / 2.0f;
+                    part->entity->bb.min.y = -5;
+                    part->entity->bb.max.y = 5;
+                    part->entity->bb.min.z = -length / 2.0f;
+                    part->entity->bb.max.z = length / 2.0f;
+                    part->azymuth = angle * 180.0f / M_PI;
+                    break;
+                }
+            }
+        }
+        return;
+    }
+}
+
+void PSProg::opIsSceneEnabled(const PROG &instruction) {
+    if (!this->exec) {
+        return;
+    }
+    this->compare_flag = prog_compare_return_values::PROG_CMP_NOT_EQUAL;
+    for (auto scene : this->mission->mission->mission_data.scenes) {
+        if (scene->area_id == (int16_t)instruction.arg) {
+            if (scene->is_enabled != 0) {
+                this->compare_flag = prog_compare_return_values::PROG_CMP_EQUAL;
+            }
+            break;
+        }
+    }
+    char text[120];
+    snprintf(text, sizeof(text), "OP_IS_SCENE_ENABLED zone %d : %s", instruction.arg, this->compare_flag == prog_compare_return_values::PROG_CMP_EQUAL ? "oui" : "non");
+    this->traceOnce(text);
 }
 
 void PSProg::opSpawnEffectOnObj(const PROG &instruction) {
@@ -446,10 +541,7 @@ void PSProg::opDiveOnRandomEnemyOfType(const PROG &instruction) {
     this->task_state = this->actor->setObjective(OP_SET_OBJ_DESTROY_TARGET, (uint8_t)enemy->actor_id) ? 1 : 0;
 }
 
-// MissionScript_CallNativeHandler_53B0B cas 193, puis Goal_SetObjective_C2A8 cas 193 : atterrissage sur un objet.
-// Point de toucher = position de l'objet + position du SPOT ; second point 3000 m plus loin et 1000 m plus haut ;
-// l'ordre devient OP_SET_OBJ_LAND. Les deux points sont rangés dans deux SPOT ajoutés à la liste, que l'ordre
-// d'atterrissage lit par leur rang.
+
 void PSProg::opOrderObjAndSpot(const PROG &instruction) {
     if (!this->exec) {
         return;

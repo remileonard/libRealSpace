@@ -47,12 +47,13 @@ protected:
     bool music_eject_requested{false};
     bool music_shot_down_requested{false};
     bool music_landing_requested{false};
-    void onMusicUpdate();
-    void onActorDestroyed(SCMissionActors *actor);
+    virtual void onMusicUpdate();
+    virtual void onActorDestroyed(SCMissionActors *actor);
     void musicPollEvents();
     void musicRequest(int tune, const char *reason);
-    uint8_t musicScanEnemies(SCMissionActors *excluded);
-    bool musicFallback();
+    virtual uint8_t musicScanEnemies(SCMissionActors *excluded);
+    virtual bool musicFallback();
+    virtual bool musicIsPunctuation(int tune);
     float playerDamage();
     bool enemyOnPlayerSix();
     
@@ -92,6 +93,9 @@ public:
     bool aa_missile_launched_last{false};          
     float ai_clock_stagger{0.0f};                  
     void onWeaponSpawned(SCSimulatedObject *weapon);
+    void playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance);
+    void playEffect(SoundEffectIds id, Vector3D position);
+    bool digital_fx{false};
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
@@ -115,7 +119,7 @@ public:
     void placeRelativeToPlayer(SCMissionActors *actor);
     void respawnActor(SCMissionActors *actor);
     virtual void createAiPlane(SCMissionActors *actor);
-    void finishScenes();
+    virtual void finishScenes();
     RSEntity * LoadEntity(std::string name);
     void applyDifficulty();
     void setExitCode(uint8_t code, const char *reason);

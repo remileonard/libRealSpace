@@ -53,8 +53,8 @@ std::map<uint8_t, SCProg::Instruction> SCProg::buildInstructionTable() {
     table[OP_SET_FLAG_TO_FALSE] = &SCProg::opSetFlagToFalse;
     table[OP_TEST_FLAG] = &SCProg::opTestFlag;
     table[OP_MUL_VALUE_WITH_WORK] = &SCProg::opMulValueWithWork;
-    table[OP_ACTIVATE_SCENE] = &SCProg::opActivateScene;
-    table[OP_DEACTIVATE_SCENE] = &SCProg::opDeactivateScene;
+    table[OP_ENABLE_SCENE] = &SCProg::opEnableScene;
+    table[OP_DISABLE_SCENE] = &SCProg::opDisableScene;
     return table;
 }
 
@@ -592,28 +592,28 @@ void SCProg::opMulValueWithWork(const PROG &instruction) {
     this->work_register *= instruction.arg;
 }
 
-void SCProg::opActivateScene(const PROG &instruction) {
+void SCProg::opEnableScene(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
     int scene_id = 0;
     for (auto scen : this->mission->mission->mission_data.scenes) {
         if (scene_id == instruction.arg) {
-            scen->is_active = 1;
+            scen->is_enabled = 1;
             break;
         }
         scene_id++;
     }
 }
 
-void SCProg::opDeactivateScene(const PROG &instruction) {
+void SCProg::opDisableScene(const PROG &instruction) {
     if (!this->exec) {
         return;
     }
     int scene_id = 0;
     for (auto scen : this->mission->mission->mission_data.scenes) {
         if (scene_id == instruction.arg) {
-            scen->is_active = 0;
+            scen->is_enabled = 0;
             break;
         }
         scene_id++;

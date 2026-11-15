@@ -857,7 +857,7 @@ bool SCAIBrain::acquireBestThreat(bool allow_new_target) {
         if (actor->object->entity->entity_type == EntityType::jet) {
             air_candidates++;
             // loc_3623 : avion candidat seulement si ma classe >= 6 et son pilote non ejecte
-            if (actor->plane != nullptr && owner->object->entity->combat_class >= 6 && !actor->plane->ejected) {
+            if (actor->plane != nullptr && this->canTargetAircraft() && !actor->plane->ejected) {
                 ThreatScore score = this->scoreAirCandidate(actor, delta);
                 bool accepted = this->skillCheck(owner->profile->ai.atrb.FL, score.aptitude);
                 int total = weight_a * score.a + weight_b * score.b;
@@ -938,6 +938,10 @@ bool SCAIBrain::acquireBestThreat(bool allow_new_target) {
         this->decide("ciblage : rien (%d avions, %d missile, seuil %d)", air_candidates, missile_candidates, missile_threshold);
     }
     return best_candidate != nullptr || best_missile != nullptr;
+}
+
+bool SCAIBrain::canTargetAircraft() {
+    return owner->object->entity->combat_class >= 6;
 }
 
 bool SCAIBrain::skillCheck(uint8_t stat, int modifier) {

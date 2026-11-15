@@ -99,12 +99,4 @@ public:
     void LoadTO(std::string filename);
     void SaveTO(std::string filename);
     void Reset();
-    // Pacific Strike : variables et drapeaux d'une seule table, partagée par le déroulement, les conversations et les
-    // missions (GameVar_Get_56414, GameVar_SetFlag_5646D, GameVar_ClearFlag_56520, GameVar_Set_564BB de PACIFIC.EXE).
-    // Numéro < 256 : variable (mot) ; numéro >= 256 : drapeau (bit numéro - 256).
-    std::unordered_map<uint16_t, int16_t> game_vars;
-    int16_t getGameVar(uint16_t number);
-    void setGameVar(uint16_t number, int16_t value);
-    void setGameFlag(uint16_t number);
-    void clearGameFlag(uint16_t number);
 };

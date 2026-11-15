@@ -26,7 +26,7 @@ private:
         std::vector<uvxyEntry> uvs;
         std::vector<Quads *> quads;
         std::vector<qmapuvxyEntry *> qmapuvs;
-        std::vector<int32_t> childY;
+        std::vector<float> childY;
     };
     void takeGeometry(Geometry &geometry) const;
     void putGeometry(const Geometry &geometry);

@@ -84,6 +84,7 @@ public:
     ~SCZone();
 
     void onAction(void);
+    bool position_traced{false};
     void draw(void);
     void drawQuad();
     inline bool isEnabled(void){ return this->enabled; }

@@ -1,9 +1,12 @@
 #include "PSMission.h"
 #include "PSMissionParser.h"
 #include "PSArea.h"
+#include "PSBrain.h"
+#include "PSMissionActors.h"
 #include "PSEntity.h"
 #include "PSPlane.h"
 #include "PSProg.h"
+#include "PSState.h"
 #include "../strike_commander/SCAIBrain.h"
 
 PSMission::PSMission() {
@@ -11,6 +14,7 @@ PSMission::PSMission() {
     this->last_tick = 0;
     this->tick_counter = 0;
     this->tps = 0;
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
 }
 PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->mission_name = mission_name;
@@ -20,10 +24,54 @@ PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, R
     this->tick_counter = 0;
     this->tps = 0;
     this->loadMission();
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
     subscription_id = this->messageBus.subscribeEvent(std::bind(&PSMission::onEvent, this, std::placeholders::_1));
 }
 
 PSMission::~PSMission() {
+    for (auto turret : this->turrets) {
+        delete turret;
+    }
+    this->turrets.clear();
+}
+
+// Un enfant SWPN d'un avion ou d'un navire devient une tourelle qui suit son porteur. Montage dans le repère du modèle
+// (nez = z, haut = y, droite = x du chunk CHLD), angles du chunk (axe X = tangage, axe Y = roulis, axe vertical = lacet).
+void PSMission::createTurrets(SCMissionActors *actor) {
+    if (actor->object->entity == nullptr) {
+        return;
+    }
+    EntityType type = actor->object->entity->entity_type;
+    if (type != EntityType::jet && type != EntityType::ship && type != EntityType::carr) {
+        return;
+    }
+    for (auto child : actor->object->entity->chld) {
+        if (child->objct == nullptr || child->objct->entity_type != EntityType::swpn || child->objct->swpn_data == nullptr) {
+            continue;
+        }
+        MISN_PART *part = new MISN_PART();
+        part->id = actor->object->id;
+        part->member_name = child->objct->name;
+        part->entity = child->objct;
+        part->position = actor->object->position;
+        PSMissionActorsTurret *turret = new PSMissionActorsTurret();
+        turret->parent = actor;
+        turret->actor_name = child->name;
+        turret->actor_id = actor->actor_id;
+        turret->object = part;
+        turret->creation_part = *part;
+        turret->health = child->objct->health;
+        turret->team_id = actor->team_id;
+        turret->mission = this;
+        turret->is_active = false;
+        turret->mount = child;
+        PSEntity *entity = static_cast<PSEntity *>(child->objct);
+        printf("PSMission: tourelle %s sur %s#%d, decalage nez %.3f haut %.3f droite %.3f m, tangage %.1f roulis %.1f lacet %.1f, secteur %s elevation [%.0f, %.0f] gisement [%.0f, %.0f], munitions %d, portee %d\n", child->name.c_str(), actor->actor_name.c_str(), actor->actor_id, child->z, child->y, child->x, child->pitch, child->roll, child->yaw, entity->has_gun_arc ? "GARC" : "absent", entity->arc_elevation_min, entity->arc_elevation_max, entity->arc_azimuth_min, entity->arc_azimuth_max, child->objct->swpn_data->weapons_round, child->objct->swpn_data->effective_range);
+        if (child->roll != 0.0f) {
+            printf("PSMission: tourelle %s, roulis de montage %.1f non applique\n", child->name.c_str(), child->roll);
+        }
+        this->turrets.push_back(turret);
+    }
 }
 
 RSEntity *PSMission::createEntity() {
@@ -54,11 +102,20 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
     actor->plane->object = part;
     actor->plane->InitLoadout();
     actor->plane->pilot = actor;
-    if (abs(this->area->getY(part->position.x, part->position.z) - part->position.y) <= 10) {
-        part->position.y = this->area->getY(part->position.x, part->position.z);
+    // Un objet placé dans une zone n'a ici que son décalage : le centre de la zone est ajouté à l'activation. Au sol
+    // ou en vol, manette et vitesse se décident à la position réelle (le jeu ne crée l'objet qu'à l'activation, à sa
+    // position finale : PartEntry_ResolveSpawnPositionAndActivate_5313D).
+    Vector3D spawn = part->position;
+    bool in_area = part->placement == 0 && part->area_id < this->mission->mission_data.areas.size();
+    if (in_area) {
+        spawn += this->mission->mission_data.areas[part->area_id]->position;
+    }
+    float spawn_ground = this->area->getY(spawn.x, spawn.z);
+    if (!in_area && abs(spawn_ground - part->position.y) <= 10) {
+        part->position.y = spawn_ground;
     }
     actor->plane->on_ground = part->speed == 0;
-    if (part->position.y < this->area->getY(part->position.x, part->position.z)) {
+    if (spawn.y < spawn_ground) {
         actor->plane->on_ground = true;
     }
     if (actor->plane->on_ground) {
@@ -68,7 +125,7 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
     }
     if (!actor->plane->on_ground) {
         actor->plane->SetThrottle(100);
-        actor->pilot->target_climb = (int)(part->position.y);
+        actor->pilot->target_climb = (int)(spawn.y);
         actor->plane->vz = -20;
         float spawn_yaw = tenthOfDegreeToRad(actor->plane->yaw);
         float spawn_speed = (float)part->speed;
@@ -83,7 +140,7 @@ void PSMission::createAiPlane(SCMissionActors *actor) {
         actor->pilot->target_speed = 0;
     }
     actor->pilot->plane = actor->plane;
-    printf("PSMission: avion de %s#%d a (%.1f, %.1f, %.1f), cap %d, vitesse %d, %s\n", actor->actor_name.c_str(), actor->actor_id, part->position.x, part->position.y, part->position.z, part->azymuth, part->speed, actor->plane->on_ground ? "au sol" : "en vol");
+    printf("PSMission: avion de %s#%d, decalage (%.1f, %.1f, %.1f), position reelle (%.1f, %.1f, %.1f), sol %.1f, cap %d, vitesse %d, %s\n", actor->actor_name.c_str(), actor->actor_id, part->position.x, part->position.y, part->position.z, spawn.x, spawn.y, spawn.z, spawn_ground, part->azymuth, part->speed, actor->plane->on_ground ? "au sol" : "en vol");
 }
 
 // Pistes des missions de Pacific Strike : RWAYS, RWAYM1, RWAYM2, RWAYN et RUNWAYZ n'ont pas de fichier objet.
@@ -112,7 +169,7 @@ RSEntity *PSMission::createRunwayEntity(MISN_PART *part) {
     for (auto &runway : this->area->objectOverlay) {
         if (position.x >= runway.lx && position.x <= runway.hx && position.z >= runway.ly && position.z <= runway.hy) {
             inside = true;
-            printf("PSMission: piste %d %s a (%.1f, %.1f, %.1f), dans la region X %.1f a %.1f, Z %.1f a %.1f\n", part->id, part->member_name.c_str(), position.x, position.y, position.z, runway.lx, runway.hx, runway.ly, runway.hy);
+            printf("PSMission: piste %d %s a (%.1f, %.1f, %.1f), dans la region X %d a %d, Z %d a %d\n", part->id, part->member_name.c_str(), position.x, position.y, position.z, runway.lx, runway.hx, runway.ly, runway.hy);
             break;
         }
     }
@@ -154,8 +211,11 @@ void PSMission::loadMission() {
 
     Renderer.InvalidateAABBCache();
     Renderer.PrecomputeAABBs(this->area, 0, 1);
-    for (int i = 0; i < 256; i++) {
-        this->mission->mission_data.flags.push_back(0);
+    // Drapeaux de la mission : un par numéro de 2 octets, pour qu'aucune lecture ni écriture d'un script ne tombe hors
+    // de la table ; ils partent des drapeaux de la partie (PSState), posés par le déroulement et les missions précédentes.
+    this->mission->mission_data.flags.assign(FLAG_COUNT, 0);
+    for (auto &flag : PSState::getInstance().flags) {
+        this->mission->mission_data.flags[flag.first] = flag.second;
     }
     for (auto &area_entity : this->area->objects) {
         area_entity.entity = LoadEntity(area_entity.name);
@@ -175,11 +235,16 @@ void PSMission::loadMission() {
             part->entity = this->createRunwayEntity(part);
         }
         if (part->entity == nullptr) {
-            printf("PSMission: objet %d %s sans fichier objet\n", part->id, part->member_name.c_str());
+            // Entité vide : l'objet existe pour les scripts et les scènes, sans modèle ni avion.
+            part->entity = this->createEntity();
+            part->entity->name = part->member_name;
+            part->entity->entity_type = EntityType::ornt;
+            part->entity->health = 50;
+            printf("PSMission: objet %d %s sans fichier objet, entite vide\n", part->id, part->member_name.c_str());
         }
         for (auto cast : mission->mission_data.casting) {
             if (part->id == search_id) {
-                SCMissionActors *actor = new SCMissionActors();
+                SCMissionActors *actor = new PSMissionActors();
                 if (cast->actor == "PLAYER") {
                     actor = new SCMissionActorsPlayer();
                     if (part->area_id != 255 && part->placement == 0) {
@@ -231,7 +296,7 @@ void PSMission::loadMission() {
                 printf("PSMission: objet %d %s (%s), zone %d, placement %d, position (%.1f, %.1f, %.1f), cap %d, camp %d, scripts %d %d %d %d\n", part->id, cast->actor.c_str(), part->member_name.c_str(), part->area_id, part->placement, part->position.x, part->position.y, part->position.z, part->azymuth, part->team, part->on_is_activated, part->on_mission_update, part->on_is_destroyed, part->on_missions_init);
                 bool has_plane_data = actor->object->entity != nullptr && actor->object->entity->jdyn != nullptr;
                 if (actor->profile != nullptr && actor->profile->ai.isAI && cast->actor != "PLAYER") {
-                    actor->brain = new SCAIBrain(actor);
+                    actor->brain = new PSBrain(actor);
                     if (actor->profile->ai.goal.size() > 0 && has_plane_data) {
                         this->createAiPlane(actor);
                     }
@@ -270,6 +335,17 @@ void PSMission::loadMission() {
             search_id++;
         }
     }
+    for (auto actor : this->actors) {
+        this->createTurrets(actor);
+    }
+    // Un script désigne un objet par le numéro de son PART, pas par son rang : les objets du terrain prennent des
+    // numéros au-dessus du plus grand numéro de PART.
+    int terrain_id = 0;
+    for (auto part : mission->mission_data.parts) {
+        if (part->id >= terrain_id) {
+            terrain_id = part->id + 1;
+        }
+    }
     for (auto area_actor : this->area->objects) {
         if (area_actor.entity == nullptr) {
             continue;
@@ -279,7 +355,7 @@ void PSMission::loadMission() {
             actor = new SCMissionActorsSwpn();
         }
         MISN_PART *part = new MISN_PART();
-        part->id = cpt_actor++;
+        part->id = terrain_id++;
         part->member_name = area_actor.name;
         part->member_name_destroyed = area_actor.destroyedName;
         part->entity = area_actor.entity;
@@ -314,6 +390,17 @@ void PSMission::loadMission() {
             }
         }
         this->actors.push_back(actor);
+    }
+    PSArea *ps_area = static_cast<PSArea *>(this->area);
+    ps_area->carriers.clear();
+    for (auto actor : this->actors) {
+        if (actor->object == nullptr || actor->object->entity == nullptr || actor->object->entity->entity_type != EntityType::carr) {
+            continue;
+        }
+        if (static_cast<PSEntity *>(actor->object->entity)->has_carrier_deck) {
+            ps_area->carriers.push_back(actor);
+            printf("PSMission: porte-avions %s#%d donne a la carte, position (%.1f, %.1f, %.1f), cap %d\n", actor->actor_name.c_str(), actor->actor_id, actor->object->position.x, actor->object->position.y, actor->object->position.z, actor->object->azymuth);
+        }
     }
     for (auto member : this->mission->mission_data.team) {
         MISN_PART *part = this->mission->mission_data.parts[member];
@@ -362,4 +449,174 @@ void PSMission::update() {
 
 SCProg *PSMission::createProg(SCMissionActors *actor, std::vector<PROG> prog, uint8_t prog_id) {
     return new PSProg(actor, prog, this, prog_id);
+}
+
+// Fin de mission, ordre de PACIFIC.EXE (sub_BE97E de ovr344, pas encore nommée) : script de sortie de la scène courante,
+// puis celui de la scène globale.
+void PSMission::finishScenes() {
+    if (this->current_scene != nullptr && this->current_scene != this->global_scene) {
+        this->current_scene->runLeaving();
+    }
+    if (this->global_scene != nullptr) {
+        this->global_scene->runLeaving();
+    }
+}
+
+// Music_ScanNearbyEnemies_5B962 : objets du camp 255 à moins de 18 520 m du joueur ; bit 0 = avion dont le pilote est à
+// bord, bit 1 = autre objet (catégories 1, 19, 20, 21, 23, 24 : décor ORNT, SWPN, sol, XMIT, navires).
+uint8_t PSMission::musicScanEnemies(SCMissionActors *excluded) {
+    uint8_t flags = 0;
+    Vector3D player_position = this->player->plane->position;
+    for (auto actor : this->actors) {
+        if (actor == excluded || actor == this->player || !actor->is_active || actor->is_destroyed) {
+            continue;
+        }
+        if (actor->object == nullptr || actor->object->entity == nullptr || !actor->object->alive || actor->team_id != 255) {
+            continue;
+        }
+        Vector3D position = actor->plane != nullptr ? actor->plane->position : actor->object->position;
+        if ((position - player_position).Length() >= 18520.0f) {
+            continue;
+        }
+        EntityType type = actor->object->entity->entity_type;
+        if (actor->plane != nullptr && type == EntityType::jet && !actor->plane->ejected) {
+            flags |= 1;
+        }
+        if (type == EntityType::ornt || type == EntityType::swpn || type == EntityType::ground || type == EntityType::xmit || type == EntityType::ship || type == EntityType::carr) {
+            flags |= 2;
+        }
+    }
+    return flags;
+}
+
+// Music_CombatIntensitySelector_5BBF8 (table off_5BD55) : pendant ces pistes, le combat ne passe pas à 9 ou 1 et ne
+// revient pas à la piste de la mission.
+bool PSMission::musicTuneLocked() {
+    int current = (int)this->Mixer.getMusicID();
+    return current == 4 || current == 11 || current == 12 || current == 15 || current == 16 || current == 19;
+}
+
+// Music_TargetWithinRange_5B85C : la cible du joueur est un avion, pilote à bord, à moins de 1 500 m.
+bool PSMission::musicTargetWithinRange() {
+    SCMissionActors *target = this->player->target;
+    if (target == nullptr || target->plane == nullptr || target->plane->ejected) {
+        return false;
+    }
+    return (target->plane->position - this->player->plane->position).Length() < 1500.0f;
+}
+
+// Music_CombatIntensitySelector_5BBF8, pistes de Pacific Strike.
+void PSMission::onMusicUpdate() {
+    SCPlane *player_plane = this->player->plane;
+    if (player_plane->ejected || player_plane->crached || !this->player->object->alive) {
+        return;
+    }
+    if (this->Mixer.getMusicID() == 20 || this->Mixer.getRequestedMusicID() != this->Mixer.getMusicID()) {
+        return;
+    }
+    uint8_t flags = this->musicScanEnemies(nullptr);
+    this->music_enemy_flags = flags;
+    bool locked = this->musicTuneLocked();
+    if (flags == 0) {
+        if (this->musicFallback() || locked) {
+            return;
+        }
+        int mission_tune = (int)this->mission->mission_data.tune;
+        if ((uint32_t)mission_tune != this->Mixer.getMusicID()) {
+            this->musicRequest(mission_tune, "aucun ennemi, piste de la mission");
+        }
+        return;
+    }
+    this->music_combat_happened = true;
+    int tune = -1;
+    const char *reason = "";
+    if (this->player_tail_threat != nullptr) {
+        tune = 13;
+        reason = "un ennemi attaque le joueur";
+    } else if (this->musicTargetWithinRange()) {
+        tune = 18;
+        reason = "cible du joueur a moins de 1500 m";
+    } else if (static_cast<PSPlane *>(player_plane)->criticallyDamaged()) {
+        tune = 2;
+        reason = "moteur, ailerons ou profondeur > 90 %";
+    } else if (static_cast<PSPlane *>(player_plane)->seriouslyDamaged()) {
+        tune = 10;
+        reason = "gravement endommage";
+    } else if (!locked) {
+        tune = (flags & 1) ? 9 : 1;
+        reason = (flags & 1) ? "avion ennemi proche" : "menaces au sol seules";
+    }
+    if (tune >= 0 && (uint32_t)tune != this->Mixer.getMusicID()) {
+        this->musicRequest(tune, reason);
+    }
+}
+
+// Music_SelectTuneCandidate_5BB21, étape de fin de combat : 17 si la condition de mission est remplie, sinon 3 après
+// un combat (le combat est alors oublié).
+bool PSMission::musicFallback() {
+    if (this->mission_over && this->mission_won) {
+        this->musicRequest(17, "fin de combat, condition de mission remplie");
+        return true;
+    }
+    if (this->music_combat_happened) {
+        this->music_combat_happened = false;
+        this->musicRequest(3, "fin de combat");
+        return true;
+    }
+    return false;
+}
+
+// Ponctuations de victoire du joueur : 16 (avion), 12 (décor, défense fixe, objet au sol), 15 (autres).
+bool PSMission::musicIsPunctuation(int tune) {
+    return tune == 12 || tune == 15 || tune == 16;
+}
+
+// World_OnObjectDestroyed_553B6, partie musique.
+void PSMission::onActorDestroyed(SCMissionActors *actor) {
+    SCPlane *player_plane = this->player->plane;
+    if (actor == this->player || player_plane->crached || !this->player->object->alive) {
+        return;
+    }
+    if (actor->plane != nullptr && actor->plane->ejected) {
+        return;
+    }
+    if (actor->object == nullptr || actor->object->entity == nullptr) {
+        return;
+    }
+    EntityType type = actor->object->entity->entity_type;
+    if (type != EntityType::ornt && type != EntityType::jet && type != EntityType::swpn && type != EntityType::ground && type != EntityType::xmit && type != EntityType::ship && type != EntityType::carr) {
+        return;
+    }
+    printf("MUSIC destroyed %s#%d team=%d by=%s\n", actor->actor_name.c_str(), actor->actor_id, actor->team_id, actor->last_hit_by != nullptr ? actor->last_hit_by->actor_name.c_str() : "none");
+    if (actor->team_id == 255) {
+        uint8_t before = this->music_enemy_flags;
+        uint8_t after = this->musicScanEnemies(actor);
+        this->music_enemy_flags = after;
+        bool changed = false;
+        if (after != 0 && (before & 1) && !(after & 1)) {
+            this->musicRequest(1, "dernier avion ennemi abattu");
+            changed = true;
+        } else if (after == 0 && before != 0) {
+            changed = this->musicFallback();
+        }
+        if (changed || actor->last_hit_by != this->player) {
+            return;
+        }
+        int punctuation = 15;
+        if (type == EntityType::jet) {
+            punctuation = 16;
+        } else if (type == EntityType::ornt || type == EntityType::swpn || type == EntityType::ground) {
+            punctuation = 12;
+        }
+        if (std::rand() % 100 < 11) {
+            punctuation = 15;
+        }
+        this->music_resume_tune = (int)this->Mixer.getMusicID();
+        this->musicRequest(punctuation, "victoire du joueur");
+        return;
+    }
+    if (actor->team_id == 1) {
+        int tune = (std::rand() % 2 == 1) ? 19 : 4;
+        this->musicRequest(tune, "objet allie detruit");
+    }
 }

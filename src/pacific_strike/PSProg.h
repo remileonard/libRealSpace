@@ -1,17 +1,14 @@
 #pragma once
 #include "../strike_commander/precomp.h"
 #include "PSEntity.h"
+#include "PSState.h"
 
-// Scripts de mission de Pacific Strike (strike_commander_re/analysis/pacific/README.md § 2.1, § 6.5 et § 6.7) :
-// les instructions de drapeau lisent et écrivent la table commune des variables et drapeaux
-// (GameState.getGameVar / setGameVar), et la table des instructions reçoit celles que Strike Commander n'a pas.
 class PSProg : public SCProg {
 public:
     PSProg(SCMissionActors *profile, std::vector<PROG> prog, SCMission *mission, uint8_t prog_id = 0);
 
 protected:
-    SCState &GameState = SCState::getInstance();
-    // Noms de MISSION_SCRIPT_OPCODES.md et du README de Pacific Strike.
+    PSState &PSGameState = PSState::getInstance();
     enum PSProgOp : uint8_t {
         PS_OP_NOOP_5 = 5,
         PS_OP_SWAP_WORK_AND_FLAG = 18,
@@ -29,6 +26,7 @@ protected:
         PS_OP_CMP_FLAG_WITH_WORK = 67,
         PS_OP_MOVE_RESULT_TO_FLAG = 81,
         PS_OP_ORDER_FRIENDLY_OF_TYPE = 112,
+        PS_OP_IS_SCENE_ENABLED = 130,
         PS_OP_SPAWN_EFFECT_ON_OBJ = 153,
         PS_OP_FIRE_AT_SPOT = 154,
         PS_OP_SPAWN_AT_SPOT = 155,
@@ -42,6 +40,7 @@ protected:
     const std::map<uint8_t, Instruction> &instructionTable() override;
     static std::map<uint8_t, Instruction> buildInstructionTable();
 
+    int16_t flag(uint16_t number);
     void setVar(const char *name, uint16_t number, int value);
     uint16_t extraArg(size_t rank);
     SCMissionActors *actorOrSelf(uint16_t actor_id);
@@ -58,6 +57,7 @@ protected:
     void opSetFlagToTrue(const PROG &instruction) override;
     void opSetFlagToFalse(const PROG &instruction) override;
     void opTestFlag(const PROG &instruction) override;
+    void opActivateObj(const PROG &instruction) override;
     void opNoop5(const PROG &instruction);
     void opSwapWorkAndFlag(const PROG &instruction);
     void opAddFlagToWork(const PROG &instruction);
@@ -74,6 +74,7 @@ protected:
     void opCmpFlagWithWork(const PROG &instruction);
     void opMoveResultToFlag(const PROG &instruction);
     void opOrderFriendlyOfType(const PROG &instruction);
+    void opIsSceneEnabled(const PROG &instruction);
     void opSpawnEffectOnObj(const PROG &instruction);
     void opFireAtSpot(const PROG &instruction);
     void opSpawnAtSpot(const PROG &instruction);

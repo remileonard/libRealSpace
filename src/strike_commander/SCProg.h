@@ -95,6 +95,6 @@ protected:
     virtual void opSetFlagToFalse(const PROG &instruction);
     virtual void opTestFlag(const PROG &instruction);
     virtual void opMulValueWithWork(const PROG &instruction);
-    virtual void opActivateScene(const PROG &instruction);
-    virtual void opDeactivateScene(const PROG &instruction);
+    virtual void opEnableScene(const PROG &instruction);
+    virtual void opDisableScene(const PROG &instruction);
 };

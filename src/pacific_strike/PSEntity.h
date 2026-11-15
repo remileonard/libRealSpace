@@ -55,6 +55,20 @@ enum PSKind : uint8_t {
     PS_KIND_DEPOTS = 28
 };
 
+// Rôle de l'avion, octet 5 du chunk JINF (RSEntity::combat_class), lu par Targeting_MayAcquireTarget_FF05.
+enum PSCombatClass : uint8_t {
+    // HELLDIVE, JUDY, SBD, VAL
+    PS_COMBAT_CLASS_DIVE_BOMBER = 0,
+    // JILL, KATETORP, TBD, TBF
+    PS_COMBAT_CLASS_TORPEDO_BOMBER = 1,
+    // BETTY, EMILY, KATE
+    PS_COMBAT_CLASS_BOMBER = 2,
+    // BEARCAT, CLAUDE, CORSAIR, F4F3, F4F4, FRANK, GEORGE, HELLCAT, HELLCAT2, ZERO, ZERO5, ZEROF
+    PS_COMBAT_CLASS_FIGHTER = 3,
+    // BAKA, ZEROK
+    PS_COMBAT_CLASS_KAMIKAZE = 4
+};
+
 // Numéro d'arme de l'octet 5 du chunk WDAT (PACIFIC.EXE, sub_B0360 de ovr315), nommé d'après les objets qui le portent.
 enum PSWeaponId : uint8_t {
     PS_WEAPON_NONE = 0,
@@ -81,6 +95,13 @@ public:
     // Numéro d'arme du WDAT de Pacific Strike ; wdat->weapon_id reçoit l'arme de libRealSpace qui se tire de la même
     // façon (canon, bombe, missile).
     PSWeaponId ps_weapon_id{ PS_WEAPON_NONE };
+    // Chunk CARD d'un porte-avions (CarrierDeck_LoadCARD_B0E70) : hauteur de l'avion posé sur le pont, une valeur de
+    // rôle non établi, et deux points dans le repère du navire.
+    bool has_carrier_deck{ false };
+    float deck_height{ 0.0f };
+    float deck_value_2{ 0.0f };
+    Vector3D deck_point_a;
+    Vector3D deck_point_b;
     static PSWeaponId weaponId(RSEntity *weapon);
     void loadWeaponLoad(uint8_t *data, size_t size);
     // Chunk THRS de Pacific Strike (19 octets, AircraftDynamics_ReadThrustChunk_B81AC) : puissance du moteur (ch),
@@ -93,6 +114,13 @@ public:
     // altitude à partir de laquelle le moteur perd de la puissance (m).
     float reference_speed_ms{ 0.0f };
     float rated_altitude_m{ 0.0f };
+    // Chunk GARC d'un SWPN (Swpn_LoadModel_B0710) : secteur de tir de la tourelle en degrés, dans le repère de son
+    // montage ; un axe dont une borne atteint 180 ou -180 est libre. Gisement positif vers la gauche.
+    bool has_gun_arc{ false };
+    float arc_elevation_max{ 180.0f };
+    float arc_elevation_min{ -180.0f };
+    float arc_azimuth_max{ 180.0f };
+    float arc_azimuth_min{ -180.0f };
 
 protected:
     void parseREAL_OBJT(uint8_t *data, size_t size) override;
@@ -100,6 +128,9 @@ protected:
     void parseREAL_OBJT_GRND(uint8_t *data, size_t size);
     void parseREAL_OBJT_ORNT(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN(uint8_t *data, size_t size);
+    void parseREAL_OBJT_SWPN_GARC(uint8_t *data, size_t size);
+    void parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size);
     void parseREAL_OBJT_XMIT(uint8_t *data, size_t size);
     void parseREAL_OBJT_BOMB(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS(uint8_t *data, size_t size);
@@ -115,6 +146,7 @@ protected:
     void parseREAL_OBJT_TORP(uint8_t *data, size_t size);
     void parseREAL_OBJT_NPLM(uint8_t *data, size_t size);
     void parseREAL_OBJT_KIND(uint8_t *data, size_t size);
+    void parseREAL_OBJT_CARR_CARD(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_DYNM(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_DYNM_THRS(uint8_t *data, size_t size);
     void parseREAL_OBJT_JETP_DYNM_JDYN(uint8_t *data, size_t size);

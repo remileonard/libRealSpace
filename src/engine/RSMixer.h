@@ -56,6 +56,9 @@ class RSMixer {
         -1,
         -1
     };
+    int sfxChannels{ SFX_CHANNELS };
+    int traceTicks{ 0 };
+    void traceDriverState();
     MemMusic *sfxEffect[SFX_CHANNELS]{};
     const void *sfxEmitter[SFX_CHANNELS]{};
     int sfxIdleTicks[SFX_CHANNELS]{};
@@ -78,6 +81,8 @@ public:
     RSMusic *music;
     bool shuttingDown = false;
     std::unordered_map<int, Mix_Chunk *> channelChunks;
+    std::unordered_map<int, const void *> vocEmitters;
+    std::unordered_map<int, uint8_t *> vocData;
     MemMusic *currentMusicMemPtr = nullptr;
     static RSMixer &getInstance() {
         static RSMixer instance;
@@ -122,14 +127,25 @@ public:
     void setSoundFxVolume(int fxChannel, int volume);
     void stopSoundFx(int fxChannel); // SoundFX_StopEffect_59A8A : Note Off seulement
     bool isSoundFxPlaying(int fxChannel);
+    void stopAllSoundFx(); // SoundFX_StopAll_5AA95 : arrete les effets et rend leurs canaux verrouilles
+    // Nombre d'effets XMIDI joués en même temps (5 dans Strike Commander, 1 dans Pacific Strike).
+    void setSoundFxChannels(int count);
     // SoundFX_PlayOrUpdate_5A906 : effet de SOUNDFX.ADL pour cet emetteur, volume selon la distance
     // au point de vue (SoundFX_Play3D_59902) ; demarre s'il ne joue pas, sinon met a jour son volume.
     void playOrUpdateSoundFx(int effect, const void *emitter, float distance);
+    // Effet de SOUNDFX.ADL joué une fois, volume selon la distance.
+    void playSoundFxAtDistance(int effect, float distance);
+    // SoundFX_Play3D_59902 : 100 - d / 10 sous 1 000 m, 5 jusqu'à 5 000 m, 0 au-delà.
+    static int distanceVolume(float distance);
 
     void stopSound();
     void stopSound(int chanl);
     void playSoundVoc(uint8_t *data, size_t vocSize);
     void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop = 0);
+    // Même règle que playOrUpdateSoundFx pour un son numérisé : relancé ou mis à jour par émetteur.
+    void playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance);
+    // Son numérisé joué une fois, volume selon la distance.
+    void playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance);
     void setVolume(int volume, int channel = -1);
     bool isSoundPlaying();
     bool isSoundPlaying(int chanl);

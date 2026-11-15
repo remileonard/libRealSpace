@@ -340,7 +340,7 @@ Point2D SCNavMap::worldToMap(float x, float z) {
 // Zone d'une scène tracée sur la carte : scène active, zone présente, nom qui ne commence pas par « . ».
 AREA *SCNavMap::sceneArea(MISN_SCEN *scene) {
     std::vector<AREA *> &areas = this->missionObj->mission_data.areas;
-    if (scene->is_active == 0) {
+    if (scene->is_enabled == 0) {
         return nullptr;
     }
     uint16_t area_index = (uint16_t)scene->area_id;

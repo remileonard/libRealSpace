@@ -1,4 +1,5 @@
 #include "PSEntity.h"
+#include <algorithm>
 #include "../strike_commander/SCenums.h"
 
 void PSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {
@@ -103,8 +104,71 @@ void PSEntity::parseREAL_OBJT_SWPN(uint8_t *data, size_t size) {
     handlers["DYNM"] = std::bind(&PSEntity::parseREAL_OBJT_SWPN_DYNM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DATA"] = std::bind(&PSEntity::parseREAL_OBJT_SWPN_DATA, this, std::placeholders::_1, std::placeholders::_2);
     handlers["ALGN"] = std::bind(&PSEntity::parseREAL_OBJT_SWPN_ALGN, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["GARC"] = std::bind(&PSEntity::parseREAL_OBJT_SWPN_GARC, this, std::placeholders::_1, std::placeholders::_2);
     handlers["KIND"] = std::bind(&PSEntity::parseREAL_OBJT_KIND, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
+}
+
+void PSEntity::parseREAL_OBJT_SWPN_GARC(uint8_t *data, size_t size) {
+    ByteStream bs(data, size);
+    this->has_gun_arc = true;
+    this->arc_elevation_max = (float)bs.ReadShort();
+    this->arc_elevation_min = (float)bs.ReadShort();
+    this->arc_azimuth_max = (float)bs.ReadShort();
+    this->arc_azimuth_min = (float)bs.ReadShort();
+}
+
+// Même lecture que RSEntity::parseREAL_OBJT_SWPN_DATA, l'arme chargée en PSEntity pour que son WDAT de Pacific Strike
+// soit lu (portée, cadence).
+void PSEntity::parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size) {
+    ByteStream bs(data, size);
+    SWPN_DATA *swpn_data = new SWPN_DATA();
+    swpn_data->weapons_round = bs.ReadInt32LE();
+    swpn_data->detection_range = bs.ReadInt32LE();
+    swpn_data->effective_range = bs.ReadInt32LE();
+    swpn_data->dispersion = bs.ReadUShort();
+    swpn_data->fire_interval = bs.ReadFixedFloatLE();
+    swpn_data->missile_launcher = bs.ReadByte();
+    swpn_data->weapon_quantity = bs.ReadUShort();
+    swpn_data->weapon_name = bs.ReadString(8);
+    std::transform(swpn_data->weapon_name.begin(), swpn_data->weapon_name.end(), swpn_data->weapon_name.begin(), ::toupper);
+    swpn_data->weapon_name = assetsManager.object_root_path + swpn_data->weapon_name + ".IFF";
+    TreEntry *entry = assetsManager.GetEntryByName(swpn_data->weapon_name);
+    if (entry != nullptr) {
+        PSEntity *objct = new PSEntity();
+        objct->InitFromRAM(entry->data, entry->size, swpn_data->weapon_name);
+        swpn_data->weapon_entity = objct;
+    } else {
+        swpn_data->weapon_entity = nullptr;
+    }
+    swpn_data->launch_offset = bs.ReadInt32LE();
+    this->swpn_data = swpn_data;
+}
+
+// Même lecture que RSEntity::parseREAL_OBJT_JETP_CHLD, l'enfant
+// chargé en PSEntity pour que ses chunks de Pacific Strike (GARC) soient lus.
+void PSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
+    size_t nb_child = size / 32;
+    ByteStream bs(data, size);
+    for (size_t i = 0; i < nb_child; i++) {
+        CHLD *chld = new CHLD();
+        std::string tmpname = bs.ReadString(8);
+        std::transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
+        chld->name = assetsManager.object_root_path + tmpname + ".IFF";
+        chld->x = bs.ReadFixedFloatLE();
+        chld->z = bs.ReadFixedFloatLE();
+        chld->y = bs.ReadFixedFloatLE();
+        chld->pitch = bs.ReadFixedFloatLE();
+        chld->roll = bs.ReadFixedFloatLE();
+        chld->yaw = bs.ReadFixedFloatLE();
+        PSEntity *objct = new PSEntity();
+        TreEntry *entry = assetsManager.GetEntryByName(chld->name);
+        if (entry != nullptr) {
+            objct->InitFromRAM(entry->data, entry->size, chld->name);
+            chld->objct = objct;
+            this->chld.push_back(chld);
+        }
+    }
 }
 
 void PSEntity::parseREAL_OBJT_XMIT(uint8_t *data, size_t size) {
@@ -221,7 +285,7 @@ void PSEntity::parseREAL_OBJT_EJEC(uint8_t *data, size_t size) {
     lexer.InitFromRAM(data, size, handlers);
 }
 
-// Les chunks CHLD et SHPD ne sont pas lus.
+// Le chunk SHPD n'est pas lu.
 void PSEntity::parseREAL_OBJT_SHIP(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::ship;
@@ -234,15 +298,37 @@ void PSEntity::parseREAL_OBJT_SHIP(uint8_t *data, size_t size) {
     handlers["DYNM"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_DYNM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SIGN"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SMOK"] = std::bind(&PSEntity::parseREAL_OBJT_MISS_SMOK, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CHLD"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_CHLD, this, std::placeholders::_1, std::placeholders::_2);
     handlers["KIND"] = std::bind(&PSEntity::parseREAL_OBJT_KIND, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }
 
-// Les chunks CHLD, CARD et LSOD ne sont pas lus.
+// 8 entiers en 24.8 ; un point du fichier (c0, c1, c2) se lit x = c0, y = c2, z = -c1.
+void PSEntity::parseREAL_OBJT_CARR_CARD(uint8_t *data, size_t size) {
+    if (size < 32) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->deck_height = bs.ReadFixedFloatLE();
+    this->deck_value_2 = bs.ReadFixedFloatLE();
+    float a0 = bs.ReadFixedFloatLE();
+    float a1 = bs.ReadFixedFloatLE();
+    float a2 = bs.ReadFixedFloatLE();
+    this->deck_point_a = Vector3D(a0, a2, -a1);
+    float b0 = bs.ReadFixedFloatLE();
+    float b1 = bs.ReadFixedFloatLE();
+    float b2 = bs.ReadFixedFloatLE();
+    this->deck_point_b = Vector3D(b0, b2, -b1);
+    this->has_carrier_deck = true;
+    printf("PSEntity: %s CARD pont a %.1f m, valeur 2 %.1f, point A (%.1f, %.1f, %.1f), point B (%.1f, %.1f, %.1f)\n", this->name.c_str(), this->deck_height, this->deck_value_2, this->deck_point_a.x, this->deck_point_a.y, this->deck_point_a.z, this->deck_point_b.x, this->deck_point_b.y, this->deck_point_b.z);
+}
+
+// Le chunk LSOD n'est pas lu.
 void PSEntity::parseREAL_OBJT_CARR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     this->entity_type = EntityType::carr;
     std::unordered_map<std::string, std::function<void(uint8_t *data, size_t size)>> handlers;
+    handlers["CARD"] = std::bind(&PSEntity::parseREAL_OBJT_CARR_CARD, this, std::placeholders::_1, std::placeholders::_2);
     handlers["EXPL"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_EXPL, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEBR"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_DEBR, this, std::placeholders::_1, std::placeholders::_2);
     handlers["DEST"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_DEST, this, std::placeholders::_1, std::placeholders::_2);
@@ -251,6 +337,7 @@ void PSEntity::parseREAL_OBJT_CARR(uint8_t *data, size_t size) {
     handlers["DYNM"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_DYNM, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SIGN"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_SIGN, this, std::placeholders::_1, std::placeholders::_2);
     handlers["SMOK"] = std::bind(&PSEntity::parseREAL_OBJT_MISS_SMOK, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["CHLD"] = std::bind(&PSEntity::parseREAL_OBJT_JETP_CHLD, this, std::placeholders::_1, std::placeholders::_2);
     handlers["KIND"] = std::bind(&PSEntity::parseREAL_OBJT_KIND, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
 }

@@ -331,7 +331,7 @@ public:
     virtual void init();
     virtual Vector3D worldVelocity();
     float indicatedAirspeed();
-    int isOnRunWay();
+    virtual int isOnRunWay();
     void SetThrottle(int throttle);
     int GetThrottle();
     void SetFlaps();

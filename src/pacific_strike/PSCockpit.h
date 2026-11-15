@@ -1,6 +1,7 @@
 #pragma once
 #include "../strike_commander/precomp.h"
 #include "PSCockpitDef.h"
+#include "PSBrain.h"
 
 // Cockpit de Pacific Strike : fichier OBJECTS\<nom du chunk CKPT de l'avion>.IFF (PSCockpitDef), tableau de bord ARTP
 // et instruments du FORM INST.
@@ -44,6 +45,11 @@ protected:
     float heading();
     float rollAngle();
     int gunStations(int hardpoint_type, bool count_ammo);
+    std::vector<SCMissionActors *> commReceivers();
+    std::vector<char> commOptions(SCMissionActors *receiver);
+    bool commOptionAvailable(char ask, SCMissionActors *receiver);
+    void RenderCommMenu(FrameBuffer *fb);
+    void drawCommLine(FrameBuffer *fb, int row, std::string text);
 
 public:
     PSCockpit() = default;
@@ -52,4 +58,6 @@ public:
     PSCockpitDef *definition();
     size_t artImage(CockpitFace face);
     void RenderInstrument3D(PSCockpitInstrument *instrument, FrameBuffer *fb);
+    void SetCommActorTarget(int target) override;
+    int CommMessageId(int line) override;
 };

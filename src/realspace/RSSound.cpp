@@ -60,4 +60,36 @@ void RSSound::init() {
             }
         }
     }
+    this->initEffects();
+}
+
+// Strike Commander : l'effet n (jusqu'à GUN_HIT) est le n-ième son de DSOUNDFX.PAK mis à plat ; le joueur touché et la chute dans l'eau
+// reprennent l'impact et l'explosion.
+void RSSound::initEffects() {
+    for (size_t i = 0; i < this->sounds.size() && i <= SoundEffectIds::GUN_HIT; i++) {
+        this->effects[(int)i].push_back(this->sounds[i]);
+    }
+    if (this->sounds.size() > SoundEffectIds::GUN_IMPACT_1) {
+        this->effects[SoundEffectIds::PLAYER_HIT].push_back(this->sounds[SoundEffectIds::GUN_IMPACT_1]);
+        this->effects[SoundEffectIds::WATER_SPLASH].push_back(this->sounds[SoundEffectIds::EXPLOSION_1]);
+    }
+    this->fx_effects[SoundEffectIds::GUN_FIRE] = 2;
+}
+
+// Numéro de la séquence XMIDI de l'effet ; -1 si le jeu n'en a pas.
+int RSSound::fxEffect(SoundEffectIds id) {
+    auto found = this->fx_effects.find(id);
+    if (found == this->fx_effects.end()) {
+        return -1;
+    }
+    return found->second;
+}
+
+// Un des sons de l'effet, tiré au hasard quand il y en a plusieurs ; nul si le jeu n'en a pas.
+MemSound *RSSound::effect(SoundEffectIds id) {
+    auto found = this->effects.find(id);
+    if (found == this->effects.end() || found->second.empty()) {
+        return nullptr;
+    }
+    return found->second[std::rand() % found->second.size()];
 }

@@ -1,7 +1,6 @@
 #include "PSCockpit.h"
 #include "PSEntity.h"
 
-// Palette et fichier de cockpit, comme SCCockpit::init ; Pacific Strike n'a ni EJECT.PAK ni HUD.IFF.
 void PSCockpit::init() {
     RSPalette palette;
     TreEntry *entries = (TreEntry *)Assets.GetEntryByName("..\\..\\DATA\\PALETTE\\PALETTE.IFF");
@@ -25,6 +24,7 @@ void PSCockpit::init() {
     this->ps_cockpit->InitFromRam(cockpit_def->data, cockpit_def->size);
     this->cockpit = this->ps_cockpit;
     this->debug_framebuffer = new FrameBuffer(320, 200);
+    this->comm_framebuffer = new FrameBuffer(320, 13);
     printf("PSCockpit: %s charge, %d images ARTP, %zu instruments\n", name.c_str(), (int)this->ps_cockpit->ARTP.GetNumImages(), this->ps_cockpit->instruments.size());
 }
 
@@ -55,7 +55,6 @@ PSCockpit::InstrumentView PSCockpit::selectView(PSCockpitInstrument *instrument)
     return view;
 }
 
-// sub_18A3E / sub_18BFD : aiguille depuis le centre, 0° vers le haut, sens des aiguilles d'une montre.
 void PSCockpit::drawNeedle(FrameBuffer *fb, const InstrumentView &view, float angle_deg, int length, uint8_t color) {
     float angle = angle_deg * (float)M_PI / 180.0f;
     int end_x = view.center_x + (int)((float)length * sinf(angle));
@@ -75,9 +74,6 @@ void PSCockpit::drawImage(FrameBuffer *fb, PSCockpitInstrument *instrument, size
     fb->drawShape(shape);
 }
 
-// Altimeter_UpdateValue_18643 et Altimeter_Draw_18746 : altitude en pieds ; chiffres des dizaines de milliers et des
-// milliers (images 2 à 11 en vue 0, 12 à 21 en vue 1) ; grande aiguille = altitude modulo 100 (3,6° par pied),
-// petite aiguille = altitude modulo 1000 ÷ 10 (3,6°).
 void PSCockpit::RenderAltimeter(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -100,7 +96,6 @@ void PSCockpit::RenderAltimeter(PSCockpitInstrument *instrument, FrameBuffer *fb
     this->drawNeedle(fb, view, short_angle, radius / 2, 29);
 }
 
-// sub_18AF1 et sub_18B8A : vitesse en nœuds × 0,71875 °, au plus 359° ; aiguille de 3/4 du rayon.
 void PSCockpit::RenderAirspeed(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -115,7 +110,6 @@ void PSCockpit::RenderAirspeed(PSCockpitInstrument *instrument, FrameBuffer *fb)
     this->drawNeedle(fb, view, angle, radius * 3 / 4, 29);
 }
 
-// sub_19859 et sub_198B4 : cran de la manette (bloc de commandes +1Eh, 0 à 10) × 30° ; aiguille de 3/4 du rayon.
 void PSCockpit::RenderTachometer(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -126,8 +120,6 @@ void PSCockpit::RenderTachometer(PSCockpitInstrument *instrument, FrameBuffer *f
     this->drawNeedle(fb, view, (float)notch * 30.0f, radius * 3 / 4, 29);
 }
 
-// sub_18DA9 et sub_18E6D : vitesse verticale en pieds par seconde × 0,449°, moins 90° (zéro à 9 heures) ; en montée
-// l'aiguille s'arrête à 90° (3 heures, 400 ft/s), en descente aussi à 90° par le bas.
 void PSCockpit::RenderVerticalSpeed(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -149,7 +141,6 @@ void PSCockpit::RenderVerticalSpeed(PSCockpitInstrument *instrument, FrameBuffer
     this->drawNeedle(fb, view, (float)angle, radius * 3 / 4, 29);
 }
 
-// sub_19AB1 et sub_19B7B : carburant restant ÷ capacité × 360° ; aiguille de 3/4 du rayon.
 void PSCockpit::RenderFuel(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -164,7 +155,6 @@ void PSCockpit::RenderFuel(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     this->drawNeedle(fb, view, ratio * 360.0f, radius * 3 / 4, 29);
 }
 
-// Cap de l'avion en degrés, de 0 à 359 (sub_5720C sur l'axe du nez ; dans libRealSpace : 360 − lacet).
 float PSCockpit::heading() {
     float value = fmodf(360.0f - this->player_plane->yaw / 10.0f, 360.0f);
     if (value < 0.0f) {
@@ -173,12 +163,10 @@ float PSCockpit::heading() {
     return value;
 }
 
-// Roulis de l'avion en degrés (Matrix_RollAngle_59A30).
 float PSCockpit::rollAngle() {
     return this->player_plane->roll / 10.0f;
 }
 
-// sub_19D7A et sub_19DC3 : aiguille au cap, 3/4 du rayon.
 void PSCockpit::RenderCompass(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -188,7 +176,6 @@ void PSCockpit::RenderCompass(PSCockpitInstrument *instrument, FrameBuffer *fb) 
     this->drawNeedle(fb, view, floorf(this->heading()), radius * 3 / 4, 29);
 }
 
-// sub_19721 et sub_19765 : aiguille à l'angle de roulis, 3/4 du rayon.
 void PSCockpit::RenderBank(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -198,7 +185,6 @@ void PSCockpit::RenderBank(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     this->drawNeedle(fb, view, floorf(this->rollAngle()), radius * 3 / 4, 29);
 }
 
-// sub_1906A et sub_190AE : palonnier du bloc de commandes (pleine butée = 16) × 50 ÷ 16 degrés ; 3/4 du rayon.
 void PSCockpit::RenderRudder(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -209,9 +195,6 @@ void PSCockpit::RenderRudder(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     this->drawNeedle(fb, view, (float)(pedal * 50 / 16), radius * 3 / 4, 29);
 }
 
-// sub_192AB, sub_1930C et sub_1941F : fond (image 0 en vue 0, 1 en vue 1) au coin du cadre, barre d'horizon = deux
-// traits opposés depuis le centre à l'angle (−roulis − 90°), puis la maquette (image 2 ou 3) au centre. Le tangage
-// n'est pas affiché.
 void PSCockpit::RenderHorizon(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -225,8 +208,6 @@ void PSCockpit::RenderHorizon(PSCockpitInstrument *instrument, FrameBuffer *fb) 
     this->drawImage(fb, instrument, (size_t)(view.view + 2), view.center_x, view.center_y);
 }
 
-// Voyants GEAR, FLAP et STAL (sub_1A072, sub_1A1B3, sub_1A337) : image état (0 ou 1) en vue 0, état + 2 en vue 1, au
-// coin du cadre.
 void PSCockpit::RenderLamp(PSCockpitInstrument *instrument, FrameBuffer *fb, bool on) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -239,7 +220,6 @@ void PSCockpit::RenderLamp(PSCockpitInstrument *instrument, FrameBuffer *fb, boo
     this->drawImage(fb, instrument, image, view.left, view.top);
 }
 
-// Points d'emport de ce type qui portent un canon ; avec count_ammo, la somme de leurs munitions.
 int PSCockpit::gunStations(int hardpoint_type, bool count_ammo) {
     int total = 0;
     for (auto station : this->player_plane->weaps_load) {
@@ -258,8 +238,6 @@ int PSCockpit::gunStations(int hardpoint_type, bool count_ammo) {
     return total;
 }
 
-// sub_1A3FE et sub_1A44F : munitions des canons du groupe 1 (points de type 0), 4 chiffres (milliers, centaines,
-// dizaines, unités) ; image du chiffre en vue 0, chiffre + 10 en vue 1 ; un chiffre tous les (largeur + 3) ÷ 4 points.
 void PSCockpit::RenderAmmo(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -278,8 +256,6 @@ void PSCockpit::RenderAmmo(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     }
 }
 
-// sub_1A691 et sub_1A74D : image 0 si l'arme choisie n'est pas un canon ; sinon (canons des groupes 1 et 2) ÷ 2 + 1,
-// au plus la moitié du nombre d'images ; en vue 1, décalée de la moitié du nombre d'images. Au coin du cadre.
 void PSCockpit::RenderArmedGuns(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -303,8 +279,6 @@ void PSCockpit::RenderArmedGuns(PSCockpitInstrument *instrument, FrameBuffer *fb
     this->drawImage(fb, instrument, (size_t)image, view.left, view.top);
 }
 
-// sub_1A7DB : ruban du compas de secours : image 0 (vue 0) ou 1 (vue 1) décalée de (second mot du point × cap ÷ 360)
-// vers la gauche depuis le centre, découpée par le cadre.
 void PSCockpit::RenderBackupCompass(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active || (size_t)view.view >= instrument->SHAP.GetNumImages()) {
@@ -319,8 +293,6 @@ void PSCockpit::RenderBackupCompass(PSCockpitInstrument *instrument, FrameBuffer
     fb->drawShapeWithBox(shape, view.left, view.right, view.top, view.bottom);
 }
 
-// sub_1BAD9 : viseur : image de la vue (0 ou 1) au coin du cadre. Le jeu la dessine à travers une table de teinte
-// (ligne donnée par le premier mot du chunk GUNS), non portée.
 void PSCockpit::RenderGunSight(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     InstrumentView view = this->selectView(instrument);
     if (!view.active) {
@@ -333,12 +305,6 @@ PSCockpitDef *PSCockpit::definition() {
     return this->ps_cockpit;
 }
 
-// Image d'un instrument pour le cockpit 3D (méthode +28 de chaque instrument dans PACIFIC.EXE). Instruments à aiguille
-// (sub_18945, sub_18CB0, sub_19EE9, sub_199A0, sub_18F59, sub_19C69, sub_1919A) : image 1 en (0, 0), puis une aiguille
-// depuis le second point ramené au coin du second cadre, de longueur second point − bord gauche. Horizon (sub_19589) :
-// image 1, barre depuis le milieu de l'image, image 3 au second point. Voyants : GEAR et STAL image état, FLAP image
-// état + 2 (sub_19FFA, sub_1A2BF, sub_1A139). AGNS : son image de la vue 0 (sub_1A792). BANK, AMMO et BCOM n'ont pas
-// d'image 3D.
 void PSCockpit::RenderInstrument3D(PSCockpitInstrument *instrument, FrameBuffer *fb) {
     fb->fillWithColor(255);
     InstrumentView view;
@@ -443,10 +409,6 @@ void PSCockpit::RenderInstrument3D(PSCockpitInstrument *instrument, FrameBuffer 
     }
 }
 
-// Image ARTP d'une vue. Les 6 entrées du chunk INFO du cockpit décrivent les 6 images dans l'ordre : trois vues vers
-// l'avant (cap 0), puis l'arrière (cap 180), la droite (cap −90) et la gauche (cap 90). La première vue avant porte
-// les instruments dans leur premier cadre, la deuxième dans leur second cadre ; la troisième n'a pas de vue
-// correspondante dans libRealSpace.
 size_t PSCockpit::artImage(CockpitFace face) {
     switch (face) {
     case CockpitFace::CP_FRONT:
@@ -464,8 +426,6 @@ size_t PSCockpit::artImage(CockpitFace face) {
     }
 }
 
-// Copie réduite de SCCockpit::Render : tableau de bord de la vue (les cadrans y sont déjà dessinés), puis les aiguilles
-// et chiffres des instruments en vue avant et en vue CP_BIG.
 void PSCockpit::Render(CockpitFace face) {
     this->face = face;
     VGA.activate();
@@ -533,10 +493,154 @@ void PSCockpit::Render(CockpitFace face) {
             }
         }
     }
+    if (this->ps_cockpit != nullptr && this->show_comm) {
+        this->RenderCommMenu(fb);
+    }
+    if (this->ps_cockpit != nullptr) {
+        Point2D comm_position;
+        comm_position.x = 0;
+        comm_position.y = 200;
+        this->RenderCommMessages(comm_position, fb);
+    }
     if (this->mouse_control) {
         Mouse.draw();
     }
     VGA.vSync();
     VGA.upscale = upscale;
     VGA.wide_screen = wide_screen;
+}
+
+std::vector<SCMissionActors *> PSCockpit::commReceivers() {
+    std::vector<SCMissionActors *> receivers;
+    SCMissionActors *player = this->current_mission->player;
+    for (auto actor : this->current_mission->actors) {
+        if (receivers.size() >= 8) {
+            break;
+        }
+        if (actor == player || actor->plane == nullptr || actor->is_destroyed || !actor->is_active) {
+            continue;
+        }
+        if (actor->team_id != player->team_id || actor->profile == nullptr || actor->profile->radi.opts.empty()) {
+            continue;
+        }
+        receivers.push_back(actor);
+    }
+    return receivers;
+}
+
+bool PSCockpit::commOptionAvailable(char ask, SCMissionActors *receiver) {
+    SCMissionActors *player = this->current_mission->player;
+    PSBrain *brain = dynamic_cast<PSBrain *>(receiver->brain);
+    bool airborne = !this->player_plane->on_ground;
+    float distance = (this->player_plane->position - receiver->plane->position).Length();
+    switch (ask) {
+        case 'd':
+            return true;
+        case 'e':
+            return !airborne;
+        case 'f':
+            return airborne && distance < 5000.0f;
+        case 'g':
+            return brain != nullptr && brain->in_formation;
+        case 'h':
+            return brain != nullptr && !brain->in_formation;
+        case 'i':
+            return player->target != nullptr;
+        case 'j':
+            return brain != nullptr && !brain->isFleeing();
+        case 'k':
+            return this->current_mission->player_tail_threat != nullptr;
+        case 'l':
+            return receiver->talkative;
+        case 'm':
+            return !receiver->talkative;
+        case 'n':
+            return airborne && distance < 5000.0f;
+        default:
+            return false;
+    }
+}
+
+std::vector<char> PSCockpit::commOptions(SCMissionActors *receiver) {
+    std::vector<char> options;
+    for (char ask : receiver->profile->radi.opts) {
+        if (this->commOptionAvailable(ask, receiver)) {
+            options.push_back(ask);
+        }
+    }
+    return options;
+}
+
+void PSCockpit::drawCommLine(FrameBuffer *fb, int row, std::string text) {
+    int left = 90;
+    int top = 40 + 11 * row;
+    for (int y = top; y < top + 11; y++) {
+        fb->line(left, y, left + 130, y, 0xC0);
+    }
+    RSFont *font = this->cockpit->PLAQ.fonts[1].font;
+    Point2D position;
+    position.x = left + 4;
+    position.y = top + 2;
+    fb->printText(font, &position, (char *)text.c_str(), 0, 0, (uint32_t)text.size(), 1, 2);
+}
+
+void PSCockpit::RenderCommMenu(FrameBuffer *fb) {
+    if (this->cockpit->PLAQ.fonts.size() < 2) {
+        return;
+    }
+    if (this->comm_target == 0 || this->comm_actor == nullptr) {
+        this->drawCommLine(fb, 0, "Select Frequency");
+        std::vector<SCMissionActors *> receivers = this->commReceivers();
+        int row = 1;
+        for (auto receiver : receivers) {
+            this->drawCommLine(fb, row, std::to_string(row) + ": " + receiver->profile->radi.info.callsign);
+            row++;
+        }
+        this->drawCommLine(fb, row, "No One");
+        return;
+    }
+    this->drawCommLine(fb, 0, this->comm_actor->profile->radi.info.callsign);
+    std::vector<char> options = this->commOptions(this->comm_actor);
+    int row = 1;
+    for (char ask : options) {
+        std::string key(1, ask);
+        auto text = this->current_mission->player->profile->radi.asks.find(key);
+        std::string label = text != this->current_mission->player->profile->radi.asks.end() ? text->second : key;
+        this->drawCommLine(fb, row, std::to_string(row) + ": " + label);
+        row++;
+    }
+    this->drawCommLine(fb, row, "nothing");
+}
+
+void PSCockpit::SetCommActorTarget(int target) {
+    this->comm_actor = nullptr;
+    this->comm_target = 0;
+    if (target == 0) {
+        return;
+    }
+    std::vector<SCMissionActors *> receivers = this->commReceivers();
+    if (target > (int)receivers.size()) {
+        this->show_comm = false;
+        return;
+    }
+    this->comm_actor = receivers[target - 1];
+    this->comm_target = target;
+    printf("PSCockpit: radio vers %s#%d\n", this->comm_actor->actor_name.c_str(), this->comm_actor->actor_id);
+}
+
+int PSCockpit::CommMessageId(int line) {
+    if (this->comm_actor == nullptr) {
+        return 0;
+    }
+    std::vector<char> options = this->commOptions(this->comm_actor);
+    if (line < 1 || line > (int)options.size()) {
+        return 0;
+    }
+    std::vector<char> &opts = this->comm_actor->profile->radi.opts;
+    for (size_t i = 0; i < opts.size(); i++) {
+        if (opts[i] == options[line - 1]) {
+            return (int)i + 1;
+        }
+    }
+    return 0;
 }

@@ -32,4 +32,13 @@ public:
     // the map and the original texture the tiles were made from, new tiles are made when one of them changes
     RSArea *overlay_hd_area{nullptr};
     GLuint overlay_hd_source{0};
+    void renderClouds(RSArea *area) override;
+
+    // [Video] cloud_shading: 0 = off (default, the classic flat white clouds), 1..100 = clouds lit by the sun
+    // (bright tops, grey-blue undersides) with soft sprites on their surface; the value is the contrast
+    int cloud_shading{0};
+    GLuint cloud_tex{0};
+
+protected:
+    void ensureCloudTexture();
 };

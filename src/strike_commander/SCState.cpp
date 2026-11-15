@@ -458,7 +458,6 @@ void SCState::Reset() {
     this->aircraftHooks.clear();
     this->kill_board.clear();
     this->weapon_inventory.clear();
-    this->game_vars.clear();
     this->current_mission = 0;
     this->next_mission = 0;
     this->current_scene = 0;
@@ -471,31 +470,4 @@ void SCState::Reset() {
     this->weapons_costs = 0;
     this->kill_board[PilotsId::PLAYER][KillBoardType::AIR_KILL] = 0;
     this->kill_board[PilotsId::PLAYER][KillBoardType::GROUND_KILL] = 0;
-}
-
-int16_t SCState::getGameVar(uint16_t number) {
-    auto found = this->game_vars.find(number);
-    if (found == this->game_vars.end()) {
-        return 0;
-    }
-    if (number < 256) {
-        return found->second;
-    }
-    return found->second != 0 ? 1 : 0;
-}
-
-void SCState::setGameVar(uint16_t number, int16_t value) {
-    if (number < 256) {
-        this->game_vars[number] = value;
-    } else {
-        this->game_vars[number] = value != 0 ? 1 : 0;
-    }
-}
-
-void SCState::setGameFlag(uint16_t number) {
-    this->game_vars[number] = 1;
-}
-
-void SCState::clearGameFlag(uint16_t number) {
-    this->game_vars[number] = 0;
 }

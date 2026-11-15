@@ -98,6 +98,9 @@ class SCMissionActorsSwpn : public SCMissionActors {
     void fireGun();
     void updateFire();
 
+protected:
+    virtual bool inFiringArc(const Vector3D &to_target);
+
 public:
     void onMissionUpdate(const MissionUpdateEvent &event) override;
 };

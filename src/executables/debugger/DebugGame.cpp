@@ -10,6 +10,7 @@
 #include "imgui_impl_opengl2.h"
 #include "imgui_impl_sdl2.h"
 #include "DebugGame.h"
+#include "../../pacific_strike/PSState.h"
 #include "DebugStrike.h"
 #include "DebugGameFlow.h"
 #include "DebugObjectViewer.h"
@@ -17,6 +18,8 @@
 #include "DebugControlMapping.h"
 #include "DebugAnimationPlayer.h"
 #include "../../tactical_operation/TOConvAssetManager.h"
+#include "../../pacific_strike/PSConvAssetManager.h"
+#include "../../pacific_strike/PSSound.h"
 #include "DebugConvPlayer.h"
 #include "DebugPacificStrikeMISN.h"
 #include "DebugPSConvPlayer.h"
@@ -445,10 +448,12 @@ void DebugGame::loadPacificConv() {
     RSMixer::getInstance().init();
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
+    ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
     ConvAssetManager::getInstance().init();
     DebugPSGameFlow* main = new DebugPSGameFlow();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
+    PSState::getInstance().Reset();
     GameState.player_callsign = "Debug";
     GameState.player_name = "Debug Player";
     GameState.player_firstname = "Debug";
@@ -491,10 +496,14 @@ void DebugGame::loadPacificMISN() {
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
     SCMouse::getInstance().init();
+    ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
     ConvAssetManager::getInstance().init();
+    RSSound::setInstance(std::make_unique<PSSound>());
+    RSSound::getInstance().init();
     DebugPacificStrikeMISN* main = new DebugPacificStrikeMISN();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
+    PSState::getInstance().Reset();
     GameState.player_callsign = "Debug";
     GameState.player_name = "Debug Player";
     GameState.player_firstname = "Debug";

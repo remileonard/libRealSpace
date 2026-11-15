@@ -146,7 +146,8 @@ public:
     void RenderMasterWarning(Point2D master_warning_pos, FrameBuffer *fb);
     bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
     void RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb);
-    void SetCommActorTarget(int target);
+    virtual void SetCommActorTarget(int target);
+    virtual int CommMessageId(int line);
     void RenderTextTags(Point2D position, FrameBuffer *fb, CHUD *hud, RSFont *font);
     void RenderAltiBandRoll(Point2D alti_top_left, FrameBuffer *fb, RSFont *font, CHUD_SHAPE *alti_band_roll);
     void RenderSpeedBandRoll(Point2D speed_top_left, FrameBuffer *fb, RSFont *sfont, CHUD_SHAPE *speed_band);

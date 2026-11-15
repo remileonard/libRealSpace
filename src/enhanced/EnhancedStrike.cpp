@@ -7,6 +7,9 @@
 #include <cstdio>
 #include "../engine/EventManager.h"
 #include <fstream>
+#ifndef GL_MULTISAMPLE
+#define GL_MULTISAMPLE 0x809D
+#endif
 #include "EnhancedEntity.h"
 #include "../engine/SCRenderer.h"
 #include "../realspace/RSEntity.h"
@@ -119,7 +122,7 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
 
     this->forgetOldTrails(now);
     if (this->enhancedModel && plane->object->alive && !entity->chld.empty()) {
-        Vector3D nozzle((float)entity->chld[0]->z / 250.0f, (float)entity->chld[0]->y / 250.0f, (float)entity->chld[0]->x / 250.0f);
+        Vector3D nozzle(entity->chld[0]->z, entity->chld[0]->y, entity->chld[0]->x);
         this->exhaust.draw(plane, model, nozzle, thrust, view);
     }
     this->vortices.draw(plane, entity, model, view, plane->g_load);
@@ -134,6 +137,7 @@ void EnhancedStrike::init() {
     SCStrike::init();
     Config &cfg = Config::getInstance();
     this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
+    this->exhaust.strength = (std::min)(300, (std::max)(50, cfg.getInt("Video", "exhaust_strength", 100))) / 100.0f;
     printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
     this->cockpit3d = cfg.getString("Video", "cockpit", "2d") == "3d";
     this->cockpitFov = (std::min)(100.0f, (std::max)(30.0f, (float)atof(cfg.getString("Video", "cockpit_fov", "45").c_str())));
@@ -143,11 +147,33 @@ void EnhancedStrike::init() {
     this->orbitEnabled = cfg.getString("Video", "camera_mouse_orbit", "1") != "0";
     printf("[enhanced] outside camera mouse orbit: %s\n", this->orbitEnabled ? "on" : "off");
     this->options.clear();
-    this->options.push_back({"ENHANCED WATER", &this->waterSplashEnabled});
+    // Enhanced Water = splash on hits + animated waves, Enhanced Terrain Textures = detail texture (strengths 1..100)
+    SCRenderer &renderer = SCRenderer::getInstance();
+    this->waveStrength = renderer.water_waves > 0 ? renderer.water_waves : 25;
+    this->detailStrength = renderer.terrain_detail > 0 ? renderer.terrain_detail : 25;
+    this->enhancedWater = this->waterSplashEnabled || renderer.water_waves > 0;
+    this->enhancedTerrain = renderer.terrain_detail > 0;
+    this->applyWater();
+    this->applyTerrain();
+    this->options.push_back({"ENHANCED WATER", &this->enhancedWater});
+    this->options.push_back({"ENHANCED TERRAIN TEXTURES", &this->enhancedTerrain});
     this->options.push_back({"ENHANCED COCKPIT", &this->cockpit3d});
     this->options.push_back({"ENHANCED OUTSIDE CAMERA", &this->orbitEnabled});
     this->enhancedModel = cfg.getString("Video", "enhanced_f16_model", "1") != "0";
     this->options.push_back({"ENHANCED F-16 MODEL", &this->enhancedModel});
+    // MSAA: the sample count is fixed when the window is made ([Video] msaa); here it can only be switched on and off
+    int samples = 0;
+    SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &samples);
+    this->msaaAvailable = samples > 1;
+    this->msaaOn = cfg.getString("Video", "msaa_on", "1") != "0";
+    this->applyMsaa();
+    if (this->msaaAvailable) {
+        this->options.push_back({"MSAA ANTI-ALIASING", &this->msaaOn});
+    }
+    this->showFps = cfg.getString("Video", "show_fps", "0") == "1";
+    this->options.push_back({"FPS COUNTER", &this->showFps});
+    printf("[enhanced] msaa: %s (%d samples), fps counter: %s\n", this->msaaAvailable ? (this->msaaOn ? "on" : "off") : "not available", samples,
+           this->showFps ? "on" : "off");
     this->debugKeys = getenv("NEOSC_DEBUG_KEYS") != nullptr;
     printf("[enhanced] debug keys (F12 damage stages): %s\n", this->debugKeys ? "on" : "off (set NEOSC_DEBUG_KEYS=1)");
 }
@@ -186,16 +212,19 @@ bool EnhancedStrike::orbitAllowed() const {
     return type == RSCameraType::RSCAM_CHAS || type == RSCameraType::RSCAM_TARG || type == RSCameraType::RSCAM_ROTA;
 }
 
-// The mouse position orbits the camera around the plane (screen edge = 180 degrees), wheel zooms, middle button resets
+// The mouse movement orbits the camera around the plane without limit (screen width = 360 degrees), wheel zooms,
+// middle button resets. The relative mouse mode keeps the movement coming when the pointer would hit the screen edge.
 void EnhancedStrike::updateOrbit() {
     const float halfWidth = (float)std::max(1, Screen->logical_width / 2);
     const float halfHeight = (float)std::max(1, Screen->logical_height / 2);
-    float mx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_X));
-    float my = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::MOUSE_Y));
-    float nx = (std::min)(1.0f, (std::max)(-1.0f, (mx - Screen->logical_width / 2) / halfWidth));
-    float ny = (std::min)(1.0f, (std::max)(-1.0f, (my - Screen->logical_height / 2) / halfHeight));
-    this->orbitYaw = nx * (float)M_PI;
-    this->orbitPitch = (std::min)(1.35f, (std::max)(-0.9f, (this->orbitInvertY ? -ny : ny) * 1.35f));
+    int dx = 0;
+    int dy = 0;
+    EventManager::getInstance().getMouseMotion(dx, dy);
+    this->orbitYaw += (float)dx * (float)M_PI / halfWidth;
+    this->orbitYaw = remainderf(this->orbitYaw, 2.0f * (float)M_PI);
+    const float pitchStep = (float)dy * 1.35f / halfHeight;
+    this->orbitPitch += this->orbitInvertY ? -pitchStep : pitchStep;
+    this->orbitPitch = (std::min)(1.35f, (std::max)(-0.9f, this->orbitPitch));
     int wheel = EventManager::getInstance().getMouseWheel();
     if (wheel != 0) {
         this->orbitZoom = (std::min)(3.0f, (std::max)(0.35f, this->orbitZoom * powf(0.9f, (float)wheel)));
@@ -205,13 +234,21 @@ void EnhancedStrike::updateOrbit() {
     }
 }
 
+// The explicit cockpit key keeps the classic free mouse look (see updateCockpit3D).
+void EnhancedStrike::keyViewCockpit() {
+    SCStrike::keyViewCockpit();
+    this->cockpitKeyPressed = true;
+}
+
 // [Video] cockpit = 3d: the forward and the left/right/rear views use the 3D virtual cockpit with the head fixed in that
 // direction (the mouse keeps flying the aircraft). The explicit cockpit key keeps the classic free mouse look.
 void EnhancedStrike::updateCockpit3D() {
+    const bool cockpitKey = this->cockpitKeyPressed;
+    this->cockpitKeyPressed = false;
     if (!this->cockpit3d || this->cockpit == nullptr) {
         return;
     }
-    if (this->m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::VIEW_COCKPIT))) {
+    if (cockpitKey) {
         this->cockpitLookFixed = false;
         return;
     }
@@ -272,6 +309,7 @@ void EnhancedStrike::afterInput() {
         printf("[enhanced] camera mouse orbit: %s (view %d)\n", allowed ? "on" : "off", (int)this->camera_mode);
         this->orbitActive = allowed;
     }
+    this->setOrbitRelativeMouse(allowed && !this->optionsOpen && !this->endPrompt);
     if (allowed && (this->optionsOpen || this->endPrompt)) {
         // a panel is open: the mouse belongs to the panel, the camera keeps its current orbit
         if (this->mouse_control) {
@@ -291,6 +329,16 @@ void EnhancedStrike::afterInput() {
         this->player_plane->control_stick_x = 0;
         this->player_plane->control_stick_y = 0;
     }
+}
+
+// Endless mouse movement while the orbit camera owns the mouse, normal pointer otherwise (panels)
+void EnhancedStrike::setOrbitRelativeMouse(bool on) {
+    if (on == this->orbitRelativeMouse) {
+        return;
+    }
+    this->orbitRelativeMouse = on;
+    SDL_SetRelativeMouseMode(on ? SDL_TRUE : SDL_FALSE);
+    printf("[enhanced] orbit relative mouse: %s\n", on ? "on" : "off");
 }
 
 // Yaw about the world vertical, then raise/lower the camera, distance scaled by the zoom
@@ -391,6 +439,18 @@ bool EnhancedStrike::confirmEndMission() {
 }
 
 void EnhancedStrike::afterFrameRendered() {
+    this->fpsFrames++;
+    const uint32_t now = SDL_GetTicks();
+    if (now - this->fpsStart >= 500) {
+        this->fpsValue = this->fpsFrames * 1000.0f / (float)(now - this->fpsStart);
+        this->fpsFrames = 0;
+        this->fpsStart = now;
+    }
+    if (this->showFps && !this->optionsOpen && !this->endPrompt && this->fpsValue > 0.0f && this->fpsUi.init()) {
+        char text[48];
+        snprintf(text, sizeof(text), "%d FPS  %d MS", (int)(this->fpsValue + 0.5f), (int)(1000.0f / this->fpsValue + 0.5f));
+        this->fpsUi.hud(text);
+    }
     if (this->optionsOpen) {
         this->drawOptions();
         return;
@@ -418,6 +478,7 @@ void EnhancedStrike::finishEndPrompt(bool end) {
         this->current_mission->mission_ended = true;
         Mixer.stopSound();
         Mixer.stopSound(5);
+        Mixer.stopAllSoundFx();
     }
     printf("[enhanced] end mission asked: %s\n", end ? "end" : "continue");
 }
@@ -475,6 +536,15 @@ void EnhancedStrike::applyOption(int index) {
             this->cockpitLookFixed = false;
         }
     }
+    if (value == &this->msaaOn) {
+        this->applyMsaa();
+    }
+    if (value == &this->enhancedWater) {
+        this->applyWater();
+    }
+    if (value == &this->enhancedTerrain) {
+        this->applyTerrain();
+    }
     if (value == &this->enhancedModel) {
         EnhancedEntity::setReplacementsActive(this->enhancedModel);
     }
@@ -485,9 +555,13 @@ void EnhancedStrike::applyOption(int index) {
 void EnhancedStrike::saveConfig() const {
     Config &cfg = Config::getInstance();
     cfg.setString("Video", "water_splash", this->waterSplashEnabled ? "1" : "0");
+    cfg.setString("Video", "water_waves", std::to_string(this->enhancedWater ? this->waveStrength : 0));
+    cfg.setString("Video", "terrain_detail", std::to_string(this->enhancedTerrain ? this->detailStrength : 0));
     cfg.setString("Video", "cockpit", this->cockpit3d ? "3d" : "2d");
     cfg.setString("Video", "camera_mouse_orbit", this->orbitEnabled ? "1" : "0");
     cfg.setString("Video", "enhanced_f16_model", this->enhancedModel ? "1" : "0");
+    cfg.setString("Video", "msaa_on", this->msaaOn ? "1" : "0");
+    cfg.setString("Video", "show_fps", this->showFps ? "1" : "0");
     static bool backedUp = false;
     if (!backedUp) {
         backedUp = true;
@@ -497,4 +571,25 @@ void EnhancedStrike::saveConfig() const {
     }
     cfg.save("./assets/config.ini");
     printf("[enhanced] options saved to ./assets/config.ini\n");
+}
+
+void EnhancedStrike::applyMsaa() {
+    if (!this->msaaAvailable) {
+        return;
+    }
+    if (this->msaaOn) {
+        glEnable(GL_MULTISAMPLE);
+    } else {
+        glDisable(GL_MULTISAMPLE);
+    }
+}
+
+// the renderer creates its wave and detail textures on first use, so the strength can be switched at run time
+void EnhancedStrike::applyWater() {
+    this->waterSplashEnabled = this->enhancedWater;
+    SCRenderer::getInstance().water_waves = this->enhancedWater ? this->waveStrength : 0;
+}
+
+void EnhancedStrike::applyTerrain() {
+    SCRenderer::getInstance().terrain_detail = this->enhancedTerrain ? this->detailStrength : 0;
 }

@@ -99,7 +99,7 @@ class RSArea{
 public:
     
     RSArea();
-    ~RSArea();
+    virtual ~RSArea();
     
     void InitFromPAKFileName(const char* pakFilename);
     void InitFromZipFileName(std::string zipFilename);
@@ -124,7 +124,8 @@ public:
     float elevation[BLOCKS_PER_MAP];
 	TreArchive *tre;
     float getGroundLevel(int BLOC, float x, float y);
-    float getY(float x, float z);
+    // Altitude du sol sous un point ; un autre jeu y ajoute ses surfaces (PSArea : pont d'un porte-avions).
+    virtual float getY(float x, float z);
     void BuildSkirts();                  // pré-calcul des jupes (une fois après ParseHeightMap)
     void generateClouds(int count, float altitude, float spread);
     const PrecomputedSkirts& GetSkirts() const { return skirts_; }
@@ -134,6 +135,10 @@ public:
 protected:
     // Lecture d'une région de pistes ; Pacific Strike a son propre format (PSArea).
     virtual void ParseTriFile(PakEntry* entry);
+    // Lecture des sommets d'un niveau de détail ; Pacific Strike y pose l'image de la mer (PSArea).
+    virtual void ParseBlocks(size_t lod, PakEntry *entry, size_t verticePerBlock);
+    void cellUV(uint16_t imageID, int triangle, float uv[3][2]);
+    std::vector<RSMapTextureSet*> textures;
 
 private:
     AssetManager &assetsManager = AssetManager::getInstance();
@@ -144,11 +149,9 @@ private:
     
     //Temporary name: I don't know yet what is in there.
     void ParseHeightMap(void);
-    void ParseBlocks(size_t lod,PakEntry* entry,size_t verticePerBlock);
     
     void ParseElevations(void);
     
-    std::vector<RSMapTextureSet*> textures;
     RSMapTextureSet overlay_textures;
     PakArchive* archive;
     

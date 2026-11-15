@@ -1,7 +1,6 @@
 #include "PSStrike.h"
 #include "PSVirtualCockpit.h"
 
-// Pacific Strike choisit sa musique de mission dans setMission (numéro + 1).
 void PSStrike::start(void) {
     IActivity::start();
 }
@@ -10,17 +9,16 @@ SCMission *PSStrike::createMission(char const *missionName) {
     return new PSMission(missionName, &object_cache);
 }
 
-// Chargement de SCStrike (mission créée par createMission, caméra d'ouverture STARTCAM), puis la musique de
-// Pacific Strike : numéro TUNE + 1.
 void PSStrike::setMission(char const *missionName) {
     if (Mixer.isSoundPlaying(5)) {
         Mixer.stopSound(5);
     }
     Mixer.stopMusic();
     SCStrike::setMission(missionName);
+    this->placePlayerOnGround();
     this->selectFirstWeapon();
     Mixer.switchBank(2);
-    Mixer.playMusic(this->current_mission->mission->mission_data.tune + 1);
+    Mixer.playMusic(this->current_mission->mission->mission_data.tune);
     printf("PSStrike: mission %s, musique %d\n", missionName, this->current_mission->mission->mission_data.tune + 1);
     verticalOffset = 0.0f;
     SCStrike::verticalOffset = 0.0f;
@@ -85,5 +83,29 @@ void PSStrike::selectNextWeapon() {
         this->player_plane->selected_weapon = (int)candidate;
         printf("PSStrike: arme choisie %s (point %zu), %d restant sur ce point\n", stations[candidate]->name.c_str(), candidate, stations[candidate]->nb_weap);
         return;
+    }
+}
+
+// Joueur parti à l'arrêt (vitesse 0 dans son PART) : posé sur le sol sous lui, pont d'un porte-avions compris, train
+// sorti et manette à 0. SCStrike::setMission ne connaît que le terrain et le fait partir en vol.
+void PSStrike::placePlayerOnGround() {
+    MISN_PART *part = this->current_mission->player->object;
+    if (part->speed != 0) {
+        return;
+    }
+    float ground = this->area->getY(this->player_plane->x, this->player_plane->z);
+    printf("PSStrike: joueur a l'arret, altitude %.1f, sol %.1f\n", this->player_plane->y, ground);
+    if (fabsf(ground - this->player_plane->y) > 10.0f) {
+        return;
+    }
+    this->player_plane->y = ground;
+    part->position.y = ground;
+    this->new_position.y = ground;
+    this->player_plane->on_ground = true;
+    this->player_plane->SetThrottle(0);
+    this->player_plane->vz = 0;
+    this->player_plane->velocity = Vector3D(0.0f, 0.0f, 0.0f);
+    if (this->player_plane->GetWheel() == 0) {
+        this->player_plane->SetWheel();
     }
 }

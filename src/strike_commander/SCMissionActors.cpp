@@ -418,15 +418,7 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         if (this->object->entity->explos != nullptr) {
             SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
             this->mission->explosions.push_back(explosion);
-            if (this->mission->sound.sounds.size() > 0) {   
-                MemSound *sound;
-                if (weapon->obj->entity_type == EntityType::tracer) {
-                    sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                } else {
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                }
-                RSMixer::getInstance().playSoundVoc(sound->data, sound->size);
-            }
+            this->mission->playEffect(weapon->obj->entity_type == EntityType::tracer ? SoundEffectIds::GUN_IMPACT_1 : SoundEffectIds::EXPLOSION_1, this->object->position);
         }
         attacker->score += 100;
         if (this->plane != nullptr) {
@@ -500,20 +492,12 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
         event.target->weapon_shooted_at_me = nullptr;
         if (event.target->object->alive == true) {
             if (event.weapon->obj->entity_type == EntityType::tracer) {
-                if (this->mission->sound.sounds.size() > 0) {
-                    RSMixer &Mixer = RSMixer::getInstance();
-                    MemSound *sound;
-                    sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
+                this->mission->playEffect(this == this->mission->player ? SoundEffectIds::PLAYER_HIT : SoundEffectIds::GUN_IMPACT_1, this->object->position);
             } else {
                 this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
-                if (this->mission->sound.sounds.size() > 0) {
-                    RSMixer &Mixer = RSMixer::getInstance();
-                    MemSound *sound;
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
+                SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
+                this->mission->explosions.push_back(explosion);
+                this->mission->playEffect(SoundEffectIds::EXPLOSION_1, this->object->position);
             }
         }
     }
@@ -601,11 +585,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         ai_actor->object->alive = false;
         ai_actor->is_active = false;
         mission->explosions.push_back(new SCExplosion(ai_actor->object->entity->explos->objct, ai_actor->object->position));
-        if (mission->sound.sounds.size() > 0) {
-            RSMixer &Mixer = RSMixer::getInstance();
-            MemSound *sound = mission->sound.sounds[SoundEffectIds::EXPLOSION_4];
-            Mixer.playSoundVoc(sound->data, sound->size, 4, 0);
-        }
+        mission->playEffect(SoundEffectIds::EXPLOSION_4, ai_actor->object->position);
         if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
             ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
         }
@@ -806,15 +786,7 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
         if (this->object->entity->explos != nullptr) {
             SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
             this->mission->explosions.push_back(explosion);
-            if (this->mission->sound.sounds.size() > 0) {   
-                MemSound *sound;
-                if (weapon->obj->entity_type == EntityType::tracer) {
-                    sound = this->mission->sound.sounds[SoundEffectIds::GUN_IMPACT_1];
-                } else {
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                }
-                RSMixer::getInstance().playSoundVoc(sound->data, sound->size);
-            }
+            this->mission->playEffect(weapon->obj->entity_type == EntityType::tracer ? SoundEffectIds::GUN_IMPACT_1 : SoundEffectIds::EXPLOSION_1, this->object->position);
         }
         attacker->score += 100;
         if (this->plane != nullptr) {
@@ -987,6 +959,7 @@ void SCMissionActorsSwpn::fireGun() {
     shell->vz = velocity.z;
     this->weapons_shooted.push_back(shell);
     this->mission->onWeaponSpawned(shell);
+    this->mission->playOrUpdateEffect(SoundEffectIds::TURRET_FIRE, this, (this->object->position - SCRenderer::getInstance().getCamera()->getPosition()).Length());
     printf("SWPN %s#%d fire gun at %s speed=%.0f ammo=%d\n", this->actor_name.c_str(), this->actor_id,
            this->target->actor_name.c_str(), speed, data->weapons_round - 1);
     data->weapons_round--;
@@ -998,6 +971,13 @@ void SCMissionActorsSwpn::onMissionUpdate(const MissionUpdateEvent &event) {
         this->updateFire();
     }
     SCMissionActors::onMissionUpdate(event);
+}
+
+// cos²(élévation) <= cos 15° : cible à au moins 10,6° au-dessus de l'horizon
+bool SCMissionActorsSwpn::inFiringArc(const Vector3D &to_target) {
+    float horizontal_part = to_target.x * to_target.x + to_target.z * to_target.z;
+    const float max_horizontal_part = cosf(15.0f * (float)M_PI / 180.0f);
+    return horizontal_part <= max_horizontal_part;
 }
 
 void SCMissionActorsSwpn::updateFire() {
@@ -1029,10 +1009,7 @@ void SCMissionActorsSwpn::updateFire() {
     this->aiming_vector = to_target;
     float distance = to_target.Length();
     to_target.Normalize();
-    // cos²(élévation) <= cos 15° : cible à au moins 10,6° au-dessus de l'horizon
-    float horizontal_part = to_target.x * to_target.x + to_target.z * to_target.z;
-    const float max_horizontal_part = cosf(15.0f * (float)M_PI / 180.0f);
-    if (distance >= (float)data->effective_range || horizontal_part > max_horizontal_part) {
+    if (distance >= (float)data->effective_range || !this->inFiringArc(to_target)) {
         printf("SWPN %s#%d drop %s distance=%.0f range=%d elevation=%.1f\n", this->actor_name.c_str(),
                this->actor_id, this->target->actor_name.c_str(), distance, data->effective_range,
                asinf(to_target.y) * 180.0f / (float)M_PI);

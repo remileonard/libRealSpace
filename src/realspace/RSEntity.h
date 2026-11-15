@@ -33,13 +33,15 @@ typedef struct MapVertex {
 
     uint8_t flag;
     uint8_t type;
-    uint8_t lowerImageID;
-    uint8_t upperImageID;
+    uint16_t lowerImageID;
+    uint16_t upperImageID;
 
     float color[4];
     float waterShare{1.0f};     // share of water vertices around the vertex, 0 on land
     float lowerColors[3][4];
     float upperColors[3][4];
+    float lowerUV[3][2];        // u, v du triangle bas (sommet, en bas à droite, en bas), posés par la carte
+    float upperUV[3][2];        // u, v du triangle haut (sommet, à droite, en bas à droite)
 
 } MapVertex;
 
@@ -172,14 +174,21 @@ typedef struct JDYN {
 
 class RSEntity {
 protected:
+public:
+    // Chunk CHLD : décalage de l'enfant en mètres (x = c0, z = c1, y = c2 du fichier) et ses 3 angles de montage en
+    // degrés (24.8 convertis à la lecture), dans l'ordre du fichier : axe X, axe Y, axe vertical.
     struct CHLD {
         std::string name;
-        int32_t x;
-        int32_t y;
-        int32_t z;
-        std::vector<uint8_t> data;
+        float x;
+        float y;
+        float z;
+        float pitch;
+        float roll;
+        float yaw;
         RSEntity *objct;
     };
+
+protected:
     struct EXPL {
         std::string name;
         int16_t x;
@@ -295,7 +304,7 @@ public:
     uint8_t missile_data_unknown{0};
     uint16_t missile_fuse_radius{0};
     float decoy_lifetime{0.0f};        // secondes
-    uint8_t health{0};
+    int health{0};
     WDAT *wdat{nullptr};
     DYNN_MISS *dynn_miss{nullptr};
     SWPN_DATA *swpn_data{nullptr};

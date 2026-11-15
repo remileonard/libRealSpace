@@ -44,12 +44,20 @@ void SCMissionScene::runLeaving() {
     this->runProg(this->scene->on_leaving);
 }
 
+// Scene_TriggerActivation_531CD : le script d'activation repasse à chaque fois que la scène redevient courante ; les
+// objets de la scène n'apparaissent qu'à la première activation.
 void SCMissionScene::activate() {
     MISN_SCEN *scene = this->scene;
-    if (scene->has_been_activated) {
-        return;
+    printf("SCENE: activation, zone %d, %zu objets, script %d, %s\n", scene->area_id, scene->cast.size(), scene->on_is_activated, scene->has_been_activated ? "retour dans la scene" : "premiere fois");
+    if (!scene->has_been_activated) {
+        this->spawnCast();
     }
-    printf("SCENE: activation, zone %d, %zu objets, script %d\n", scene->area_id, scene->cast.size(), scene->on_is_activated);
+    this->runProg(scene->on_is_activated);
+    scene->has_been_activated = 1;
+}
+
+void SCMissionScene::spawnCast() {
+    MISN_SCEN *scene = this->scene;
     RSMission *mission = this->mission->mission;
     SCMission *sc_mission = this->mission;
     for (auto cast: scene->cast) {
@@ -135,8 +143,6 @@ void SCMissionScene::activate() {
             i++;
         }
     }
-    this->runProg(scene->on_is_activated);
-    scene->has_been_activated = 1;
 }
 
 SCMissionScene::SCMissionScene(SCMission *mission, MISN_SCEN *scene) {

@@ -10,6 +10,7 @@ SCMission::SCMission() {
     this->last_tick = 0;
     this->tick_counter = 0;
     this->tps = 0;
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
 }
 SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->camera_director = new SCCameraDirector();
@@ -470,6 +471,27 @@ void SCMission::startMusic() {
     this->Mixer.switchBank(2);
     this->musicRequest(this->mission->mission_data.tune, "TUNE de la mission");
 }
+// SoundFX_PlayOrUpdate : son numérisé de l'effet s'il y en a un, sinon sa séquence XMIDI.
+void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance) {
+    MemSound *sound = this->digital_fx ? this->sound.effect(id) : nullptr;
+    if (sound != nullptr) {
+        this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
+        return;
+    }
+    this->Mixer.playOrUpdateSoundFx(this->sound.fxEffect(id), emitter, distance);
+}
+
+// Effet ponctuel à une position : volume selon la distance à la caméra, son numérisé ou séquence XMIDI.
+void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
+    float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
+    MemSound *sound = this->digital_fx ? this->sound.effect(id) : nullptr;
+    if (sound != nullptr) {
+        this->Mixer.playSoundVocAtDistance(sound->data, sound->size, distance);
+        return;
+    }
+    this->Mixer.playSoundFxAtDistance(this->sound.fxEffect(id), distance);
+}
+
 void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
     if (weapon->obj->wdat->target_domain == 1) {
         this->aa_missile_launched = true;
@@ -744,12 +766,17 @@ void SCMission::musicRequest(int tune, const char *reason) {
     this->Mixer.playMusic((uint32_t)tune);
 }
 
+// Ponctuations de victoire du joueur : 16 (avion), 17 (défense fixe ou objet au sol), 18 (décor ou XMIT).
+bool SCMission::musicIsPunctuation(int tune) {
+    return tune >= 16 && tune <= 18;
+}
+
 void SCMission::musicPollEvents() {
     SCMusicEvent music_event;
     while (this->Mixer.pollMusicEvent(music_event)) {
         printf("MUSIC event type=%d track=%d from=%d link=%d measure=%d\n", (int)music_event.type, music_event.track,
                music_event.fromTrack, music_event.link, music_event.measure);
-        bool punctuation = music_event.track >= 16 && music_event.track <= 18;
+        bool punctuation = this->musicIsPunctuation(music_event.track);
         if (music_event.type == SCMusicEvent::TRACK_STARTED && punctuation && this->music_resume_tune >= 0) {
             this->musicRequest(this->music_resume_tune, "reprise apres la ponctuation");
         }
@@ -957,7 +984,7 @@ SCMissionScene *SCMission::findSceneAt(Vector3D position) {
     std::vector<AREA *> &areas = this->mission->mission_data.areas;
     for (auto sc_scene: this->scenes) {
         MISN_SCEN *scene = sc_scene->scene;
-        if (scene->is_active == 0) {
+        if (scene->is_enabled == 0) {
             continue;
         }
         uint16_t area_index = (uint16_t) scene->area_id;
