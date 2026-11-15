@@ -616,13 +616,12 @@ void RSEntity::parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size) {
         std::string tmpname = bs.ReadString(8);
         std::transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
         chld->name = assetsManager.object_root_path+tmpname+".IFF";
-        chld->x = bs.ReadInt32LE();
-        chld->z = bs.ReadInt32LE();
-        chld->y = bs.ReadInt32LE();
-        
-        for (size_t j = 0; j < 12; j++) {
-            chld->data.push_back(bs.ReadByte());
-        }
+        chld->x = bs.ReadFixedFloatLE();
+        chld->z = bs.ReadFixedFloatLE();
+        chld->y = bs.ReadFixedFloatLE();
+        chld->pitch = bs.ReadFixedFloatLE();
+        chld->roll = bs.ReadFixedFloatLE();
+        chld->yaw = bs.ReadFixedFloatLE();
         RSEntity *objct = new RSEntity();
         
         TreEntry *entry = assetsManager.GetEntryByName(chld->name);

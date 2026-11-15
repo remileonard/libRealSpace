@@ -429,7 +429,7 @@ void DebugObjectViewer::renderUI() {
                 if (ImGui::TreeNode("Child Objects")) {
                     for (const auto &chld : entity->chld) {
                         ImGui::Text("Child Name: %s", chld->name.c_str());
-                        ImGui::Text("Position: (%d, %d, %d)", chld->x, chld->y, chld->z);
+                        ImGui::Text("Position: (%.3f, %.3f, %.3f)", chld->x, chld->y, chld->z);
                         if (chld->objct != nullptr) {
                             ImGui::Text("Child Object Frames: %zu", chld->objct->animations.size());
                         } else {

@@ -40,6 +40,7 @@ enum PSSpeedState : uint8_t {
 class PSBrain : public SCAIBrain {
 public:
     PSBrain(SCMissionActors *owner);
+    void topLevelThink() override;
     bool runGoalSelectors() override;
     bool acquireBestThreat(bool allow_new_target) override;
     bool in_formation{ true };
@@ -70,9 +71,35 @@ protected:
     void startFollowLeader(SCMissionActors *leader);
     bool tickFollowLeader();
     int pilotLevel();
-    void updateGroundAttack(SCMissionActors *target) override;
     bool groundAhead();
     bool runTournament() override;
+    bool runReflexes() override;
+    bool pacificReflexes();
+    float levelFloor();
+    bool stallCondition();
+    int scoreGroundAvoid();
+    int scoreStallRecovery();
+    void startRecovery(int id);
+    bool tickRecovery();
+    void ejectPilot();
+    float headingBetween(Vector3D a, Vector3D b);
+    int combatStick();
+    int scoreJink(SCMissionActors *target);
+    int scoreClimbAway(SCMissionActors *target);
+    int scoreImmelmann(SCMissionActors *target);
+    int scoreSplitS(SCMissionActors *target);
+    void startCombatManeuver(int id, SCMissionActors *target);
+    bool tickCombatManeuver();
+    bool collisionCourse(SCMissionActors *other) override;
+    void tickNavigation() override;
+    SCMissionActors *groundAttackTarget();
+    int scoreGroundAttack(SCMissionActors *target);
+    void startGroundAttack(SCMissionActors *target);
+    bool tickGroundAttack();
+    void setGroundPhase(int phase, float timer);
+    void fireHardpoint(int hardpoint, SCMissionActors *target);
+    int ground_hardpoint{ -1 };
+    float approach_altitude{ 0.0f };
     bool behaviorStateMachine();
     bool combatStep(bool ground_allowed) override;
     int scoreGunAttack(SCMissionActors *target);
@@ -82,5 +109,4 @@ protected:
     bool tickGunAttack();
     int gun_bursts{ 0 };
     const char *last_gun_refusal{ nullptr };
-    float pull_up_timer{ 0.0f };
 };

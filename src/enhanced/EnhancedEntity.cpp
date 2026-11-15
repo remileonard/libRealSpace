@@ -71,7 +71,7 @@ void EnhancedEntity::takeGeometry(Geometry &geometry) const
     geometry.childY.clear();
     for (const auto *c : this->chld)
     {
-        geometry.childY.push_back(c != nullptr ? c->y : 0);
+        geometry.childY.push_back(c != nullptr ? c->y : 0.0f);
     }
 }
 

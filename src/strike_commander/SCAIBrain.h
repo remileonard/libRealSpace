@@ -175,7 +175,7 @@ public:
     virtual ~SCAIBrain() = default;
     void tick();
     void updateTimers();
-    void topLevelThink();
+    virtual void topLevelThink();
     virtual bool runGoalSelectors();
 
     SCMissionActors *air_target{nullptr};
@@ -253,9 +253,9 @@ protected:
     void maneuverSpeed(float wanted);
     virtual void speedThrottle(float wanted);
     bool ejectDecision(int mode);
-    bool runReflexes();
+    virtual bool runReflexes();
     bool scanCollisionThreats();
-    bool collisionCourse(SCMissionActors *other);
+    virtual bool collisionCourse(SCMissionActors *other);
     float referenceSpeed();
     void interceptSpeed(SCMissionActors *target, float threshold);
     bool gunSnap(SCMissionActors *target);
@@ -295,7 +295,7 @@ protected:
     void followWaypoints(SCMissionActors *leader);
     int last_finished_behavior{0};
     void applyNavigation(Vector3D point, Vector3D velocity, float duration);
-    void tickNavigation();
+    virtual void tickNavigation();
     enum BehaviorKind : uint8_t { BEHAVIOR_MANEUVER, BEHAVIOR_NAVIGATION, BEHAVIOR_GROUND_ATTACK, BEHAVIOR_TAKEOFF, BEHAVIOR_LANDING };
     std::vector<BehaviorKind> behaviors;               // entite+0x0D
     void pushBehavior(BehaviorKind kind);

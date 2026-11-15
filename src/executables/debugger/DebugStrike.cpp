@@ -2540,7 +2540,7 @@ void DebugStrike::renderMenu() {
                         ImGui::Text("Thrust %d", part->entity->thrust_in_newton);
                         if (ImGui::TreeNode("childs")) {
                             for (auto child : part->entity->chld) {
-                                ImGui::Text("%s - %d %d %d", child->name.c_str(), child->x, child->y, child->z);
+                                ImGui::Text("%s - %.3f %.3f %.3f", child->name.c_str(), child->x, child->y, child->z);
                             }
                             ImGui::TreePop();
                         }

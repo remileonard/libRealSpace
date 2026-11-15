@@ -119,7 +119,7 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
 
     this->forgetOldTrails(now);
     if (this->enhancedModel && plane->object->alive && !entity->chld.empty()) {
-        Vector3D nozzle((float)entity->chld[0]->z / 250.0f, (float)entity->chld[0]->y / 250.0f, (float)entity->chld[0]->x / 250.0f);
+        Vector3D nozzle(entity->chld[0]->z, entity->chld[0]->y, entity->chld[0]->x);
         this->exhaust.draw(plane, model, nozzle, thrust, view);
     }
     this->vortices.draw(plane, entity, model, view, plane->g_load);

@@ -114,6 +114,13 @@ public:
     // altitude à partir de laquelle le moteur perd de la puissance (m).
     float reference_speed_ms{ 0.0f };
     float rated_altitude_m{ 0.0f };
+    // Chunk GARC d'un SWPN (Swpn_LoadModel_B0710) : secteur de tir de la tourelle en degrés, dans le repère de son
+    // montage ; un axe dont une borne atteint 180 ou -180 est libre. Gisement positif vers la gauche.
+    bool has_gun_arc{ false };
+    float arc_elevation_max{ 180.0f };
+    float arc_elevation_min{ -180.0f };
+    float arc_azimuth_max{ 180.0f };
+    float arc_azimuth_min{ -180.0f };
 
 protected:
     void parseREAL_OBJT(uint8_t *data, size_t size) override;
@@ -121,6 +128,9 @@ protected:
     void parseREAL_OBJT_GRND(uint8_t *data, size_t size);
     void parseREAL_OBJT_ORNT(uint8_t *data, size_t size);
     void parseREAL_OBJT_SWPN(uint8_t *data, size_t size);
+    void parseREAL_OBJT_SWPN_GARC(uint8_t *data, size_t size);
+    void parseREAL_OBJT_SWPN_DATA(uint8_t *data, size_t size);
+    void parseREAL_OBJT_JETP_CHLD(uint8_t *data, size_t size);
     void parseREAL_OBJT_XMIT(uint8_t *data, size_t size);
     void parseREAL_OBJT_BOMB(uint8_t *data, size_t size);
     void parseREAL_OBJT_MISS(uint8_t *data, size_t size);

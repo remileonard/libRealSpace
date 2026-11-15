@@ -1000,6 +1000,13 @@ void SCMissionActorsSwpn::onMissionUpdate(const MissionUpdateEvent &event) {
     SCMissionActors::onMissionUpdate(event);
 }
 
+// cos²(élévation) <= cos 15° : cible à au moins 10,6° au-dessus de l'horizon
+bool SCMissionActorsSwpn::inFiringArc(const Vector3D &to_target) {
+    float horizontal_part = to_target.x * to_target.x + to_target.z * to_target.z;
+    const float max_horizontal_part = cosf(15.0f * (float)M_PI / 180.0f);
+    return horizontal_part <= max_horizontal_part;
+}
+
 void SCMissionActorsSwpn::updateFire() {
     auto *data = this->object->entity->swpn_data;
     if (data->weapons_round <= 0 || data->weapon_entity == nullptr) {
@@ -1029,10 +1036,7 @@ void SCMissionActorsSwpn::updateFire() {
     this->aiming_vector = to_target;
     float distance = to_target.Length();
     to_target.Normalize();
-    // cos²(élévation) <= cos 15° : cible à au moins 10,6° au-dessus de l'horizon
-    float horizontal_part = to_target.x * to_target.x + to_target.z * to_target.z;
-    const float max_horizontal_part = cosf(15.0f * (float)M_PI / 180.0f);
-    if (distance >= (float)data->effective_range || horizontal_part > max_horizontal_part) {
+    if (distance >= (float)data->effective_range || !this->inFiringArc(to_target)) {
         printf("SWPN %s#%d drop %s distance=%.0f range=%d elevation=%.1f\n", this->actor_name.c_str(),
                this->actor_id, this->target->actor_name.c_str(), distance, data->effective_range,
                asinf(to_target.y) * 180.0f / (float)M_PI);

@@ -27,6 +27,49 @@ PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, R
 }
 
 PSMission::~PSMission() {
+    for (auto turret : this->turrets) {
+        delete turret;
+    }
+    this->turrets.clear();
+}
+
+// Un enfant SWPN d'un avion ou d'un navire devient une tourelle qui suit son porteur. Montage dans le repère du modèle
+// (nez = z, haut = y, droite = x du chunk CHLD), angles du chunk (axe X = tangage, axe Y = roulis, axe vertical = lacet).
+void PSMission::createTurrets(SCMissionActors *actor) {
+    if (actor->object->entity == nullptr) {
+        return;
+    }
+    EntityType type = actor->object->entity->entity_type;
+    if (type != EntityType::jet && type != EntityType::ship && type != EntityType::carr) {
+        return;
+    }
+    for (auto child : actor->object->entity->chld) {
+        if (child->objct == nullptr || child->objct->entity_type != EntityType::swpn || child->objct->swpn_data == nullptr) {
+            continue;
+        }
+        MISN_PART *part = new MISN_PART();
+        part->id = actor->object->id;
+        part->member_name = child->objct->name;
+        part->entity = child->objct;
+        part->position = actor->object->position;
+        PSMissionActorsTurret *turret = new PSMissionActorsTurret();
+        turret->parent = actor;
+        turret->actor_name = child->name;
+        turret->actor_id = actor->actor_id;
+        turret->object = part;
+        turret->creation_part = *part;
+        turret->health = child->objct->health;
+        turret->team_id = actor->team_id;
+        turret->mission = this;
+        turret->is_active = false;
+        turret->mount = child;
+        PSEntity *entity = static_cast<PSEntity *>(child->objct);
+        printf("PSMission: tourelle %s sur %s#%d, decalage nez %.3f haut %.3f droite %.3f m, tangage %.1f roulis %.1f lacet %.1f, secteur %s elevation [%.0f, %.0f] gisement [%.0f, %.0f], munitions %d, portee %d\n", child->name.c_str(), actor->actor_name.c_str(), actor->actor_id, child->z, child->y, child->x, child->pitch, child->roll, child->yaw, entity->has_gun_arc ? "GARC" : "absent", entity->arc_elevation_min, entity->arc_elevation_max, entity->arc_azimuth_min, entity->arc_azimuth_max, child->objct->swpn_data->weapons_round, child->objct->swpn_data->effective_range);
+        if (child->roll != 0.0f) {
+            printf("PSMission: tourelle %s, roulis de montage %.1f non applique\n", child->name.c_str(), child->roll);
+        }
+        this->turrets.push_back(turret);
+    }
 }
 
 RSEntity *PSMission::createEntity() {
@@ -289,6 +332,9 @@ void PSMission::loadMission() {
             }
             search_id++;
         }
+    }
+    for (auto actor : this->actors) {
+        this->createTurrets(actor);
     }
     // Un script désigne un objet par le numéro de son PART, pas par son rang : les objets du terrain prennent des
     // numéros au-dessus du plus grand numéro de PART.

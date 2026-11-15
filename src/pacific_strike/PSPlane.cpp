@@ -105,6 +105,24 @@ int PSPlane::gunHardpoint() {
     return -1;
 }
 
+// premier point d'emport chargé dont l'arme est dans le masque (sub_3F219) ; −1 sinon
+int PSPlane::hardpointForMask(uint8_t mask) {
+    for (int i = 0; i < (int)this->weaps_load.size(); i++) {
+        SCWeaponLoadoutHardPoint *station = this->weaps_load[i];
+        if (station != nullptr && station->nb_weap > 0 && (weaponMask(station->objct) & mask) != 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+uint8_t PSPlane::hardpointMask(int hardpoint) {
+    if (hardpoint < 0 || hardpoint >= (int)this->weaps_load.size() || this->weaps_load[hardpoint] == nullptr) {
+        return PS_MASK_NONE;
+    }
+    return weaponMask(this->weaps_load[hardpoint]->objct);
+}
+
 void PSPlane::Shoot(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     this->firePacific(weapon_hard_point_id, target, mission);
 }

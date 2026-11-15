@@ -743,12 +743,7 @@ void SCRenderer::drawModelWithChilds(
         if (thrust > 50) {
             if (object->chld.size() > 0) {
                 glPushMatrix();
-                Vector3D pos = {
-                    (float) object->chld[0]->x,
-                    (float) object->chld[0]->y,
-                    (float) object->chld[0]->z
-                };
-                glTranslatef(pos.z/250 , pos.y /250 , pos.x /250);
+                glTranslatef(object->chld[0]->z, object->chld[0]->y, object->chld[0]->x);
                 glScalef(1+thrust/100.0f,1,1);
                 this->drawModel(object->chld[0]->objct, this->lodLevel);
                 glPopMatrix();

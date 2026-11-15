@@ -174,14 +174,21 @@ typedef struct JDYN {
 
 class RSEntity {
 protected:
+public:
+    // Chunk CHLD : décalage de l'enfant en mètres (x = c0, z = c1, y = c2 du fichier) et ses 3 angles de montage en
+    // degrés (24.8 convertis à la lecture), dans l'ordre du fichier : axe X, axe Y, axe vertical.
     struct CHLD {
         std::string name;
-        int32_t x;
-        int32_t y;
-        int32_t z;
-        std::vector<uint8_t> data;
+        float x;
+        float y;
+        float z;
+        float pitch;
+        float roll;
+        float yaw;
         RSEntity *objct;
     };
+
+protected:
     struct EXPL {
         std::string name;
         int16_t x;
