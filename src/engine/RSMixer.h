@@ -56,6 +56,9 @@ class RSMixer {
         -1,
         -1
     };
+    int sfxChannels{ SFX_CHANNELS };
+    int traceTicks{ 0 };
+    void traceDriverState();
     MemMusic *sfxEffect[SFX_CHANNELS]{};
     const void *sfxEmitter[SFX_CHANNELS]{};
     int sfxIdleTicks[SFX_CHANNELS]{};
@@ -125,6 +128,8 @@ public:
     void stopSoundFx(int fxChannel); // SoundFX_StopEffect_59A8A : Note Off seulement
     bool isSoundFxPlaying(int fxChannel);
     void stopAllSoundFx(); // SoundFX_StopAll_5AA95 : arrete les effets et rend leurs canaux verrouilles
+    // Nombre d'effets XMIDI joués en même temps (5 dans Strike Commander, 1 dans Pacific Strike).
+    void setSoundFxChannels(int count);
     // SoundFX_PlayOrUpdate_5A906 : effet de SOUNDFX.ADL pour cet emetteur, volume selon la distance
     // au point de vue (SoundFX_Play3D_59902) ; demarre s'il ne joue pas, sinon met a jour son volume.
     void playOrUpdateSoundFx(int effect, const void *emitter, float distance);

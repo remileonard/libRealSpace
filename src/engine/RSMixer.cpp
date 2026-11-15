@@ -212,12 +212,55 @@ void RSMixer::musicHook(void *udata, Uint8 *stream, int len) {
     }
 }
 
+// Toutes les 5 s (600 pas du pilote) quand un effet XMIDI est en cours ou vient de l'être : voix FM occupées (canal
+// MIDI, état), canaux verrouillés, banque et instrument des canaux 0 à 9.
+void RSMixer::traceDriverState() {
+    bool effect = false;
+    for (int c = 0; c < SFX_CHANNELS; c++) {
+        if (sfxHandle[c] >= 0) {
+            effect = true;
+        }
+    }
+    if (effect) {
+        this->traceTicks = 600 * 3;
+    }
+    if (this->traceTicks <= 0) {
+        return;
+    }
+    this->traceTicks--;
+    if (this->traceTicks % 600 != 0) {
+        return;
+    }
+    OplDevice *opl = dynamic_cast<OplDevice *>(this->device.get());
+    if (opl == nullptr) {
+        return;
+    }
+    printf("MIXER voix %d :", opl->adl.activeVoices());
+    for (int v = 0; v < AILAdlibDriver::VOICES; v++) {
+        if (opl->adl.v_state[v]) {
+            printf(" %d/%d", opl->adl.v_chan[v], opl->adl.v_state[v]);
+        }
+    }
+    printf(" | verrous :");
+    for (int c = 0; c < 16; c++) {
+        if (xmi.lock_status[c] & 0x80) {
+            printf(" %d", c);
+        }
+    }
+    printf(" | banque/instrument :");
+    for (int c = 0; c < 10; c++) {
+        printf(" %d:%d/%d", c, opl->adl.m_bank[c], opl->adl.m_patch[c]);
+    }
+    printf("\n");
+}
+
 // Pas du pilote (120 Hz) : interpreteur XMIDI + voix, puis fin de piste isolee / bouclage.
 void RSMixer::serveDriver() {
     xmi.serve();
     if (sfxXmi != &xmi) {
         sfxXmi->serve();
     }
+    this->traceDriverState();
     if (musicHandle >= 0 && xmi.status(musicHandle) == SEQ_DONE) {
         if (loopsLeft < 0 || loopsLeft > 1) {
             if (loopsLeft > 0) {
@@ -476,10 +519,10 @@ int RSMixer::playSoundFx(MemMusic *fx, int volume) {
     }
     std::lock_guard<std::recursive_mutex> lock(engineMutex);
     int c = 0;
-    while (c < SFX_CHANNELS && sfxHandle[c] >= 0) {
+    while (c < sfxChannels && sfxHandle[c] >= 0) {
         c++; // SoundFX_FindFreeChannel_598A6
     }
-    if (c == SFX_CHANNELS) {
+    if (c == sfxChannels) {
         return -1;
     }
     int err = 0;
@@ -526,6 +569,11 @@ void RSMixer::stopAllSoundFx() {
     for (int c = 0; c < SFX_CHANNELS; c++) {
         stopSoundFx(c);
     }
+}
+
+void RSMixer::setSoundFxChannels(int count) {
+    std::lock_guard<std::recursive_mutex> lock(engineMutex);
+    this->sfxChannels = count < 1 ? 1 : (count > SFX_CHANNELS ? SFX_CHANNELS : count);
 }
 
 bool RSMixer::isSoundFxPlaying(int fxChannel) {

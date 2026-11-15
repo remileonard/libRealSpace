@@ -14,6 +14,7 @@ PSMission::PSMission() {
     this->last_tick = 0;
     this->tick_counter = 0;
     this->tps = 0;
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
 }
 PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->mission_name = mission_name;
@@ -23,6 +24,7 @@ PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, R
     this->tick_counter = 0;
     this->tps = 0;
     this->loadMission();
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
     subscription_id = this->messageBus.subscribeEvent(std::bind(&PSMission::onEvent, this, std::placeholders::_1));
 }
 

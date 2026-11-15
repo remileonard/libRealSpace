@@ -4,6 +4,7 @@
 //
 
 #include "PSSound.h"
+#include "../engine/RSMixer.h"
 
 void PSSound::addEffect(SoundEffectIds id, size_t rank) {
     if (rank < this->sounds.size()) {
@@ -30,13 +31,10 @@ void PSSound::initEffects() {
     this->addEffect(SoundEffectIds::GEARS_UP, 9);
     this->addEffect(SoundEffectIds::GEARS_DOWN, 9);
     this->addEffect(SoundEffectIds::TOUCH_DOWN, 8);
-    // Tir du canon : effet 1 (sub_3E640 → SoundFX_PlayOrUpdate_5EBFB), son 3 ; tir d'une tourelle sans chunk XBRL
-    // (Swpn_TurretUpdate_403A8) : effet 24, son 24. Séquences XMIDI de même numéro en secours.
     this->addEffect(SoundEffectIds::GUN_FIRE, 3);
     this->fx_effects[SoundEffectIds::GUN_FIRE] = 1;
     this->addEffect(SoundEffectIds::TURRET_FIRE, 24);
     this->fx_effects[SoundEffectIds::TURRET_FIRE] = 24;
-    // Séquences XMIDI (SOUNDFX.ADL) : même numéro que l'effet du jeu (SoundFX_Play_5EB62).
     this->fx_effects[SoundEffectIds::EXPLOSION_1] = 2;
     this->fx_effects[SoundEffectIds::EXPLOSION_3] = 2;
     this->fx_effects[SoundEffectIds::EXPLOSION_4] = 2;
@@ -49,5 +47,7 @@ void PSSound::initEffects() {
     this->fx_effects[SoundEffectIds::GEARS_UP] = 18;
     this->fx_effects[SoundEffectIds::GEARS_DOWN] = 18;
     this->fx_effects[SoundEffectIds::TOUCH_DOWN] = 11;
+    // SoundFX_FindFreeChannel_5C62E : un seul effet XMIDI à la fois (`cmp di, 1`), donc un seul canal pris à la musique.
+    RSMixer::getInstance().setSoundFxChannels(1);
     printf("PSSound: %zu sons, %zu effets associes\n", this->sounds.size(), this->effects.size());
 }

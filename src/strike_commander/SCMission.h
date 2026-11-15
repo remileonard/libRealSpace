@@ -95,8 +95,7 @@ public:
     void onWeaponSpawned(SCSimulatedObject *weapon);
     void playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance);
     void playEffect(SoundEffectIds id, Vector3D position);
-    // [Sound] digital_fx : sons numérisés (DSOUNDFX.PAK) ou séquences XMIDI (SOUNDFX.ADL) pour les effets.
-    bool digital_fx{Config::getInstance().getBool("Sound", "digital_fx", true)};
+    bool digital_fx{false};
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
