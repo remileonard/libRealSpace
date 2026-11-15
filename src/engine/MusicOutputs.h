@@ -24,11 +24,15 @@ public:
         if (debugLog && (status & 0xF0) == 0xC0) {
             std::printf("MIDI ch%d program %d\n", (status & 0x0F) + 1, d1);
         }
+        if (Mt32Rhythm::reverbControl(status, d1, d2, [this](const std::vector<uint8_t> &m) { midi.sysex(m); })) {
+            return;
+        }
         midi.send(status, d1, d2);
     }
     void sysex(const uint8_t *data, size_t size) override { midi.raw(data, size); }
     bool hasTimbre(int bank, int patch) override { return uploader.has(bank, patch); }
     void installTimbre(int bank, int patch, const uint8_t *rec) override { uploader.install(bank, patch, rec); }
+    void setTimbreLibrary(const SCTimbreLibrary *l) override { uploader.setLibrary(l); }
 
 private:
     bool debugLog;

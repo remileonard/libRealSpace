@@ -17,6 +17,8 @@
 #include "AILAdlibDriver.h"
 #include "../commons/Nuked-OPL3/opl3.h"
 
+class SCTimbreLibrary;
+
 class MusicDevice {
 public:
     virtual ~MusicDevice() = default;
@@ -32,6 +34,8 @@ public:
         (void)patch;
         (void)rec;
     }
+    // The timbre library of the tunes (STRIKE.MT / STRIKE.AD), for devices that need more than the requested records
+    virtual void setTimbreLibrary(const SCTimbreLibrary *lib) { (void)lib; }
     // 120 Hz service, after the XMIDI events of the interval
     virtual void serve() {}
     // Software devices add their output to an interleaved stereo int16 buffer
