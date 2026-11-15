@@ -93,6 +93,7 @@ public:
     bool aa_missile_launched_last{false};          
     float ai_clock_stagger{0.0f};                  
     void onWeaponSpawned(SCSimulatedObject *weapon);
+    void playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance);
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};

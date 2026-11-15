@@ -78,6 +78,8 @@ public:
     RSMusic *music;
     bool shuttingDown = false;
     std::unordered_map<int, Mix_Chunk *> channelChunks;
+    std::unordered_map<int, const void *> vocEmitters;
+    std::unordered_map<int, uint8_t *> vocData;
     MemMusic *currentMusicMemPtr = nullptr;
     static RSMixer &getInstance() {
         static RSMixer instance;
@@ -131,6 +133,8 @@ public:
     void stopSound(int chanl);
     void playSoundVoc(uint8_t *data, size_t vocSize);
     void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop = 0);
+    // Même règle que playOrUpdateSoundFx pour un son numérisé : relancé ou mis à jour par émetteur.
+    void playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance);
     void setVolume(int volume, int channel = -1);
     bool isSoundPlaying();
     bool isSoundPlaying(int chanl);

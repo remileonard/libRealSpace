@@ -470,6 +470,16 @@ void SCMission::startMusic() {
     this->Mixer.switchBank(2);
     this->musicRequest(this->mission->mission_data.tune, "TUNE de la mission");
 }
+// SoundFX_PlayOrUpdate : son numérisé de l'effet s'il y en a un, sinon sa séquence XMIDI.
+void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance) {
+    MemSound *sound = this->sound.effect(id);
+    if (sound != nullptr) {
+        this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
+        return;
+    }
+    this->Mixer.playOrUpdateSoundFx(this->sound.fxEffect(id), emitter, distance);
+}
+
 void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
     if (weapon->obj->wdat->target_domain == 1) {
         this->aa_missile_launched = true;

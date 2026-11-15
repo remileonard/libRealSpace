@@ -221,8 +221,10 @@ void SCSimulatedObject::Simulate(int tps) {
                 this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, current));
                 if (this->mission->sound.sounds.size() > 0) {
                     MemSound *sound;
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                    Mixer.playSoundVoc(sound->data, sound->size);
+                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
+                    if (sound != nullptr) {
+                        Mixer.playSoundVoc(sound->data, sound->size);
+                    }
                 }
             }
             this->alive = false;
@@ -260,8 +262,10 @@ void SCSimulatedObject::Simulate(int tps) {
                 this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, current));
                 if (this->mission->sound.sounds.size() > 0) {
                     MemSound *sound;
-                    sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                    Mixer.playSoundVoc(sound->data, sound->size);
+                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
+                    if (sound != nullptr) {
+                        Mixer.playSoundVoc(sound->data, sound->size);
+                    }
                 }
                 this->alive = false;
                 return;
@@ -316,8 +320,10 @@ void SCSimulatedObject::Simulate(int tps) {
                     this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
                     if (this->mission->sound.sounds.size() > 0) {
                         MemSound *sound;
-                        sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                        Mixer.playSoundVoc(sound->data, sound->size);
+                        sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
+                        if (sound != nullptr) {
+                            Mixer.playSoundVoc(sound->data, sound->size);
+                        }
                     }
                 }
                 break;
@@ -381,8 +387,10 @@ void SCSimulatedObject::Simulate(int tps) {
             this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
             if (this->mission->sound.sounds.size() > 0) {
                 MemSound *sound;
-                sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-                Mixer.playSoundVoc(sound->data, sound->size);
+                sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
+                if (sound != nullptr) {
+                    Mixer.playSoundVoc(sound->data, sound->size);
+                }
             }
             for (auto entity: this->mission->actors) {
                 if (this->CheckCollision(entity)) {
@@ -523,8 +531,10 @@ void GunSimulatedObject::Simulate(int tps) {
                 this->mission->explosions.push_back(explosion);
                 if (this->obj->entity_type != EntityType::tracer) {
                     if (this->mission->sound.sounds.size() > 0) {
-                        MemSound *sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_3];
-                        Mixer.playSoundVoc(sound->data, sound->size);
+                        MemSound *sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_3);
+                        if (sound != nullptr) {
+                            Mixer.playSoundVoc(sound->data, sound->size);
+                        }
                     }
                 }
             }
@@ -759,8 +769,10 @@ void AgmSimulatedObject::dropTarget(const char *reason) {
 void AgmSimulatedObject::explode(Vector3D position) {
     this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
     if (this->mission->sound.sounds.size() > 0) {
-        MemSound *sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
-        Mixer.playSoundVoc(sound->data, sound->size);
+        MemSound *sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
+        if (sound != nullptr) {
+            Mixer.playSoundVoc(sound->data, sound->size);
+        }
     }
 }
 

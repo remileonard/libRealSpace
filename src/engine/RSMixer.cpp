@@ -541,7 +541,7 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
         return;
     }
     auto set = this->music->soundfx_musics.find(0);
-    if (set == this->music->soundfx_musics.end() || effect >= (int)set->second.size()) {
+    if (set == this->music->soundfx_musics.end() || effect < 0 || effect >= (int)set->second.size()) {
         return;
     }
     MemMusic *fx = set->second[effect];
@@ -602,6 +602,9 @@ void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
         Mix_FreeChunk(chunk);
         return;
     }
+    Mix_Volume(ch, MIX_MAX_VOLUME);
+    vocEmitters.erase(ch);
+    vocData.erase(ch);
 
     // Ajouter le chunk à la map avec protection mutex
     {
@@ -639,6 +642,41 @@ void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop)
         std::lock_guard<std::mutex> lock(g_mixMutex);
         channelChunks[channel] = chunk;
     }
+}
+
+void RSMixer::playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance) {
+    if (shuttingDown || !data) {
+        return;
+    }
+    int volume = 0;
+    if (distance < 1000.0f) {
+        volume = 100 - (int)(distance / 10.0f);
+    } else if (distance < 5000.0f) {
+        volume = 5;
+    }
+    int mix_volume = volume * MIX_MAX_VOLUME / 100;
+    for (auto &kv : vocEmitters) {
+        int c = kv.first;
+        if (kv.second == emitter && vocData[c] == data && Mix_Playing(c) != 0) {
+            if (volume == 0) {
+                Mix_HaltChannel(c);
+            } else {
+                Mix_Volume(c, mix_volume);
+            }
+            return;
+        }
+    }
+    if (volume == 0) {
+        return;
+    }
+    this->channel = -1;
+    this->playSoundVoc(data, vocSize);
+    if (this->channel < 0) {
+        return;
+    }
+    Mix_Volume(this->channel, mix_volume);
+    vocEmitters[this->channel] = emitter;
+    vocData[this->channel] = data;
 }
 
 void RSMixer::stopSound() {
