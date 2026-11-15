@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include "Config.hpp"
 #include <boost/filesystem.hpp>
 
 #define MT32EMU_API_TYPE 1
@@ -63,10 +64,28 @@ bool Mt32Synth::open(const std::string &romDir, int sampleRate) {
     }
     mt32emu_set_stereo_output_samplerate(ctx, (double)sampleRate);
     mt32emu_set_samplerate_conversion_quality(ctx, MT32EMU_SRCQ_GOOD);
+    // Tuning of the emulation towards a first generation MT-32 (control ROM v1.07), see config.ini
+    Config &cfg = Config::getInstance();
+    const int analog = cfg.getInt("Sound", "mt32_analog_mode", 2);
+    if (analog >= 0 && analog <= 3) {
+        static const mt32emu_analog_output_mode modes[4] = { MT32EMU_AOM_DIGITAL_ONLY, MT32EMU_AOM_COARSE, MT32EMU_AOM_ACCURATE,
+                                                             MT32EMU_AOM_OVERSAMPLED };
+        mt32emu_set_analog_output_mode(ctx, modes[analog]);
+    }
     if (mt32emu_open_synth(ctx) != MT32EMU_RC_OK) {
         std::printf("Mt32Synth: cannot open the synth\n");
         mt32emu_free_context(ctx);
         return false;
+    }
+    const int dac = cfg.getInt("Sound", "mt32_dac_mode", 2);
+    if (dac >= 0 && dac <= 3) {
+        static const mt32emu_dac_input_mode dacModes[4] = { MT32EMU_DAC_NICE, MT32EMU_DAC_PURE, MT32EMU_DAC_GENERATION1,
+                                                            MT32EMU_DAC_GENERATION2 };
+        mt32emu_set_dac_input_mode(ctx, dacModes[dac]);
+    }
+    const float reverbGain = (float)std::atof(cfg.getString("Sound", "mt32_reverb_gain", "2.0").c_str());
+    if (reverbGain > 0.0f && reverbGain <= 8.0f) {
+        mt32emu_set_reverb_output_gain(ctx, reverbGain);
     }
     mt32emu_rom_info info;
     mt32emu_get_rom_info(ctx, &info);
