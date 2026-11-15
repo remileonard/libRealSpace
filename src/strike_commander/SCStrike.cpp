@@ -633,8 +633,10 @@ void SCStrike::keyThrottleUp() {
     if (this->player_plane->GetThrottle() == 0) {
         this->player_plane->SetThrottle(21);
         if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_START_MIL];
-            Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
+            MemSound *engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_START_MIL);
+            if (engine != nullptr) {
+                Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
+            }
         }
     }
     if (this->player_plane->GetThrottle() < 100) {
@@ -643,11 +645,15 @@ void SCStrike::keyThrottleUp() {
     if (this->current_mission->sound.sounds.size() > 0) {
         if (!Mixer.isSoundPlaying(5)) {
             if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                MemSound *engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_MIL);
+                if (engine != nullptr) {
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                }
             } else if (this->player_plane->GetThrottle() >= 60) {
-                MemSound *engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_AFB];
-                Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                MemSound *engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_AFB);
+                if (engine != nullptr) {
+                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+                }
             }
         }
     }
@@ -662,10 +668,10 @@ void SCStrike::keyThrottleDown() {
             MemSound *engine = nullptr;
             int can_repeat = 0;
             if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL];
+                engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_MIL);
                 can_repeat = -1;
             } else if (this->current_mission->sound.sounds.size() > 0) {
-                engine = this->current_mission->sound.sounds[SoundEffectIds::ENGINE_MIL_SHUT_DOWN];
+                engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_MIL_SHUT_DOWN);
                 can_repeat = 0;
             }
             if (engine != nullptr) {
@@ -691,11 +697,15 @@ void SCStrike::keyLandingGear() {
     this->player_plane->SetWheel();
     if (this->current_mission->sound.sounds.size() > 0) {
         if (this->player_plane->GetWheel()) {
-            MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_UP];
-            Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
+            MemSound *gears = this->current_mission->sound.effect(SoundEffectIds::GEARS_UP);
+            if (gears != nullptr) {
+                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
+            }
         } else {
-            MemSound *gears = this->current_mission->sound.sounds[SoundEffectIds::GEARS_DOWN];
-            Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
+            MemSound *gears = this->current_mission->sound.effect(SoundEffectIds::GEARS_DOWN);
+            if (gears != nullptr) {
+                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
+            }
         }
     }
 }
@@ -864,7 +874,7 @@ void SCStrike::keySingleTargetMode() {
 void SCStrike::setThrottlePreset(int throttle) {
     this->player_plane->SetThrottle(throttle);
     if (this->current_mission->sound.sounds.size() > 0) {
-        MemSound *engine = this->current_mission->sound.sounds[throttle < 60 ? SoundEffectIds::ENGINE_MIL : SoundEffectIds::ENGINE_AFB];
+        MemSound *engine = this->current_mission->sound.effect(throttle < 60 ? SoundEffectIds::ENGINE_MIL : SoundEffectIds::ENGINE_AFB);
         if (engine != nullptr) {
             Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
         }

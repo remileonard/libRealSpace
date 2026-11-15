@@ -9,6 +9,7 @@
 #include "../../pacific_strike/PSGameFlow.h"
 #include "../../pacific_strike/PSState.h"
 #include "../../pacific_strike/PSConvAssetManager.h"
+#include "../../pacific_strike/PSSound.h"
 #include "../../engine/gametimer.h"
 #include "../../engine/desktoptimer.h"
 
@@ -74,6 +75,7 @@ int main(int argc, char* argv[]) {
         ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
         ConvAssetManager::getInstance().init();
         loader->setProgress(90.0f);
+        RSSound::setInstance(std::make_unique<PSSound>());
         RSSound::getInstance().init();
         loader->setProgress(100.0f);
     });

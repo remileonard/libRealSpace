@@ -7,6 +7,7 @@
 #include "EnhancedCockpit.h"
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
+#include "GForceEffect.h"
 #include "EndMissionPrompt.h"
 #include "OptionsPanel.h"
 #include "WaterSplashEffect.h"
@@ -34,6 +35,8 @@ protected:
     void handleOptionsKey();
     void drawOptions();
     void applyOption(int index);
+    void applyWater();
+    void applyTerrain();
     void saveConfig() const;
 
 private:
@@ -50,6 +53,7 @@ private:
 
     bool orbitAllowed() const;
     void updateOrbit();
+    void setOrbitRelativeMouse(bool on);
     void updateCockpit3D();
     void debugDamage();
     Vector3D orbitedPosition(Vector3D pivot, Vector3D position) const;
@@ -66,6 +70,7 @@ private:
 
     bool orbitActive{false};
     bool orbitInvertY{true};
+    bool orbitRelativeMouse{false};
     float orbitYaw{0.0f};
     float orbitPitch{0.0f};
     float orbitZoom{1.0f};
@@ -81,10 +86,24 @@ private:
     enhanced::DamageSmokeEffect damageSmoke;
     enhanced::CockpitGlassEffect cockpitGlass;
     enhanced::WaterSplashEffect waterSplash;
+    enhanced::GForceEffect gForce;
+    bool gEffectsEnabled{false};
     bool waterSplashEnabled{false};
     bool glassEnabled{true};
     bool enhancedModel{true};
+    bool enhancedWater{false};
+    bool enhancedTerrain{false};
+    int waveStrength{25};
+    int detailStrength{25};
     bool orbitEnabled{true};
+    bool msaaAvailable{false};
+    bool msaaOn{true};
+    bool showFps{false};
+    enhanced::GameUI fpsUi;
+    uint32_t fpsStart{0};
+    int fpsFrames{0};
+    float fpsValue{0.0f};
+    void applyMsaa();
     bool optionsOpen{false};
     bool optionsWasPaused{false};
     std::vector<enhanced::OptionEntry> options;

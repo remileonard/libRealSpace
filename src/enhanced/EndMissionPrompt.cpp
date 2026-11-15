@@ -15,13 +15,17 @@ EndMissionPrompt::Result EndMissionPrompt::draw(float mouseX, float mouseY, floa
         this->ui.end();
         return Result::None;
     }
-    this->ui.panel(50, 50, 220, 100);
-    this->ui.label("END MISSION", 160, 62, 2);
+    const int panelW = 220;
+    const int panelH = 100;
+    const int panelX = (GameUI::UI_W - panelW) / 2;
+    const int panelY = (GameUI::UI_H - panelH) / 2;
+    this->ui.panel(panelX, panelY, panelW, panelH);
+    this->ui.label("END MISSION", GameUI::UI_W / 2, panelY + 12, 2);
     Result result = Result::None;
-    if (this->ui.button(70, 94, 180, 18, "END MISSION")) {
+    if (this->ui.button(panelX + 20, panelY + 44, panelW - 40, 18, "END MISSION")) {
         result = Result::End;
     }
-    if (this->ui.button(70, 118, 180, 18, "STAY IN COCKPIT")) {
+    if (this->ui.button(panelX + 20, panelY + 68, panelW - 40, 18, "STAY IN COCKPIT")) {
         result = Result::Stay;
     }
     this->ui.end();

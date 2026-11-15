@@ -548,6 +548,8 @@ bool PSCockpit::commOptionAvailable(char ask, SCMissionActors *receiver) {
             return player->target != nullptr;
         case 'j':
             return brain != nullptr && !brain->isFleeing();
+        case 'k':
+            return this->current_mission->player_tail_threat != nullptr;
         case 'l':
             return receiver->talkative;
         case 'm':

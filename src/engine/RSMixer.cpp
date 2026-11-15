@@ -212,12 +212,55 @@ void RSMixer::musicHook(void *udata, Uint8 *stream, int len) {
     }
 }
 
+// Toutes les 5 s (600 pas du pilote) quand un effet XMIDI est en cours ou vient de l'être : voix FM occupées (canal
+// MIDI, état), canaux verrouillés, banque et instrument des canaux 0 à 9.
+void RSMixer::traceDriverState() {
+    bool effect = false;
+    for (int c = 0; c < SFX_CHANNELS; c++) {
+        if (sfxHandle[c] >= 0) {
+            effect = true;
+        }
+    }
+    if (effect) {
+        this->traceTicks = 600 * 3;
+    }
+    if (this->traceTicks <= 0) {
+        return;
+    }
+    this->traceTicks--;
+    if (this->traceTicks % 600 != 0) {
+        return;
+    }
+    OplDevice *opl = dynamic_cast<OplDevice *>(this->device.get());
+    if (opl == nullptr) {
+        return;
+    }
+    printf("MIXER voix %d :", opl->adl.activeVoices());
+    for (int v = 0; v < AILAdlibDriver::VOICES; v++) {
+        if (opl->adl.v_state[v]) {
+            printf(" %d/%d", opl->adl.v_chan[v], opl->adl.v_state[v]);
+        }
+    }
+    printf(" | verrous :");
+    for (int c = 0; c < 16; c++) {
+        if (xmi.lock_status[c] & 0x80) {
+            printf(" %d", c);
+        }
+    }
+    printf(" | banque/instrument :");
+    for (int c = 0; c < 10; c++) {
+        printf(" %d:%d/%d", c, opl->adl.m_bank[c], opl->adl.m_patch[c]);
+    }
+    printf("\n");
+}
+
 // Pas du pilote (120 Hz) : interpreteur XMIDI + voix, puis fin de piste isolee / bouclage.
 void RSMixer::serveDriver() {
     xmi.serve();
     if (sfxXmi != &xmi) {
         sfxXmi->serve();
     }
+    this->traceDriverState();
     if (musicHandle >= 0 && xmi.status(musicHandle) == SEQ_DONE) {
         if (loopsLeft < 0 || loopsLeft > 1) {
             if (loopsLeft > 0) {
@@ -476,10 +519,10 @@ int RSMixer::playSoundFx(MemMusic *fx, int volume) {
     }
     std::lock_guard<std::recursive_mutex> lock(engineMutex);
     int c = 0;
-    while (c < SFX_CHANNELS && sfxHandle[c] >= 0) {
+    while (c < sfxChannels && sfxHandle[c] >= 0) {
         c++; // SoundFX_FindFreeChannel_598A6
     }
-    if (c == SFX_CHANNELS) {
+    if (c == sfxChannels) {
         return -1;
     }
     int err = 0;
@@ -528,6 +571,11 @@ void RSMixer::stopAllSoundFx() {
     }
 }
 
+void RSMixer::setSoundFxChannels(int count) {
+    std::lock_guard<std::recursive_mutex> lock(engineMutex);
+    this->sfxChannels = count < 1 ? 1 : (count > SFX_CHANNELS ? SFX_CHANNELS : count);
+}
+
 bool RSMixer::isSoundFxPlaying(int fxChannel) {
     if (fxChannel < 0 || fxChannel >= SFX_CHANNELS) {
         return false;
@@ -536,21 +584,41 @@ bool RSMixer::isSoundFxPlaying(int fxChannel) {
     return sfxHandle[fxChannel] >= 0;
 }
 
+int RSMixer::distanceVolume(float distance) {
+    if (distance < 1000.0f) {
+        return 100 - (int)(distance / 10.0f);
+    }
+    if (distance < 5000.0f) {
+        return 5;
+    }
+    return 0;
+}
+
+void RSMixer::playSoundFxAtDistance(int effect, float distance) {
+    if (shuttingDown || !this->music) {
+        return;
+    }
+    auto set = this->music->soundfx_musics.find(0);
+    if (set == this->music->soundfx_musics.end() || effect < 0 || effect >= (int)set->second.size()) {
+        return;
+    }
+    int volume = distanceVolume(distance);
+    if (volume == 0) {
+        return;
+    }
+    playSoundFx(set->second[effect], volume);
+}
+
 void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distance) {
     if (shuttingDown || !this->music) {
         return;
     }
     auto set = this->music->soundfx_musics.find(0);
-    if (set == this->music->soundfx_musics.end() || effect >= (int)set->second.size()) {
+    if (set == this->music->soundfx_musics.end() || effect < 0 || effect >= (int)set->second.size()) {
         return;
     }
     MemMusic *fx = set->second[effect];
-    int volume = 0;
-    if (distance < 1000.0f) {
-        volume = 100 - (int)(distance / 10.0f);
-    } else if (distance < 5000.0f) {
-        volume = 5;
-    }
+    int volume = distanceVolume(distance);
     std::lock_guard<std::recursive_mutex> lock(engineMutex);
     for (int c = 0; c < SFX_CHANNELS; c++) {
         if (sfxHandle[c] >= 0 && sfxEffect[c] == fx && sfxEmitter[c] == emitter) {
@@ -602,6 +670,9 @@ void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
         Mix_FreeChunk(chunk);
         return;
     }
+    Mix_Volume(ch, MIX_MAX_VOLUME);
+    vocEmitters.erase(ch);
+    vocData.erase(ch);
 
     // Ajouter le chunk à la map avec protection mutex
     {
@@ -639,6 +710,49 @@ void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop)
         std::lock_guard<std::mutex> lock(g_mixMutex);
         channelChunks[channel] = chunk;
     }
+}
+
+void RSMixer::playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance) {
+    if (shuttingDown || !data) {
+        return;
+    }
+    int volume = distanceVolume(distance);
+    int mix_volume = volume * MIX_MAX_VOLUME / 100;
+    for (auto &kv : vocEmitters) {
+        int c = kv.first;
+        if (kv.second == emitter && vocData[c] == data && Mix_Playing(c) != 0) {
+            if (volume == 0) {
+                Mix_HaltChannel(c);
+            } else {
+                Mix_Volume(c, mix_volume);
+            }
+            return;
+        }
+    }
+    if (volume == 0) {
+        return;
+    }
+    this->channel = -1;
+    this->playSoundVoc(data, vocSize);
+    if (this->channel < 0) {
+        return;
+    }
+    Mix_Volume(this->channel, mix_volume);
+    vocEmitters[this->channel] = emitter;
+    vocData[this->channel] = data;
+}
+
+void RSMixer::playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance) {
+    int volume = distanceVolume(distance);
+    if (volume == 0) {
+        return;
+    }
+    this->channel = -1;
+    this->playSoundVoc(data, vocSize);
+    if (this->channel < 0) {
+        return;
+    }
+    Mix_Volume(this->channel, volume * MIX_MAX_VOLUME / 100);
 }
 
 void RSMixer::stopSound() {
