@@ -31,6 +31,9 @@ public:
     void computeThrust() override;
     void InitLoadout() override;
     int isOnRunWay() override;
+    int systemDamagePercent(const std::string &name);
+    bool seriouslyDamaged();
+    bool criticallyDamaged();
     int gunHardpoint();
     int hardpointForMask(uint8_t mask);
     uint8_t hardpointMask(int hardpoint);

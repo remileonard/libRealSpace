@@ -744,12 +744,17 @@ void SCMission::musicRequest(int tune, const char *reason) {
     this->Mixer.playMusic((uint32_t)tune);
 }
 
+// Ponctuations de victoire du joueur : 16 (avion), 17 (défense fixe ou objet au sol), 18 (décor ou XMIT).
+bool SCMission::musicIsPunctuation(int tune) {
+    return tune >= 16 && tune <= 18;
+}
+
 void SCMission::musicPollEvents() {
     SCMusicEvent music_event;
     while (this->Mixer.pollMusicEvent(music_event)) {
         printf("MUSIC event type=%d track=%d from=%d link=%d measure=%d\n", (int)music_event.type, music_event.track,
                music_event.fromTrack, music_event.link, music_event.measure);
-        bool punctuation = music_event.track >= 16 && music_event.track <= 18;
+        bool punctuation = this->musicIsPunctuation(music_event.track);
         if (music_event.type == SCMusicEvent::TRACK_STARTED && punctuation && this->music_resume_tune >= 0) {
             this->musicRequest(this->music_resume_tune, "reprise apres la ponctuation");
         }

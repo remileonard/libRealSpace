@@ -26,4 +26,13 @@ public:
 
 protected:
     void createTurrets(SCMissionActors *actor);
+    void onMusicUpdate() override;
+    void onActorDestroyed(SCMissionActors *actor) override;
+    uint8_t musicScanEnemies(SCMissionActors *excluded) override;
+    bool musicFallback() override;
+    bool musicIsPunctuation(int tune) override;
+
+private:
+    bool musicTuneLocked();
+    bool musicTargetWithinRange();
 };

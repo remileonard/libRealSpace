@@ -314,3 +314,46 @@ int PSPlane::isOnRunWay() {
     }
     return SCPlane::isOnRunWay();
 }
+
+// DamageSys_PercentOfSystem_41595 : 100 * dégâts / points du système
+int PSPlane::systemDamagePercent(const std::string &name) {
+    for (auto &system : this->object->entity->sysm) {
+        auto sub_system = system.second.find(name);
+        if (sub_system == system.second.end() || sub_system->second == 0) {
+            continue;
+        }
+        auto health_system = this->system_health.find(system.first);
+        if (health_system == this->system_health.end()) {
+            return 0;
+        }
+        auto health = health_system->second.find(name);
+        if (health == health_system->second.end()) {
+            return 0;
+        }
+        int damage = (int)sub_system->second - (int)health->second;
+        return 100 * damage / (int)sub_system->second;
+    }
+    return 0;
+}
+
+// DamageSys_IsSeriouslyDamaged_41612 : moteur > 30 %, ailerons ou profondeur > 50 %
+bool PSPlane::seriouslyDamaged() {
+    if (this->systemDamagePercent("ENGINE") > 30) {
+        return true;
+    }
+    if (this->systemDamagePercent("AILERON") > 50) {
+        return true;
+    }
+    return this->systemDamagePercent("ELEVATOR") > 50;
+}
+
+// DamageSys_IsCriticallyDamaged_41658 : moteur, ailerons ou profondeur > 90 %
+bool PSPlane::criticallyDamaged() {
+    if (this->systemDamagePercent("ENGINE") > 90) {
+        return true;
+    }
+    if (this->systemDamagePercent("AILERON") > 90) {
+        return true;
+    }
+    return this->systemDamagePercent("ELEVATOR") > 90;
+}

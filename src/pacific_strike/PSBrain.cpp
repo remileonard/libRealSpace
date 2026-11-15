@@ -198,34 +198,11 @@ bool PSBrain::isFighter() {
 
 // DamageSys_IsSeriouslyDamaged_41612 : systèmes 0, 4 et 3 du chunk SYSN d'EXTENTS.IFF
 bool PSBrain::seriouslyDamaged() {
-    if (this->systemDamagePercent("ENGINE") > 30) {
-        return true;
-    }
-    if (this->systemDamagePercent("AILERON") > 50) {
-        return true;
-    }
-    return this->systemDamagePercent("ELEVATOR") > 50;
+    return static_cast<PSPlane *>(owner->plane)->seriouslyDamaged();
 }
 
-// DamageSys_PercentOfSystem_41595 : 100 * dégâts / points du système
 int PSBrain::systemDamagePercent(const std::string &name) {
-    for (auto &system : owner->object->entity->sysm) {
-        auto sub_system = system.second.find(name);
-        if (sub_system == system.second.end() || sub_system->second == 0) {
-            continue;
-        }
-        auto health_system = owner->plane->system_health.find(system.first);
-        if (health_system == owner->plane->system_health.end()) {
-            return 0;
-        }
-        auto health = health_system->second.find(name);
-        if (health == health_system->second.end()) {
-            return 0;
-        }
-        int damage = (int)sub_system->second - (int)health->second;
-        return 100 * damage / (int)sub_system->second;
-    }
-    return 0;
+    return static_cast<PSPlane *>(owner->plane)->systemDamagePercent(name);
 }
 
 // [entité+178] : niveau du pilote d'après l'octet 5 d'ATRB (FL)

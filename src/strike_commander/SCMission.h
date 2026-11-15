@@ -47,12 +47,13 @@ protected:
     bool music_eject_requested{false};
     bool music_shot_down_requested{false};
     bool music_landing_requested{false};
-    void onMusicUpdate();
-    void onActorDestroyed(SCMissionActors *actor);
+    virtual void onMusicUpdate();
+    virtual void onActorDestroyed(SCMissionActors *actor);
     void musicPollEvents();
     void musicRequest(int tune, const char *reason);
-    uint8_t musicScanEnemies(SCMissionActors *excluded);
-    bool musicFallback();
+    virtual uint8_t musicScanEnemies(SCMissionActors *excluded);
+    virtual bool musicFallback();
+    virtual bool musicIsPunctuation(int tune);
     float playerDamage();
     bool enemyOnPlayerSix();
     
