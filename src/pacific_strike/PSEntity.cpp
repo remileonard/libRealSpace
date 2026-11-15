@@ -1,4 +1,5 @@
 #include "PSEntity.h"
+#include <algorithm>
 #include "../strike_commander/SCenums.h"
 
 void PSEntity::parseREAL_OBJT(uint8_t *data, size_t size) {

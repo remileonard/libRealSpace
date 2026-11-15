@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <vector>
 #include "../engine/Texture.h"
 
@@ -9,13 +10,13 @@ namespace enhanced {
 
 /**
  * Small immediate-mode UI in the look of the game's main menu: a panel of any size cut from the silver board, buttons with
- * bevel and free text, and a mouse cursor. Everything is drawn into a 320x200 palette picture, uploaded as one texture and
+ * bevel and free text, and a mouse cursor. Everything is drawn into a 400x250 palette picture, uploaded as one texture and
  * drawn over the finished frame.
  */
 class GameUI {
 public:
-    static constexpr int UI_W = 320;
-    static constexpr int UI_H = 200;
+    static constexpr int UI_W = 400;
+    static constexpr int UI_H = 250;
 
     /** Loads board, palette and font from the game data once; false if they are not available. */
     bool init();
@@ -35,13 +36,17 @@ public:
     /** A button that stays pressed (sunken, green) while @p on is set. @return true if it was clicked in this frame */
     bool toggle(int x, int y, int w, int h, const char *text, bool on);
     /** Uploads the picture and draws it with the cursor over the current frame. */
-    void end();
+    void end(bool menu = true);
+    /** Small text box in the top left corner of the screen, no menu around it (drawn and uploaded at once, e.g. FPS counter). */
+    void hud(const char *text);
 
 private:
     void fillRect(int x, int y, int w, int h, uint8_t color);
     uint8_t nearestColor(int r, int g, int b) const;
     bool drawButton(int x, int y, int w, int h, const char *text, bool pressed, uint8_t fill);
     void drawCursor(float scale) const;
+    int textWidth(const std::string &text) const;
+    void drawText(FrameBuffer *target, int x, int y, const std::string &text);
 
     bool tried{false};
     bool ready{false};

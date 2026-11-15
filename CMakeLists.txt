@@ -93,7 +93,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/resources/TO1MID3.IFF" DESTINATION "${ASSETS_DIR}
 file(COPY "${CMAKE_SOURCE_DIR}/resources/AcPlus_IBM_VGA_9x16.ttf" DESTINATION "${ASSETS_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/resources/config.ini" DESTINATION "${CMAKE_BINARY_DIR}")
 # Installation des exécutables et des DLLs
-install(TARGETS ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${PS_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${CONFIG_TARGET_NAME} DESTINATION ".")
+install(TARGETS ${SCE_TARGET_NAME} ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${PS_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${CONFIG_TARGET_NAME} DESTINATION ".")
 if (NOT APPLE)
     install(TARGETS ${VRSTRIKE_TARGET_NAME} ${VRPACIFIC_TARGET_NAME} DESTINATION ".")
 endif()
@@ -145,6 +145,7 @@ if(WIN32)
             "${VCPKG_BIN_DIR}/boost_atomic-vc144-mt-x64-1_85.dll"
             "${VCPKG_BIN_DIR}/boost_filesystem-vc144-mt-x64-1_85.dll"
             "${VCPKG_BIN_DIR}/boost_system-vc144-mt-x64-1_85.dll"
+            "${VCPKG_BIN_DIR}/mt32emu-2.dll"
         )
         
         message(STATUS "VCPKG DLLs: ${VCPKG_DLLS}")

@@ -91,34 +91,42 @@ void ExhaustEffect::addHotGas() {
 // afterburner: long turbulent plume, white-blue core, orange mantle
 void ExhaustEffect::addAfterburner() {
     float R = NOZZLE_RADIUS;
-    float length = (6.0f + 10.5f * abp) * (1.0f + 1.0f * (flicker - 1.0f)) * (0.55f + 0.45f * ab);
-    float A = ab * (0.70f + 0.30f * abp);
-    addStrip(length, 1.10f + 0.22f * abp, 0.38f, color(1.0f, 0.34f, 0.06f, 0.55f * A), 0.22f * length, 4.2f, 0.0f);
-    addStrip(length * 0.92f, 1.00f + 0.20f * abp, 0.34f, color(1.0f, 0.42f, 0.08f, 0.40f * A), 0.30f * length, 5.1f, 0.5f);
-    addStrip(length * 0.78f, 0.68f, 0.28f, color(1.0f, 0.72f, 0.28f, 0.60f * A), 0.28f * length, 6.3f, 0.21f);
-    addStrip(length * 0.50f, 0.36f, 0.18f, color(0.80f, 0.90f, 1.0f, 0.85f * A), 0.35f * length, 7.4f, 0.77f);
+    // strength 1 = original plume; larger values make it longer, wider and brighter
+    const float S = strength;
+    const float W = 1.0f + 0.80f * (S - 1.0f);
+    float length = (6.0f + 10.5f * abp) * (1.0f + 1.0f * (flicker - 1.0f)) * (0.55f + 0.45f * ab) * S;
+    float A = ab * (0.70f + 0.30f * abp) * (1.0f + 0.90f * (S - 1.0f));
+    addStrip(length, (1.10f + 0.22f * abp) * W, 0.38f, color(1.0f, 0.34f, 0.06f, 0.55f * A), 0.22f * length, 4.2f, 0.0f);
+    addStrip(length * 0.92f, (1.00f + 0.20f * abp) * W, 0.34f, color(1.0f, 0.42f, 0.08f, 0.40f * A), 0.30f * length, 5.1f, 0.5f);
+    addStrip(length * 0.78f, 0.68f * W, 0.28f, color(1.0f, 0.72f, 0.28f, 0.60f * A), 0.28f * length, 6.3f, 0.21f);
+    addStrip(length * 0.50f, 0.36f * W, 0.18f, color(0.80f, 0.90f, 1.0f, 0.85f * A), 0.35f * length, 7.4f, 0.77f);
     for (int k = 0; k < 7; k++) {
-        float x = -(0.9f + 1.25f * k) * R * (1.0f + 0.40f * abp);
+        float x = -(0.9f + 1.25f * k) * R * (1.0f + 0.40f * abp) * S;
         if (-x > length * 0.8f) {
             break;
         }
-        addDiamond(x, 0.45f * R, 0.38f * R * (1.0f - 0.07f * k), 0.45f * A * expf(-0.30f * k) * flicker);
+        addDiamond(x, 0.45f * R * W, 0.38f * R * W * (1.0f - 0.07f * k), 0.45f * A * expf(-0.30f * k) * flicker);
     }
-    addSprite(-0.10f, R * (1.5f + 0.5f * abp), color(1.0f, 0.82f, 0.50f, 0.65f * A * flicker));
-    addSprite(-0.30f, R * 2.6f, color(1.0f, 0.42f, 0.10f, 0.22f * A));
-    addSprite(-length * 0.30f, R * (2.4f + 0.8f * abp), color(1.0f, 0.38f, 0.08f, 0.10f * A));
+    if (S > 1.0f) {
+        // extra: long hot core along the axis and a bright glow at the nozzle exit
+        addStrip(length * 0.65f, 0.30f * W, 0.12f, color(1.0f, 0.95f, 0.85f, 0.70f * A), 0.40f * length, 8.6f, 0.33f);
+        addSprite(-0.20f, R * 2.2f * W, color(1.0f, 0.90f, 0.65f, 0.40f * A * flicker));
+    }
+    addSprite(-0.10f, R * (1.5f + 0.5f * abp) * W, color(1.0f, 0.82f, 0.50f, 0.65f * A * flicker));
+    addSprite(-0.30f, R * 2.6f * W, color(1.0f, 0.42f, 0.10f, 0.22f * A));
+    addSprite(-length * 0.30f, R * (2.4f + 0.8f * abp) * W, color(1.0f, 0.38f, 0.08f, 0.10f * A));
     // looking straight into the jet: axial glow stack replaces the edge-on strips
     for (int k = 0; k < 4; k++) {
-        addSprite(-length * (0.08f + 0.2f * k), R * (1.9f - 0.3f * k), color(1.0f, 0.55f - 0.08f * k, 0.15f, 0.30f * A * endon));
+        addSprite(-length * (0.08f + 0.2f * k), R * (1.9f - 0.3f * k) * W, color(1.0f, 0.55f - 0.08f * k, 0.15f, 0.30f * A * endon));
     }
-    addSprite(-0.4f, R * 1.1f, color(1.0f, 0.92f, 0.78f, 0.55f * A * endon * flicker));
+    addSprite(-0.4f, R * 1.1f * W, color(1.0f, 0.92f, 0.78f, 0.55f * A * endon * flicker));
 }
 
 void ExhaustEffect::traceStage(const void *key, int thrust) {
     int stage = ab > 0.001f ? 2 : 1;
     int &last = stages[key];
     if (last != stage) {
-        printf("[enhanced] exhaust %p: %s (thrust %d)\n", key, stage == 2 ? "afterburner" : "hot gas", thrust);
+        printf("[enhanced] exhaust %p: %s (thrust %d, strength %.2f)\n", key, stage == 2 ? "afterburner" : "hot gas", thrust, strength);
         last = stage;
     }
 }
