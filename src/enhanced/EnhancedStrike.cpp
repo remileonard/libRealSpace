@@ -142,6 +142,10 @@ void EnhancedStrike::init() {
     printf("[enhanced] water splash: %s\n", this->waterSplashEnabled ? "on" : "off");
     this->orbitEnabled = cfg.getString("Video", "camera_mouse_orbit", "1") != "0";
     printf("[enhanced] outside camera mouse orbit: %s\n", this->orbitEnabled ? "on" : "off");
+    this->gEffectsEnabled = cfg.getString("Video", "g_effects", "0") == "1";
+    this->gForce.configure((float)atof(cfg.getString("Video", "g_effects_threshold", "4.5").c_str()),
+                           (float)atof(cfg.getString("Video", "g_effects_strength", "1").c_str()));
+    printf("[enhanced] G-force vision effects: %s\n", this->gEffectsEnabled ? "on" : "off");
     this->options.clear();
     this->options.push_back({"ENHANCED WATER", &this->waterSplashEnabled});
     this->options.push_back({"ENHANCED COCKPIT", &this->cockpit3d});
@@ -399,6 +403,15 @@ bool EnhancedStrike::confirmEndMission() {
 }
 
 void EnhancedStrike::afterFrameRendered() {
+    if (this->gEffectsEnabled) {
+        // only in the first person views and while the pilot is on board
+        const bool firstPerson = this->camera_mode == View::REAL || this->camera_mode == View::FRONT ||
+                                 this->camera_mode == View::LEFT || this->camera_mode == View::RIGHT ||
+                                 this->camera_mode == View::REAR;
+        const bool onBoard = this->player_plane && !this->player_plane->crached && !this->player_plane->ejected;
+        this->gForce.update(onBoard ? this->player_plane->g_load : 1.0f, firstPerson && onBoard);
+        this->gForce.draw();
+    }
     if (this->optionsOpen) {
         this->drawOptions();
         return;

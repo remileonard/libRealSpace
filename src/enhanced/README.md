@@ -64,6 +64,15 @@ is not changed.
 sun, fine dust and scratches that light up when looking towards the sun, a glare veil and halo, and impact cracks that appear
 step by step with the damage level of the player aircraft.
 
+## G-force vision (`GForceEffect`)
+
+With `[Video] g_effects = 1` (default 0) `EnhancedStrike` draws a screen overlay in `afterFrameRendered()` in the first person views
+(forward, left, right, rear and the free cockpit look) while the pilot is on board: a tunnel vision, a grey-out and a blackout
+that never gets complete at high positive G, and a red-out at negative G. The G load of the player aircraft is low-passed (the body
+reacts slowly: onset about 1.2 s, recovery about 0.7 s). `g_effects_threshold` (2..9, default 4.5) is the G load where the tunnel
+vision starts, `g_effects_strength` (0..2, default 1) scales all effects. The grey-out is a grey veil with alpha, not a true
+desaturation. For testing, `NEOSC_GTEST=9` in the environment forces a G load.
+
 ## HD cockpit textures (`EnhancedCockpit`)
 
 `EnhancedStrike::createCockpit()` returns an `EnhancedCockpit`. With `[Video] hd_textures = 1` its `init()` replaces cockpit
