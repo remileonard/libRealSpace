@@ -34,6 +34,7 @@ add_subdirectory(src/executables/debugger)
 add_subdirectory(src/executables/config)
 if (WIN32)
     add_subdirectory(src/executables/vrstrike)
+    add_subdirectory(src/executables/vrpacific)
 endif()
 add_subdirectory(src/strike_commander)
 add_subdirectory(src/tactical_operation)
@@ -93,7 +94,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/resources/config.ini" DESTINATION "${CMAKE_BINARY
 # Installation des exécutables et des DLLs
 install(TARGETS ${SC_TARGET_NAME} ${TO_TARGET_NAME} ${PS_TARGET_NAME} ${DEBUGGER_TARGET_NAME} ${CONFIG_TARGET_NAME} DESTINATION ".")
 if (NOT APPLE)
-    install(TARGETS ${VRSTRIKE_TARGET_NAME} DESTINATION ".")
+    install(TARGETS ${VRSTRIKE_TARGET_NAME} ${VRPACIFIC_TARGET_NAME} DESTINATION ".")
 endif()
 # Installation des assets
 install(DIRECTORY "${ASSETS_DIR}/" DESTINATION "assets")
