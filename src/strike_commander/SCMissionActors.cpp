@@ -508,7 +508,10 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
                 }
             } else {
                 this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
+                SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
+                this->mission->explosions.push_back(explosion);
                 if (this->mission->sound.sounds.size() > 0) {
+
                     RSMixer &Mixer = RSMixer::getInstance();
                     MemSound *sound;
                     sound = this->mission->sound.sounds[SoundEffectIds::EXPLOSION_1];
