@@ -61,8 +61,6 @@ class RSMixer {
     void traceDriverState();
     MemMusic *sfxEffect[SFX_CHANNELS]{};
     const void *sfxEmitter[SFX_CHANNELS]{};
-    int sfxIdleTicks[SFX_CHANNELS]{};
-    static const int SFX_EMITTER_TIMEOUT = 60;
     std::vector<int16_t> mixBuffer;
 
     static void musicHook(void *udata, Uint8 *stream, int len);

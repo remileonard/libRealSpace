@@ -602,6 +602,8 @@ void EnhancedRenderer::renderMapOverlay(RSArea *area) {
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
+}
+
 // Cloud shading: colour from the angle between the surface normal and the sun, grey-blue in the shade, warm white in the sun.
 // contrast 0 gives plain white, 1 the full shading.
 static void cloudShade(float nx, float ny, float nz, const Vector3D &sun, float contrast, float *rgb) {

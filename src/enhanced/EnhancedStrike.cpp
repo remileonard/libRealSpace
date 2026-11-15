@@ -457,6 +457,7 @@ void EnhancedStrike::afterFrameRendered() {
         const bool onBoard = this->player_plane && !this->player_plane->crached && !this->player_plane->ejected;
         this->gForce.update(onBoard ? this->player_plane->g_load : 1.0f, firstPerson && onBoard);
         this->gForce.draw();
+    }
     this->fpsFrames++;
     const uint32_t now = SDL_GetTicks();
     if (now - this->fpsStart >= 500) {

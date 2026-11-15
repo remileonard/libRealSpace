@@ -27,12 +27,6 @@ public:
     /** Brushed metal detail on the flat coloured polygons of the models drawn while it is on (the 3D cockpit model). */
     static void setMetalDetail(bool on);
 
-private:
-    void ensureMetalTexture();
-    void drawMetalPass(RSEntity *object, size_t lodLevel);
-
-    bool metalDetail{false};
-    unsigned int metalTexture{0};
     void renderMapOverlay(RSArea *area) override;
 
     // [Video] runway_texture: 0 = off (default, the original overlay), 1024 / 2048 / 4096 = size of the procedural high
@@ -50,6 +44,13 @@ private:
     // (bright tops, grey-blue undersides) with soft sprites on their surface; the value is the contrast
     int cloud_shading{0};
     GLuint cloud_tex{0};
+
+private:
+    void ensureMetalTexture();
+    void drawMetalPass(RSEntity *object, size_t lodLevel);
+
+    bool metalDetail{false};
+    unsigned int metalTexture{0};
 
 protected:
     void ensureCloudTexture();

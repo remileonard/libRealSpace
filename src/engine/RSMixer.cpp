@@ -274,18 +274,9 @@ void RSMixer::serveDriver() {
             isplaying = false;
         }
     }
+    // SoundFX_PlayOrUpdate_5EBFB n'arrête jamais un effet en cours : il va jusqu'à sa fin. L'arrêter avant laisse les
+    // voix d'un timbre TVFX coupé dans son attaque en relâchement pour de longues minutes (AILAdlibDriver::serve).
     for (int c = 0; c < SFX_CHANNELS; c++) {
-        if (sfxHandle[c] >= 0 && sfxEmitter[c] != nullptr) {
-            sfxIdleTicks[c]++;
-            if (sfxIdleTicks[c] > SFX_EMITTER_TIMEOUT) {
-                sfxXmi->stop(sfxHandle[c]);
-                sfxXmi->release(sfxHandle[c]);
-                sfxHandle[c] = -1;
-                sfxEffect[c] = nullptr;
-                sfxEmitter[c] = nullptr;
-                continue;
-            }
-        }
         if (sfxHandle[c] >= 0 && sfxXmi->status(sfxHandle[c]) == SEQ_DONE) {
             sfxXmi->release(sfxHandle[c]);
             sfxHandle[c] = -1;
@@ -622,7 +613,6 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
     std::lock_guard<std::recursive_mutex> lock(engineMutex);
     for (int c = 0; c < SFX_CHANNELS; c++) {
         if (sfxHandle[c] >= 0 && sfxEffect[c] == fx && sfxEmitter[c] == emitter) {
-            sfxIdleTicks[c] = 0;
             if (volume == 0) {
                 stopSoundFx(c);
             } else {
@@ -637,7 +627,6 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
     int c = playSoundFx(fx, volume);
     if (c >= 0) {
         sfxEmitter[c] = emitter;
-        sfxIdleTicks[c] = 0;
     }
     printf("SFX effect=%d channel=%d volume=%d\n", effect, c, volume);
 }
