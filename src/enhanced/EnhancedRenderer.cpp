@@ -1,6 +1,10 @@
 #include "EnhancedRenderer.h"
 #include "../engine/Config.hpp"
 #include "../realspace/RSArea.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <vector>
 
 
 #define SC_TEXTURE_MAX_ANISOTROPY 0x84FE
@@ -489,11 +493,249 @@ void EnhancedRenderer::createTextureInGPU(Texture *texture) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 }
 
+// Cloud shading: colour from the angle between the surface normal and the sun, grey-blue in the shade, warm white in the sun.
+// contrast 0 gives plain white, 1 the full shading.
+static void cloudShade(float nx, float ny, float nz, const Vector3D &sun, float contrast, float *rgb) {
+    float l = 0.5f + 0.5f * (nx * sun.x + ny * sun.y + nz * sun.z);
+    l = (std::min)(1.0f, (std::max)(0.0f, l));
+    l = l * l * (3.0f - 2.0f * l);
+    const float shade[3] = {0.58f, 0.64f, 0.78f};
+    const float lit[3] = {1.0f, 0.98f, 0.94f};
+    for (int i = 0; i < 3; i++) {
+        const float c = shade[i] + (lit[i] - shade[i]) * l;
+        rgb[i] = 1.0f + (c - 1.0f) * contrast;
+    }
+}
+
+// Unit sphere vertices for the three cloud resolutions, computed once.
+struct CloudSphere {
+    int rings{0};
+    int slices{0};
+    std::vector<float> x;
+    std::vector<float> y;
+    std::vector<float> z;
+};
+
+static const CloudSphere &cloudSphere(int level) {
+    static CloudSphere spheres[3];
+    static const int ringsOf[3] = {7, 6, 4};
+    static const int slicesOf[3] = {14, 12, 8};
+    const float pi = 3.14159265358979f;
+    CloudSphere &sphere = spheres[level];
+    if (sphere.rings == 0) {
+        sphere.rings = ringsOf[level];
+        sphere.slices = slicesOf[level];
+        for (int ring = 0; ring <= sphere.rings; ++ring) {
+            const float phi = pi * ring / sphere.rings - pi * 0.5f;
+            for (int s = 0; s <= sphere.slices; ++s) {
+                const float theta = 2.0f * pi * s / sphere.slices;
+                sphere.x.push_back(cosf(phi) * cosf(theta));
+                sphere.y.push_back(sinf(phi));
+                sphere.z.push_back(cosf(phi) * sinf(theta));
+            }
+        }
+    }
+    return sphere;
+}
+
+// Ellipsoid with per-vertex sun shading; the underside is more transparent than the top.
+static void litEllipsoid(float cx, float cy, float cz, float rx, float ry, float rz, int level, float baseAlpha, const Vector3D &sun,
+                         float contrast) {
+    const CloudSphere &sphere = cloudSphere(level);
+    const int stride = sphere.slices + 1;
+    for (int ring = 0; ring < sphere.rings; ++ring) {
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int s = 0; s <= sphere.slices; ++s) {
+            for (int pass = 0; pass < 2; ++pass) {
+                const int i = (ring + pass) * stride + s;
+                const float ux = sphere.x[i];
+                const float uy = sphere.y[i];
+                const float uz = sphere.z[i];
+                // the normal of an ellipsoid is the unit position divided by the radii
+                float nx = ux / rx;
+                float ny = uy / ry;
+                float nz = uz / rz;
+                const float nl = sqrtf(nx * nx + ny * ny + nz * nz);
+                if (nl > 1e-9f) {
+                    nx /= nl;
+                    ny /= nl;
+                    nz /= nl;
+                }
+                float rgb[3];
+                cloudShade(nx, ny, nz, sun, contrast, rgb);
+                const float tt = (uy + 1.0f) * 0.5f;
+                glColor4f(rgb[0], rgb[1], rgb[2], baseAlpha * (0.25f + 0.75f * tt));
+                glVertex3f(cx + rx * ux, cy + ry * uy, cz + rz * uz);
+            }
+        }
+        glEnd();
+    }
+}
+
+static float cloudHash(int x, int y) {
+    uint32_t h = (uint32_t)x * 374761393u + (uint32_t)y * 668265263u;
+    h = (h ^ (h >> 13)) * 1274126177u;
+    h ^= h >> 16;
+    return (float)(h & 0xffff) / 65535.0f;
+}
+
+// Soft round puff with a little noise in the rim, white with alpha.
+void EnhancedRenderer::ensureCloudTexture() {
+    if (this->cloud_tex != 0) {
+        return;
+    }
+    const int N = 64;
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            const float dx = (x + 0.5f) / N * 2.0f - 1.0f;
+            const float dy = (y + 0.5f) / N * 2.0f - 1.0f;
+            float r = sqrtf(dx * dx + dy * dy);
+            // value noise on a coarse grid bends the edge
+            const float fx = (float)x / N * 8.0f;
+            const float fy = (float)y / N * 8.0f;
+            const int ix = (int)fx;
+            const int iy = (int)fy;
+            float tx = fx - ix;
+            float ty = fy - iy;
+            tx = tx * tx * (3.0f - 2.0f * tx);
+            ty = ty * ty * (3.0f - 2.0f * ty);
+            const float n0 = cloudHash(ix, iy) * (1.0f - tx) + cloudHash(ix + 1, iy) * tx;
+            const float n1 = cloudHash(ix, iy + 1) * (1.0f - tx) + cloudHash(ix + 1, iy + 1) * tx;
+            const float n = n0 * (1.0f - ty) + n1 * ty;
+            r += (n - 0.5f) * 0.35f;
+            float a = (std::min)(1.0f, (std::max)(0.0f, 1.0f - r));
+            a = a * a * (3.0f - 2.0f * a);
+            uint8_t *d = &px[((size_t)y * N + x) * 4];
+            d[0] = 255;
+            d[1] = 255;
+            d[2] = 255;
+            d[3] = (uint8_t)(a * 255.0f);
+        }
+    }
+    glGenTextures(1, &this->cloud_tex);
+    glBindTexture(GL_TEXTURE_2D, this->cloud_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+}
+
+// cloud_shading = 0 keeps the original clouds. Otherwise the puffs are lit by the sun and get soft sprites on their
+// surface; clouds behind the camera are skipped and far clouds use fewer triangles and no sprites.
+void EnhancedRenderer::renderClouds(RSArea *area) {
+    if (this->cloud_shading <= 0) {
+        SCRenderer::renderClouds(area);
+        return;
+    }
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    Point3D cam = camera.getPosition();
+    float mv[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+    const float camRight[3] = {mv[0], mv[4], mv[8]};
+    const float camUp[3] = {mv[1], mv[5], mv[9]};
+    const float camForward[3] = {-mv[2], -mv[6], -mv[10]};
+
+    // back to front for the alpha blending
+    std::vector<const Cloud *> sorted;
+    for (auto &c : area->clouds) {
+        if (c.position.x < cam.x - this->max_view_distance || c.position.x > cam.x + this->max_view_distance ||
+            c.position.z < cam.z - this->max_view_distance || c.position.z > cam.z + this->max_view_distance) {
+            continue;
+        }
+        // a cloud completely behind the camera cannot be seen
+        float radius = 0.0f;
+        for (const auto &p : c.puffs) {
+            const float r = sqrtf(p.ox * p.ox + p.oy * p.oy + p.oz * p.oz) + (std::max)(p.rx, (std::max)(p.ry, p.rz));
+            radius = (std::max)(radius, r);
+        }
+        const float dx = c.position.x - cam.x;
+        const float dy = c.position.y - cam.y;
+        const float dz = c.position.z - cam.z;
+        if (dx * camForward[0] + dy * camForward[1] + dz * camForward[2] < -radius) {
+            continue;
+        }
+        sorted.push_back(&c);
+    }
+    std::sort(sorted.begin(), sorted.end(), [&](const Cloud *a, const Cloud *b) {
+        const float da = (a->position.x - cam.x) * (a->position.x - cam.x) + (a->position.z - cam.z) * (a->position.z - cam.z);
+        const float db = (b->position.x - cam.x) * (b->position.x - cam.x) + (b->position.z - cam.z) * (b->position.z - cam.z);
+        return da > db;
+    });
+
+    const float contrast = (std::min)(100, this->cloud_shading) / 100.0f;
+    const Vector3D sun = this->object_light_direction;
+    this->ensureCloudTexture();
+
+    for (const Cloud *c : sorted) {
+        const float cdx = c->position.x - cam.x;
+        const float cdz = c->position.z - cam.z;
+        const float distance = sqrtf(cdx * cdx + cdz * cdz);
+        // far clouds get fewer triangles and no sprites
+        const int level = distance < 35000.0f ? 0 : (distance < 80000.0f ? 1 : 2);
+        for (const auto &p : c->puffs) {
+            litEllipsoid(c->position.x + p.ox, c->position.y + p.oy, c->position.z + p.oz, p.rx, p.ry, p.rz, level, c->alpha, sun,
+                         contrast);
+        }
+        if (distance > 70000.0f) {
+            continue;
+        }
+        // soft sprites on the surface of every puff, facing the camera
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, this->cloud_tex);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBegin(GL_QUADS);
+        for (const auto &p : c->puffs) {
+            for (int k = 0; k < 3; k++) {
+                const float h1 = fabsf(sinf(p.ox * 0.0123f + p.oz * 0.0371f + k * 2.399f));
+                const float h2 = fabsf(sinf(p.oz * 0.0217f - p.ox * 0.0089f + k * 1.713f));
+                const float angle = (k * 2.094f) + h1 * 1.5f;
+                float dx = cosf(angle);
+                float dy = 0.25f + 0.6f * h2;
+                float dz = sinf(angle);
+                const float dl = sqrtf(dx * dx + dy * dy + dz * dz);
+                dx /= dl;
+                dy /= dl;
+                dz /= dl;
+                const float x = c->position.x + p.ox + dx * p.rx * 0.85f;
+                const float y = c->position.y + p.oy + dy * p.ry * 0.85f;
+                const float z = c->position.z + p.oz + dz * p.rz * 0.85f;
+                const float size = 0.55f * (p.rx + p.rz) * 0.5f;
+                float rgb[3];
+                cloudShade(dx, dy, dz, sun, contrast, rgb);
+                glColor4f(rgb[0], rgb[1], rgb[2], 0.32f * c->alpha);
+                for (int corner = 0; corner < 4; corner++) {
+                    const float sx = (corner == 0 || corner == 3) ? -1.0f : 1.0f;
+                    const float sy = (corner < 2) ? -1.0f : 1.0f;
+                    glTexCoord2f(sx * 0.5f + 0.5f, sy * 0.5f + 0.5f);
+                    glVertex3f(x + (camRight[0] * sx + camUp[0] * sy) * size, y + (camRight[1] * sx + camUp[1] * sy) * size,
+                               z + (camRight[2] * sx + camUp[2] * sy) * size);
+                }
+            }
+        }
+        glEnd();
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+        glDisable(GL_TEXTURE_2D);
+    }
+
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+}
+
 void EnhancedRenderer::init(int width, int height) {
     SCRenderer::init(width, height);
     Config &config = Config::instance();
     this->water_waves = config.getInt("Video", "water_waves", 0);
     this->texture_filter = config.getInt("Video", "texture_filter", 0);
+    this->cloud_shading = config.getInt("Video", "cloud_shading", 0);
 
     if (this->texture_filter >= 2) {
         const char *ext = (const char *)glGetString(GL_EXTENSIONS);
