@@ -481,7 +481,7 @@ bool EnhancedEntity::replaceGeometryFromOBJ(const std::string &path)
         for (auto *c : this->chld)
         {
             if (c && c->name.find("F16-AB") != std::string::npos)
-                c->y += (int32_t)lroundf(lift * 256.0f);
+                c->y += lift;
         }
     }
     printf("[MODEL] F-16 airframe replaced from %s: %zu vertices, %zu triangles, %zu LODs (winding %s)\n", path.c_str(), nv.size(), ntris.size(),
