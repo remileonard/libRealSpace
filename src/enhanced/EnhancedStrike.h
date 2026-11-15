@@ -7,6 +7,7 @@
 #include "EnhancedCockpit.h"
 #include "DamageSmokeEffect.h"
 #include "ExhaustEffect.h"
+#include "GForceEffect.h"
 #include "EndMissionPrompt.h"
 #include "OptionsPanel.h"
 #include "WaterSplashEffect.h"
@@ -84,6 +85,8 @@ private:
     enhanced::DamageSmokeEffect damageSmoke;
     enhanced::CockpitGlassEffect cockpitGlass;
     enhanced::WaterSplashEffect waterSplash;
+    enhanced::GForceEffect gForce;
+    bool gEffectsEnabled{false};
     bool waterSplashEnabled{false};
     bool glassEnabled{true};
     bool enhancedModel{true};
