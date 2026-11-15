@@ -102,10 +102,18 @@ GLuint upgradeImage(RSImage *image, int size, int seed) {
         colors[((uint32_t)(r >> 2) << 12) | ((uint32_t)(g >> 2) << 6) | (uint32_t)(b >> 2)]++;
     }
     int modeCount = 0;
+    uint32_t modeKey = 0;
     for (const auto &entry : colors) {
-        modeCount = (std::max)(modeCount, entry.second);
+        if (entry.second > modeCount) {
+            modeCount = entry.second;
+            modeKey = entry.first;
+        }
     }
-    const bool detail = (float)modeCount / (float)(w * h) >= 0.30f;
+    // luma of the dominant colour (6 bit per channel packed in the key)
+    const float modeLuma = ((float)((modeKey >> 12) & 63) + (float)((modeKey >> 6) & 63) + (float)(modeKey & 63)) * 4.0f / (3.0f * 255.0f);
+    // Flat tiles with a light or mid-grey base (painted numbers, stripes) keep sharp edges. Dark flat tiles are
+    // rubber marks and are smoothed like the asphalt, otherwise their coarse pixels stand out next to the neighbours.
+    const bool detail = (float)modeCount / (float)(w * h) >= 0.30f && modeLuma >= 0.30f;
     if (!detail) {
         blur(source, w, h);
         blur(source, w, h);
