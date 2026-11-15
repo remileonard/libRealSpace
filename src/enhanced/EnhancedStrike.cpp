@@ -143,6 +143,10 @@ void EnhancedStrike::init() {
     SCStrike::init();
     Config &cfg = Config::getInstance();
     this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
+    this->engineVolume = (std::min)(128, cfg.getInt("Sound", "engine_volume", 100));
+    if (this->engineVolume >= 0) {
+        printf("[enhanced] engine sound volume: %d of 128\n", this->engineVolume);
+    }
     this->exhaust.strength = (std::min)(300, (std::max)(50, cfg.getInt("Video", "exhaust_strength", 100))) / 100.0f;
     printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
     this->cockpit3d = cfg.getString("Video", "cockpit", "2d") == "3d";
@@ -297,6 +301,10 @@ void EnhancedStrike::updateCockpit3D() {
 }
 
 void EnhancedStrike::afterInput() {
+    if (this->engineVolume >= 0) {
+        // SCStrike::runFrame() sets the engine channel (5) to volume 5 of 128 every frame, the engine is hardly audible
+        Mixer.setVolume(this->engineVolume, 5);
+    }
     this->handleOptionsKey();
     if (this->endPrompt) {
         this->pause_simu = true;
