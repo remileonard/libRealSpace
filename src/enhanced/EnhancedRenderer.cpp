@@ -506,3 +506,193 @@ void EnhancedRenderer::init(int width, int height) {
     }
 
 }
+// ---- Brushed metal detail for the 3D cockpit model -------------------------------------------------------------------
+
+// Planar mapping along the dominant axis of the face normal, one texture tile per 4 model units
+static void metalTexCoord(const Vector3D &v, const Vector3D &n) {
+    const float k = 0.25f;
+    const float ax = fabsf(n.x);
+    const float ay = fabsf(n.y);
+    const float az = fabsf(n.z);
+    if (ay >= ax && ay >= az) {
+        glTexCoord2f(v.x * k, v.z * k);
+    } else if (ax >= az) {
+        glTexCoord2f(v.z * k, v.y * k);
+    } else {
+        glTexCoord2f(v.x * k, v.y * k);
+    }
+}
+
+static Vector3D metalFaceNormal(RSEntity *object, uint16_t a, uint16_t b, uint16_t c) {
+    const Vector3D p0 = object->vertices[a];
+    const Vector3D p1 = object->vertices[b];
+    const Vector3D p2 = object->vertices[c];
+    const Vector3D u(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+    const Vector3D w(p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
+    return Vector3D(u.y * w.z - u.z * w.y, u.z * w.x - u.x * w.z, u.x * w.y - u.y * w.x);
+}
+
+void EnhancedRenderer::setMetalDetail(bool on) {
+    EnhancedRenderer *renderer = dynamic_cast<EnhancedRenderer *>(&SCRenderer::getInstance());
+    if (renderer != nullptr) {
+        renderer->metalDetail = on;
+    }
+}
+
+// Procedural brushed metal: horizontal streaks, fine grain, panel seams and rivets. Tiles seamlessly.
+void EnhancedRenderer::ensureMetalTexture() {
+    if (this->metalTexture != 0) {
+        return;
+    }
+    const int N = 128;
+    std::vector<uint8_t> px((size_t)N * N * 4);
+    uint32_t seed = 0x1234abcd;
+    auto rnd = [&seed]() {
+        seed = seed * 1664525u + 1013904223u;
+        return (float)((seed >> 8) & 0xffff) / 65535.0f;
+    };
+    std::vector<float> row(N);
+    for (int y = 0; y < N; y++) {
+        row[y] = rnd();
+    }
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            float v = 0.84f + 0.10f * row[y] + 0.06f * rnd();
+            // panel seams (one per tile in both directions)
+            if (x == 0 || y == 0) {
+                v *= 0.55f;
+            } else if (x == 1 || y == 1) {
+                v *= 0.80f;
+            }
+            // rivets
+            const int rc[4][2] = {{18, 18}, {110, 18}, {18, 110}, {110, 110}};
+            for (const auto &r : rc) {
+                const int dx = x - r[0];
+                const int dy = y - r[1];
+                const int d2 = dx * dx + dy * dy;
+                if (d2 <= 2) {
+                    v = 1.0f;
+                } else if (d2 <= 7) {
+                    v *= 0.6f;
+                }
+            }
+            if (v > 1.0f) {
+                v = 1.0f;
+            }
+            const uint8_t c = (uint8_t)(v * 255.0f);
+            const size_t i = ((size_t)y * N + x) * 4;
+            px[i] = px[i + 1] = px[i + 2] = c;
+            px[i + 3] = 255;
+        }
+    }
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    if (this->max_anisotropy > 1.0f) {
+        glTexParameterf(GL_TEXTURE_2D, SC_TEXTURE_MAX_ANISOTROPY, (std::min)(8.0f, this->max_anisotropy));
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+    this->metalTexture = (unsigned int)tex;
+}
+
+// Second pass over the flat coloured polygons of the colour pass: the metal texture is multiplied onto the picture.
+// The polygon selection mirrors SCRenderer::drawModelColorPass.
+void EnhancedRenderer::drawMetalPass(RSEntity *object, size_t lodLevel) {
+    this->ensureMetalTexture();
+    Lod *lod = &object->lods[lodLevel];
+    const bool cullWasOn = glIsEnabled(GL_CULL_FACE) == GL_TRUE;
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_DST_COLOR, GL_ZERO);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(-1.0f, -1.0f);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, this->metalTexture);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    for (int i = 0; i < lod->numTriangles; i++) {
+        uint16_t triangleID = lod->triangleIDs[i];
+        if (!object->attrs.empty()) {
+            auto attr = object->attrs.find(triangleID);
+            if (attr == object->attrs.end() || attr->second == nullptr || attr->second->type == 'Q' ||
+                attr->second->type == 'L') {
+                continue;
+            }
+            triangleID = attr->second->id;
+        }
+        if (triangleID >= object->triangles.size()) {
+            continue;
+        }
+        const Triangle *triangle = &object->triangles[triangleID];
+        if (triangle->property == RSEntity::SC_TRANSPARENT ||
+            ((triangle->property == 6 || triangle->property == 9) && this->show_textured)) {
+            continue;
+        }
+        const bool twoSided = triangle->flags[2] == 1;
+        if (twoSided || !cullWasOn) {
+            glDisable(GL_CULL_FACE);
+        } else {
+            glEnable(GL_CULL_FACE);
+        }
+        const Vector3D normal = metalFaceNormal(object, triangle->ids[0], triangle->ids[1], triangle->ids[2]);
+        glBegin(GL_TRIANGLES);
+        for (int j = 0; j < 3; j++) {
+            const Vector3D v = object->vertices[triangle->ids[j]];
+            metalTexCoord(v, normal);
+            glVertex3f(v.x, v.y, v.z);
+        }
+        glEnd();
+    }
+    if (!object->quads.empty()) {
+        for (int i = 0; i < lod->numTriangles; i++) {
+            uint16_t quadID = lod->triangleIDs[i];
+            int prop2 = 0;
+            if (!object->attrs.empty()) {
+                auto attr = object->attrs.find(quadID);
+                if (attr == object->attrs.end() || attr->second == nullptr || attr->second->type == 'T' ||
+                    attr->second->type == 'L') {
+                    continue;
+                }
+                prop2 = attr->second->props2;
+                quadID = attr->second->id;
+            }
+            if (quadID >= object->quads.size() || object->quads[quadID] == nullptr) {
+                continue;
+            }
+            const Quads *quad = object->quads[quadID];
+            if (quad->property == RSEntity::SC_TRANSPARENT ||
+                ((quad->property == 6 || quad->property == 9) && this->show_textured)) {
+                continue;
+            }
+            if (prop2 == 1 || !cullWasOn) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+            const Vector3D normal = metalFaceNormal(object, quad->ids[0], quad->ids[1], quad->ids[2]);
+            glBegin(GL_QUADS);
+            for (int j = 0; j < 4; j++) {
+                const Vector3D v = object->vertices[quad->ids[j]];
+                metalTexCoord(v, normal);
+                glVertex3f(v.x, v.y, v.z);
+            }
+            glEnd();
+        }
+    }
+    glPopAttrib();
+}
+
+void EnhancedRenderer::drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals,
+                                          float ambientLamber, Vector3D lightEye, float *MV) {
+    SCRenderer::drawModelColorPass(object, lodLevel, vertexNormals, ambientLamber, lightEye, MV);
+    if (this->metalDetail) {
+        this->drawMetalPass(object, lodLevel);
+    }
+}

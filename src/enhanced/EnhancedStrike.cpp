@@ -1,6 +1,7 @@
 #include "../strike_commander/precomp.h"
 #include "EnhancedStrike.h"
 #include "EnhancedMission.h"
+#include "EnhancedVirtualCockpit.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -17,6 +18,11 @@ using namespace enhanced;
 
 SCCockpit *EnhancedStrike::createCockpit() {
     return new EnhancedCockpit();
+}
+
+SCVirtualCockpit *EnhancedStrike::createVirtualCockpit(SCCockpit *cockpit) {
+    return new EnhancedVirtualCockpit(
+        cockpit, cockpit->is_f16_cockpit ? SCJetVirtualCockpit::f16Layout() : SCJetVirtualCockpit::f22Layout());
 }
 
 SCMission *EnhancedStrike::createMission(char const *missionName) {

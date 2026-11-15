@@ -64,6 +64,15 @@ is not changed.
 sun, fine dust and scratches that light up when looking towards the sun, a glare veil and halo, and impact cracks that appear
 step by step with the damage level of the player aircraft.
 
+## Cockpit metal (`EnhancedVirtualCockpit`, `EnhancedRenderer`)
+
+With `[Video] cockpit_metal = 1` (default 0, needs `cockpit = 3d`) the flat grey surfaces of the 3D cockpit model get a procedural
+brushed metal texture: streaks, panel seams and rivets. `EnhancedStrike::createVirtualCockpit()` returns an
+`EnhancedVirtualCockpit` whose `drawModel()` switches `EnhancedRenderer::setMetalDetail()` on while the cockpit model is drawn.
+`EnhancedRenderer::drawModelColorPass()` then runs the base colour pass and a second pass over the same flat coloured polygons
+that multiplies the texture onto the picture (planar mapping along the dominant axis of the face normal, polygon offset, depth
+test LEQUAL). Textured polygons are left alone. Pacific Strike cockpits are not affected.
+
 ## HD cockpit textures (`EnhancedCockpit`)
 
 `EnhancedStrike::createCockpit()` returns an `EnhancedCockpit`. With `[Video] hd_textures = 1` its `init()` replaces cockpit
