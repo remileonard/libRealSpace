@@ -18,7 +18,6 @@ extern "C" {
 }
 #endif
 #ifdef _WIN32
-#define NOMINMAX
 #include <Windows.h>
 #endif
 #ifndef __APPLE__

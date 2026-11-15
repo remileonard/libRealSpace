@@ -168,9 +168,9 @@ static float waveStrength(const MapVertex *v) {
     const float dx = v->v.x - waveCamera.x;
     const float dz = v->v.z - waveCamera.z;
     const float d = sqrtf(dx * dx + dz * dz);
-    float far = 1.0f - (d - WAVE_FADE_START) / (WAVE_FADE_END - WAVE_FADE_START);
-    far = far < 0.0f ? 0.0f : (far > 1.0f ? 1.0f : far);
-    return shore * far;
+    float fade = 1.0f - (d - WAVE_FADE_START) / (WAVE_FADE_END - WAVE_FADE_START);
+    fade = fade < 0.0f ? 0.0f : (fade > 1.0f ? 1.0f : fade);
+    return shore * fade;
 }
 
 static void waveVertex(const MapVertex *v) {
