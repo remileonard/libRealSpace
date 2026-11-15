@@ -128,6 +128,10 @@ public:
     // SoundFX_PlayOrUpdate_5A906 : effet de SOUNDFX.ADL pour cet emetteur, volume selon la distance
     // au point de vue (SoundFX_Play3D_59902) ; demarre s'il ne joue pas, sinon met a jour son volume.
     void playOrUpdateSoundFx(int effect, const void *emitter, float distance);
+    // Effet de SOUNDFX.ADL joué une fois, volume selon la distance.
+    void playSoundFxAtDistance(int effect, float distance);
+    // SoundFX_Play3D_59902 : 100 - d / 10 sous 1 000 m, 5 jusqu'à 5 000 m, 0 au-delà.
+    static int distanceVolume(float distance);
 
     void stopSound();
     void stopSound(int chanl);
@@ -135,6 +139,8 @@ public:
     void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop = 0);
     // Même règle que playOrUpdateSoundFx pour un son numérisé : relancé ou mis à jour par émetteur.
     void playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance);
+    // Son numérisé joué une fois, volume selon la distance.
+    void playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance);
     void setVolume(int volume, int channel = -1);
     bool isSoundPlaying();
     bool isSoundPlaying(int chanl);

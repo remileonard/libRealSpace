@@ -418,17 +418,7 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         if (this->object->entity->explos != nullptr) {
             SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
             this->mission->explosions.push_back(explosion);
-            if (this->mission->sound.sounds.size() > 0) {   
-                MemSound *sound;
-                if (weapon->obj->entity_type == EntityType::tracer) {
-                    sound = this->mission->sound.effect(SoundEffectIds::GUN_IMPACT_1);
-                } else {
-                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                }
-                if (sound != nullptr) {
-                    RSMixer::getInstance().playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->mission->playEffect(weapon->obj->entity_type == EntityType::tracer ? SoundEffectIds::GUN_IMPACT_1 : SoundEffectIds::EXPLOSION_1, this->object->position);
         }
         attacker->score += 100;
         if (this->plane != nullptr) {
@@ -502,27 +492,12 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
         event.target->weapon_shooted_at_me = nullptr;
         if (event.target->object->alive == true) {
             if (event.weapon->obj->entity_type == EntityType::tracer) {
-                if (this->mission->sound.sounds.size() > 0) {
-                    RSMixer &Mixer = RSMixer::getInstance();
-                    MemSound *sound;
-                    sound = this->mission->sound.effect(this == this->mission->player ? SoundEffectIds::PLAYER_HIT : SoundEffectIds::GUN_IMPACT_1);
-                    if (sound != nullptr) {
-                        Mixer.playSoundVoc(sound->data, sound->size);
-                    }
-                }
+                this->mission->playEffect(this == this->mission->player ? SoundEffectIds::PLAYER_HIT : SoundEffectIds::GUN_IMPACT_1, this->object->position);
             } else {
                 this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
                 SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
                 this->mission->explosions.push_back(explosion);
-                if (this->mission->sound.sounds.size() > 0) {
-
-                    RSMixer &Mixer = RSMixer::getInstance();
-                    MemSound *sound;
-                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                    if (sound != nullptr) {
-                        Mixer.playSoundVoc(sound->data, sound->size);
-                    }
-                }
+                this->mission->playEffect(SoundEffectIds::EXPLOSION_1, this->object->position);
             }
         }
     }
@@ -610,13 +585,7 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
         ai_actor->object->alive = false;
         ai_actor->is_active = false;
         mission->explosions.push_back(new SCExplosion(ai_actor->object->entity->explos->objct, ai_actor->object->position));
-        if (mission->sound.sounds.size() > 0) {
-            RSMixer &Mixer = RSMixer::getInstance();
-            MemSound *sound = mission->sound.effect(SoundEffectIds::EXPLOSION_4);
-            if (sound != nullptr) {
-                Mixer.playSoundVoc(sound->data, sound->size, 4, 0);
-            }
-        }
+        mission->playEffect(SoundEffectIds::EXPLOSION_4, ai_actor->object->position);
         if (ai_actor->object->entity->destroyed_object != nullptr && ai_actor->plane == nullptr) {
             ai_actor->object->entity = ai_actor->object->entity->destroyed_object;
         }
@@ -817,17 +786,7 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
         if (this->object->entity->explos != nullptr) {
             SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);
             this->mission->explosions.push_back(explosion);
-            if (this->mission->sound.sounds.size() > 0) {   
-                MemSound *sound;
-                if (weapon->obj->entity_type == EntityType::tracer) {
-                    sound = this->mission->sound.effect(SoundEffectIds::GUN_IMPACT_1);
-                } else {
-                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                }
-                if (sound != nullptr) {
-                    RSMixer::getInstance().playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->mission->playEffect(weapon->obj->entity_type == EntityType::tracer ? SoundEffectIds::GUN_IMPACT_1 : SoundEffectIds::EXPLOSION_1, this->object->position);
         }
         attacker->score += 100;
         if (this->plane != nullptr) {

@@ -536,6 +536,31 @@ bool RSMixer::isSoundFxPlaying(int fxChannel) {
     return sfxHandle[fxChannel] >= 0;
 }
 
+int RSMixer::distanceVolume(float distance) {
+    if (distance < 1000.0f) {
+        return 100 - (int)(distance / 10.0f);
+    }
+    if (distance < 5000.0f) {
+        return 5;
+    }
+    return 0;
+}
+
+void RSMixer::playSoundFxAtDistance(int effect, float distance) {
+    if (shuttingDown || !this->music) {
+        return;
+    }
+    auto set = this->music->soundfx_musics.find(0);
+    if (set == this->music->soundfx_musics.end() || effect < 0 || effect >= (int)set->second.size()) {
+        return;
+    }
+    int volume = distanceVolume(distance);
+    if (volume == 0) {
+        return;
+    }
+    playSoundFx(set->second[effect], volume);
+}
+
 void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distance) {
     if (shuttingDown || !this->music) {
         return;
@@ -545,12 +570,7 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
         return;
     }
     MemMusic *fx = set->second[effect];
-    int volume = 0;
-    if (distance < 1000.0f) {
-        volume = 100 - (int)(distance / 10.0f);
-    } else if (distance < 5000.0f) {
-        volume = 5;
-    }
+    int volume = distanceVolume(distance);
     std::lock_guard<std::recursive_mutex> lock(engineMutex);
     for (int c = 0; c < SFX_CHANNELS; c++) {
         if (sfxHandle[c] >= 0 && sfxEffect[c] == fx && sfxEmitter[c] == emitter) {
@@ -648,12 +668,7 @@ void RSMixer::playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *em
     if (shuttingDown || !data) {
         return;
     }
-    int volume = 0;
-    if (distance < 1000.0f) {
-        volume = 100 - (int)(distance / 10.0f);
-    } else if (distance < 5000.0f) {
-        volume = 5;
-    }
+    int volume = distanceVolume(distance);
     int mix_volume = volume * MIX_MAX_VOLUME / 100;
     for (auto &kv : vocEmitters) {
         int c = kv.first;
@@ -677,6 +692,19 @@ void RSMixer::playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *em
     Mix_Volume(this->channel, mix_volume);
     vocEmitters[this->channel] = emitter;
     vocData[this->channel] = data;
+}
+
+void RSMixer::playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance) {
+    int volume = distanceVolume(distance);
+    if (volume == 0) {
+        return;
+    }
+    this->channel = -1;
+    this->playSoundVoc(data, vocSize);
+    if (this->channel < 0) {
+        return;
+    }
+    Mix_Volume(this->channel, volume * MIX_MAX_VOLUME / 100);
 }
 
 void RSMixer::stopSound() {

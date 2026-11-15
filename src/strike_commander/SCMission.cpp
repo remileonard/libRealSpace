@@ -472,12 +472,23 @@ void SCMission::startMusic() {
 }
 // SoundFX_PlayOrUpdate : son numérisé de l'effet s'il y en a un, sinon sa séquence XMIDI.
 void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance) {
-    MemSound *sound = this->sound.effect(id);
+    MemSound *sound = this->digital_fx ? this->sound.effect(id) : nullptr;
     if (sound != nullptr) {
         this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
         return;
     }
     this->Mixer.playOrUpdateSoundFx(this->sound.fxEffect(id), emitter, distance);
+}
+
+// Effet ponctuel à une position : volume selon la distance à la caméra, son numérisé ou séquence XMIDI.
+void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
+    float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
+    MemSound *sound = this->digital_fx ? this->sound.effect(id) : nullptr;
+    if (sound != nullptr) {
+        this->Mixer.playSoundVocAtDistance(sound->data, sound->size, distance);
+        return;
+    }
+    this->Mixer.playSoundFxAtDistance(this->sound.fxEffect(id), distance);
 }
 
 void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {

@@ -94,6 +94,9 @@ public:
     float ai_clock_stagger{0.0f};                  
     void onWeaponSpawned(SCSimulatedObject *weapon);
     void playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance);
+    void playEffect(SoundEffectIds id, Vector3D position);
+    // [Sound] digital_fx : sons numérisés (DSOUNDFX.PAK) ou séquences XMIDI (SOUNDFX.ADL) pour les effets.
+    bool digital_fx{Config::getInstance().getBool("Sound", "digital_fx", true)};
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};

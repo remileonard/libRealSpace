@@ -402,7 +402,6 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     
     // Créer l'objet réel en utilisant les paramètres ajustés
     SCSimulatedObject *weap = nullptr;
-    MemSound *sound = nullptr;
     
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case weapon_ids::ID_20MM:
@@ -413,20 +412,10 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
         case weapon_ids::ID_MK82:
         case weapon_ids::ID_DURANDAL:
             weap = new GunSimulatedObject();
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::MK82_DROP);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::MK82_DROP, this->position);
             break;
         default:
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::AIM9_SHOOT);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::AIM9_SHOOT, this->position);
             weap = new SCSimulatedObject();
             break;
     }
@@ -1606,7 +1595,6 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
     SCSimulatedObject *weap{nullptr};
     Vector3D initial_trust = {0,0,0};
     
-    MemSound *sound;
     RSEntity *wobj = nullptr;
     wobj = this->weaps_load[weapon_hard_point_id]->objct;
     switch (wobj->wdat->weapon_id) {
@@ -1622,23 +1610,13 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
         case ID_DURANDAL:
             initial_trust = this->getWeaponIntialVector(1.0f);
             weap = new GunSimulatedObject();
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::MK82_DROP);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::MK82_DROP, this->position);
         break;
         case ID_LAU3:
             weap = new SCSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::POD_SHOOT);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::POD_SHOOT, this->position);
             weap->guidance = false;
             weap->no_gravity = false;
             wobj = wobj->weaps[0]->objct;
@@ -1647,12 +1625,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
             weap = new GuidedBombSimulatedObject();
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::MK82_DROP);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::MK82_DROP, this->position);
             weap->guidance = true;
             weap->no_gravity = false;
             weap->target = target;
@@ -1660,12 +1633,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
         case ID_AGM65D:
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::AIM9_SHOOT);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::AIM9_SHOOT, this->position);
             weap = new AgmSimulatedObject();
             weap->target = target;
             weap->guidance = true;
@@ -1674,12 +1642,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
-            if (this->pilot->mission->sound.sounds.size() > 0) {
-                sound = this->pilot->mission->sound.effect(SoundEffectIds::AIM9_SHOOT);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->pilot->mission->playEffect(SoundEffectIds::AIM9_SHOOT, this->position);
             weap = new SCSimulatedObject();
             weap->target = target;
         break;

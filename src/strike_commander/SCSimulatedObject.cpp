@@ -219,13 +219,7 @@ void SCSimulatedObject::Simulate(int tps) {
         if ((float)(this->run_iterations + 1) / (float)tps >= (float)this->obj->missile_flight_time) {
             if (!this->is_simulated) {
                 this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, current));
-                if (this->mission->sound.sounds.size() > 0) {
-                    MemSound *sound;
-                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                    if (sound != nullptr) {
-                        Mixer.playSoundVoc(sound->data, sound->size);
-                    }
-                }
+                this->mission->playEffect(SoundEffectIds::EXPLOSION_1, current);
             }
             this->alive = false;
             if (this->target != nullptr) {
@@ -260,13 +254,7 @@ void SCSimulatedObject::Simulate(int tps) {
             Vector3D decoy_position = {this->decoy_target->x, this->decoy_target->y, this->decoy_target->z};
             if ((decoy_position - current).Length() < (float)this->obj->missile_fuse_radius) {
                 this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, current));
-                if (this->mission->sound.sounds.size() > 0) {
-                    MemSound *sound;
-                    sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                    if (sound != nullptr) {
-                        Mixer.playSoundVoc(sound->data, sound->size);
-                    }
-                }
+                this->mission->playEffect(SoundEffectIds::EXPLOSION_1, current);
                 this->alive = false;
                 return;
             }
@@ -318,13 +306,7 @@ void SCSimulatedObject::Simulate(int tps) {
                 }
                 if (entity->object->alive == true) {
                     this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-                    if (this->mission->sound.sounds.size() > 0) {
-                        MemSound *sound;
-                        sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                        if (sound != nullptr) {
-                            Mixer.playSoundVoc(sound->data, sound->size);
-                        }
-                    }
+                    this->mission->playEffect(SoundEffectIds::EXPLOSION_1, position);
                 }
                 break;
             }
@@ -385,13 +367,7 @@ void SCSimulatedObject::Simulate(int tps) {
     if (this->y < this->mission->area->getY(this->x, this->z)) {
         if (!this->is_simulated) {
             this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-            if (this->mission->sound.sounds.size() > 0) {
-                MemSound *sound;
-                sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-                if (sound != nullptr) {
-                    Mixer.playSoundVoc(sound->data, sound->size);
-                }
-            }
+            this->mission->playEffect(SoundEffectIds::EXPLOSION_1, position);
             for (auto entity: this->mission->actors) {
                 if (this->CheckCollision(entity)) {
                     auto hit_event = std::make_unique<MissionEventActorHit>();
@@ -530,12 +506,7 @@ void GunSimulatedObject::Simulate(int tps) {
                 SCExplosion *explosion = new SCExplosion(this->obj->explos->objct, position);
                 this->mission->explosions.push_back(explosion);
                 if (this->obj->entity_type != EntityType::tracer) {
-                    if (this->mission->sound.sounds.size() > 0) {
-                        MemSound *sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_3);
-                        if (sound != nullptr) {
-                            Mixer.playSoundVoc(sound->data, sound->size);
-                        }
-                    }
+                    this->mission->playEffect(SoundEffectIds::EXPLOSION_3, position);
                 }
             }
         }
@@ -768,12 +739,7 @@ void AgmSimulatedObject::dropTarget(const char *reason) {
 
 void AgmSimulatedObject::explode(Vector3D position) {
     this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
-    if (this->mission->sound.sounds.size() > 0) {
-        MemSound *sound = this->mission->sound.effect(SoundEffectIds::EXPLOSION_1);
-        if (sound != nullptr) {
-            Mixer.playSoundVoc(sound->data, sound->size);
-        }
-    }
+    this->mission->playEffect(SoundEffectIds::EXPLOSION_1, position);
 }
 
 // MissileBody_GuidanceTick_42A4E : poursuite avec anticipation (MissileBody_SteerToTarget_42738), propulsion jusqu'à la
