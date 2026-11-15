@@ -23,6 +23,7 @@ public:
 protected:
     SCMission *createMission(char const *missionName) override;
     SCCockpit *createCockpit() override;
+    SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit) override;
     void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) override;
     void afterInput() override;
     void afterCameraPlaced() override;

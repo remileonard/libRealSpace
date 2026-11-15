@@ -21,6 +21,18 @@ public:
     void drawTexturedQuad(Vector3D pos, Vector3D orientation, std::vector<Vector3D> quad, Texture *tex) override;
     void drawBillboard(Vector3D pos, Texture *tex, float size, float alpha) override;
     void applyTextureFilter(const Texture *texture) override;
+    void drawModelColorPass(RSEntity *object, size_t lodLevel, std::vector<Vector3D> &vertexNormals, float ambientLamber,
+                            Vector3D lightEye, float *MV) override;
+
+    /** Brushed metal detail on the flat coloured polygons of the models drawn while it is on (the 3D cockpit model). */
+    static void setMetalDetail(bool on);
+
+private:
+    void ensureMetalTexture();
+    void drawMetalPass(RSEntity *object, size_t lodLevel);
+
+    bool metalDetail{false};
+    unsigned int metalTexture{0};
     void renderMapOverlay(RSArea *area) override;
 
     // [Video] runway_texture: 0 = off (default, the original overlay), 1024 / 2048 / 4096 = size of the procedural high
