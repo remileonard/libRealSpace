@@ -93,6 +93,6 @@ scaling and a cursor. It draws into a 320x200 palette picture (main menu palette
 finished frame. `NEOSC_UI_SHEET=NAME` shows all images of `DATA\FONTS\NAME.SHP` in the dialog (debug aid to look at the game's own UI art).
 
 ## Options screen (ALT+O, `OptionsPanel`)
-ALT+O pauses the mission and opens a panel with the switches of the enhanced module: "Enhanced Water" (`water_splash`), "Enhanced Cockpit"
+ALT+O pauses the mission and opens a panel with the switches of the enhanced module: "Enhanced Water" (`water_splash` and `water_waves`), "Enhanced Terrain Textures" (`terrain_detail`), "Enhanced Cockpit"
 (`cockpit = 3d`, with the cockpit glass) "Enhanced Outside Camera" (`camera_mouse_orbit`, mouse orbit of the external cameras) and "Enhanced F-16 Model" (`enhanced_f16_model`: the OBJ airframe from `assets/models` and the thrust dependent exhaust flame, off = original model and flame; `EnhancedEntity` keeps both geometries and swaps them at run time). A click
 flips the switch at once and writes it to `./assets/config.ini` (a copy `config.ini.bak` is made on the first save). ESC or CLOSE leaves.
