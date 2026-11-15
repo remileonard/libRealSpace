@@ -14,6 +14,7 @@ PSMission::PSMission() {
     this->last_tick = 0;
     this->tick_counter = 0;
     this->tps = 0;
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
 }
 PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->mission_name = mission_name;
@@ -23,6 +24,7 @@ PSMission::PSMission(std::string mission_name, std::unordered_map<std::string, R
     this->tick_counter = 0;
     this->tps = 0;
     this->loadMission();
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", false);
     subscription_id = this->messageBus.subscribeEvent(std::bind(&PSMission::onEvent, this, std::placeholders::_1));
 }
 
@@ -167,7 +169,7 @@ RSEntity *PSMission::createRunwayEntity(MISN_PART *part) {
     for (auto &runway : this->area->objectOverlay) {
         if (position.x >= runway.lx && position.x <= runway.hx && position.z >= runway.ly && position.z <= runway.hy) {
             inside = true;
-            printf("PSMission: piste %d %s a (%.1f, %.1f, %.1f), dans la region X %.1f a %.1f, Z %.1f a %.1f\n", part->id, part->member_name.c_str(), position.x, position.y, position.z, runway.lx, runway.hx, runway.ly, runway.hy);
+            printf("PSMission: piste %d %s a (%.1f, %.1f, %.1f), dans la region X %d a %d, Z %d a %d\n", part->id, part->member_name.c_str(), position.x, position.y, position.z, runway.lx, runway.hx, runway.ly, runway.hy);
             break;
         }
     }
@@ -457,5 +459,164 @@ void PSMission::finishScenes() {
     }
     if (this->global_scene != nullptr) {
         this->global_scene->runLeaving();
+    }
+}
+
+// Music_ScanNearbyEnemies_5B962 : objets du camp 255 à moins de 18 520 m du joueur ; bit 0 = avion dont le pilote est à
+// bord, bit 1 = autre objet (catégories 1, 19, 20, 21, 23, 24 : décor ORNT, SWPN, sol, XMIT, navires).
+uint8_t PSMission::musicScanEnemies(SCMissionActors *excluded) {
+    uint8_t flags = 0;
+    Vector3D player_position = this->player->plane->position;
+    for (auto actor : this->actors) {
+        if (actor == excluded || actor == this->player || !actor->is_active || actor->is_destroyed) {
+            continue;
+        }
+        if (actor->object == nullptr || actor->object->entity == nullptr || !actor->object->alive || actor->team_id != 255) {
+            continue;
+        }
+        Vector3D position = actor->plane != nullptr ? actor->plane->position : actor->object->position;
+        if ((position - player_position).Length() >= 18520.0f) {
+            continue;
+        }
+        EntityType type = actor->object->entity->entity_type;
+        if (actor->plane != nullptr && type == EntityType::jet && !actor->plane->ejected) {
+            flags |= 1;
+        }
+        if (type == EntityType::ornt || type == EntityType::swpn || type == EntityType::ground || type == EntityType::xmit || type == EntityType::ship || type == EntityType::carr) {
+            flags |= 2;
+        }
+    }
+    return flags;
+}
+
+// Music_CombatIntensitySelector_5BBF8 (table off_5BD55) : pendant ces pistes, le combat ne passe pas à 9 ou 1 et ne
+// revient pas à la piste de la mission.
+bool PSMission::musicTuneLocked() {
+    int current = (int)this->Mixer.getMusicID();
+    return current == 4 || current == 11 || current == 12 || current == 15 || current == 16 || current == 19;
+}
+
+// Music_TargetWithinRange_5B85C : la cible du joueur est un avion, pilote à bord, à moins de 1 500 m.
+bool PSMission::musicTargetWithinRange() {
+    SCMissionActors *target = this->player->target;
+    if (target == nullptr || target->plane == nullptr || target->plane->ejected) {
+        return false;
+    }
+    return (target->plane->position - this->player->plane->position).Length() < 1500.0f;
+}
+
+// Music_CombatIntensitySelector_5BBF8, pistes de Pacific Strike.
+void PSMission::onMusicUpdate() {
+    SCPlane *player_plane = this->player->plane;
+    if (player_plane->ejected || player_plane->crached || !this->player->object->alive) {
+        return;
+    }
+    if (this->Mixer.getMusicID() == 20 || this->Mixer.getRequestedMusicID() != this->Mixer.getMusicID()) {
+        return;
+    }
+    uint8_t flags = this->musicScanEnemies(nullptr);
+    this->music_enemy_flags = flags;
+    bool locked = this->musicTuneLocked();
+    if (flags == 0) {
+        if (this->musicFallback() || locked) {
+            return;
+        }
+        int mission_tune = (int)this->mission->mission_data.tune;
+        if ((uint32_t)mission_tune != this->Mixer.getMusicID()) {
+            this->musicRequest(mission_tune, "aucun ennemi, piste de la mission");
+        }
+        return;
+    }
+    this->music_combat_happened = true;
+    int tune = -1;
+    const char *reason = "";
+    if (this->player_tail_threat != nullptr) {
+        tune = 13;
+        reason = "un ennemi attaque le joueur";
+    } else if (this->musicTargetWithinRange()) {
+        tune = 18;
+        reason = "cible du joueur a moins de 1500 m";
+    } else if (static_cast<PSPlane *>(player_plane)->criticallyDamaged()) {
+        tune = 2;
+        reason = "moteur, ailerons ou profondeur > 90 %";
+    } else if (static_cast<PSPlane *>(player_plane)->seriouslyDamaged()) {
+        tune = 10;
+        reason = "gravement endommage";
+    } else if (!locked) {
+        tune = (flags & 1) ? 9 : 1;
+        reason = (flags & 1) ? "avion ennemi proche" : "menaces au sol seules";
+    }
+    if (tune >= 0 && (uint32_t)tune != this->Mixer.getMusicID()) {
+        this->musicRequest(tune, reason);
+    }
+}
+
+// Music_SelectTuneCandidate_5BB21, étape de fin de combat : 17 si la condition de mission est remplie, sinon 3 après
+// un combat (le combat est alors oublié).
+bool PSMission::musicFallback() {
+    if (this->mission_over && this->mission_won) {
+        this->musicRequest(17, "fin de combat, condition de mission remplie");
+        return true;
+    }
+    if (this->music_combat_happened) {
+        this->music_combat_happened = false;
+        this->musicRequest(3, "fin de combat");
+        return true;
+    }
+    return false;
+}
+
+// Ponctuations de victoire du joueur : 16 (avion), 12 (décor, défense fixe, objet au sol), 15 (autres).
+bool PSMission::musicIsPunctuation(int tune) {
+    return tune == 12 || tune == 15 || tune == 16;
+}
+
+// World_OnObjectDestroyed_553B6, partie musique.
+void PSMission::onActorDestroyed(SCMissionActors *actor) {
+    SCPlane *player_plane = this->player->plane;
+    if (actor == this->player || player_plane->crached || !this->player->object->alive) {
+        return;
+    }
+    if (actor->plane != nullptr && actor->plane->ejected) {
+        return;
+    }
+    if (actor->object == nullptr || actor->object->entity == nullptr) {
+        return;
+    }
+    EntityType type = actor->object->entity->entity_type;
+    if (type != EntityType::ornt && type != EntityType::jet && type != EntityType::swpn && type != EntityType::ground && type != EntityType::xmit && type != EntityType::ship && type != EntityType::carr) {
+        return;
+    }
+    printf("MUSIC destroyed %s#%d team=%d by=%s\n", actor->actor_name.c_str(), actor->actor_id, actor->team_id, actor->last_hit_by != nullptr ? actor->last_hit_by->actor_name.c_str() : "none");
+    if (actor->team_id == 255) {
+        uint8_t before = this->music_enemy_flags;
+        uint8_t after = this->musicScanEnemies(actor);
+        this->music_enemy_flags = after;
+        bool changed = false;
+        if (after != 0 && (before & 1) && !(after & 1)) {
+            this->musicRequest(1, "dernier avion ennemi abattu");
+            changed = true;
+        } else if (after == 0 && before != 0) {
+            changed = this->musicFallback();
+        }
+        if (changed || actor->last_hit_by != this->player) {
+            return;
+        }
+        int punctuation = 15;
+        if (type == EntityType::jet) {
+            punctuation = 16;
+        } else if (type == EntityType::ornt || type == EntityType::swpn || type == EntityType::ground) {
+            punctuation = 12;
+        }
+        if (std::rand() % 100 < 11) {
+            punctuation = 15;
+        }
+        this->music_resume_tune = (int)this->Mixer.getMusicID();
+        this->musicRequest(punctuation, "victoire du joueur");
+        return;
+    }
+    if (actor->team_id == 1) {
+        int tune = (std::rand() % 2 == 1) ? 19 : 4;
+        this->musicRequest(tune, "objet allie detruit");
     }
 }

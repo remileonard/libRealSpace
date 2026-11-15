@@ -8,6 +8,7 @@
 
 #include "PakArchive.h"
 #include "../commons/PKWareDecompressor.h"
+#include "../commons/SpeechDecompressor.h"
 #include <errno.h>
 
 PakArchive::PakArchive() :
@@ -74,6 +75,14 @@ void PakArchive::Parse(void){
             entry->data = dt;
             entry->size = csize;
             entry->type = 0; // Reset type to 0 after decompression.
+        }
+        // Type 5 (octet de type 0xA0) : sons de Pacific Strike compressés (PakReader_ReadEntry_75C8 → sub_1C574).
+        if (entry->type == 160 && entry->size > 4) {
+            SpeechDecompressor decompressor;
+            size_t decompressedSize = 0;
+            entry->data = decompressor.Decompress(entry->data, entry->size, decompressedSize);
+            entry->size = decompressedSize;
+            entry->type = 0;
         }
         if (entry->type == 96 && entry->size > 4) {
             PKWareDecompressor decompressor;

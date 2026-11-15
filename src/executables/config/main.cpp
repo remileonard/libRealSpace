@@ -80,6 +80,7 @@ int main(int argc, char* argv[]) {
     snprintf(midi_port, sizeof(midi_port), "%s", config.getString("Sound", "midi_port", "").c_str());
     int midi_music = config.getInt("Sound", "midi_music", 0);
     bool midi_debug = config.getInt("Sound", "midi_debug", 0) != 0;
+    bool digital_fx = config.getBool("Sound", "digital_fx", true);
     char soundfont[512];
     snprintf(soundfont, sizeof(soundfont), "%s", config.getString("Sound", "soundfont", "").c_str());
     char mt32_rom_dir[512];
@@ -195,6 +196,7 @@ int main(int argc, char* argv[]) {
                     ImGui::InputText(_labelPrefix("SoundFont").c_str(), soundfont, sizeof(soundfont));
                     ImGui::InputText(_labelPrefix("MT-32 ROM Dir").c_str(), mt32_rom_dir, sizeof(mt32_rom_dir));
                     ImGui::Checkbox(_labelPrefix("MIDI Debug").c_str(), &midi_debug);
+                    ImGui::Checkbox(_labelPrefix("Digital FX").c_str(), &digital_fx);
                 }
 
                 ImGui::Separator();
@@ -226,6 +228,7 @@ int main(int argc, char* argv[]) {
                     config.setString("Sound", "soundfont", soundfont);
                     config.setString("Sound", "mt32_rom_dir", mt32_rom_dir);
                     config.setInt ("Sound",  "midi_debug", midi_debug ? 1 : 0);
+                    config.setBool("Sound", "digital_fx", digital_fx);
                     config.save(configPath);
                 }
                 ImGui::SameLine();

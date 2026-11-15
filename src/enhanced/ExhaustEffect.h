@@ -16,6 +16,9 @@ public:
      */
     void draw(const void *key, const Mat4 &model, Vector3D nozzle, int thrust, const float *view);
 
+    /** afterburner size and brightness factor ([Video] exhaust_strength / 100), 1.0 = the original look of the plume */
+    float strength{1.0f};
+
 private:
     void addStrip(float length, float width, float swell, Color c, float repeat, float speed, float phase);
     void addSprite(float x, float radius, Color c);
