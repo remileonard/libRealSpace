@@ -858,12 +858,14 @@ void RSEntity::parseREAL_OBJT_JETP_WEAP_DAMG_SYSM(uint8_t *data, size_t size) {
 
     this->life = bs.ReadShort();
     size_t nb_sysm = (size - 2) / 18;
-    
+    // Vie de l'avion : somme des points de ses systèmes.
+    this->health = 0;
     for (size_t i=0; i<nb_sysm;i++) {
         uint16_t pv = bs.ReadShort();
         std::string sub_system = bs.ReadString(8);
         std::string main_system = bs.ReadString(8);
         this->sysm[main_system][sub_system] = pv;
+        this->health += pv;
     }
 }
 void RSEntity::parseREAL_OBJT_EXTE(uint8_t *data, size_t size) {

@@ -304,7 +304,7 @@ public:
     uint8_t missile_data_unknown{0};
     uint16_t missile_fuse_radius{0};
     float decoy_lifetime{0.0f};        // secondes
-    uint8_t health{0};
+    int health{0};
     WDAT *wdat{nullptr};
     DYNN_MISS *dynn_miss{nullptr};
     SWPN_DATA *swpn_data{nullptr};
