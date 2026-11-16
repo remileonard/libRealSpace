@@ -153,8 +153,8 @@ void EnhancedStrike::init() {
     this->orbitEnabled = cfg.getString("Video", "camera_mouse_orbit", "1") != "0";
     printf("[enhanced] outside camera mouse orbit: %s\n", this->orbitEnabled ? "on" : "off");
     this->gEffectsEnabled = cfg.getString("Video", "g_effects", "0") == "1";
-    this->gForce.configure((float)atof(cfg.getString("Video", "g_effects_threshold", "4.5").c_str()),
-                           (float)atof(cfg.getString("Video", "g_effects_strength", "1").c_str()));
+    this->gForce.configure((float)atof(cfg.getString("Video", "g_effects_threshold", "6").c_str()),
+                           (float)atof(cfg.getString("Video", "g_effects_strength", "0.6").c_str()));
     printf("[enhanced] G-force vision effects: %s\n", this->gEffectsEnabled ? "on" : "off");
     this->options.clear();
     // Enhanced Water = splash on hits + animated waves, Enhanced Terrain Textures = detail texture (strengths 1..100)
