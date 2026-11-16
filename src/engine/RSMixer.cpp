@@ -613,6 +613,7 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
     std::lock_guard<std::recursive_mutex> lock(engineMutex);
     for (int c = 0; c < SFX_CHANNELS; c++) {
         if (sfxHandle[c] >= 0 && sfxEffect[c] == fx && sfxEmitter[c] == emitter) {
+            sfxStamp[c] = SDL_GetTicks();
             if (volume == 0) {
                 stopSoundFx(c);
             } else {
@@ -627,8 +628,22 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
     int c = playSoundFx(fx, volume);
     if (c >= 0) {
         sfxEmitter[c] = emitter;
+        sfxStamp[c] = SDL_GetTicks();
     }
     printf("SFX effect=%d channel=%d volume=%d\n", effect, c, volume);
+}
+
+void RSMixer::stopIdleSoundFx(uint32_t maxIdleMs) {
+    if (shuttingDown) {
+        return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(engineMutex);
+    uint32_t now = SDL_GetTicks();
+    for (int c = 0; c < SFX_CHANNELS; c++) {
+        if (sfxHandle[c] >= 0 && sfxEmitter[c] != nullptr && now - sfxStamp[c] > maxIdleMs) {
+            stopSoundFx(c);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------

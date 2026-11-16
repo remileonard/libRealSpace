@@ -93,6 +93,7 @@ private:
     bool enhancedModel{true};
     bool enhancedWater{false};
     bool enhancedTerrain{false};
+    int gunStopMs{250};    // [Sound] gun_fx_stop_ms: a gun sound that is not refreshed for this long is stopped, 0 = as the core (never)
     int waveStrength{25};
     int detailStrength{25};
     bool orbitEnabled{true};

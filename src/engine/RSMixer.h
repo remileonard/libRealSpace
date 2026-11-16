@@ -61,6 +61,7 @@ class RSMixer {
     void traceDriverState();
     MemMusic *sfxEffect[SFX_CHANNELS]{};
     const void *sfxEmitter[SFX_CHANNELS]{};
+    uint32_t sfxStamp[SFX_CHANNELS]{};   // SDL ticks of the last start/update of the effect of each channel
     std::vector<int16_t> mixBuffer;
 
     static void musicHook(void *udata, Uint8 *stream, int len);
@@ -131,6 +132,9 @@ public:
     // SoundFX_PlayOrUpdate_5A906 : effet de SOUNDFX.ADL pour cet emetteur, volume selon la distance
     // au point de vue (SoundFX_Play3D_59902) ; demarre s'il ne joue pas, sinon met a jour son volume.
     void playOrUpdateSoundFx(int effect, const void *emitter, float distance);
+    // Stops the effects of an emitter that has not been started/updated for maxIdleMs milliseconds (a looping effect such as the
+    // gun never ends by itself, the emitter has to keep calling playOrUpdateSoundFx while it is active).
+    void stopIdleSoundFx(uint32_t maxIdleMs);
     // Effet de SOUNDFX.ADL joué une fois, volume selon la distance.
     void playSoundFxAtDistance(int effect, float distance);
     // SoundFX_Play3D_59902 : 100 - d / 10 sous 1 000 m, 5 jusqu'à 5 000 m, 0 au-delà.

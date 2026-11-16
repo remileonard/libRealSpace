@@ -142,6 +142,7 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
 void EnhancedStrike::init() {
     SCStrike::init();
     Config &cfg = Config::getInstance();
+    this->gunStopMs = (std::max)(0, cfg.getInt("Sound", "gun_fx_stop_ms", 250));
     this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     this->exhaust.strength = (std::min)(300, (std::max)(50, cfg.getInt("Video", "exhaust_strength", 100))) / 100.0f;
     printf("[enhanced] camera mouse orbit: invert_y=%d\n", this->orbitInvertY ? 1 : 0);
@@ -297,6 +298,10 @@ void EnhancedStrike::updateCockpit3D() {
 }
 
 void EnhancedStrike::afterInput() {
+    if (this->gunStopMs > 0) {
+        // The gun is a looping MIDI effect that the core never stops, so it keeps sounding after the trigger is released
+        Mixer.stopIdleSoundFx((uint32_t)this->gunStopMs);
+    }
     this->handleOptionsKey();
     if (this->endPrompt) {
         this->pause_simu = true;
