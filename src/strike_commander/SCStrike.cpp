@@ -1390,7 +1390,7 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
  * - Managing the display of cockpit elements like communication and weapons.
  */
 void SCStrike::runFrame(void) {
-    Mixer.setVolume(5,5);
+    Mixer.setVolume(this->engine_channel_volume, 5);
     this->checkKeyboard();
     this->afterInput();
     View director_view = this->current_mission->camera_director->currentView();
