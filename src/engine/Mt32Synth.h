@@ -9,6 +9,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -34,4 +35,9 @@ private:
     std::mutex mtx;
     mt32emu_data *context{nullptr};
     std::vector<int16_t> buffer;
+    // NEOSC_MT32_WAV=file: writes the synth output alone (without sound effects) as 16 bit stereo WAV, a debug aid
+    FILE *wav{nullptr};
+    uint32_t wavBytes{0};
+    int wavRate{0};
+    void closeWav();
 };
