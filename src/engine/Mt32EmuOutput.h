@@ -8,11 +8,13 @@
 #pragma once
 #include <cstdio>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 #include "MusicOutput.h"
 #include "Mt32Synth.h"
+#include "Mt32Rhythm.h"
 
 // Loads the STRIKE.MT timbres (record: u16 LE 0x00F8 + 246 bytes) into the emulated MT-32 with SysEx.
 // Memory slot n is at address 08 00 00 + n*256, patch p is assigned at 05 00 00 + p*8.
@@ -20,12 +22,27 @@ class Mt32SynthTimbres {
 public:
     Mt32Synth *synth{nullptr};
 
+    void setLibrary(const SCTimbreLibrary *l) {
+        lib = l;
+        if (synth != nullptr && Mt32Rhythm::enabled()) {
+            rhythm.programAll(lib, [this](const std::vector<uint8_t> &m) { synth->sysex(m); });
+        }
+    }
+
     bool has(int bank, int patch) const {
+        if (bank == Mt32Rhythm::BANK) {
+            return rhythmDone.count(patch) > 0;
+        }
         auto it = slotOf.find(patch);
         return it != slotOf.end() && it->second.first == bank;
     }
 
     void install(int bank, int patch, const uint8_t *rec) {
+        if (bank == Mt32Rhythm::BANK) {
+            // rhythm key (patch = key): the whole rhythm setup is written by setLibrary(), see Mt32Rhythm.h
+            rhythmDone.insert(patch); // marked as done, the sequencer would ask again otherwise
+            return;
+        }
         if (synth == nullptr || rec == nullptr || (rec[0] | (rec[1] << 8)) != 248) {
             slotOf[patch] = { bank, -1 }; // marked as done, the sequencer would ask again otherwise
             return;
@@ -35,9 +52,14 @@ public:
         if (it != slotOf.end() && it->second.second >= 0) {
             slot = it->second.second;
         } else {
-            if (next >= 64) { // 64 timbre memory slots: start over
+            // 64 timbre memory slots, the first ones hold the percussion timbres of the rhythm setup: start over
+            const int first = Mt32Rhythm::enabled() ? Mt32Rhythm::FIRST_MELODIC_SLOT : 0;
+            if (next < first) {
+                next = first;
+            }
+            if (next >= 64) {
                 slotOf.clear();
-                next = 0;
+                next = first;
             }
             slot = next++;
         }
@@ -54,7 +76,10 @@ public:
 
 private:
     std::map<int, std::pair<int, int>> slotOf; // patch -> (bank, slot)
+    std::set<int> rhythmDone;                  // rhythm keys (bank 0x7F) already handled
     int next{0};
+    const SCTimbreLibrary *lib{nullptr};
+    Mt32Rhythm rhythm;
 
     static std::vector<uint8_t> message(int base, int offset, const uint8_t *p, size_t n) {
         std::vector<uint8_t> m = { 0xF0, 0x41, 0x10, 0x16, 0x12,
@@ -80,11 +105,15 @@ public:
         if (debugLog && (status & 0xF0) == 0xC0) {
             std::printf("MT-32 emu ch%d program %d\n", (status & 0x0F) + 1, d1);
         }
+        if (Mt32Rhythm::reverbControl(status, d1, d2, [this](const std::vector<uint8_t> &m) { synth.sysex(m); })) {
+            return;
+        }
         synth.send(status, d1, d2);
     }
     void sysex(const uint8_t *data, size_t size) override { synth.sysex(data, size); }
     bool hasTimbre(int bank, int patch) override { return timbres.has(bank, patch); }
     void installTimbre(int bank, int patch, const uint8_t *rec) override { timbres.install(bank, patch, rec); }
+    void setTimbreLibrary(const SCTimbreLibrary *l) override { timbres.setLibrary(l); }
     void render(int16_t *out, int frames) override { synth.render(out, frames); }
 
 private:

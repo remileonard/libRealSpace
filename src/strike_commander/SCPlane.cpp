@@ -383,6 +383,10 @@ void SCPlane::updateWeaponTimers(float dt) {
     for (float &timer : this->weapon_timers) {
         timer = (std::max)(timer - dt, 0.0f);
     }
+    if (!this->gun_firing && this->pilot != nullptr && this->pilot->mission != nullptr) {
+        this->pilot->mission->stopEffect(SoundEffectIds::GUN_FIRE, this);
+    }
+    this->gun_firing = false;
 }
 
 void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
@@ -1551,12 +1555,17 @@ void SCPlane::launchOne(int weapon_hard_point_id, SCMissionActors *target, SCMis
 // WeaponSystem_LaunchFromStation_3E744 : minuteur de la famille, panier = une roquette par panier LAU-3,
 // bombe = paire sur le pylone le plus charge (WeaponSystem_ReleaseBomb_9E289 force), sauf GBU-15
 void SCPlane::fireStation(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission, bool allow_prediction) {
+    
     SCWeaponLoadoutHardPoint *weap_loadout = this->weaps_load[weapon_hard_point_id];
     if (weap_loadout == nullptr) {
         return;
     }
     RSEntity *launcher = weap_loadout->objct;
+    
     int slot = this->weaponTimerSlot(launcher);
+    if (launcher->wdat->weapon_id == ID_20MM && weap_loadout->nb_weap > 0) {
+        this->gun_firing = true;
+    }
     if (slot < 0 || this->weapon_timers[slot] > 0.0f) {
         return;
     }

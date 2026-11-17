@@ -1,7 +1,9 @@
 #pragma once
 #include "MidiOut.h"
+#include "Mt32Rhythm.h"
 #include <cstdint>
 #include <map>
+#include <set>
 #include <vector>
 #include <utility>
 
@@ -11,12 +13,27 @@ class Mt32Uploader {
 public:
     MidiOut *out = nullptr;
 
+    void setLibrary(const SCTimbreLibrary *l) {
+        lib = l;
+        if (out && Mt32Rhythm::enabled()) {
+            rhythm.programAll(lib, [this](const std::vector<uint8_t> &m) { out->sysex(m); });
+        }
+    }
+
     bool has(int bank, int patch) const {
+        if (bank == Mt32Rhythm::BANK) {
+            return rhythmDone.count(patch) > 0;
+        }
         auto it = slotOf.find(patch);
         return it != slotOf.end() && it->second.first == bank;
     }
 
     void install(int bank, int patch, const uint8_t *rec) {
+        if (bank == Mt32Rhythm::BANK) {
+            // Rhythmus-Taste (Patch = Taste): das ganze Rhythm Setup schreibt setLibrary(), siehe Mt32Rhythm.h
+            rhythmDone.insert(patch); // als erledigt markieren, sonst fragt der Sequenzer endlos nach
+            return;
+        }
         if (!out || !rec || (rec[0] | (rec[1] << 8)) != 248) {
             slotOf[patch] = { bank, -1 }; // als erledigt markieren, sonst fragt der Sequenzer endlos nach
             return;
@@ -26,9 +43,14 @@ public:
         if (it != slotOf.end() && it->second.second >= 0) {
             slot = it->second.second; // Patch hat schon einen Platz: ueberschreiben
         } else {
-            if (next >= 64) { // MT-32 hat 64 Plaetze: von vorn anfangen
+            // MT-32 hat 64 Plaetze, die ersten halten die Schlagzeug-Timbres des Rhythm Setup: von vorn anfangen
+            const int first = Mt32Rhythm::enabled() ? Mt32Rhythm::FIRST_MELODIC_SLOT : 0;
+            if (next < first) {
+                next = first;
+            }
+            if (next >= 64) {
                 slotOf.clear();
-                next = 0;
+                next = first;
             }
             slot = next++;
         }
@@ -45,7 +67,10 @@ public:
 
 private:
     std::map<int, std::pair<int, int>> slotOf; // Patch -> (Bank, Slot)
+    std::set<int> rhythmDone;                  // Rhythmus-Tasten (Bank 0x7F), schon erledigt
     int next = 0;
+    const SCTimbreLibrary *lib = nullptr;
+    Mt32Rhythm rhythm;
     static std::vector<uint8_t> sx(int base, int offset, const uint8_t *p, size_t n) {
         std::vector<uint8_t> m = { 0xF0, 0x41, 0x10, 0x16, 0x12,
             (uint8_t)(base + ((offset >> 14) & 0x7F)),

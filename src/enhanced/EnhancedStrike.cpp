@@ -142,6 +142,12 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
 void EnhancedStrike::init() {
     SCStrike::init();
     Config &cfg = Config::getInstance();
+    this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
+    this->engineVolume = (std::min)(128, cfg.getInt("Sound", "engine_volume", 100));
+    if (this->engineVolume >= 0) {
+        this->engine_channel_volume = this->engineVolume;
+        printf("[enhanced] engine sound volume: %d of 128\n", this->engineVolume);
+    }
     this->exhaust.strength = (std::min)(300, (std::max)(50, cfg.getInt("Video", "exhaust_strength", 100))) / 100.0f;
     this->cockpit3d = cfg.getString("Video", "cockpit", "2d") == "3d";
     this->cockpitFov = (std::min)(100.0f, (std::max)(30.0f, (float)atof(cfg.getString("Video", "cockpit_fov", "45").c_str())));
@@ -150,8 +156,8 @@ void EnhancedStrike::init() {
     printf("[enhanced] water splash: %s\n", this->waterSplashEnabled ? "on" : "off");
     this->orbitInit();
     this->gEffectsEnabled = cfg.getString("Video", "g_effects", "0") == "1";
-    this->gForce.configure((float)atof(cfg.getString("Video", "g_effects_threshold", "4.5").c_str()),
-                           (float)atof(cfg.getString("Video", "g_effects_strength", "1").c_str()));
+    this->gForce.configure((float)atof(cfg.getString("Video", "g_effects_threshold", "6").c_str()),
+                           (float)atof(cfg.getString("Video", "g_effects_strength", "0.6").c_str()));
     printf("[enhanced] G-force vision effects: %s\n", this->gEffectsEnabled ? "on" : "off");
     this->options.clear();
     // Enhanced Water = splash on hits + animated waves, Enhanced Terrain Textures = detail texture (strengths 1..100)

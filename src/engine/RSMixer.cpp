@@ -551,7 +551,22 @@ void RSMixer::stopSoundFx(int fxChannel) {
         sfxEmitter[fxChannel] = nullptr;
     }
 }
-
+void RSMixer::stopSoundFx(int effect, const void *emitter) {
+    if (shuttingDown || !this->music) {
+        return;
+    }
+    auto set = this->music->soundfx_musics.find(0);
+    if (set == this->music->soundfx_musics.end() || effect < 0 || effect >= (int)set->second.size()) {
+        return;
+    }
+    MemMusic *fx = set->second[effect];
+    std::lock_guard<std::recursive_mutex> lock(engineMutex);
+    for (int c = 0; c < SFX_CHANNELS; c++) {
+        if (sfxHandle[c] >= 0 && sfxEffect[c] == fx && sfxEmitter[c] == emitter) {
+            stopSoundFx(c);
+        }
+    }
+}
 void RSMixer::stopAllSoundFx() {
     if (shuttingDown) {
         return;

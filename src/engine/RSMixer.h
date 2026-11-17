@@ -124,6 +124,7 @@ public:
     int playSoundFx(MemMusic *fx, int volume = 100);
     void setSoundFxVolume(int fxChannel, int volume);
     void stopSoundFx(int fxChannel); // SoundFX_StopEffect_59A8A : Note Off seulement
+    void stopSoundFx(int effect, const void *emitter);
     bool isSoundFxPlaying(int fxChannel);
     void stopAllSoundFx(); // SoundFX_StopAll_5AA95 : arrete les effets et rend leurs canaux verrouilles
     // Nombre d'effets XMIDI joués en même temps (5 dans Strike Commander, 1 dans Pacific Strike).

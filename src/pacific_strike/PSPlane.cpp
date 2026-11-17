@@ -2,6 +2,7 @@
 #include "PSArea.h"
 
 PSPlane::PSPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELEVF_CSTE, float ROLLFF_CSTE, float s, float W, float fuel_weight, float Mthrust, float b, float ie_pi_AR, int MIN_LIFT_SPEED, RSArea *area, float x, float y, float z) : SCJetpPlane(LmaxDEF, LminDEF, Fmax, Smax, ELEVF_CSTE, ROLLFF_CSTE, s, W, fuel_weight, Mthrust, b, ie_pi_AR, MIN_LIFT_SPEED, area, x, y, z) {
+    this->gun_firing = true;
 }
 
 
@@ -164,6 +165,7 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
     }
     RSEntity *launcher = selected->objct;
     int slot = this->weaponTimerSlot(launcher);
+    this->gun_firing = true;
     if (slot < 0 || this->weapon_timers[slot] > 0.0f) {
         return;
     }

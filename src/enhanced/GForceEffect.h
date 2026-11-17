@@ -28,8 +28,8 @@ public:
 private:
     void createTextures();
 
-    float threshold{4.5f};
-    float strength{1.0f};
+    float threshold{6.0f};
+    float strength{0.6f};
     float smoothedG{1.0f};
     float lastTime{-1.0f};
     float tunnel{0.0f};

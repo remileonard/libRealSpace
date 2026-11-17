@@ -491,7 +491,9 @@ void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
     }
     this->Mixer.playSoundFxAtDistance(this->sound.fxEffect(id), distance);
 }
-
+void SCMission::stopEffect(SoundEffectIds id, const void *emitter) {
+    this->Mixer.stopSoundFx(this->sound.fxEffect(id), emitter);
+}
 void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
     if (weapon->obj->wdat->target_domain == 1) {
         this->aa_missile_launched = true;

@@ -55,6 +55,7 @@ int SCMusicSequencer::registerAndStart(AILXmidiDriver *xmi, const SCTimbreLibrar
         }
         return -1;
     }
+    xmi->device->setTimbreLibrary(lib);
     // Le jeu boucle sans fin sur un timbre introuvable ; ici on s arrete et on le signale.
     // Un appareil qui a ses timbres en ROM (MT-32) note le timbre absent comme installe et on continue.
     for (int guard = 0; guard < 256; guard++) {

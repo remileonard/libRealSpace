@@ -180,6 +180,7 @@ protected:
     void onEvent(const EventMessage &event);
     void onPlaneControl(const PlaneControlEvent &event);
     MessageBus::SubscriptionId subscription_id{-1};
+    bool gun_firing{false};
 public:
     std::unordered_map<std::string, std::unordered_map<std::string, uint16_t>> system_health;
     short alive;
