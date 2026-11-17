@@ -46,7 +46,7 @@ add_subdirectory(src/realspace)
 add_subdirectory(src/commons/pklib)
 add_subdirectory(src/commons/Nuked-OPL3)
 add_subdirectory(src/commons)
-
+include(cmake/R4nkine.cmake)
 # Tests unitaires
 add_subdirectory(tests)
 

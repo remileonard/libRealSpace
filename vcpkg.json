@@ -19,6 +19,9 @@
     "nativefiledialog-extended",
     "boost-filesystem",
     "libmt32emu",
+    "glm",
+    "stb",
+    "cgltf",
     "gtest"
   ]
 }
