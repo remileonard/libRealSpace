@@ -47,6 +47,9 @@ protected:
      */
     virtual void afterInput() {}
 
+    /** Volume (0..128) that runFrame() gives the engine sound channel (5) at the start of every frame; derived activities may raise it. */
+    int engine_channel_volume{5};
+
     /**
      * @brief Hook, empty by default: called each frame once the camera of the current view has been placed, before the scene
      *        is rendered.

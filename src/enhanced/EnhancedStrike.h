@@ -64,6 +64,7 @@ private:
 
     bool cockpit3d{false};
     float cockpitFov{45.0f};
+    int engineVolume{100}; // [Sound] engine_volume: volume of the engine sound channel of the player aircraft, -1 = as the core (5 of 128)
     bool cockpitLookFixed{false};
     bool cockpitKeyPressed{false}; // posé par keyViewCockpit, lu par updateCockpit3D dans la même frame
     float cockpitLookYaw{0.0f};
