@@ -95,6 +95,7 @@ public:
     void onWeaponSpawned(SCSimulatedObject *weapon);
     void playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance);
     void playEffect(SoundEffectIds id, Vector3D position);
+    void stopEffect(SoundEffectIds id, const void *emitter);
     bool digital_fx{false};
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};

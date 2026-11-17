@@ -164,6 +164,9 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
     }
     RSEntity *launcher = selected->objct;
     int slot = this->weaponTimerSlot(launcher);
+    if (launcher->wdat->launch_class == 8 && selected->nb_weap > 0) {
+        this->gun_firing = true;
+    }
     if (slot < 0 || this->weapon_timers[slot] > 0.0f) {
         return;
     }
