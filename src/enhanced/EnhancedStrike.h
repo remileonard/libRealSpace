@@ -38,6 +38,8 @@ protected:
     void applyOption(int index);
     void applyWater();
     void applyTerrain();
+    void applyClouds();
+    void applyRunway();
     void saveConfig() const;
 
 private:
@@ -85,6 +87,10 @@ private:
     bool enhancedTerrain{false};
     int waveStrength{25};
     int detailStrength{25};
+    bool enhancedClouds{false};
+    int cloudStrength{70};
+    bool enhancedRunway{false};
+    int runwaySize{2048};
     bool msaaAvailable{false};
     bool msaaOn{true};
     bool showFps{false};
