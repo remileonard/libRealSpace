@@ -36,9 +36,8 @@ void SCVirtualCockpit::render(const VirtualCockpitContext &ctx) {
         ctx.camera->getPosition().y,
         ctx.camera->getPosition().z
     };
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glTranslatef(camPos.x, camPos.y, camPos.z);
+    Renderer.pushMatrix();
+    Renderer.translateMatrix(camPos.x, camPos.y, camPos.z);
 
     this->cockpit_pos = {0.0f, 0.0f, 0.0f};
     this->cockpit_rot = {(ctx.plane->azimuthf + 900) / 10.0f,
@@ -55,7 +54,7 @@ void SCVirtualCockpit::render(const VirtualCockpitContext &ctx) {
         this->drawPanel(panel, ctx);
     }
 
-    glPopMatrix();
+    Renderer.popMatrix();
 }
 
 void SCVirtualCockpit::drawModel(const VirtualCockpitContext &ctx) {

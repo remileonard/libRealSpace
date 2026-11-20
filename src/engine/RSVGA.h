@@ -21,7 +21,7 @@
 struct VGAPalette;
 
 class RSVGA{
-private:
+protected:
     int width;
     int height;
     VGAPalette palette;
@@ -30,7 +30,8 @@ private:
     uint32_t textureID;
     Texel data[320 * 200];
     inline static std::unique_ptr<RSVGA> s_instance{};
-    void displayBuffer(uint32_t* buffer, int width, int height);
+    virtual void displayBuffer(uint32_t* buffer, int width, int height);
+    virtual void initTextures();
     RSScreen *Screen = &RSScreen::instance();
 
     // --- Widescreen Ambilight ---
@@ -68,9 +69,9 @@ public:
     static bool hasInstance() { return (bool)s_instance; }
 
     RSVGA();
-    ~RSVGA();
-    void init(int width, int height);
-    void activate(void);
+    virtual ~RSVGA();
+    virtual void init(int width, int height);
+    virtual void activate(void);
     void setPalette(VGAPalette* newPalette);
     VGAPalette* getPalette(void);
     void vSync(void);

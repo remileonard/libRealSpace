@@ -257,7 +257,7 @@ void SCObjectViewer::runFrame(void) {
 
     /**/
     // Ok now time to draw the model
-    glClear(GL_DEPTH_BUFFER_BIT);
+    Renderer.clearDepth();
 
     uint32_t currentTime = SDL_GetTicks();
     uint32_t totalTime = currentTime - startTime;
@@ -278,19 +278,17 @@ void SCObjectViewer::runFrame(void) {
     light.z = 4 * sinf(-1 * totalTime / 20000.0f);
     Renderer.setLight(&light);
 
-    glMatrixMode(GL_PROJECTION);
-    Matrix *projection = Renderer.getCamera()->getProjectionMatrix();
-    glLoadMatrixf(projection->ToGL());
+    // the camera matrices without the vertical offset of the flight
+    float verticalOffset = Renderer.verticalOffset;
+    Renderer.verticalOffset = 0.0f;
+    Renderer.initRenderCameraView();
+    Renderer.verticalOffset = verticalOffset;
+    Renderer.pushMatrix();
+    Renderer.rotateMatrix(this->rotateLeftRightAngle, 1, 0, 0);
+    Renderer.pushMatrix();
+    Renderer.rotateMatrix(this->rotateUpDownAngle, 0, 0, 1);
 
-    glMatrixMode(GL_MODELVIEW);
-    Matrix *view = Renderer.getCamera()->getViewMatrix();
-    glLoadMatrixf(view->ToGL());
-    glPushMatrix();
-    glRotatef(this->rotateLeftRightAngle, 1, 0, 0);
-    glPushMatrix();
-    glRotatef(this->rotateUpDownAngle, 0, 0, 1);
-
-    glScalef(1 / this->zoomFactor, 1 / this->zoomFactor, 1 / this->zoomFactor);
+    Renderer.scaleMatrix(1 / this->zoomFactor, 1 / this->zoomFactor, 1 / this->zoomFactor);
     if (objs.showCases[currentObject].entity->triangles.size() > 0) {
         Renderer.drawModel(objs.showCases[currentObject].entity, Renderer.lodLevel);    
     } else if (objs.showCases[currentObject].entity->animations.size() > 0) {
@@ -308,9 +306,8 @@ void SCObjectViewer::runFrame(void) {
         printf("No model to draw for %s\n", objs.showCases[currentObject].displayName.c_str());
     }
     
-    glPopMatrix();
-    glPopMatrix();
-    glDisable(GL_DEPTH_TEST);
+    Renderer.popMatrix();
+    Renderer.popMatrix();
 
     VGA.activate();
     VGA.getFrameBuffer()->clear();

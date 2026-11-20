@@ -2072,9 +2072,7 @@ void SCCockpit::RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb) {
     // Lire les pixels RGBA depuis la texture OpenGL
     std::vector<uint8_t> rgbaPixels(texWidth * texHeight * 4);
     
-    glBindTexture(GL_TEXTURE_2D, renderer.texture);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
+    renderer.readRenderToTexture(rgbaPixels);
 
 
     // Construire la LUT si la palette a changé

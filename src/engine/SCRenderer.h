@@ -204,4 +204,14 @@ public:
     virtual void bindCameraProjectionAndViewViewport(int32_t viewportW, int32_t viewportH, float verticalOffset);
     virtual float objectIntensity(Vector3D normal);
     virtual Vector3D shadeAlongRamp(int colour, float intensity);
+    // the model matrix of the next draws, as glPushMatrix, glPopMatrix, glTranslatef, glRotatef (degrees) and glScalef
+    virtual void pushMatrix();
+    virtual void popMatrix();
+    virtual void translateMatrix(float x, float y, float z);
+    virtual void rotateMatrix(float degrees, float x, float y, float z);
+    virtual void scaleMatrix(float x, float y, float z);
+    // clears the depth of the frame, as glClear(GL_DEPTH_BUFFER_BIT)
+    virtual void clearDepth();
+    // the RGBA pixels of the view of the target camera (renderWorldToTexture), from the bottom row
+    virtual void readRenderToTexture(std::vector<uint8_t> &rgba);
 };

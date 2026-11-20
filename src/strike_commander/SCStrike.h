@@ -73,6 +73,19 @@ protected:
      */
     virtual void afterFrameRendered() {}
 
+    /**
+     * @brief Draws one view of the flight: the world, then the player's plane or the cockpit of the view.
+     */
+    virtual void renderScene(int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit);
+    /**
+     * @brief Draws the world of a view: terrain, actors, explosions, aim points and simulated objects.
+     */
+    virtual void renderWorld();
+    /**
+     * @brief Draws the player's plane in the outside views.
+     */
+    virtual void renderPlayerPlane();
+
     bool air_weapons_mode{false};
     /**
      * @brief Path to current mission file
@@ -306,6 +319,8 @@ protected:
     virtual void keyEyesOnTarget();
     virtual void keySpecKey1();
     virtual void keySpecKey2();
+private:
+    inline static SCStrike *(*s_factory)() = nullptr;
 public:
     float verticalOffset{0.45f};
     // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).
@@ -314,6 +329,11 @@ public:
      * @brief Constructor
      */
     SCStrike();
+    /**
+     * @brief Makes the activity of a flight: a SCStrike, or the type that setFactory gives
+     */
+    static SCStrike *create();
+    static void setFactory(SCStrike *(*factory)());
     /**
      * @brief Destructor
      */

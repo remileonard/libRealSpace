@@ -1710,200 +1710,6 @@ void SCStrike::runFrame(void) {
         this->virtual_cockpit->beginFrame();
     }
 
-    auto renderScene = [&](int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit) {
-        Renderer.bindCameraProjectionAndViewViewport(viewportW, viewportH, projVerticalOffset);
-        Renderer.renderWorldSolid(area, this->world_lod, 400);
-
-        if (this->show_bbox) {
-            for (auto rrarea: this->current_mission->mission->mission_data.areas) {
-                Renderer.renderLineCube(rrarea->position, rrarea->AreaWidth);
-            }
-        }
-
-        for (auto actor: this->current_mission->actors) {
-            if (actor->is_hidden) {
-                continue;
-            }
-            if (actor->plane != nullptr) {
-                if (actor->plane != this->player_plane) {
-                    Vector3D distance = {
-                        actor->plane->x - this->player_plane->x,
-                        actor->plane->y - this->player_plane->y,
-                        actor->plane->z - this->player_plane->z
-                    };
-                    if (distance.Length() > RENDER_DISTANCE) {
-                        continue; // Skip rendering if the plane is too far away
-                    }
-                    if (this->show_bbox) {
-                        actor->plane->renderPlaneLined();
-                        BoudingBox *bb = actor->plane->object->entity->GetBoudingBpx();
-                        Vector3D position = {actor->plane->x, actor->plane->y, actor->plane->z};
-                        Vector3D orientation = {
-                            actor->plane->azimuthf/10.0f + 90,
-                            actor->plane->elevationf/10.0f,
-                            -actor->plane->twist/10.0f
-                        };
-                        for (auto vertex: actor->plane->object->entity->vertices) {
-                            if (vertex.x == bb->min.x) {
-                                Renderer.drawPoint(vertex, {1.0f,0.0f,0.0f}, position, orientation);
-                            }
-                            if (vertex.x == bb->max.x) {
-                                Renderer.drawPoint(vertex, {0.0f,1.0f,0.0f}, position, orientation);
-                            }
-                            if (vertex.z == bb->min.z) {
-                                Renderer.drawPoint(vertex, {1.0f,0.0f,0.0f}, position, orientation);
-                            }
-                            if (vertex.z == bb->max.z) {
-                                Renderer.drawPoint(vertex, {0.0f,1.0f,0.0f}, position, orientation);
-                            }
-                        }
-                        Renderer.renderBBox(position, bb->min, bb->max);
-                    } else {
-                        actor->plane->Render();
-                        this->afterPlaneRendered(actor->plane, Vector3D(actor->plane->x, actor->plane->y, actor->plane->z), actor->plane->getThrust());
-                    }
-                }
-            } else if (actor->object->entity != nullptr) {
-                Vector3D actor_position = {actor->object->position.x, actor->object->position.y, actor->object->position.z};
-                Vector3D actor_orientation = {(360.0f - static_cast<float>(actor->object->azymuth) + 90.0f), static_cast<float>(actor->object->pitch), -static_cast<float>(actor->object->roll)};
-                Vector3D distance = {
-                    actor_position.x - this->player_plane->x,
-                    actor_position.y - this->player_plane->y,
-                    actor_position.z - this->player_plane->z
-                };
-                if (distance.Length() > RENDER_DISTANCE) {
-                    continue; // Skip rendering if the object is too far away
-                }
-                Renderer.drawModel(actor->object->entity, Renderer.lodLevel, actor_position, actor_orientation);
-                if (actor->smoke != nullptr) {
-                    actor->smoke->render(Renderer.camera.getPosition());
-                }
-                if (this->show_bbox) {
-                    if (actor->aiming_vector.x != 0.0f || actor->aiming_vector.y != 0.0f || actor->aiming_vector.z != 0.0f) {
-                        Vector3D aim_pos = {actor->aiming_vector.x, actor->aiming_vector.y, actor->aiming_vector.z};
-                        Renderer.drawLine(actor_position, aim_pos, {1.0f, 0.0f, 0.0f});
-                    }
-                }
-                for (auto weapons : actor->weapons_shooted) {
-                    if (weapons->alive) {
-                        weapons->Render();
-                    }
-                }
-                if (this->show_bbox) {
-                    BoudingBox *bb = actor->object->entity->GetBoudingBpx();
-                    Vector3D position = {actor->object->position.x, actor->object->position.y, actor->object->position.z};
-                    Renderer.renderBBox(position, bb->min, bb->max);
-                }
-            }
-        }
-
-        for (auto expl: this->current_mission->explosions) {
-            if (expl->is_finished) {
-                // Remove explosion when finished
-                this->current_mission->explosions.erase(
-                    std::remove_if(
-                        this->current_mission->explosions.begin(),
-                        this->current_mission->explosions.end(),
-                        [](const auto& expl) { return expl->is_finished; }
-                    ),
-                    this->current_mission->explosions.end());
-                continue;
-            }
-            expl->render();
-        }
-
-        this->cockpit->cam = camera;
-
-        Vector3D centerPoint = {0,0,-10};
-        
-        centerPoint = camera->getPosition()+camera->getForward()*10.0f;
-        Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
-        Renderer.drawPoint(this->cockpit->targetImpactPointWorld, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
-        this->player_plane->RenderSimulatedObject();
-        for (auto objs: this->simulated_objects) {
-            if (objs->alive) {
-                objs->Simulate(this->player_plane->tps);
-                objs->Render();
-            }
-        }
-        switch (this->camera_mode) {
-        case View::CAM_DIRECTOR:
-        case View::MISSILE_CAM:
-        case View::TARGET:
-        case View::OBJECT:
-        case View::AUTO_PILOT:
-        case View::CRASH_VIEW_P3:
-        case View::FOLLOW:
-            if (!this->show_bbox) {
-                this->player_plane->Render();
-                this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
-            } else {
-                this->player_plane->renderPlaneLined();
-            }
-            break;
-        case View::FRONT:
-            if (!forceVirtualCockpit) {
-                this->afterCockpitSceneRendered();
-                if (this->zoom_cockpit) {
-                    this->cockpit->Render(CockpitFace::CP_BIG);
-                } else {
-                    this->cockpit->Render(CockpitFace::CP_FRONT);
-                }
-                break;
-            }
-        case View::RIGHT:
-            if (!forceVirtualCockpit) {
-                this->afterCockpitSceneRendered();
-                this->cockpit->Render(CockpitFace::CP_RIGHT);
-                break;    
-            }
-        case View::LEFT:
-            if (!forceVirtualCockpit) {
-                this->afterCockpitSceneRendered();
-                this->cockpit->Render(CockpitFace::CP_LEFT);
-                break;
-            }
-        case View::REAR:
-            if (!forceVirtualCockpit) {
-                this->afterCockpitSceneRendered();
-                this->cockpit->Render(CockpitFace::CP_REAR);
-                break;
-            }
-        case View::CRASH_VIEW_P1:
-            if (!forceVirtualCockpit) {
-                if (this->cockpit->RenderCrashAnimationP1()) {
-                    this->camera_mode = View::CRASH_VIEW_P2;
-                    this->cockpit->frame = 0;
-                }
-                break;
-            }
-        case View::CRASH_VIEW_P2:
-            if (!forceVirtualCockpit) {
-                if (this->cockpit->RenderCrashAnimationP2()) {
-                    this->camera_mode = View::CRASH_VIEW_P3;
-                }
-                break;
-            }
-        case View::EJECT_VIEW_P1:
-            if (!forceVirtualCockpit) {
-                if (this->cockpit->RenderEjectionAnimation()) {
-                    this->camera_mode = View::EJECT_VIEW_P2;
-                }
-                break;
-            }
-        case View::EYE_ON_TARGET:
-        case View::REAL:
-        case View::CONTROLLER_LOOK:
-            this->renderVirtualCockpit();
-            break;
-        case View::EJECT_VIEW_P2:
-        case View::EJECT_VIEW_P3:
-            this->player_plane->Render();
-            this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
-            break;
-        
-        }
-    };
 
     // VR stéréo: rendu par oeil + cockpit VR uniquement.
     bool vrShouldRender = false;
@@ -1959,6 +1765,218 @@ void SCStrike::runFrame(void) {
     if (this->flight_options != nullptr && this->flight_options->is_open) {
         this->renderFlightOptions();
     }
+}
+
+void SCStrike::renderScene(int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit) {
+    Renderer.bindCameraProjectionAndViewViewport(viewportW, viewportH, projVerticalOffset);
+    this->renderWorld();
+    this->cockpit->cam = camera;
+    switch (this->camera_mode) {
+    case View::CAM_DIRECTOR:
+    case View::MISSILE_CAM:
+    case View::TARGET:
+    case View::OBJECT:
+    case View::AUTO_PILOT:
+    case View::CRASH_VIEW_P3:
+    case View::FOLLOW:
+        if (!this->show_bbox) {
+            this->renderPlayerPlane();
+        } else {
+            this->player_plane->renderPlaneLined();
+        }
+        break;
+    case View::FRONT:
+        if (!forceVirtualCockpit) {
+            this->afterCockpitSceneRendered();
+            if (this->zoom_cockpit) {
+                this->cockpit->Render(CockpitFace::CP_BIG);
+            } else {
+                this->cockpit->Render(CockpitFace::CP_FRONT);
+            }
+            break;
+        }
+    case View::RIGHT:
+        if (!forceVirtualCockpit) {
+            this->afterCockpitSceneRendered();
+            this->cockpit->Render(CockpitFace::CP_RIGHT);
+            break;    
+        }
+    case View::LEFT:
+        if (!forceVirtualCockpit) {
+            this->afterCockpitSceneRendered();
+            this->cockpit->Render(CockpitFace::CP_LEFT);
+            break;
+        }
+    case View::REAR:
+        if (!forceVirtualCockpit) {
+            this->afterCockpitSceneRendered();
+            this->cockpit->Render(CockpitFace::CP_REAR);
+            break;
+        }
+    case View::CRASH_VIEW_P1:
+        if (!forceVirtualCockpit) {
+            if (this->cockpit->RenderCrashAnimationP1()) {
+                this->camera_mode = View::CRASH_VIEW_P2;
+                this->cockpit->frame = 0;
+            }
+            break;
+        }
+    case View::CRASH_VIEW_P2:
+        if (!forceVirtualCockpit) {
+            if (this->cockpit->RenderCrashAnimationP2()) {
+                this->camera_mode = View::CRASH_VIEW_P3;
+            }
+            break;
+        }
+    case View::EJECT_VIEW_P1:
+        if (!forceVirtualCockpit) {
+            if (this->cockpit->RenderEjectionAnimation()) {
+                this->camera_mode = View::EJECT_VIEW_P2;
+            }
+            break;
+        }
+    case View::EYE_ON_TARGET:
+    case View::REAL:
+    case View::CONTROLLER_LOOK:
+        this->renderVirtualCockpit();
+        break;
+    case View::EJECT_VIEW_P2:
+    case View::EJECT_VIEW_P3:
+        this->renderPlayerPlane();
+        break;
+    
+    }
+}
+
+void SCStrike::renderWorld() {
+    Renderer.renderWorldSolid(area, this->world_lod, 400);
+
+    if (this->show_bbox) {
+        for (auto rrarea: this->current_mission->mission->mission_data.areas) {
+            Renderer.renderLineCube(rrarea->position, rrarea->AreaWidth);
+        }
+    }
+
+    for (auto actor: this->current_mission->actors) {
+        if (actor->is_hidden) {
+            continue;
+        }
+        if (actor->plane != nullptr) {
+            if (actor->plane != this->player_plane) {
+                Vector3D distance = {
+                    actor->plane->x - this->player_plane->x,
+                    actor->plane->y - this->player_plane->y,
+                    actor->plane->z - this->player_plane->z
+                };
+                if (distance.Length() > RENDER_DISTANCE) {
+                    continue; // Skip rendering if the plane is too far away
+                }
+                if (this->show_bbox) {
+                    actor->plane->renderPlaneLined();
+                    BoudingBox *bb = actor->plane->object->entity->GetBoudingBpx();
+                    Vector3D position = {actor->plane->x, actor->plane->y, actor->plane->z};
+                    Vector3D orientation = {
+                        actor->plane->azimuthf/10.0f + 90,
+                        actor->plane->elevationf/10.0f,
+                        -actor->plane->twist/10.0f
+                    };
+                    for (auto vertex: actor->plane->object->entity->vertices) {
+                        if (vertex.x == bb->min.x) {
+                            Renderer.drawPoint(vertex, {1.0f,0.0f,0.0f}, position, orientation);
+                        }
+                        if (vertex.x == bb->max.x) {
+                            Renderer.drawPoint(vertex, {0.0f,1.0f,0.0f}, position, orientation);
+                        }
+                        if (vertex.z == bb->min.z) {
+                            Renderer.drawPoint(vertex, {1.0f,0.0f,0.0f}, position, orientation);
+                        }
+                        if (vertex.z == bb->max.z) {
+                            Renderer.drawPoint(vertex, {0.0f,1.0f,0.0f}, position, orientation);
+                        }
+                    }
+                    Renderer.renderBBox(position, bb->min, bb->max);
+                } else {
+                    actor->plane->Render();
+                    this->afterPlaneRendered(actor->plane, Vector3D(actor->plane->x, actor->plane->y, actor->plane->z), actor->plane->getThrust());
+                }
+            }
+        } else if (actor->object->entity != nullptr) {
+            Vector3D actor_position = {actor->object->position.x, actor->object->position.y, actor->object->position.z};
+            Vector3D actor_orientation = {(360.0f - static_cast<float>(actor->object->azymuth) + 90.0f), static_cast<float>(actor->object->pitch), -static_cast<float>(actor->object->roll)};
+            Vector3D distance = {
+                actor_position.x - this->player_plane->x,
+                actor_position.y - this->player_plane->y,
+                actor_position.z - this->player_plane->z
+            };
+            if (distance.Length() > RENDER_DISTANCE) {
+                continue; // Skip rendering if the object is too far away
+            }
+            Renderer.drawModel(actor->object->entity, Renderer.lodLevel, actor_position, actor_orientation);
+            if (actor->smoke != nullptr) {
+                actor->smoke->render(Renderer.camera.getPosition());
+            }
+            if (this->show_bbox) {
+                if (actor->aiming_vector.x != 0.0f || actor->aiming_vector.y != 0.0f || actor->aiming_vector.z != 0.0f) {
+                    Vector3D aim_pos = {actor->aiming_vector.x, actor->aiming_vector.y, actor->aiming_vector.z};
+                    Renderer.drawLine(actor_position, aim_pos, {1.0f, 0.0f, 0.0f});
+                }
+            }
+            for (auto weapons : actor->weapons_shooted) {
+                if (weapons->alive) {
+                    weapons->Render();
+                }
+            }
+            if (this->show_bbox) {
+                BoudingBox *bb = actor->object->entity->GetBoudingBpx();
+                Vector3D position = {actor->object->position.x, actor->object->position.y, actor->object->position.z};
+                Renderer.renderBBox(position, bb->min, bb->max);
+            }
+        }
+    }
+
+    for (auto expl: this->current_mission->explosions) {
+        if (expl->is_finished) {
+            // Remove explosion when finished
+            this->current_mission->explosions.erase(
+                std::remove_if(
+                    this->current_mission->explosions.begin(),
+                    this->current_mission->explosions.end(),
+                    [](const auto& expl) { return expl->is_finished; }
+                ),
+                this->current_mission->explosions.end());
+            continue;
+        }
+        expl->render();
+    }
+
+    Vector3D centerPoint = {0,0,-10};
+    
+    centerPoint = camera->getPosition()+camera->getForward()*10.0f;
+    Renderer.drawPoint(centerPoint, {0.0f, 1.0f, 0.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+    Renderer.drawPoint(this->cockpit->targetImpactPointWorld, {0.0f, 1.0f, 1.0f}, {0,0,0}, {0.0f, 0.0f, 0.0f});
+    this->player_plane->RenderSimulatedObject();
+    for (auto objs: this->simulated_objects) {
+        if (objs->alive) {
+            objs->Simulate(this->player_plane->tps);
+            objs->Render();
+        }
+    }
+}
+
+void SCStrike::renderPlayerPlane() {
+    this->player_plane->Render();
+    this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
+}
+
+SCStrike *SCStrike::create() {
+    if (s_factory != nullptr) {
+        return s_factory();
+    }
+    return new SCStrike();
+}
+
+void SCStrike::setFactory(SCStrike *(*factory)()) {
+    s_factory = factory;
 }
 
 // ALT+O (Input_AltKeyCommands_26F7E) : effets sonores coupés (SoundFX_StopAll_5AA95), vol figé, curseur des menus.

@@ -41,7 +41,7 @@ public:
     static bool hasInstance() { return (bool)s_instance; }
 
     Loader();
-    ~Loader();
+    virtual ~Loader();
 
     void init();
     void startLoading(std::function<void(Loader*)> loadingCallback);
@@ -50,4 +50,6 @@ public:
     void log(const std::string& message);
     void setProgress(float progress);
     void close();    
+protected:
+    virtual void presentSurface(SDL_Surface *surface);
 };

@@ -19,6 +19,7 @@ protected:
     RSMixer &Mixer = RSMixer::getInstance();
     float missile_roll{0.0f};
 public:
+    SCSmokeSet &smokeSet() { return smoke_set; }
     bool is_simulated{false};
     bool guidance{true};
     bool no_gravity{true};

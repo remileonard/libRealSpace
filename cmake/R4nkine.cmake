@@ -34,3 +34,13 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/r4bridge)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/r4objviewer)
+
+# neosc_r4 demande le patch patches/r4-hooks.patch (les méthodes virtuelles de RSVGA, de Loader et du rendu de SCStrike)
+file(READ ${CMAKE_SOURCE_DIR}/src/engine/RSVGA.h R4_RSVGA_HEADER)
+file(READ ${CMAKE_SOURCE_DIR}/src/strike_commander/SCStrike.h R4_STRIKE_HEADER)
+if(R4_RSVGA_HEADER MATCHES "virtual void displayBuffer" AND R4_STRIKE_HEADER MATCHES "virtual void renderWorld")
+    add_subdirectory(${CMAKE_SOURCE_DIR}/src/r4game)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/neosc_r4)
+else()
+    message(WARNING "neosc_r4 n'est pas construit : appliquer patches/r4-hooks.patch à libRealSpace (git apply)")
+endif()

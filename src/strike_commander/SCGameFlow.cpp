@@ -131,7 +131,7 @@ void SCGameFlow::loadoutExit(bool fly) {
     }
 }
 void SCGameFlow::flyMission(uint8_t missionid) {
-    SCStrike *fly = new SCStrike();
+    SCStrike *fly = SCStrike::create();
     fly->init();
     fly->player_loadout = this->player_loadout_pending;
     this->player_loadout_pending = false;

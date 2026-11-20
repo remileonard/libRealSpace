@@ -2316,3 +2316,33 @@ void SCRenderer::drawTriangles(const EffectVertex *vertices, size_t count, unsig
     glEnd();
     glPopAttrib();
 }
+
+void SCRenderer::pushMatrix() {
+    glPushMatrix();
+}
+
+void SCRenderer::popMatrix() {
+    glPopMatrix();
+}
+
+void SCRenderer::translateMatrix(float x, float y, float z) {
+    glTranslatef(x, y, z);
+}
+
+void SCRenderer::rotateMatrix(float degrees, float x, float y, float z) {
+    glRotatef(degrees, x, y, z);
+}
+
+void SCRenderer::scaleMatrix(float x, float y, float z) {
+    glScalef(x, y, z);
+}
+
+void SCRenderer::clearDepth() {
+    glClear(GL_DEPTH_BUFFER_BIT);
+}
+
+void SCRenderer::readRenderToTexture(std::vector<uint8_t> &rgba) {
+    glBindTexture(GL_TEXTURE_2D, this->texture);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+}

@@ -80,15 +80,6 @@ void Loader::runFrame() {
     }
     
     SDL_FillRect(loadingSurface, NULL, SDL_MapRGBA(loadingSurface->format, 0, 0, 0, 255));
-    glClearColor(0.f, 0.f, 0.0f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(-1, 1, -1, 1, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
 
     TTF_Font* font = TTF_OpenFont("./assets/AcPlus_IBM_VGA_9x16.ttf", 36);
     if (font) {
@@ -144,6 +135,20 @@ void Loader::runFrame() {
         }
         TTF_CloseFont(font);
     }
+    this->presentSurface(loadingSurface);
+    SDL_FreeSurface(loadingSurface);
+}
+
+void Loader::presentSurface(SDL_Surface *loadingSurface) {
+    glClearColor(0.f, 0.f, 0.0f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(-1, 1, -1, 1, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
     GLuint loadingTexture;
     glGenTextures(1, &loadingTexture);
     glBindTexture(GL_TEXTURE_2D, loadingTexture);
@@ -154,8 +159,6 @@ void Loader::runFrame() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, loadingSurface->w, loadingSurface->h, 
                  0, GL_RGBA, GL_UNSIGNED_BYTE, loadingSurface->pixels);
-
-    SDL_FreeSurface(loadingSurface);
 
     glDisable(GL_BLEND);
     glDisable(GL_CULL_FACE);

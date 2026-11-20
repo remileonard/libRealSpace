@@ -324,6 +324,7 @@ public:
     Matrix incremental;
     bool disable_azimuth{false};
     int getThrust() const { return thrust; }
+    int getWheelIndex() const { return wheel_index; }
     SCPlane();
     SCPlane(float LmaxDEF, float LminDEF, float Fmax, float Smax, float ELEVF_CSTE, float ROLLFF_CSTE, float s, float W,
             float fuel_weight, float Mthrust, float b, float ie_pi_AR, int MIN_LIFT_SPEED,

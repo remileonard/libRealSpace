@@ -204,7 +204,10 @@ void RSVGA::init(int width, int height) {
     }
     
     this->palette = *palette.GetColorPalette();
+    this->initTextures();
+}
 
+void RSVGA::initTextures() {
     glGenTextures(1, &this->textureID);
     glBindTexture(GL_TEXTURE_2D, this->textureID);
 
