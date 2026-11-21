@@ -1029,11 +1029,12 @@ r4::scene::NodePtr R4Renderer::makeClouds(RSArea *area) {
     if (area->clouds.empty()) {
         return nullptr;
     }
+    // after the opaque items and the dome of the sky, with the depth of the world: the relief in front of a cloud hides it
     BatchKey key;
     key.blend = Blend::ALPHA;
-    key.depthTest = false;
+    key.depthTest = true;
     key.depthWrite = false;
-    key.order = -1;
+    key.order = 0;
     std::shared_ptr<r4::render::MaterialInstance> material = materialOf(key);
     auto clouds = r4::scene::make<r4::scene::Group>();
     clouds->setName("clouds");
