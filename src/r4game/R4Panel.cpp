@@ -89,7 +89,7 @@ void R4Panel::show(bool shown) {
 
 void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::render::PostSettings *post, double frameMs, const R4FrameCounters &counters) {
     const Uint8 *keys = SDL_GetKeyboardState(nullptr);
-    const bool toggle = keys[SDL_SCANCODE_F12] != 0;
+    const bool toggle = keys[SDL_SCANCODE_F11] != 0;
     if (toggle && !toggleDown_) {
         show(!shown_);
     }

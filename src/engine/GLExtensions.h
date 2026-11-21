@@ -1,6 +1,10 @@
 #pragma once
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(GL_GLEXT_PROTOTYPES) && defined(GL_VERSION_2_0)
+// SDL_opengl_glext.h (R4nkine) déclare déjà les fonctions GL 2.0 : ne pas les redéclarer en pointeurs.
+bool initGLExtensions();
+
+#elif defined(_WIN32)
 #include <windows.h>
 #include <GL/gl.h>
 typedef char GLchar;

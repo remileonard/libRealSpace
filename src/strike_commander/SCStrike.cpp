@@ -499,8 +499,8 @@ std::map<int, SCStrike::KeyCommand> SCStrike::buildKeyCommandTable() {
     table[SimActionOfst::COMM_RADIO_M7] = { &SCStrike::keyCommRadioM7 };
     table[SimActionOfst::COMM_RADIO_M8] = { &SCStrike::keyCommRadioM8 };
     table[SimActionOfst::RADAR_MODE_TOGGLE] = { &SCStrike::keyRadarModeToggle };
-    table[SimActionOfst::SPEC_KEY_1] = { &SCStrike::keySpecKey1 };
-    table[SimActionOfst::SPEC_KEY_2] = { &SCStrike::keySpecKey2 };
+    //table[SimActionOfst::SPEC_KEY_1] = { &SCStrike::keySpecKey1 };
+    //table[SimActionOfst::SPEC_KEY_2] = { &SCStrike::keySpecKey2 };
     table[SimActionOfst::WEAPON_MODE_TOGGLE] = { &SCStrike::keyWeaponModeToggle };
     table[SimActionOfst::INFINIT_AMMO_TOGGLE] = { &SCStrike::keyInfiniteAmmoToggle };
     table[SimActionOfst::SINGLE_TARGET_MODE] = { &SCStrike::keySingleTargetMode };
