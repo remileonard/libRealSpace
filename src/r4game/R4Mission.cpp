@@ -463,6 +463,8 @@ void R4Mission::app(const std::vector<SCSimulatedObject *> &shots, float tps) {
             shot->Simulate(tps);
         }
     }
+    R4Screen::counters().appShotsMs += R4Screen::msSince(start);
+    const Uint64 find = SDL_GetPerformanceCounter();
     shotList_.clear();
     SCPlane *player = this->player != nullptr ? this->player->plane : nullptr;
     if (player == nullptr) {
@@ -501,8 +503,12 @@ void R4Mission::app(const std::vector<SCSimulatedObject *> &shots, float tps) {
     dropUnseen(planes_, *planeLayer_);
     dropUnseen(objects_, *actors_);
     dropUnseen(shotPlaces_, *shots_);
+    R4Screen::counters().appFindMs += R4Screen::msSince(find);
     // the APP traversal: each node takes the state of its object of the game
+    const Uint64 callbacks = SDL_GetPerformanceCounter();
     r4::scene::app(*world_);
+    R4Screen::counters().appCallbacksMs += R4Screen::msSince(callbacks);
+    const Uint64 triggers = SDL_GetPerformanceCounter();
     // the planes in the triggers of the areas, by their index in the actors
     std::vector<r4::scene::Tracker> trackers;
     for (size_t i = 0; i < this->actors.size(); i++) {
@@ -512,5 +518,6 @@ void R4Mission::app(const std::vector<SCSimulatedObject *> &shots, float tps) {
         }
     }
     r4::scene::checkTriggers(*triggers_, trackers);
+    R4Screen::counters().appTriggersMs += R4Screen::msSince(triggers);
     R4Screen::counters().appMs += R4Screen::msSince(start);
 }

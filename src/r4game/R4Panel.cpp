@@ -172,7 +172,11 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
         gui_.label("CPU", r4::ui::Font::SMALL);
         gui_.table({
             {"Flight (runFrame)", fmt("%.2f ms", counters.gameMs)},
-            {"   APP (R4Strike::app)", fmt("%.2f ms", counters.appMs)},
+            {"   APP (R4Mission::app)", fmt("%.2f ms", counters.appMs)},
+            {"      Shots Moved", fmt("%.2f ms", counters.appShotsMs)},
+            {"      Nodes Found", fmt("%.2f ms", counters.appFindMs)},
+            {"      Callbacks", fmt("%.2f ms", counters.appCallbacksMs)},
+            {"      Triggers", fmt("%.2f ms", counters.appTriggersMs)},
             {"   Views (renderScene)", fmt("%.2f ms", counters.sceneMs)},
             {"   Simulation and Rest", fmt("%.2f ms", std::max(0.0, counters.gameMs - counters.appMs - counters.sceneMs))},
             {"Renderer Passes", fmt("%.2f ms", counters.flushMs)},

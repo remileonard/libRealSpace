@@ -38,6 +38,11 @@ struct R4FrameCounters {
     double swapMs = 0;
     // in runFrame: R4Strike::app, the views (renderScene, their passes included) and the passes of the renderer
     double appMs = 0;
+    // in the APP step: the shots of SCStrike moved, the nodes made and dropped, the traversal of the callbacks, the triggers
+    double appShotsMs = 0;
+    double appFindMs = 0;
+    double appCallbacksMs = 0;
+    double appTriggersMs = 0;
     double sceneMs = 0;
     double flightFlushMs = 0;
     // the panel of the frame before
