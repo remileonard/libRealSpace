@@ -193,14 +193,18 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
             {"      Callbacks", fmt("%.2f ms", counters.appCallbacksMs)},
             {"      Triggers", fmt("%.2f ms", counters.appTriggersMs)},
             {"   Views (renderScene)", fmt("%.2f ms", counters.sceneMs)},
-            {"   Simulation and Rest", fmt("%.2f ms", std::max(0.0, counters.gameMs - counters.appMs - counters.sceneMs))},
+            {"   VR Wait (xrWaitFrame)", fmt("%.2f ms", counters.vrWaitMs)},
+            {"   VR Eyes (passes sent)", fmt("%.2f ms", counters.vrEyesMs)},
+            {"   VR Submit (xrEndFrame)", fmt("%.2f ms", counters.vrSubmitMs)},
+            {"   Simulation and Rest", fmt("%.2f ms", std::max(0.0, counters.gameMs - counters.appMs - counters.sceneMs - counters.vrWaitMs - counters.vrEyesMs - counters.vrSubmitMs))},
             {"Renderer Passes", fmt("%.2f ms", counters.flushMs)},
             {"   in the Flight", fmt("%.2f ms", counters.flightFlushMs)},
             {"Panel", fmt("%.2f ms", counters.panelMs)},
             {"   Built", fmt("%.2f ms", std::max(0.0, counters.panelMs - renderMs_))},
             {"   Sent and Drawn", fmt("%.2f ms", renderMs_)},
             {"Swap (wait for the GPU)", fmt("%.2f ms", counters.swapMs)},
-            {"Outside the Flight", fmt("%.2f ms", std::max(0.0, frameMs - counters.gameMs - counters.panelMs - counters.swapMs))},
+            {"VR Screen (menus)", fmt("%.2f ms", counters.vrScreenMs)},
+            {"Outside the Flight", fmt("%.2f ms", std::max(0.0, frameMs - counters.gameMs - counters.panelMs - counters.swapMs - counters.vrScreenMs))},
         });
     }
     if (gui_.section("Area", openArea_)) {

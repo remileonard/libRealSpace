@@ -52,6 +52,8 @@ protected:
     // Cockpit frame of the panels, valid during render().
     Vector3D cockpit_pos{0.0f, 0.0f, 0.0f};
     Vector3D cockpit_rot{0.0f, 0.0f, 0.0f};
+    // The shift of the cockpit model in its own axes, without the eye height (the VR view moves it back); the panels move with it.
+    Vector3D panel_shift{0.0f, 0.0f, 0.0f};
 
     virtual void drawModel(const VirtualCockpitContext &ctx);
     // Fills the instrument framebuffers and declares the panels to draw with addPanel().

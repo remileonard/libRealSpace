@@ -52,6 +52,13 @@ struct R4FrameCounters {
     double flightFlushMs = 0;
     // the panel of the frame before
     double panelMs = 0;
+    // VR, in the flight (in gameMs): xrWaitFrame and the views of the headset (beginFrame), the passes of the eyes sent out of
+    // renderScene, the copy of the eyes into the swapchains and xrEndFrame
+    double vrWaitMs = 0;
+    double vrEyesMs = 0;
+    double vrSubmitMs = 0;
+    // VR, out of the flight: a frame of the headset with the screen of the menus (wait, copy and xrEndFrame)
+    double vrScreenMs = 0;
 };
 
 // the slots of the GPU timers of a frame

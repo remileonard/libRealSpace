@@ -59,9 +59,11 @@ void SCVirtualCockpit::render(const VirtualCockpitContext &ctx) {
 
 void SCVirtualCockpit::drawModel(const VirtualCockpitContext &ctx) {
     Vector3D ajustement = {0.0f, -(float)ctx.eye_y, 0.0f};
+    this->panel_shift = {0.0f, 0.0f, 0.0f};
     if (ctx.camera->isUsingCustomMatrices()) {
         const float cockpitScale = 1.0f; // ajuste: 0.7 .. 0.95
         ajustement = {-0.55f, -(float)ctx.eye_y, 0.0f};
+        this->panel_shift = {-0.55f, 0.0f, 0.0f};
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, this->cockpit_pos, this->cockpit_rot, ajustement, cockpitScale);
     } else {
         Renderer.drawModel(this->cockpit->cockpit->REAL.OBJS, Renderer.lodLevel, this->cockpit_pos, this->cockpit_rot, ajustement);
@@ -175,7 +177,12 @@ void SCVirtualCockpit::addTargetCamera(const VirtualCockpitContext &ctx) {
 
 void SCVirtualCockpit::drawPanel(const Panel &panel, const VirtualCockpitContext &ctx) {
     if (panel.space == PanelSpace::COCKPIT) {
-        Renderer.drawTexturedQuad(this->cockpit_pos, this->cockpit_rot, panel.quad, panel.texture);
+        // The panels stay on the instrument panel of the model when the model is shifted.
+        std::vector<Vector3D> quad = panel.quad;
+        for (Vector3D &corner : quad) {
+            corner = corner + this->panel_shift;
+        }
+        Renderer.drawTexturedQuad(this->cockpit_pos, this->cockpit_rot, quad, panel.texture);
         return;
     }
     // Billboard in front of the camera of the current view.

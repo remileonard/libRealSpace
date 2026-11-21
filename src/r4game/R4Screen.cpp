@@ -453,7 +453,9 @@ bool R4Screen::vrPrepareStereoFrame(bool &outShouldRender) {
     R4Screen::countInterop();
     xr_->setOrigin(r4::Mat4(1.0f));
     vrFrameBegun_ = true;
+    const Uint64 wait = SDL_GetPerformanceCounter();
     outShouldRender = xr_->beginFrame();
+    counters().vrWaitMs += msSince(wait);
     if (outShouldRender) {
         vrInput(*xr_, vrCentered_, *this);
     }
@@ -466,6 +468,7 @@ bool R4Screen::vrBeginStereoEye(uint32_t eye, const Matrix &worldFromLocal, floa
         return false;
     }
     // the passes of the eye before go into its target
+    const Uint64 start = SDL_GetPerformanceCounter();
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->flush();
     }
@@ -489,6 +492,7 @@ bool R4Screen::vrBeginStereoEye(uint32_t eye, const Matrix &worldFromLocal, floa
     device_->beginPass(e.target, 0, 0, e.width, e.height, clear);
     device_->endPass();
     device_->endHostInterop();
+    counters().vrEyesMs += msSince(start);
     return true;
 }
 
@@ -496,19 +500,24 @@ void R4Screen::vrEndStereoFrame() {
     if (!xr_ || !vrFrameBegun_) {
         return;
     }
+    const Uint64 start = SDL_GetPerformanceCounter();
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->flush();
     }
     vrEye_ = -1;
+    const Uint64 submit = SDL_GetPerformanceCounter();
+    counters().vrEyesMs += msSince(start);
     device_->beginHostInterop();
     R4Screen::countInterop();
     xr_->endFrame(vrEyesDrawn_);
     device_->endHostInterop();
+    counters().vrSubmitMs += msSince(submit);
     vrFrameBegun_ = false;
     vrEyesShown_ = true;
 }
 
 void R4Screen::vrScreenFrame() {
+    const Uint64 start = SDL_GetPerformanceCounter();
     xr_->setOrigin(r4::Mat4(1.0f));
     if (xr_->beginFrame()) {
         vrInput(*xr_, vrCentered_, *this);
@@ -525,6 +534,7 @@ void R4Screen::vrScreenFrame() {
         xr_->showScreen(screen);
     }
     xr_->endFrame(false);
+    counters().vrScreenMs += msSince(start);
 }
 
 void R4Screen::vrMirror() {
