@@ -142,7 +142,6 @@ void EnhancedStrike::afterPlaneRendered(SCPlane *plane, Vector3D position, int t
 void EnhancedStrike::init() {
     SCStrike::init();
     Config &cfg = Config::getInstance();
-    this->orbitInvertY = cfg.getString("Video", "camera_mouse_invert_y", "1") != "0";
     this->engineVolume = (std::min)(128, cfg.getInt("Sound", "engine_volume", 100));
     if (this->engineVolume >= 0) {
         this->engine_channel_volume = this->engineVolume;
