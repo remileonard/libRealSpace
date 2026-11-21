@@ -41,9 +41,6 @@ constexpr int kCloudRings = 6;
 constexpr int kCloudSlices = 12;
 constexpr float kPointPixels = 2.5f;
 const float kFogColor[3] = {0.89f, 0.89f, 0.98f};
-// the trees in full under kTreeNear, simple under kTreeFar, none beyond
-constexpr float kTreeNear = 1500;
-constexpr float kTreeFar = 6000;
 
 r4::Mat4 toMat4(Matrix &m) {
     return glm::make_mat4(&m.v[0][0]);
@@ -170,6 +167,8 @@ void R4Settings::load() {
     forests = mode == "noise" || mode == "textures";
     forestMode = mode == "textures" ? r4bridge::ForestMode::TEXTURES : r4bridge::ForestMode::NOISE;
     forestDensity = std::max(0.0f, number("forest_density", forestDensity));
+    treeDetailKm = std::max(0.1f, number("tree_detail_km", treeDetailKm));
+    treeKm = std::max(treeDetailKm, number("tree_km", treeKm));
     buildings = config.getBool("R4nkine", "buildings", buildings);
     const std::map<std::string, r4::assets::Upscale> upscales{{"none", r4::assets::Upscale::NONE}, {"2xsai", r4::assets::Upscale::SAI_2X}, {"xbr2x", r4::assets::Upscale::XBR_2X}, {"xbr4x", r4::assets::Upscale::XBR_4X}};
     auto it = upscales.find(config.getString("R4nkine", "texture_upscale", "none"));
@@ -598,6 +597,9 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
 
 // the forests of r4objviewer: chunks of trees, each a LOD with an instancer by species, the full tree near and the simple one far
 r4::scene::NodePtr R4Renderer::makeForests(RSArea *area, size_t &trees) {
+    // the trees in full up to treeNear, simple up to treeFar, none beyond; the units of the game are meters
+    const float treeNear = settings_.treeDetailKm * 1000.0f;
+    const float treeFar = settings_.treeKm * 1000.0f;
     r4bridge::ForestSettings fs;
     fs.mode = settings_.forestMode;
     fs.density = settings_.forestDensity;
@@ -631,16 +633,18 @@ r4::scene::NodePtr R4Renderer::makeForests(RSArea *area, size_t &trees) {
     for (r4bridge::ForestChunk &chunk : chunks) {
         auto lod = r4::scene::make<r4::scene::LOD>();
         lod->setCenter(chunk.center);
-        lod->setRanges({0, kTreeFar + chunk.radius});
+        lod->setRanges({0, treeFar + chunk.radius});
         auto group = r4::scene::make<r4::scene::Group>();
         r4bridge::plantForest(area, fs, chunk);
         for (int sp = 0; sp < r4bridge::TREE_SPECIES_COUNT; sp++) {
             auto instancer = r4::scene::make<r4::scene::Instancer>();
             instancer->setUp({0, 1, 0});
-            instancer->addLevel(parts[sp][0], kTreeNear);
-            instancer->addLevel(parts[sp][1], kTreeFar);
+            instancer->addLevel(parts[sp][0], treeNear);
+            instancer->addLevel(parts[sp][1], treeFar);
             trees += chunk.trees[sp].size();
             instancer->setPlacements(std::move(chunk.trees[sp]));
+            // on the GPU once: no work for each tree in a frame, fewer trees beyond the detailed ones
+            instancer->setStatic(treeNear);
             group->addChild(instancer);
         }
         lod->addChild(group);

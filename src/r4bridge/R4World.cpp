@@ -1500,6 +1500,7 @@ std::shared_ptr<r4::assets::Model> treeModel(int species, bool simple, const VGA
         }
         return p;
     };
+    // no face under a solid: a tree is seen from above, the faces turned to the ground are not drawn
     auto solid = [&](const std::vector<std::pair<float, float>> &rings, int sides, uint32_t color, float turn = 0) {
         r4::Vec3 center{0, (rings.front().second + rings.back().second) / 2, 0};
         for (size_t k = 0; k + 1 < rings.size(); k++) {
@@ -1515,27 +1516,23 @@ std::shared_ptr<r4::assets::Model> treeModel(int species, bool simple, const VGA
                 }
             }
         }
-        if (rings.front().first > 0) {
-            auto lo = ring(sides, rings.front().first, rings.front().second, turn);
-            for (int i = 1; i + 1 < sides; i++) {
-                tri(lo[0], lo[i], lo[i + 1], center, color);
-            }
-        }
     };
+    // detailed: 6 + 5 + 5 triangles for a conifer (37 before), 6 + 20 for a broadleaf (55); simple: 3 (6) and 6 (8)
     if (isConifer(species)) {
         if (simple) {
-            solid({{5.5f, 2}, {0, 25}}, 4, conifer, 0.5f);
+            solid({{5.5f, 2}, {0, 25}}, 3, conifer, 0.5f);
         } else {
-            solid({{0.7f, 0}, {0.7f, 5}}, 5, trunk);
-            solid({{6, 4}, {0, 17}}, 7, conifer);
-            solid({{4.5f, 11}, {0, 25}}, 7, conifer, 0.5f);
+            solid({{0.8f, 0}, {0.6f, 5}}, 3, trunk);
+            solid({{6, 4}, {0, 17}}, 5, conifer);
+            solid({{4.5f, 11}, {0, 25}}, 5, conifer, 0.5f);
         }
     } else {
         if (simple) {
-            solid({{0, 5}, {7, 13}, {0, 21}}, 4, leaves);
+            solid({{7, 11}, {0, 21}}, 3, leaves);
+            solid({{0, 5}, {7, 11}}, 3, leaves);
         } else {
-            solid({{0.9f, 0}, {0.8f, 8}}, 5, trunk);
-            solid({{0, 5.5f}, {5.5f, 8.5f}, {7, 13}, {5, 18}, {0, 21}}, 7, leaves);
+            solid({{0.9f, 0}, {0.7f, 6}}, 3, trunk);
+            solid({{0, 5.5f}, {6.5f, 10}, {5.5f, 16}, {0, 21}}, 5, leaves);
         }
     }
     model->meshes.push_back(std::move(mesh));
@@ -1581,6 +1578,8 @@ const std::map<int, std::vector<Footprint>> kBuildings{
     // 251 : a village on sand, with its silos
     {TEXTURE_VILLAGE_SAND_B, {{39, 13, 45, 26, 30}, {49, 13, 56, 27, 30}, {5, 25, 13, 37, 12}, {70, 6, 88, 17, 10}, {8, 47, 26, 57, 12}, {28, 44, 41, 51, 10}, {28, 52, 42, 59, 10}, {43, 53, 50, 59, 9}, {71, 31, 103, 56, 14}, {104, 43, 111, 49, 12}, {51, 42, 57, 47, 10}, {9, 68, 40, 74, 10}, {23, 77, 43, 84, 10}, {44, 75, 51, 80, 9}, {45, 81, 52, 86, 10}, {86, 70, 112, 77, 10}, {79, 75, 86, 81, 10}, {104, 78, 125, 92, 12}, {15, 90, 42, 117, 12}, {44, 90, 54, 103, 10}, {44, 107, 51, 112, 10}, {60, 96, 95, 117, 10}, {99, 98, 120, 117, 12}, {61, 87, 73, 92, 9}, {89, 90, 97, 96, 10}, {68, 115, 75, 121, 9}}},
 };
+
+constexpr int kWallTints = 4;
 
 enum class Facade {
     OFFICES,
@@ -1711,7 +1710,7 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
     Node root;
     root.name = "cities";
     model->nodes.push_back(root);
-    auto material = [&](const std::string &name, int image) {
+    auto material = [&](const std::string &name, int image, r4::Vec3 tint) {
         Material m;
         m.name = name;
         m.shading = Shading::PALETTE_RAMP;
@@ -1719,20 +1718,29 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
         m.rampAmbient = lighting.ambient;
         m.rampLight = lighting.light;
         m.diffuseImage = image;
+        m.diffuse = {tint, 1};
         model->materials.push_back(m);
         return (int)model->materials.size() - 1;
     };
-    int walls[3];
+    // the facades in a few tints, times their texture: concrete, stone, glass, plaster, ochre, brick, rust
+    const r4::Vec3 tints[3][kWallTints] = {
+        {{1.0f, 1.0f, 1.0f}, {1.3f, 1.22f, 1.08f}, {0.85f, 0.97f, 1.2f}, {1.35f, 1.32f, 1.28f}},
+        {{1.0f, 1.0f, 1.0f}, {1.4f, 1.22f, 0.95f}, {1.35f, 1.35f, 1.32f}, {1.25f, 0.98f, 0.85f}},
+        {{1.0f, 1.0f, 1.0f}, {1.15f, 1.1f, 1.0f}, {0.9f, 0.97f, 1.08f}, {1.22f, 0.98f, 0.8f}},
+    };
+    int walls[3][kWallTints];
     for (Facade f : {Facade::OFFICES, Facade::HOUSES, Facade::INDUSTRY}) {
         model->images.push_back(facadeImage(f));
-        walls[(int)f] = material(model->images.back().name, (int)model->images.size() - 1);
+        for (int t = 0; t < kWallTints; t++) {
+            walls[(int)f][t] = material(model->images.back().name + " " + std::to_string(t), (int)model->images.size() - 1, tints[(int)f][t]);
+        }
     }
     struct Built {
         int roofs = -1;
         std::vector<Footprint> footprints;
         float w = 0;
         float h = 0;
-        int walls = 0;
+        Facade facade = Facade::HOUSES;
     };
     std::map<int, Built> built;
     auto builtOf = [&](int id) -> Built * {
@@ -1766,10 +1774,10 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
         }
         finishTexture(img);
         model->images.push_back(std::move(img));
-        b.roofs = material("roofs " + std::to_string(id), (int)model->images.size() - 1);
+        b.roofs = material("roofs " + std::to_string(id), (int)model->images.size() - 1, r4::Vec3(1.0f));
         b.w = (float)src->width;
         b.h = (float)src->height;
-        b.walls = walls[(int)facadeOf(id)];
+        b.facade = facadeOf(id);
         b.footprints = id == TEXTURE_HOUSES ? housesOf(src, palette) : kBuildings.at(id);
         return &b;
     };
@@ -1869,7 +1877,20 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
                         high = std::max(high, g);
                     }
                     float bottomY = low - 10;
-                    float top = high + f.height;
+                    // the same footprint varies from a cell to another, the same at each load: its height and the tint of its walls
+                    const uint32_t seed = (uint32_t)(y * kMapSide + x);
+                    const float pick = hash01(seed, (uint32_t)(t.image * 64 + fi), 11);
+                    const int wall = walls[(int)b->facade][std::min(kWallTints - 1, (int)(hash01(seed, (uint32_t)(t.image * 64 + fi), 12) * kWallTints))];
+                    float height = f.height;
+                    if (b->facade == Facade::OFFICES) {
+                        // whole floors of 8
+                        height = std::max(8.0f, std::round(f.height * (0.6f + 1.3f * pick) / 8.0f) * 8.0f);
+                    } else if (b->facade == Facade::INDUSTRY) {
+                        height = f.height * (0.75f + 0.6f * pick);
+                    } else {
+                        height = f.height * (0.8f + 0.5f * pick);
+                    }
+                    float top = high + height;
                     r4::Vec3 roof[4];
                     r4::Vec3 foot[4];
                     r4::Vec2 roofUV[4];
@@ -1892,7 +1913,7 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
                         float len = r4::length(e) / 8;
                         float up = (top - bottomY) / 8;
                         const r4::Vec2 uv[4] = {{0, -up}, {len, -up}, {len, 0}, {0, 0}};
-                        quad(meshes[b->walls], p, uv, n);
+                        quad(meshes[wall], p, uv, n);
                     }
                     if (buildings) {
                         ++*buildings;
