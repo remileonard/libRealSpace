@@ -138,7 +138,7 @@ void SCSimplePlane::updatePosition() {
     this->y = this->ptw.v[3][1];
     this->z = this->ptw.v[3][2];
 
-    this->groundlevel = this->area->getY(this->x, this->z);
+    this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
     
     this->incremental.Identity();
     if (this->roll_speed)

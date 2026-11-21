@@ -10,6 +10,7 @@
 #include "precomp.h"
 #include "block_def.h"
 #include "../commons/IFFSaxLexer.h"
+#include <functional>
 
 typedef struct MapObject{
     
@@ -126,6 +127,8 @@ public:
     float getGroundLevel(int BLOC, float x, float y);
     // Altitude du sol sous un point ; un autre jeu y ajoute ses surfaces (PSArea : pont d'un porte-avions).
     virtual float getY(float x, float z);
+    // Quand il est posé et qu'il répond, remplace l'altitude des blocs dans getY (R4nkine : les triangles LVL0 qu'il dessine).
+    std::function<bool(float x, float z, float &height)> ground;
     void BuildSkirts();                  // pré-calcul des jupes (une fois après ParseHeightMap)
     void generateClouds(int count, float altitude, float spread);
     const PrecomputedSkirts& GetSkirts() const { return skirts_; }

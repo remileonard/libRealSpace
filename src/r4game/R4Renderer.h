@@ -103,6 +103,10 @@ public:
 
     // a graph drawn by the next pass, in world space (libRealSpace axes)
     void addScene(const r4::scene::NodePtr &root);
+    // the mask of the camera for the next pass (its nodes without one of these bits are not drawn); every bit after it
+    void setCameraMask(uint32_t mask) {
+        cameraMask_ = mask;
+    }
     // the frame cleared, then the sky and the clouds of the area in the next pass, as the start of renderWorldSolid
     void beginWorld(RSArea *area);
     // the node of an entity, made at its first use
@@ -285,6 +289,7 @@ private:
     r4::scene::NodePtr buildings_;
     r4::scene::NodePtr clouds_;
     FrameStats frame_;
+    uint32_t cameraMask_ = 0xffffffffu;
     AreaStats areaStats_;
     std::vector<r4::Vec3> keepOut_;
     R4Settings settings_;

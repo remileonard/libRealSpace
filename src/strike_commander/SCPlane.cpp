@@ -827,7 +827,7 @@ void SCPlane::updatePosition() {
     this->y = this->ptw.v[3][1];
     this->z = this->ptw.v[3][2];
 
-    this->groundlevel = this->area->getY(this->x, this->z);
+    this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
     
     this->incremental.Identity();
     if (this->roll_speed)
@@ -2057,7 +2057,7 @@ void SCPlane::simulateKinematic(float dt) {
     this->ptw.rotateM(tenthOfDegreeToRad(this->pitch), 1, 0, 0);
     this->ptw.rotateM(tenthOfDegreeToRad(this->roll), 0, 0, 1);
     this->forward = Vector3D(-this->ptw.v[2][0], -this->ptw.v[2][1], -this->ptw.v[2][2]);
-    this->groundlevel = this->area->getY(this->x, this->z);
+    this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
     this->syncKinematicVelocity(dt);
 }
 

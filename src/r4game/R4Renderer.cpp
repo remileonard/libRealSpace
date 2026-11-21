@@ -1327,6 +1327,8 @@ void R4Renderer::flush() {
     cam.projection = projection;
     cam.znear = zNear;
     cam.zfar = zFar;
+    cam.mask = cameraMask_;
+    cameraMask_ = 0xffffffffu;
     r4::render::Environment &env = renderer_->environment();
     env.fog = show_fog;
     env.fogStart = fogStart;

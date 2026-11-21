@@ -422,7 +422,7 @@ void SCJetpPlane::updatePosition() {
     this->m_seed_x = this->x;   // memorise pour detecter une ecriture externe au prochain tic
     this->m_seed_y = this->y;
     this->m_seed_z = this->z;
-    this->groundlevel = this->area->getY(this->x, this->z);
+    this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
 
     this->ptw.SetTranslation(this->x, this->y, this->z);
     this->forward = Vector3D(-this->ptw.v[2][0], -this->ptw.v[2][1], -this->ptw.v[2][2]);
@@ -732,7 +732,7 @@ void SCJetpPlane::Simulate() {
         this->flare_timer -= dt;
     this->updateWeaponTimers(dt);
 
-    this->groundlevel = this->area->getY(this->x, this->z);
+    this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
 
     if (this->kinematic_mode) {
         this->computeThrust();

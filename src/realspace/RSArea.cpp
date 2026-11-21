@@ -640,6 +640,10 @@ float RSArea::getGroundLevel(int BLOC, float x, float y) {
 }*/
 
 float RSArea::getY(float x, float z) {
+    float height = 0.0f;
+    if (this->ground && this->ground(x, z, height)) {
+        return height;
+    }
 
     int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
     int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;

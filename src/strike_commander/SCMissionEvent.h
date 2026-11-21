@@ -52,6 +52,19 @@ public:
     MISN_SCEN *scene{ nullptr };
     SCMission *mission{ nullptr };
 };
+// Un acteur entre dans une zone de la mission ou en sort (publie par les declencheurs du graphe de scene de R4nkine, R4Mission).
+class MissionEventAreaEntered : public EventMessage {
+public:
+    SCMissionActors *actor{ nullptr };
+    AREA *area{ nullptr };
+    SCMission *mission{ nullptr };
+};
+class MissionEventAreaLeft : public EventMessage {
+public:
+    SCMissionActors *actor{ nullptr };
+    AREA *area{ nullptr };
+    SCMission *mission{ nullptr };
+};
 class PlaneControlEvent: public EventMessage {
 public:
     SCPlane *plane{nullptr};

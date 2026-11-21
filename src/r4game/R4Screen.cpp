@@ -303,12 +303,15 @@ void R4Screen::refresh(void) {
     const double frameMs = lastFrame_ ? (double)(now - lastFrame_) * 1000.0 / (double)SDL_GetPerformanceFrequency() : 0.0;
     lastFrame_ = now;
     counters().swapMs = lastSwapMs_;
+    counters().panelMs = lastPanelMs_;
     const R4FrameCounters frame = counters();
     counters() = {};
     device_->beginHostInterop();
     R4Screen::counters().interops++;
     beginGpuTimer(GpuTimer::PANEL);
+    const Uint64 panel = SDL_GetPerformanceCounter();
     panel_->draw(m_window, this->width, this->height, &post_->settings, frameMs, frame);
+    lastPanelMs_ = msSince(panel);
     device_->endGpuTimer();
     device_->endGpuFrame();
     device_->takeStats();

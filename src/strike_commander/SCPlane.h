@@ -213,6 +213,8 @@ public:
     float Lmax{0.0f};
     float Lmin{0.0f};
     float groundlevel{0.0f};
+    // Hauteur de l'origine de l'avion au-dessus du bas de ses roues sorties : groundlevel = sol + ground_clearance (0 : l'origine au sol).
+    float ground_clearance{0.0f};
     float s{0.0f};
     float b{0.0f};
     float W{0.0f};

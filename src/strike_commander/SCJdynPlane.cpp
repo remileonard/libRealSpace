@@ -104,7 +104,7 @@ void SCJdynPlane::Simulate() {
     
     this->gravity = GRAVITY * dt * dt;
     this->fps_knots = 1.944f / dt;
-    this->groundlevel = this->area->getY(this->x, this->z);
+    this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
     if (this->kinematic_mode) {
         this->simulateKinematic(dt);
     } else {

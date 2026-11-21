@@ -301,6 +301,8 @@ const char *typeTag(r4::scene::NodeType t) {
         return "BB";
     case r4::scene::NodeType::INSTANCER:
         return "INST";
+    case r4::scene::NodeType::TRIGGER:
+        return "TRIG";
     }
     return "?";
 }

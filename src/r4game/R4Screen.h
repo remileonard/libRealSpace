@@ -36,6 +36,12 @@ struct R4FrameCounters {
     double gameMs = 0;
     double flushMs = 0;
     double swapMs = 0;
+    // in runFrame: R4Strike::app, the views (renderScene, their passes included) and the passes of the renderer
+    double appMs = 0;
+    double sceneMs = 0;
+    double flightFlushMs = 0;
+    // the panel of the frame before
+    double panelMs = 0;
 };
 
 // the slots of the GPU timers of a frame
@@ -95,6 +101,7 @@ private:
     std::unique_ptr<R4Panel> panel_;
     Uint64 lastFrame_ = 0;
     double lastSwapMs_ = 0;
+    double lastPanelMs_ = 0;
     r4::raster::Surface tvSurface_;
     float tvTime_ = 0;
 };

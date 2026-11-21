@@ -172,8 +172,14 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
         gui_.label("CPU", r4::ui::Font::SMALL);
         gui_.table({
             {"Flight (runFrame)", fmt("%.2f ms", counters.gameMs)},
+            {"   APP (R4Strike::app)", fmt("%.2f ms", counters.appMs)},
+            {"   Views (renderScene)", fmt("%.2f ms", counters.sceneMs)},
+            {"   Simulation and Rest", fmt("%.2f ms", std::max(0.0, counters.gameMs - counters.appMs - counters.sceneMs))},
             {"Renderer Passes", fmt("%.2f ms", counters.flushMs)},
+            {"   in the Flight", fmt("%.2f ms", counters.flightFlushMs)},
+            {"Panel", fmt("%.2f ms", counters.panelMs)},
             {"Swap (wait for the GPU)", fmt("%.2f ms", counters.swapMs)},
+            {"Outside the Flight", fmt("%.2f ms", std::max(0.0, frameMs - counters.gameMs - counters.panelMs - counters.swapMs))},
         });
     }
     if (gui_.section("Area", openArea_)) {
