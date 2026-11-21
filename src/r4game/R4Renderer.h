@@ -18,6 +18,7 @@
 
 #include <map>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -66,6 +67,11 @@ struct R4Settings {
     };
     TerrainLod terrainLod = TerrainLod::BY_DISTANCE;
     bool vsync = true;
+    // the panel of the target camera in front of the view of the 3D cockpit
+    bool targetOverlay = true;
+    // the dome of the game (sky and ground); without it, the frame of the world is cleared to skyColor, also the color of the fog
+    bool sky = true;
+    r4::Vec3 skyColor{0.30f, 0.42f, 0.60f};
     // reads config.ini
     void load();
     // a key of [R4nkine], fallback when it is not there
@@ -100,7 +106,7 @@ public:
     void beginWorld(RSArea *area);
     // the node of an entity, made at its first use
     r4::scene::NodePtr modelOf(RSEntity *object);
-    // the terrain, the runways, the forests and the buildings of the area, made when the area or keepOut changes; null without them
+    // the terrain, the runways, the clouds, the forests and the buildings of the area, made when the area or keepOut changes; null without them
     // keepOut: x, z, radius in libRealSpace where no tree nor building goes; null keeps the one of the area
     void useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut = nullptr);
     const r4::scene::NodePtr &forests() const {
@@ -111,6 +117,22 @@ public:
     }
     R4Settings &settings() {
         return settings_;
+    }
+    // the sums of the passes of the renderer since the last call
+    struct FrameStats {
+        int passes = 0;
+        r4::render::RenderStats sum;
+    };
+    FrameStats takeFrameStats();
+    // what useArea made for the area
+    struct AreaStats {
+        size_t trees = 0;
+        size_t buildings = 0;
+        size_t clouds = 0;
+        double ms = 0;
+    };
+    const AreaStats &areaStats() const {
+        return areaStats_;
     }
     const r4::scene::NodePtr &terrain() const {
         return terrain_;
@@ -218,6 +240,11 @@ private:
         r4::gpu::TextureHandle handle;
         size_t width = 0;
         size_t height = 0;
+        // the pixels on the GPU: a texture of the game is sent again only when they change
+        std::vector<uint8_t> sent;
+        // u0, v0, u1, v1 of the texels that are not clear: drawTexturedQuad draws only this part; empty when all are clear
+        r4::Vec4 visible{0, 0, 1, 1};
+        bool empty = false;
     };
 
     bool pending() const;
@@ -229,14 +256,18 @@ private:
     void placeModel(RSEntity *object, const r4::Mat4 &matrix);
     std::vector<r4::assets::Vertex> &batch(const BatchKey &key);
     void vertex(std::vector<r4::assets::Vertex> &to, Vector3D p, float u, float v, r4::Vec4 color);
-    void quad(const BatchKey &key, const Vector3D corners[4], r4::Vec4 color);
+    // rect: u0, v0, u1, v1, the part of the quad that is drawn
+    void quad(const BatchKey &key, const Vector3D corners[4], r4::Vec4 color, r4::Vec4 rect = r4::Vec4(0, 0, 1, 1));
     void lines(const Vector3D *ends, size_t count, r4::Vec4 color);
     void cubeLines(const r4::Mat4 &matrix, r4::Vec4 front, r4::Vec4 back, r4::Vec4 sides);
     r4::gpu::TextureHandle textureOf(Texture *tex);
     std::shared_ptr<r4::render::MaterialInstance> materialOf(const BatchKey &key);
     r4::scene::NodePtr sky();
-    void clearFrame(bool color, bool depth);
+    void clearFrame(bool color, bool depth, r4::Vec3 rgb);
+    r4::Vec3 clearColor() const;
     r4::scene::NodePtr makeForests(RSArea *area, size_t &trees);
+    r4::scene::NodePtr makeClouds(RSArea *area);
+    void addStats(const r4::render::RenderStats &s);
     r4bridge::Lighting objectLighting() const;
     void applyTerrainLod();
 
@@ -247,6 +278,9 @@ private:
     r4::scene::NodePtr overlay_;
     r4::scene::NodePtr forests_;
     r4::scene::NodePtr buildings_;
+    r4::scene::NodePtr clouds_;
+    FrameStats frame_;
+    AreaStats areaStats_;
     std::vector<r4::Vec3> keepOut_;
     R4Settings settings_;
     std::vector<r4::Mat4> stack_{r4::Mat4(1.0f)};

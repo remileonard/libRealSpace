@@ -11,14 +11,14 @@
 #include "../../r4game/R4Renderer.h"
 #include "../../r4game/R4Screen.h"
 #include "../../r4game/R4VGA.h"
+#include "../../r4game/R4Timer.h"
 #include "../../engine/gametimer.h"
-#include "../../engine/desktoptimer.h"
 #define FLOPPY 0
 
 int main(int argc, char *argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
-    GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
+    GameTimer::getInstance().setTimer(std::make_unique<R4Timer>());
     SCRenderer::setInstance(std::make_unique<R4Renderer>());
     SCStrike::setFactory([]() -> SCStrike * {
         return new R4Strike();

@@ -31,6 +31,14 @@ constexpr int kTargetWidth = 107;
 constexpr int kTargetHeight = 75;
 constexpr int kSkyRings = 12;
 constexpr int kSkySlices = 48;
+// the dome on the far plane, after the opaque items: only the pixels that nothing covers take its colors
+constexpr float kSkyRadius = 0.98f;
+constexpr int kSkyOrder = 1000;
+// the far plane just after the end of the fog, as in r4objviewer
+constexpr float kFarAfterFog = 1.02f;
+// the ellipsoid of a puff, as SCRenderer::renderClouds
+constexpr int kCloudRings = 6;
+constexpr int kCloudSlices = 12;
 constexpr float kPointPixels = 2.5f;
 const float kFogColor[3] = {0.89f, 0.89f, 0.98f};
 // the trees in full under kTreeNear, simple under kTreeFar, none beyond
@@ -65,6 +73,42 @@ r4::Vec3 vec(Vector3D v) {
     return {v.x, v.y, v.z};
 }
 
+// a perspective projection of the game with another far plane; its near plane and its vertical offset stay
+r4::Mat4 withFar(r4::Mat4 p, float zFar, float &zNear) {
+    zNear = kNear;
+    if (p[2][3] > -0.5f) {
+        return p;
+    }
+    zNear = p[3][2] / (p[2][2] - 1.0f);
+    p[2][2] = -(zFar + zNear) / (zFar - zNear);
+    p[3][2] = -2.0f * zFar * zNear / (zFar - zNear);
+    return p;
+}
+
+// the rectangle of the texels that are not clear, in texture coordinates (u0, v0, u1, v1); false when all are clear
+bool visibleRect(const uint8_t *rgba, size_t width, size_t height, r4::Vec4 &rect) {
+    size_t x0 = width;
+    size_t y0 = height;
+    size_t x1 = 0;
+    size_t y1 = 0;
+    for (size_t y = 0; y < height; y++) {
+        const uint8_t *row = rgba + y * width * 4;
+        for (size_t x = 0; x < width; x++) {
+            if (row[x * 4 + 3] != 0) {
+                x0 = std::min(x0, x);
+                x1 = std::max(x1, x + 1);
+                y0 = std::min(y0, y);
+                y1 = std::max(y1, y + 1);
+            }
+        }
+    }
+    if (x0 >= x1) {
+        return false;
+    }
+    rect = {(float)x0 / width, (float)y0 / height, (float)x1 / width, (float)y1 / height};
+    return true;
+}
+
 uint32_t packColor(r4::Vec4 c) {
     auto byte = [](float f) {
         return (uint32_t)std::lround(std::clamp(f, 0.0f, 1.0f) * 255.0f);
@@ -72,10 +116,10 @@ uint32_t packColor(r4::Vec4 c) {
     return byte(c.x) | byte(c.y) << 8 | byte(c.z) << 16 | byte(c.w) << 24;
 }
 
-// the colors of SCRenderer::renderSkydome: from the horizon (0) to the zenith (1)
-r4::Vec3 skyColor(float t) {
+// the colors of SCRenderer::renderSkydome from the horizon (0) to the zenith (1), the horizon in the color of the fog
+r4::Vec3 skyColor(float t, r4::Vec3 horizon) {
     const float keys[] = {0.00f, 0.08f, 0.25f, 0.60f, 1.00f};
-    const r4::Vec3 colors[] = {{1.00f, 1.00f, 1.00f}, {0.72f, 0.83f, 0.97f}, {0.40f, 0.62f, 0.92f}, {0.18f, 0.44f, 0.82f}, {0.08f, 0.28f, 0.72f}};
+    const r4::Vec3 colors[] = {horizon, {0.72f, 0.83f, 0.97f}, {0.40f, 0.62f, 0.92f}, {0.18f, 0.44f, 0.82f}, {0.08f, 0.28f, 0.72f}};
     if (t <= 0.0f) {
         return colors[0];
     }
@@ -151,6 +195,8 @@ void R4Settings::load() {
     auto lod = lods.find(config.getString("R4nkine", "terrain_lod", "distance"));
     terrainLod = lod != lods.end() ? lod->second : TerrainLod::BY_DISTANCE;
     vsync = flag("vsync", vsync);
+    sky = flag("sky", sky);
+    skyColor = color("sky_color", skyColor);
 }
 
 // as the sun of r4objviewer: libRealSpace's -Z is the north, +X the east
@@ -197,12 +243,14 @@ void R4Renderer::release() {
     overlay_.reset();
     forests_.reset();
     buildings_.reset();
+    clouds_.reset();
     textures_.clear();
     effectTextures_.clear();
     area_ = nullptr;
     R4Screen *screen = R4Screen::current();
     if (renderer_ && screen) {
         screen->device().beginHostInterop();
+        R4Screen::counters().interops++;
         screen->device().destroyRenderTarget(targetView_);
         renderer_.reset();
         screen->device().endHostInterop();
@@ -246,6 +294,7 @@ void R4Renderer::init(int width, int height) {
         return;
     }
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     renderer_ = std::make_unique<r4::render::Renderer>(screen->device());
     renderer_->options().anisotropy = settings_.anisotropy;
     r4::gpu::RenderTargetDesc d;
@@ -320,7 +369,11 @@ void R4Renderer::scaleMatrix(float x, float y, float z) {
     stack_.back() = stack_.back() * r4::scale({x, y, z});
 }
 
-void R4Renderer::clearFrame(bool color, bool depth) {
+r4::Vec3 R4Renderer::clearColor() const {
+    return {clearColor_[0], clearColor_[1], clearColor_[2]};
+}
+
+void R4Renderer::clearFrame(bool color, bool depth, r4::Vec3 rgb) {
     R4Screen *screen = R4Screen::current();
     if (!renderer_ || !screen) {
         return;
@@ -329,11 +382,12 @@ void R4Renderer::clearFrame(bool color, bool depth) {
     r4::gpu::ClearValues clear;
     clear.color = color;
     clear.depth = depth;
-    clear.r = clearColor_[0];
-    clear.g = clearColor_[1];
-    clear.b = clearColor_[2];
+    clear.r = rgb.x;
+    clear.g = rgb.y;
+    clear.b = rgb.z;
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
+    R4Screen::counters().interops++;
     device.beginPass(screen->frameTarget(), 0, 0, screen->width, screen->height, clear);
     device.endPass();
     device.endHostInterop();
@@ -343,11 +397,11 @@ void R4Renderer::clear(void) {
     clearColor_[0] = 0;
     clearColor_[1] = 0;
     clearColor_[2] = 0;
-    clearFrame(true, true);
+    clearFrame(true, true, clearColor());
 }
 
 void R4Renderer::clearDepth() {
-    clearFrame(false, true);
+    clearFrame(false, true, clearColor());
 }
 
 void R4Renderer::setClearColor(uint8_t red, uint8_t green, uint8_t blue) {
@@ -414,6 +468,7 @@ r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
     if (model) {
         R4Screen *screen = R4Screen::current();
         screen->device().beginHostInterop();
+        R4Screen::counters().interops++;
         node = renderer_->upload(*model);
         screen->device().endHostInterop();
     }
@@ -432,12 +487,14 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
         models_.clear();
         terrain_.reset();
         overlay_.reset();
+        clouds_.reset();
         keepOut_.clear();
     }
     if (keepOut != nullptr) {
         keepOut_ = *keepOut;
     }
     const bool newArea = area != area_;
+    const Uint64 start = SDL_GetPerformanceCounter();
     area_ = area;
     forests_.reset();
     buildings_.reset();
@@ -464,6 +521,7 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
     std::shared_ptr<r4::assets::Model> city = settings_.buildings ? r4bridge::cityModel(area, palette, lighting, around, &buildings) : nullptr;
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     if (terrain) {
         terrain_ = renderer_->upload(*terrain);
         applyTerrainLod();
@@ -475,11 +533,18 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
         buildings_ = renderer_->upload(*city);
         buildings_->setName("buildings");
     }
+    if (newArea) {
+        clouds_ = makeClouds(area);
+    }
     screen->device().endHostInterop();
     size_t trees = 0;
     if (settings_.forests) {
         forests_ = makeForests(area, trees);
     }
+    areaStats_.trees = trees;
+    areaStats_.buildings = buildings;
+    areaStats_.clouds = clouds_ ? clouds_->children().size() : 0;
+    areaStats_.ms = (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
     std::printf("[R4Renderer] area: %zu trees, %zu buildings, shadows %s\n", trees, buildings, settings_.shadows ? "on" : "off");
 }
 
@@ -503,6 +568,7 @@ r4::scene::NodePtr R4Renderer::makeForests(RSArea *area, size_t &trees) {
     R4Screen *screen = R4Screen::current();
     std::vector<r4::scene::InstancePart> parts[r4bridge::TREE_SPECIES_COUNT][2];
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     for (int sp = 0; sp < r4bridge::TREE_SPECIES_COUNT; sp++) {
         for (int level = 0; level < 2; level++) {
             auto model = r4bridge::treeModel(sp, level != 0, palette, terrain_ranges, lighting);
@@ -645,12 +711,16 @@ void R4Renderer::vertex(std::vector<r4::assets::Vertex> &to, Vector3D p, float u
 }
 
 // corners from the first texel (0, 0) around to (0, 1), as the quads of SCRenderer
-void R4Renderer::quad(const BatchKey &key, const Vector3D corners[4], r4::Vec4 color) {
+void R4Renderer::quad(const BatchKey &key, const Vector3D corners[4], r4::Vec4 color, r4::Vec4 rect) {
     std::vector<r4::assets::Vertex> &to = batch(key);
-    const float uv[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+    const float uv[4][2] = {{rect.x, rect.y}, {rect.z, rect.y}, {rect.z, rect.w}, {rect.x, rect.w}};
+    // the point of the quad at (u, v), between its corners
+    auto at = [&](float u, float v) {
+        return corners[0] * ((1 - u) * (1 - v)) + corners[1] * (u * (1 - v)) + corners[2] * (u * v) + corners[3] * ((1 - u) * v);
+    };
     const int order[6] = {0, 1, 2, 0, 2, 3};
     for (int i : order) {
-        vertex(to, corners[i], uv[i][0], uv[i][1], color);
+        vertex(to, at(uv[i][0], uv[i][1]), uv[i][0], uv[i][1], color);
     }
 }
 
@@ -842,13 +912,26 @@ void R4Renderer::drawTexturedQuad(Vector3D pos, Vector3D orientation, std::vecto
     if (!tex || quadCorners.size() < 4) {
         return;
     }
+    // the panel of the target camera in front of the view (SCVirtualCockpit::drawPanel): 320 x 200, with no place and no turn
+    const bool targetOverlay = tex->width == 320 && tex->height == 200 && pos.x == 0 && pos.y == 0 && pos.z == 0 && orientation.x == 0 && orientation.y == 0 && orientation.z == 0;
+    if (targetOverlay && !settings_.targetOverlay) {
+        return;
+    }
     BatchKey key;
     key.texture = textureOf(tex).id;
     key.blend = Blend::ALPHA;
     key.alphaTest = true;
+    auto it = textures_.find(tex);
+    r4::Vec4 rect{0, 0, 1, 1};
+    if (it != textures_.end()) {
+        if (it->second.empty) {
+            return;
+        }
+        rect = it->second.visible;
+    }
     pushMatrix();
     stack_.back() = model() * r4::translate(vec(pos)) * degreeRotation(orientation);
-    quad(key, quadCorners.data(), {1, 1, 1, 1});
+    quad(key, quadCorners.data(), {1, 1, 1, 1}, rect);
     popMatrix();
 }
 
@@ -884,29 +967,61 @@ void R4Renderer::renderEllipsoid(float cx, float cy, float cz, float rx, float r
     }
 }
 
+// the clouds of the area are a graph, made once by useArea
 void R4Renderer::renderClouds(RSArea *area) {
-    if (!area) {
-        return;
+    useArea(area);
+    if (clouds_) {
+        items_.push_back({clouds_, r4::Mat4(1.0f)});
     }
-    Point3D cam = camera.getPosition();
-    std::vector<const Cloud *> sorted;
-    for (auto &c : area->clouds) {
-        if (c.position.x < cam.x - this->max_view_distance || c.position.x > cam.x + this->max_view_distance || c.position.z < cam.z - this->max_view_distance || c.position.z > cam.z + this->max_view_distance) {
-            continue;
+}
+
+// SCRenderer::renderClouds as a graph: a geode by cloud with all its puffs in one mesh, culled by its bounds.
+// The puffs are white, so their blend gives the same color in any order: no sort by the distance.
+r4::scene::NodePtr R4Renderer::makeClouds(RSArea *area) {
+    if (area->clouds.empty()) {
+        return nullptr;
+    }
+    BatchKey key;
+    key.blend = Blend::ALPHA;
+    key.depthTest = false;
+    key.depthWrite = false;
+    key.order = -1;
+    std::shared_ptr<r4::render::MaterialInstance> material = materialOf(key);
+    auto clouds = r4::scene::make<r4::scene::Group>();
+    clouds->setName("clouds");
+    const uint32_t row = kCloudSlices + 1;
+    for (const Cloud &c : area->clouds) {
+        r4::assets::Mesh mesh;
+        mesh.name = "cloud";
+        for (const CloudPuff &p : c.puffs) {
+            const uint32_t base = (uint32_t)mesh.vertices.size();
+            for (int ring = 0; ring <= kCloudRings; ring++) {
+                const float phi = (float)M_PI * ring / kCloudRings - (float)M_PI_2;
+                for (int s = 0; s <= kCloudSlices; s++) {
+                    const float theta = 2.0f * (float)M_PI * s / kCloudSlices;
+                    r4::assets::Vertex v;
+                    v.position = {c.position.x + p.ox + p.rx * cosf(phi) * cosf(theta), c.position.y + p.oy + p.ry * sinf(phi), c.position.z + p.oz + p.rz * cosf(phi) * sinf(theta)};
+                    v.normal = {0, 1, 0};
+                    v.color = packColor({1, 1, 1, c.alpha * (sinf(phi) + 1.0f) * 0.5f});
+                    mesh.vertices.push_back(v);
+                }
+            }
+            for (uint32_t ring = 0; ring < (uint32_t)kCloudRings; ring++) {
+                for (uint32_t s = 0; s < (uint32_t)kCloudSlices; s++) {
+                    const uint32_t a = base + ring * row + s;
+                    const uint32_t b = a + row;
+                    const uint32_t quad[6] = {a, b, b + 1, a, b + 1, a + 1};
+                    mesh.indices.insert(mesh.indices.end(), quad, quad + 6);
+                }
+            }
         }
-        sorted.push_back(&c);
+        auto geode = r4::scene::make<r4::scene::Geode>();
+        geode->setName("cloud");
+        geode->addDrawable({renderer_->uploadMesh(mesh), material});
+        R4Screen::counters().buffers += 2;
+        clouds->addChild(geode);
     }
-    auto farther = [&](const Cloud *a, const Cloud *b) {
-        float da = (a->position.x - cam.x) * (a->position.x - cam.x) + (a->position.z - cam.z) * (a->position.z - cam.z);
-        float db = (b->position.x - cam.x) * (b->position.x - cam.x) + (b->position.z - cam.z) * (b->position.z - cam.z);
-        return da > db;
-    };
-    std::sort(sorted.begin(), sorted.end(), farther);
-    for (const Cloud *c : sorted) {
-        for (const auto &p : c->puffs) {
-            this->renderEllipsoid(c->position.x + p.ox, c->position.y + p.oy, c->position.z + p.oz, p.rx, p.ry, p.rz, 6, 12, 1.0f, 1.0f, 1.0f, c->alpha);
-        }
-    }
+    return clouds;
 }
 
 void R4Renderer::renderLineCube(Vector3D position, int32_t size) {
@@ -936,9 +1051,14 @@ r4::gpu::TextureHandle R4Renderer::textureOf(Texture *tex) {
     image.pixels.assign(tex->data, tex->data + tex->width * tex->height * 4);
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     r4::gpu::TextureHandle handle = renderer_->uploadImage(image, false);
+    R4Screen::counters().textureUploads++;
+    R4Screen::counters().textureBytes += image.pixels.size();
     screen->device().endHostInterop();
-    textures_[tex] = {handle, tex->width, tex->height};
+    TextureEntry &entry = textures_[tex];
+    entry = {handle, tex->width, tex->height, image.pixels};
+    entry.empty = !visibleRect(tex->data, tex->width, tex->height, entry.visible);
     tex->initialized = true;
     tex->id = handle.id;
     return handle;
@@ -958,7 +1078,10 @@ unsigned int R4Renderer::createTexture(int w, int h, const unsigned char *rgba, 
     image.pixels.assign(rgba, rgba + (size_t)w * h * 4);
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     r4::gpu::TextureHandle handle = renderer_->uploadImage(image, false);
+    R4Screen::counters().textureUploads++;
+    R4Screen::counters().textureBytes += image.pixels.size();
     screen->device().endHostInterop();
     unsigned int id = nextEffectTexture_++;
     effectTextures_[id] = handle;
@@ -975,9 +1098,20 @@ void R4Renderer::uploadTextureContentToGPU(Texture *texture) {
         textureOf(texture);
         return;
     }
+    // the instruments of the 3D cockpit are drawn again at each frame, mostly the same
+    std::vector<uint8_t> &sent = it->second.sent;
+    const size_t bytes = texture->width * texture->height * 4;
+    if (sent.size() == bytes && std::memcmp(sent.data(), texture->data, bytes) == 0) {
+        return;
+    }
+    sent.assign(texture->data, texture->data + bytes);
+    it->second.empty = !visibleRect(texture->data, texture->width, texture->height, it->second.visible);
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     screen->device().updateTexture(it->second.handle, 0, 0, (int)texture->width, (int)texture->height, texture->data);
+    R4Screen::counters().textureUploads++;
+    R4Screen::counters().textureBytes += bytes;
     screen->device().endHostInterop();
 }
 
@@ -998,9 +1132,10 @@ r4::scene::NodePtr R4Renderer::sky() {
     if (sky_ || !renderer_) {
         return sky_;
     }
-    // SCRenderer::renderSkydome about the origin: the sky from white to blue above, the ground below; out of the fog, behind all
-    const float radius = this->max_view_distance * 0.98f;
-    const r4::Vec3 nadir{0.52f, 0.47f, 0.35f};
+    // SCRenderer::renderSkydome of radius 1 about the origin, scaled to the far plane at each pass: the sky from the color of the fog to
+    // blue above, the color of the fog below, where the terrain stops at the far plane
+    const float radius = 1.0f;
+    const r4::Vec3 fog{kFogColor[0], kFogColor[1], kFogColor[2]};
     r4::assets::Mesh mesh;
     mesh.name = "sky";
     auto point = [&](float phi, float theta, r4::Vec3 color) {
@@ -1017,8 +1152,8 @@ r4::scene::NodePtr R4Renderer::sky() {
             float sign = half == 0 ? 1.0f : -1.0f;
             float phi0 = sign * (float)M_PI_2 * t0;
             float phi1 = sign * (float)M_PI_2 * t1;
-            r4::Vec3 c0 = half == 0 ? skyColor(t0) : r4::Vec3(1.0f) + t0 * t0 * (nadir - r4::Vec3(1.0f));
-            r4::Vec3 c1 = half == 0 ? skyColor(t1) : r4::Vec3(1.0f) + t1 * t1 * (nadir - r4::Vec3(1.0f));
+            r4::Vec3 c0 = half == 0 ? skyColor(t0, fog) : fog;
+            r4::Vec3 c1 = half == 0 ? skyColor(t1, fog) : fog;
             for (int s = 0; s < kSkySlices; ++s) {
                 float a = 2.0f * (float)M_PI * s / kSkySlices;
                 float b = 2.0f * (float)M_PI * (s + 1) / kSkySlices;
@@ -1040,16 +1175,18 @@ r4::scene::NodePtr R4Renderer::sky() {
     m.vertexColors = true;
     m.diffuse = {1, 1, 1, 1};
     m.doubleSided = true;
-    m.depthTest = false;
+    m.depthWrite = false;
     m.fog = false;
-    m.drawOrder = -2;
+    m.drawOrder = kSkyOrder;
     m.castShadows = false;
     m.receiveShadows = false;
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
+    R4Screen::counters().interops++;
     auto geode = r4::scene::make<r4::scene::Geode>();
     geode->setName("sky dome");
     geode->addDrawable({renderer_->uploadMesh(mesh), renderer_->createMaterial(m)});
+    R4Screen::counters().buffers += 2;
     screen->device().endHostInterop();
     sky_ = geode;
     skyPlace_->addChild(sky_);
@@ -1101,11 +1238,17 @@ void R4Renderer::flush() {
         return;
     }
     const r4::Vec3 eye = r4::translationOf(r4::inverse(view_.view));
+    const float fogStart = settings_.fogOverride ? settings_.fogStartKm * 1000.0f : this->max_view_distance * 0.40f;
+    const float fogEnd = settings_.fogOverride ? settings_.fogEndKm * 1000.0f : this->max_view_distance * 0.93f;
+    const float zFar = show_fog ? fogEnd * kFarAfterFog : (float)this->max_view_distance * 1.2f;
+    float zNear = kNear;
+    const r4::Mat4 projection = withFar(view_.projection, zFar, zNear);
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
+    R4Screen::counters().interops++;
     root_->removeAllChildren();
     if (skyShown_ && sky()) {
-        skyPlace_->setMatrix(r4::translate(eye));
+        skyPlace_->setMatrix(r4::translate(eye) * r4::scale(r4::Vec3(zFar * kSkyRadius)));
         root_->addChild(skyPlace_);
     }
     for (const r4::scene::NodePtr &scene : scenes_) {
@@ -1134,30 +1277,34 @@ void R4Renderer::flush() {
         }
         auto geode = r4::scene::make<r4::scene::Geode>();
         geode->addDrawable({renderer_->uploadMesh(mesh), materialOf(key)});
+        R4Screen::counters().buffers += 2;
         root_->addChild(geode);
     }
 
     r4::render::Camera cam;
     cam.position = eye;
     cam.view = view_.view;
-    cam.projection = view_.projection;
-    cam.znear = kNear;
-    cam.zfar = (float)this->max_view_distance * 1.2f;
+    cam.projection = projection;
+    cam.znear = zNear;
+    cam.zfar = zFar;
     r4::render::Environment &env = renderer_->environment();
     env.fog = show_fog;
-    env.fogStart = settings_.fogOverride ? settings_.fogStartKm * 1000.0f : this->max_view_distance * 0.40f;
-    env.fogEnd = settings_.fogOverride ? settings_.fogEndKm * 1000.0f : this->max_view_distance * 0.93f;
-    env.fogColor = {kFogColor[0], kFogColor[1], kFogColor[2]};
+    env.fogStart = fogStart;
+    env.fogEnd = fogEnd;
+    env.fogColor = settings_.sky ? r4::Vec3{kFogColor[0], kFogColor[1], kFogColor[2]} : settings_.skyColor;
     const Vector3D sun = settings_.sunTowards(object_light_direction);
     r4::Vec3 towards{sun.x, sun.y, sun.z};
     env.lightDirection = -r4::normalize(towards);
     env.time = (float)SDL_GetTicks() / 1000.0f;
     r4::render::RenderOptions &options = renderer_->options();
     options.clear = false;
-    options.textures = show_textured;
+    // the view of the target camera is 107 x 75: no texture layers, and the LODs as far as in a frame of its height (the renderer
+    // multiplies the distances by lodScale)
+    const bool targetView = view_.toTexture;
+    options.textures = show_textured && !targetView;
     options.rampGouraud = object_gouraud;
     options.flatShading = settings_.flatShading;
-    options.lodScale = settings_.lodScale;
+    options.lodScale = targetView ? settings_.lodScale * (float)std::max(kTargetHeight, this->height) / kTargetHeight : settings_.lodScale;
     renderer_->setWireframe(settings_.wireframe);
     options.shadows = settings_.shadows && !view_.toTexture;
     options.shadowMapSize = settings_.shadowMapSize;
@@ -1166,7 +1313,10 @@ void R4Renderer::flush() {
     options.shadowMask = settings_.treeShadows ? 0xffffffffu : ~kForestMask;
     options.shadowStrength = settings_.shadowStrength;
     renderer_->setTarget(view_.toTexture ? targetView_ : screen->frameTarget());
+    R4Screen::beginGpuTimer(view_.toTexture ? GpuTimer::TARGET_VIEW : GpuTimer::VIEW);
     renderer_->render(*root_, cam, view_.viewport[0], view_.viewport[1], view_.viewport[2], view_.viewport[3]);
+    device.endGpuTimer();
+    addStats(renderer_->stats());
     root_->removeAllChildren();
     for (size_t i = 0; i < items_.size(); i++) {
         places_[i]->removeAllChildren();
@@ -1178,10 +1328,38 @@ void R4Renderer::flush() {
     skyShown_ = false;
 }
 
+void R4Renderer::addStats(const r4::render::RenderStats &s) {
+    r4::render::RenderStats &t = frame_.sum;
+    frame_.passes++;
+    t.nodesVisited += s.nodesVisited;
+    t.nodesCulled += s.nodesCulled;
+    t.drawables += s.drawables;
+    t.instancesVisited += s.instancesVisited;
+    t.instancesCulled += s.instancesCulled;
+    t.opaqueItems += s.opaqueItems;
+    t.transparentItems += s.transparentItems;
+    t.shadowCasters += s.shadowCasters;
+    t.shadowMs += s.shadowMs;
+    t.cullMs += s.cullMs;
+    t.sortMs += s.sortMs;
+    t.uploadMs += s.uploadMs;
+    t.drawMs += s.drawMs;
+    t.gpu.drawCalls += s.gpu.drawCalls;
+    t.gpu.triangles += s.gpu.triangles;
+    t.gpu.pipelineChanges += s.gpu.pipelineChanges;
+    t.gpu.textureChanges += s.gpu.textureChanges;
+}
+
+R4Renderer::FrameStats R4Renderer::takeFrameStats() {
+    FrameStats s = frame_;
+    frame_ = {};
+    return s;
+}
+
 void R4Renderer::beginWorld(RSArea *area) {
     useArea(area);
-    clearFrame(true, true);
-    skyShown_ = true;
+    clearFrame(true, true, settings_.sky ? clearColor() : settings_.skyColor);
+    skyShown_ = settings_.sky;
     if (this->show_clouds) {
         renderClouds(area);
     }
@@ -1241,8 +1419,14 @@ void R4Renderer::initRenderToTexture() {
         return;
     }
     r4::gpu::ClearValues clear;
+    if (!settings_.sky) {
+        clear.r = settings_.skyColor.x;
+        clear.g = settings_.skyColor.y;
+        clear.b = settings_.skyColor.z;
+    }
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
+    R4Screen::counters().interops++;
     device.beginPass(targetView_, 0, 0, kTargetWidth, kTargetHeight, clear);
     device.endPass();
     device.endHostInterop();
@@ -1250,7 +1434,7 @@ void R4Renderer::initRenderToTexture() {
 
 void R4Renderer::renderWorldToTexture(RSArea *area) {
     useArea(area);
-    skyShown_ = true;
+    skyShown_ = settings_.sky;
     if (terrain_) {
         items_.push_back({terrain_, r4::Mat4(1.0f)});
     }
@@ -1265,8 +1449,13 @@ void R4Renderer::getRenderToTexture() {
         keep.depth = false;
         r4::gpu::Device &device = screen->device();
         device.beginHostInterop();
+        R4Screen::counters().interops++;
         device.beginPass(targetView_, 0, 0, kTargetWidth, kTargetHeight, keep);
-        device.readPixels(0, 0, kTargetWidth, kTargetHeight, targetPixels_.data());
+        const Uint64 start = SDL_GetPerformanceCounter();
+        // the image of the frame before: readPixels would wait for the GPU to finish the frame
+        device.readPixelsAsync(0, 0, kTargetWidth, kTargetHeight, targetPixels_.data());
+        R4Screen::counters().readbacks++;
+        R4Screen::counters().readbackMs += (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
         device.endPass();
         device.endHostInterop();
     }

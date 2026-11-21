@@ -3,6 +3,7 @@
 //  libRealSpace
 //
 #include "R4Screen.h"
+#include "R4Panel.h"
 #include "R4Renderer.h"
 
 #include "engine/Config.hpp"
@@ -62,6 +63,7 @@ R4Screen::~R4Screen() {
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->release();
     }
+    panel_.reset();
     tv_.reset();
     post_.reset();
     device_.reset();
@@ -72,6 +74,30 @@ R4Screen *R4Screen::current() {
         return nullptr;
     }
     return dynamic_cast<R4Screen *>(&RSScreen::instance());
+}
+
+bool &R4Screen::gpuTiming() {
+    static bool on = false;
+    return on;
+}
+
+void R4Screen::beginGpuTimer(GpuTimer timer) {
+    R4Screen *screen = current();
+    if (screen && screen->device_ && gpuTiming()) {
+        screen->device_->beginGpuTimer((int)timer);
+    }
+}
+
+void R4Screen::endGpuTimer() {
+    R4Screen *screen = current();
+    if (screen && screen->device_) {
+        screen->device_->endGpuTimer();
+    }
+}
+
+R4FrameCounters &R4Screen::counters() {
+    static R4FrameCounters counters;
+    return counters;
 }
 
 void R4Screen::init(int width, int height, bool fullscreen) {
@@ -136,8 +162,10 @@ void R4Screen::init(int width, int height, bool fullscreen) {
     }
     std::printf("[R4Screen] %s\n", device_->name());
     device_->beginHostInterop();
+    R4Screen::counters().interops++;
     post_ = std::make_unique<r4::render::PostProcess>(*device_);
     tv_ = std::make_unique<r4::render::Overlay>(*device_);
+    panel_ = std::make_unique<R4Panel>(*device_);
     device_->endHostInterop();
     tv_->smooth = true;
     tvSurface_ = r4::raster::Surface(kTvWidth, kTvHeight, r4::raster::Format::RGBA8);
@@ -153,6 +181,7 @@ void R4Screen::openScreen(void) {
         return;
     }
     device_->beginHostInterop();
+    R4Screen::counters().interops++;
     r4::gpu::ClearValues clear;
     device_->beginPass(r4::gpu::RenderTargetHandle{}, 0, 0, this->width, this->height, clear);
     device_->endPass();
@@ -221,6 +250,7 @@ void R4Screen::beginFrame() {
         return;
     }
     device_->beginHostInterop();
+    R4Screen::counters().interops++;
     frameTarget_ = post_->begin(this->width, this->height);
     r4::gpu::ClearValues clear;
     device_->beginPass(frameTarget_, 0, 0, this->width, this->height, clear);
@@ -234,14 +264,17 @@ void R4Screen::beginGamePass() {
         renderer->flush();
     }
     device_->beginHostInterop();
+    R4Screen::counters().interops++;
     r4::gpu::ClearValues keep;
     keep.color = false;
     keep.depth = false;
+    beginGpuTimer(GpuTimer::SCREEN_320);
     device_->beginPass(frameTarget_, 0, 0, this->width, this->height, keep);
 }
 
 void R4Screen::endGamePass() {
     device_->endPass();
+    device_->endGpuTimer();
     device_->endHostInterop();
 }
 
@@ -256,11 +289,28 @@ void R4Screen::refresh(void) {
     if (frameTarget_) {
         device_->bindForHost(r4::gpu::RenderTargetHandle{});
         device_->beginHostInterop();
+        R4Screen::counters().interops++;
+        beginGpuTimer(GpuTimer::POST_PROCESS);
         post_->end(0, 0, this->width, this->height, this->width, this->height);
+        device_->endGpuTimer();
         device_->endHostInterop();
     }
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const double frameMs = lastFrame_ ? (double)(now - lastFrame_) * 1000.0 / (double)SDL_GetPerformanceFrequency() : 0.0;
+    lastFrame_ = now;
+    const R4FrameCounters frame = counters();
+    counters() = {};
+    device_->beginHostInterop();
+    R4Screen::counters().interops++;
+    beginGpuTimer(GpuTimer::PANEL);
+    panel_->draw(m_window, this->width, this->height, &post_->settings, frameMs, frame);
+    device_->endGpuTimer();
+    device_->endGpuFrame();
+    device_->takeStats();
+    device_->endHostInterop();
     SDL_GL_SwapWindow(m_window);
     device_->beginHostInterop();
+    R4Screen::counters().interops++;
     r4::gpu::ClearValues clear;
     device_->beginPass(r4::gpu::RenderTargetHandle{}, 0, 0, this->width, this->height, clear);
     device_->endPass();

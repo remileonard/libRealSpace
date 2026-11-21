@@ -96,7 +96,8 @@ void R4Strike::useArea() {
     // no tree nor building on the objects of the mission
     std::vector<r4::Vec3> keepOut;
     for (SCMissionActors *actor : this->current_mission->actors) {
-        if (actor->object == nullptr || actor->object->entity == nullptr) {
+        // without vertices, the box of RSEntity::CalcBoundingBox stays at FLT_MAX and would keep the whole map out
+        if (actor->object == nullptr || actor->object->entity == nullptr || actor->object->entity->vertices.empty()) {
             continue;
         }
         BoudingBox *bb = actor->object->entity->GetBoudingBpx();

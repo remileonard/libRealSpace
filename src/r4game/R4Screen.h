@@ -13,7 +13,35 @@
 #include "r4/render/overlay.h"
 #include "r4/render/postprocess.h"
 
+#include <SDL.h>
+
 #include <memory>
+
+class R4Panel;
+
+// the GPU work of a frame outside the passes of the renderer, counted by r4game and shown by the panel
+struct R4FrameCounters {
+    // beginHostInterop: each saves and gives back the GL state
+    int interops = 0;
+    // textures made or changed, and their bytes
+    int textureUploads = 0;
+    size_t textureBytes = 0;
+    // the GL buffers made (two by mesh)
+    int buffers = 0;
+    // readPixels of the view of the target camera, and their time
+    int readbacks = 0;
+    double readbackMs = 0;
+};
+
+// the slots of the GPU timers of a frame
+enum class GpuTimer {
+    VIEW,
+    TARGET_VIEW,
+    SCREEN_320,
+    POST_PROCESS,
+    PANEL,
+    COUNT
+};
 
 class R4Screen : public RSScreen {
 public:
@@ -22,6 +50,13 @@ public:
 
     // R4Screen::instance() when the screen of the game is a R4Screen, else null
     static R4Screen *current();
+    // the counters of the frame; refresh gives them to the panel, then starts them again
+    static R4FrameCounters &counters();
+    // the GPU timers, off by default: on macOS, their queries slow the frame down and make the times larger
+    static bool &gpuTiming();
+    // an interval of a GPU timer, when gpuTiming is on
+    static void beginGpuTimer(GpuTimer timer);
+    static void endGpuTimer();
 
     void init(int width, int height, bool fullscreen) override;
     void openScreen(void) override;
@@ -50,6 +85,8 @@ private:
     std::unique_ptr<r4::render::PostProcess> post_;
     r4::gpu::RenderTargetHandle frameTarget_;
     std::unique_ptr<r4::render::Overlay> tv_;
+    std::unique_ptr<R4Panel> panel_;
+    Uint64 lastFrame_ = 0;
     r4::raster::Surface tvSurface_;
     float tvTime_ = 0;
 };
