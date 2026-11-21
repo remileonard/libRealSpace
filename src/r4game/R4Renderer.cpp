@@ -389,7 +389,10 @@ void R4Renderer::clearFrame(bool color, bool depth, r4::Vec3 rgb) {
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
     R4Screen::countInterop();
-    device.beginPass(screen->frameTarget(), 0, 0, screen->width, screen->height, clear);
+    int width = 0;
+    int height = 0;
+    screen->sceneSize(width, height);
+    device.beginPass(screen->sceneTarget(), 0, 0, width, height, clear);
     device.endPass();
     device.endHostInterop();
 }
@@ -1388,7 +1391,7 @@ void R4Renderer::flush() {
     options.shadowCasterReach = 8000;
     options.shadowMask = settings_.treeShadows ? 0xffffffffu : ~kForestMask;
     options.shadowStrength = settings_.shadowStrength;
-    renderer_->setTarget(view_.toTexture ? targetView_ : screen->frameTarget());
+    renderer_->setTarget(view_.toTexture ? targetView_ : screen->sceneTarget());
     R4Screen::beginGpuTimer(view_.toTexture ? GpuTimer::TARGET_VIEW : GpuTimer::VIEW);
     renderer_->render(*root_, cam, view_.viewport[0], view_.viewport[1], view_.viewport[2], view_.viewport[3]);
     device.endGpuTimer();

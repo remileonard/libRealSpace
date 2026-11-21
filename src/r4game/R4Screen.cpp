@@ -11,11 +11,22 @@
 
 #include "r4/ui/controls.h"
 
+#ifdef R4GAME_XR
+#include "r4/xr/xr.h"
+#else
+namespace r4::xr {
+class Session {};
+} // namespace r4::xr
+#endif
+
+#include <glm/gtc/type_ptr.hpp>
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 
 namespace {
@@ -55,6 +66,17 @@ void *glProc(const char *name) {
     return SDL_GL_GetProcAddress(name);
 }
 
+// the matrices of the game and of R4nkine have the same layout: v[column][row]
+[[maybe_unused]] Matrix toMatrix(const r4::Mat4 &m) {
+    Matrix out;
+    std::memcpy(out.v, glm::value_ptr(m), sizeof out.v);
+    return out;
+}
+
+[[maybe_unused]] r4::Mat4 toMat4(const Matrix &m) {
+    return glm::make_mat4(&m.v[0][0]);
+}
+
 } // namespace
 
 R4Screen::R4Screen() = default;
@@ -63,6 +85,7 @@ R4Screen::~R4Screen() {
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->release();
     }
+    stopVR();
     panel_.reset();
     tv_.reset();
     post_.reset();
@@ -191,6 +214,9 @@ void R4Screen::init(int width, int height, bool fullscreen) {
     initPostProcess();
     openScreen();
     SDL_ShowWindow(m_window);
+    if (R4Settings::flag("vr", false)) {
+        startVR();
+    }
     beginFrame();
 }
 
@@ -264,12 +290,27 @@ void R4Screen::initPostProcess() {
 
 void R4Screen::beginFrame() {
     frameTarget_ = r4::gpu::RenderTargetHandle{};
-    if (!post_ || !post_->active()) {
+    const bool post = post_ && post_->active();
+    if (!post && !xr_) {
         return;
     }
     device_->beginHostInterop();
     R4Screen::countInterop();
-    frameTarget_ = post_->begin(this->width, this->height);
+    if (post) {
+        frameTarget_ = post_->begin(this->width, this->height);
+    } else {
+        // in VR, the frame is drawn into a target: the screen of the headset shows it
+        if (!vrFrame_ || vrFrameWidth_ != this->width || vrFrameHeight_ != this->height) {
+            device_->destroyRenderTarget(vrFrame_);
+            r4::gpu::RenderTargetDesc d;
+            d.width = this->width;
+            d.height = this->height;
+            vrFrame_ = device_->createRenderTarget(d);
+            vrFrameWidth_ = this->width;
+            vrFrameHeight_ = this->height;
+        }
+        frameTarget_ = vrFrame_;
+    }
     r4::gpu::ClearValues clear;
     device_->beginPass(frameTarget_, 0, 0, this->width, this->height, clear);
     device_->endPass();
@@ -296,6 +337,246 @@ void R4Screen::endGamePass() {
     device_->endHostInterop();
 }
 
+r4::gpu::RenderTargetHandle R4Screen::sceneTarget() const {
+#ifdef R4GAME_XR
+    if (xr_ && vrEye_ >= 0) {
+        return xr_->eye(vrEye_).target;
+    }
+#endif
+    return frameTarget_;
+}
+
+void R4Screen::sceneSize(int &width, int &height) const {
+    width = this->width;
+    height = this->height;
+#ifdef R4GAME_XR
+    if (xr_ && vrEye_ >= 0) {
+        width = xr_->eye(vrEye_).width;
+        height = xr_->eye(vrEye_).height;
+    }
+#endif
+}
+
+bool R4Screen::vrActive() const {
+    return xr_ != nullptr;
+}
+
+#ifdef R4GAME_XR
+
+namespace {
+
+// after beginFrame: the first frame of the headset, the menu button or a click of a stick recenter
+void vrInput(r4::xr::Session &xr, bool centered, R4Screen &screen) {
+    bool recenter = !centered;
+    for (int h = 0; h < r4::xr::kHands; h++) {
+        const r4::xr::Controller &c = xr.controller((r4::xr::Hand)h);
+        recenter = recenter || c.menu.pressed || c.stickClick.pressed;
+    }
+    if (recenter) {
+        screen.vrRecenter();
+    }
+}
+
+} // namespace
+
+void R4Screen::startVR() {
+    if (xr_ || !device_) {
+        return;
+    }
+    r4::xr::Settings s;
+    s.appName = "Neo Strike Commander";
+    s.seated = true;
+    s.samples = std::clamp((int)R4Settings::number("vr_msaa", 4), 1, 8);
+    s.renderScale = std::clamp(R4Settings::number("vr_scale", 1), 0.25f, 2.0f);
+    std::string error;
+    device_->beginHostInterop();
+    R4Screen::countInterop();
+    xr_ = r4::xr::Session::create(*device_, s, &error);
+    device_->endHostInterop();
+    if (!xr_) {
+        std::printf("[R4Screen] VR: %s\n", error.c_str());
+        return;
+    }
+    std::printf("[R4Screen] VR: %s, %s\n", xr_->runtimeName().c_str(), xr_->systemName().c_str());
+    // the headset gives the rhythm of the frames (xrWaitFrame): the window does not wait for its screen
+    SDL_GL_SetSwapInterval(0);
+    vrCentered_ = false;
+}
+
+void R4Screen::stopVR() {
+    if (!xr_ || !device_) {
+        return;
+    }
+    device_->beginHostInterop();
+    R4Screen::countInterop();
+    xr_.reset();
+    device_->destroyRenderTarget(vrFrame_);
+    device_->endHostInterop();
+    vrFrame_ = r4::gpu::RenderTargetHandle{};
+    vrFrameWidth_ = 0;
+    vrFrameHeight_ = 0;
+    vrFrameBegun_ = false;
+    vrEye_ = -1;
+    SDL_GL_SetSwapInterval(R4Settings::flag("vsync", true) ? 1 : 0);
+}
+
+void R4Screen::vrRecenter() {
+    if (!xr_) {
+        return;
+    }
+    // the head of now at the origin, its heading along -Z: the eye of the cockpit and its front
+    const r4::Mat4 &head = xr_->head();
+    const r4::Vec3 at = r4::Vec3(head[3]);
+    r4::Vec3 forward = -r4::Vec3(head[2]);
+    forward.y = 0;
+    float yaw = 0;
+    if (glm::length(forward) > 1e-4f) {
+        yaw = std::atan2(-forward.x, -forward.z);
+    }
+    vrCenter_ = glm::inverse(glm::translate(r4::Mat4(1.0f), at) * glm::rotate(r4::Mat4(1.0f), yaw, r4::Vec3(0, 1, 0)));
+    vrCentered_ = true;
+}
+
+uint32_t R4Screen::vrStereoEyeCount() const {
+    return xr_ && xr_->running() ? (uint32_t)xr_->eyeCount() : 0u;
+}
+
+bool R4Screen::vrPrepareStereoFrame(bool &outShouldRender) {
+    outShouldRender = false;
+    if (!xr_ || !xr_->running() || vrFrameBegun_ || vrEyesShown_) {
+        return false;
+    }
+    if (R4Renderer *renderer = R4Renderer::current()) {
+        renderer->flush();
+    }
+    device_->beginHostInterop();
+    R4Screen::countInterop();
+    xr_->setOrigin(r4::Mat4(1.0f));
+    vrFrameBegun_ = true;
+    outShouldRender = xr_->beginFrame();
+    if (outShouldRender) {
+        vrInput(*xr_, vrCentered_, *this);
+    }
+    device_->endHostInterop();
+    return true;
+}
+
+bool R4Screen::vrBeginStereoEye(uint32_t eye, const Matrix &worldFromLocal, float metersToWorld, float zNear, float zFar, VRStereoEyeRenderInfo &out) {
+    if (!xr_ || !vrFrameBegun_ || eye >= (uint32_t)xr_->eyeCount()) {
+        return false;
+    }
+    // the passes of the eye before go into its target
+    if (R4Renderer *renderer = R4Renderer::current()) {
+        renderer->flush();
+    }
+    const r4::xr::Eye &e = xr_->eye((int)eye);
+    r4::Mat4 local = vrCenter_ * e.world;
+    local[3] = r4::Vec4(r4::Vec3(local[3]) * metersToWorld, 1.0f);
+    const r4::Mat4 world = toMat4(worldFromLocal) * local;
+    // the frustum of the eye with the near and the far of the game: its off-axis terms do not change
+    r4::Mat4 projection = e.camera.projection;
+    projection[2][2] = -(zFar + zNear) / (zFar - zNear);
+    projection[3][2] = -2.0f * zFar * zNear / (zFar - zNear);
+    out.width = e.width;
+    out.height = e.height;
+    out.projection = toMatrix(projection);
+    out.view = toMatrix(glm::inverse(world));
+    vrEye_ = (int)eye;
+    vrEyesDrawn_ = true;
+    device_->beginHostInterop();
+    R4Screen::countInterop();
+    r4::gpu::ClearValues clear;
+    device_->beginPass(e.target, 0, 0, e.width, e.height, clear);
+    device_->endPass();
+    device_->endHostInterop();
+    return true;
+}
+
+void R4Screen::vrEndStereoFrame() {
+    if (!xr_ || !vrFrameBegun_) {
+        return;
+    }
+    if (R4Renderer *renderer = R4Renderer::current()) {
+        renderer->flush();
+    }
+    vrEye_ = -1;
+    device_->beginHostInterop();
+    R4Screen::countInterop();
+    xr_->endFrame(vrEyesDrawn_);
+    device_->endHostInterop();
+    vrFrameBegun_ = false;
+    vrEyesShown_ = true;
+}
+
+void R4Screen::vrScreenFrame() {
+    xr_->setOrigin(r4::Mat4(1.0f));
+    if (xr_->beginFrame()) {
+        vrInput(*xr_, vrCentered_, *this);
+    }
+    if (frameTarget_) {
+        r4::xr::Screen screen;
+        screen.source = frameTarget_;
+        screen.sourceWidth = this->width;
+        screen.sourceHeight = this->height;
+        const float distance = std::clamp(R4Settings::number("vr_screen_distance", 2.0f), 0.5f, 20.0f);
+        screen.height = std::clamp(R4Settings::number("vr_screen_height", 1.5f), 0.1f, 20.0f);
+        screen.width = screen.height * (float)this->width / (float)std::max(1, this->height);
+        screen.pose = glm::inverse(vrCenter_) * glm::translate(r4::Mat4(1.0f), r4::Vec3(0, 0, -distance));
+        xr_->showScreen(screen);
+    }
+    xr_->endFrame(false);
+}
+
+void R4Screen::vrMirror() {
+    // the left eye in the window, centered at its aspect
+    const r4::xr::Eye &e = xr_->eye(0);
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+    r4::render::Overlay::fit((float)e.width / (float)std::max(1, e.height), this->width, this->height, x, y, w, h);
+    r4::gpu::ClearValues clear;
+    device_->beginPass(r4::gpu::RenderTargetHandle{}, 0, 0, this->width, this->height, clear);
+    device_->endPass();
+    device_->copyRenderTargetToWindow(e.target, x, this->height - y - h, w, h);
+}
+
+#else
+
+void R4Screen::startVR() {
+    std::printf("[R4Screen] VR: R4nkine is built without r4::xr (OpenXR)\n");
+}
+
+void R4Screen::stopVR() {
+}
+
+void R4Screen::vrRecenter() {
+}
+
+uint32_t R4Screen::vrStereoEyeCount() const {
+    return 0;
+}
+
+bool R4Screen::vrPrepareStereoFrame(bool &outShouldRender) {
+    outShouldRender = false;
+    return false;
+}
+
+bool R4Screen::vrBeginStereoEye(uint32_t, const Matrix &, float, float, float, VRStereoEyeRenderInfo &) {
+    return false;
+}
+
+void R4Screen::vrEndStereoFrame() {
+}
+
+void R4Screen::vrScreenFrame() {
+}
+
+void R4Screen::vrMirror() {
+}
+
+#endif
+
 void R4Screen::refresh(void) {
     if (!device_) {
         SDL_GL_SwapWindow(m_window);
@@ -304,15 +585,37 @@ void R4Screen::refresh(void) {
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->flush();
     }
+    if (xr_) {
+        device_->beginHostInterop();
+        R4Screen::countInterop();
+        const bool alive = xr_->pollEvents();
+        if (alive && !vrEyesShown_ && xr_->running()) {
+            vrScreenFrame();
+        }
+        device_->endHostInterop();
+        if (!alive) {
+            std::printf("[R4Screen] VR: the session of the headset is finished\n");
+            stopVR();
+        }
+    }
     if (frameTarget_) {
         device_->bindForHost(r4::gpu::RenderTargetHandle{});
         device_->beginHostInterop();
         R4Screen::countInterop();
         beginGpuTimer(GpuTimer::POST_PROCESS);
-        post_->end(0, 0, this->width, this->height, this->width, this->height);
+        if (vrFrame_ && frameTarget_.id == vrFrame_.id) {
+            device_->copyRenderTargetToWindow(vrFrame_, 0, 0, this->width, this->height);
+        } else if (post_ && post_->active()) {
+            post_->end(0, 0, this->width, this->height, this->width, this->height);
+        }
         device_->endGpuTimer();
+        if (xr_ && vrEyesDrawn_) {
+            vrMirror();
+        }
         device_->endHostInterop();
     }
+    vrEyesShown_ = false;
+    vrEyesDrawn_ = false;
     const Uint64 now = SDL_GetPerformanceCounter();
     const double frameMs = lastFrame_ ? (double)(now - lastFrame_) * 1000.0 / (double)SDL_GetPerformanceFrequency() : 0.0;
     lastFrame_ = now;

@@ -9,6 +9,7 @@
 #include "engine/RSScreen.h"
 
 #include "r4/gpu/device.h"
+#include "r4/math.h"
 #include "r4/raster/raster.h"
 #include "r4/render/overlay.h"
 #include "r4/render/postprocess.h"
@@ -18,6 +19,10 @@
 #include <memory>
 
 class R4Panel;
+
+namespace r4::xr {
+class Session;
+}
 
 // the GPU work of a frame outside the passes of the renderer, counted by r4game and shown by the panel
 struct R4FrameCounters {
@@ -96,12 +101,29 @@ public:
     r4::gpu::RenderTargetHandle frameTarget() const {
         return frameTarget_;
     }
+    // the target of the 3D views: the eye of the headset that SCStrike draws, else the frame
+    r4::gpu::RenderTargetHandle sceneTarget() const;
+    void sceneSize(int &width, int &height) const;
     // a pass in the frame that keeps what the game drew, in the state of the host
     void beginGamePass();
     void endGamePass();
 
+    // VR ([R4nkine] vr = 1 in config.ini): the flight in the headset, the other screens of the game on a flat screen in front of the eyes
+    bool vrActive() const;
+    // the head of now is the front and the eye of the cockpit
+    void vrRecenter();
+    uint32_t vrStereoEyeCount() const override;
+    bool vrPrepareStereoFrame(bool &outShouldRender) override;
+    bool vrBeginStereoEye(uint32_t eye, const Matrix &worldFromLocal, float metersToWorld, float zNear, float zFar, VRStereoEyeRenderInfo &out) override;
+    void vrEndStereoFrame() override;
+
 private:
     void beginFrame();
+    void startVR();
+    void stopVR();
+    // a frame of the headset with the frame of the window on its screen, when SCStrike did not draw the eyes
+    void vrScreenFrame();
+    void vrMirror();
 
     std::unique_ptr<r4::gpu::Device> device_;
     std::unique_ptr<r4::render::PostProcess> post_;
@@ -113,4 +135,18 @@ private:
     double lastPanelMs_ = 0;
     r4::raster::Surface tvSurface_;
     float tvTime_ = 0;
+
+    std::unique_ptr<r4::xr::Session> xr_;
+    // the frame of the window when there is no post process: the source of the screen of the headset
+    r4::gpu::RenderTargetHandle vrFrame_;
+    int vrFrameWidth_ = 0;
+    int vrFrameHeight_ = 0;
+    // a frame of the headset is begun; the eye drawn, else -1; SCStrike ended the frame of the headset in this frame of the game, and drew its eyes
+    bool vrFrameBegun_ = false;
+    int vrEye_ = -1;
+    bool vrEyesShown_ = false;
+    bool vrEyesDrawn_ = false;
+    // the tracking space in the cockpit: the head of the last recenter at its origin, looking to -Z
+    r4::Mat4 vrCenter_ = r4::Mat4(1.0f);
+    bool vrCentered_ = false;
 };
