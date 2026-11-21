@@ -51,6 +51,11 @@ private:
     bool vsync_ = true;
     // the milliseconds of gui_.render() in the frame before: the vertices of the panel sent to the GPU and drawn
     double renderMs_ = 0;
+    // the last build of the panel, and the mouse then
+    Uint64 lastBuild_ = 0;
+    bool built_ = false;
+    float lastMouseX_ = -1;
+    float lastMouseY_ = -1;
     std::deque<float> frameMs_;
     std::deque<float> cullMs_;
     std::deque<float> drawMs_;

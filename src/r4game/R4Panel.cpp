@@ -16,6 +16,7 @@ namespace {
 
 constexpr float kPanelWidth = 300;
 constexpr size_t kHistory = 240;
+constexpr double kRebuildMs = 250;
 
 std::string fmt(const char *f, ...) {
     char buf[256];
@@ -77,6 +78,7 @@ int R4Panel::watch(void *panel, SDL_Event *event) {
 // the game hides the cursor in its window, and its menus use the relative mouse
 void R4Panel::show(bool shown) {
     shown_ = shown;
+    built_ = false;
     if (shown) {
         gameRelative_ = SDL_GetRelativeMouseMode();
         gameCursor_ = SDL_ShowCursor(SDL_QUERY);
@@ -132,6 +134,19 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
     rightDown_ = input.right;
     input.wheel = wheel_;
     wheel_ = 0;
+    // built four times a second, and at each frame while the mouse moves, clicks or turns the wheel; between, the vertices of
+    // the last build are drawn again: in Debug, the strings and the glyphs of each frame cost more than a millisecond
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const bool active = input.mouseX != lastMouseX_ || input.mouseY != lastMouseY_ || input.left || input.right || input.released || input.wheel != 0;
+    lastMouseX_ = input.mouseX;
+    lastMouseY_ = input.mouseY;
+    if (built_ && !active && (double)(now - lastBuild_) * 1000.0 / (double)SDL_GetPerformanceFrequency() < kRebuildMs) {
+        gui_.render();
+        renderMs_ = (double)(SDL_GetPerformanceCounter() - now) * 1000.0 / (double)SDL_GetPerformanceFrequency();
+        return;
+    }
+    lastBuild_ = now;
+    built_ = true;
 
     gui_.beginFrame(pointWidth, pointHeight, input, pointWidth > 0 ? (float)pixelWidth / pointWidth : 1);
     gui_.beginPanel("r4nkine", {(float)pointWidth - kPanelWidth, 0, kPanelWidth, (float)pointHeight}, "R4nkine (F12)");
