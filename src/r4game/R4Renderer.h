@@ -262,6 +262,7 @@ private:
     void cubeLines(const r4::Mat4 &matrix, r4::Vec4 front, r4::Vec4 back, r4::Vec4 sides);
     r4::gpu::TextureHandle textureOf(Texture *tex);
     std::shared_ptr<r4::render::MaterialInstance> materialOf(const BatchKey &key);
+    std::shared_ptr<r4::render::GpuMesh> streamMesh(const BatchKey &key, const std::vector<r4::assets::Vertex> &vertices);
     r4::scene::NodePtr sky();
     void clearFrame(bool color, bool depth, r4::Vec3 rgb);
     r4::Vec3 clearColor() const;
@@ -289,6 +290,14 @@ private:
     std::vector<r4::scene::NodePtr> scenes_;
     std::map<BatchKey, std::vector<r4::assets::Vertex>> batches_;
     std::map<BatchKey, std::shared_ptr<r4::render::MaterialInstance>> materials_;
+    // the meshes of the batches, kept by state and filled again at each pass, in turn so that the GPU can still draw the one before
+    static constexpr int kStreamMeshes = 4;
+    struct Stream {
+        std::shared_ptr<r4::render::GpuMesh> meshes[kStreamMeshes];
+        size_t capacity[kStreamMeshes] = {};
+        int next = 0;
+    };
+    std::map<BatchKey, Stream> streams_;
     bool skyShown_ = false;
     r4::scene::NodePtr sky_;
     std::shared_ptr<r4::scene::Group> skyPlace_;

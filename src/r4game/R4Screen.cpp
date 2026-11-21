@@ -95,6 +95,10 @@ void R4Screen::endGpuTimer() {
     }
 }
 
+double R4Screen::msSince(Uint64 start) {
+    return (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
+}
+
 R4FrameCounters &R4Screen::counters() {
     static R4FrameCounters counters;
     return counters;
@@ -298,6 +302,7 @@ void R4Screen::refresh(void) {
     const Uint64 now = SDL_GetPerformanceCounter();
     const double frameMs = lastFrame_ ? (double)(now - lastFrame_) * 1000.0 / (double)SDL_GetPerformanceFrequency() : 0.0;
     lastFrame_ = now;
+    counters().swapMs = lastSwapMs_;
     const R4FrameCounters frame = counters();
     counters() = {};
     device_->beginHostInterop();
@@ -308,7 +313,9 @@ void R4Screen::refresh(void) {
     device_->endGpuFrame();
     device_->takeStats();
     device_->endHostInterop();
+    const Uint64 swap = SDL_GetPerformanceCounter();
     SDL_GL_SwapWindow(m_window);
+    lastSwapMs_ = msSince(swap);
     device_->beginHostInterop();
     R4Screen::counters().interops++;
     r4::gpu::ClearValues clear;

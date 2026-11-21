@@ -4,6 +4,7 @@
 //
 #include "R4Strike.h"
 #include "R4Renderer.h"
+#include "R4Screen.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -114,8 +115,10 @@ void R4Strike::useArea() {
 
 void R4Strike::runFrame() {
     // the area before the view of the target camera, which also draws it
+    const Uint64 start = SDL_GetPerformanceCounter();
     useArea();
     SCStrike::runFrame();
+    R4Screen::counters().gameMs += R4Screen::msSince(start);
 }
 
 bool R4Strike::playerPlaneShown() const {
