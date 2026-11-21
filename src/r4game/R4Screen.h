@@ -63,6 +63,10 @@ public:
     static R4Screen *current();
     // the counters of the frame; refresh gives them to the panel, then starts them again
     static R4FrameCounters &counters();
+    // the GL state is saved around the passes of R4nkine only in a compatibility context, where the game can draw with GL
+    static bool &hostInterop();
+    // a beginHostInterop, counted when it saves the state
+    static void countInterop();
     // the milliseconds since a value of SDL_GetPerformanceCounter
     static double msSince(Uint64 start);
     // the GPU timers, off by default: on macOS, their queries slow the frame down and make the times larger

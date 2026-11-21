@@ -251,7 +251,7 @@ void R4Renderer::release() {
     R4Screen *screen = R4Screen::current();
     if (renderer_ && screen) {
         screen->device().beginHostInterop();
-        R4Screen::counters().interops++;
+        R4Screen::countInterop();
         screen->device().destroyRenderTarget(targetView_);
         renderer_.reset();
         screen->device().endHostInterop();
@@ -295,7 +295,7 @@ void R4Renderer::init(int width, int height) {
         return;
     }
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     renderer_ = std::make_unique<r4::render::Renderer>(screen->device());
     renderer_->options().anisotropy = settings_.anisotropy;
     r4::gpu::RenderTargetDesc d;
@@ -388,7 +388,7 @@ void R4Renderer::clearFrame(bool color, bool depth, r4::Vec3 rgb) {
     clear.b = rgb.z;
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     device.beginPass(screen->frameTarget(), 0, 0, screen->width, screen->height, clear);
     device.endPass();
     device.endHostInterop();
@@ -483,7 +483,7 @@ r4::scene::NodePtr R4Renderer::upload(RSEntity *object, const std::shared_ptr<r4
     if (model) {
         R4Screen *screen = R4Screen::current();
         screen->device().beginHostInterop();
-        R4Screen::counters().interops++;
+        R4Screen::countInterop();
         node = renderer_->upload(*model);
         screen->device().endHostInterop();
     }
@@ -568,7 +568,7 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
     std::shared_ptr<r4::assets::Model> city = settings_.buildings ? r4bridge::cityModel(area, palette, lighting, around, &buildings) : nullptr;
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     if (terrain) {
         terrain_ = renderer_->upload(*terrain);
         applyTerrainLod();
@@ -616,7 +616,7 @@ r4::scene::NodePtr R4Renderer::makeForests(RSArea *area, size_t &trees) {
     R4Screen *screen = R4Screen::current();
     std::vector<r4::scene::InstancePart> parts[r4bridge::TREE_SPECIES_COUNT][2];
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     for (int sp = 0; sp < r4bridge::TREE_SPECIES_COUNT; sp++) {
         for (int level = 0; level < 2; level++) {
             auto model = r4bridge::treeModel(sp, level != 0, palette, terrain_ranges, lighting);
@@ -1099,7 +1099,7 @@ r4::gpu::TextureHandle R4Renderer::textureOf(Texture *tex) {
     image.pixels.assign(tex->data, tex->data + tex->width * tex->height * 4);
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     r4::gpu::TextureHandle handle = renderer_->uploadImage(image, false);
     R4Screen::counters().textureUploads++;
     R4Screen::counters().textureBytes += image.pixels.size();
@@ -1126,7 +1126,7 @@ unsigned int R4Renderer::createTexture(int w, int h, const unsigned char *rgba, 
     image.pixels.assign(rgba, rgba + (size_t)w * h * 4);
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     r4::gpu::TextureHandle handle = renderer_->uploadImage(image, false);
     R4Screen::counters().textureUploads++;
     R4Screen::counters().textureBytes += image.pixels.size();
@@ -1156,7 +1156,7 @@ void R4Renderer::uploadTextureContentToGPU(Texture *texture) {
     it->second.empty = !visibleRect(texture->data, texture->width, texture->height, it->second.visible);
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     screen->device().updateTexture(it->second.handle, 0, 0, (int)texture->width, (int)texture->height, texture->data);
     R4Screen::counters().textureUploads++;
     R4Screen::counters().textureBytes += bytes;
@@ -1230,7 +1230,7 @@ r4::scene::NodePtr R4Renderer::sky() {
     m.receiveShadows = false;
     R4Screen *screen = R4Screen::current();
     screen->device().beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     auto geode = r4::scene::make<r4::scene::Geode>();
     geode->setName("sky dome");
     geode->addDrawable({renderer_->uploadMesh(mesh), renderer_->createMaterial(m)});
@@ -1328,7 +1328,7 @@ void R4Renderer::flush() {
     const r4::Mat4 projection = withFar(view_.projection, zFar, zNear);
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     root_->removeAllChildren();
     if (skyShown_ && sky()) {
         skyPlace_->setMatrix(r4::translate(eye) * r4::scale(r4::Vec3(zFar * kSkyRadius)));
@@ -1503,7 +1503,7 @@ void R4Renderer::initRenderToTexture() {
     }
     r4::gpu::Device &device = screen->device();
     device.beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     device.beginPass(targetView_, 0, 0, kTargetWidth, kTargetHeight, clear);
     device.endPass();
     device.endHostInterop();
@@ -1526,7 +1526,7 @@ void R4Renderer::getRenderToTexture() {
         keep.depth = false;
         r4::gpu::Device &device = screen->device();
         device.beginHostInterop();
-        R4Screen::counters().interops++;
+        R4Screen::countInterop();
         device.beginPass(targetView_, 0, 0, kTargetWidth, kTargetHeight, keep);
         const Uint64 start = SDL_GetPerformanceCounter();
         // the image of the frame before: readPixels would wait for the GPU to finish the frame

@@ -99,6 +99,17 @@ double R4Screen::msSince(Uint64 start) {
     return (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
 }
 
+bool &R4Screen::hostInterop() {
+    static bool on = true;
+    return on;
+}
+
+void R4Screen::countInterop() {
+    if (hostInterop()) {
+        counters().interops++;
+    }
+}
+
 R4FrameCounters &R4Screen::counters() {
     static R4FrameCounters counters;
     return counters;
@@ -165,8 +176,11 @@ void R4Screen::init(int width, int height, bool fullscreen) {
         return;
     }
     std::printf("[R4Screen] %s\n", device_->name());
+    // in the core context only R4nkine draws: no save of the GL state around its passes
+    hostInterop() = Config::getInstance().getBool("Video", "gl_compatibility", false);
+    device_->setHostInterop(hostInterop());
     device_->beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     post_ = std::make_unique<r4::render::PostProcess>(*device_);
     tv_ = std::make_unique<r4::render::Overlay>(*device_);
     panel_ = std::make_unique<R4Panel>(*device_);
@@ -185,7 +199,7 @@ void R4Screen::openScreen(void) {
         return;
     }
     device_->beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     r4::gpu::ClearValues clear;
     device_->beginPass(r4::gpu::RenderTargetHandle{}, 0, 0, this->width, this->height, clear);
     device_->endPass();
@@ -254,7 +268,7 @@ void R4Screen::beginFrame() {
         return;
     }
     device_->beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     frameTarget_ = post_->begin(this->width, this->height);
     r4::gpu::ClearValues clear;
     device_->beginPass(frameTarget_, 0, 0, this->width, this->height, clear);
@@ -268,7 +282,7 @@ void R4Screen::beginGamePass() {
         renderer->flush();
     }
     device_->beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     r4::gpu::ClearValues keep;
     keep.color = false;
     keep.depth = false;
@@ -293,7 +307,7 @@ void R4Screen::refresh(void) {
     if (frameTarget_) {
         device_->bindForHost(r4::gpu::RenderTargetHandle{});
         device_->beginHostInterop();
-        R4Screen::counters().interops++;
+        R4Screen::countInterop();
         beginGpuTimer(GpuTimer::POST_PROCESS);
         post_->end(0, 0, this->width, this->height, this->width, this->height);
         device_->endGpuTimer();
@@ -307,7 +321,7 @@ void R4Screen::refresh(void) {
     const R4FrameCounters frame = counters();
     counters() = {};
     device_->beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     beginGpuTimer(GpuTimer::PANEL);
     const Uint64 panel = SDL_GetPerformanceCounter();
     panel_->draw(m_window, this->width, this->height, &post_->settings, frameMs, frame);
@@ -320,7 +334,7 @@ void R4Screen::refresh(void) {
     SDL_GL_SwapWindow(m_window);
     lastSwapMs_ = msSince(swap);
     device_->beginHostInterop();
-    R4Screen::counters().interops++;
+    R4Screen::countInterop();
     r4::gpu::ClearValues clear;
     device_->beginPass(r4::gpu::RenderTargetHandle{}, 0, 0, this->width, this->height, clear);
     device_->endPass();
