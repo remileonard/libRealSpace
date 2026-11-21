@@ -254,6 +254,7 @@ void R4Panel::area() {
     gui_.table({
         {"forests", s.forests ? forestModes[(int)s.forestMode] : "off"},
         {"forest_density", fmt("%.2f", s.forestDensity)},
+        {"tree_detail_km / tree_km", fmt("%.1f / %.1f", s.treeDetailKm, s.treeKm)},
         {"buildings", yes(s.buildings)},
         {"texture_upscale", upscales[(int)s.upscale]},
         {"texture_mipmaps", yes(s.mipmaps)},

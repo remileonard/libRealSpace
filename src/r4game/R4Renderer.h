@@ -32,6 +32,9 @@ struct R4Settings {
     bool forests = false;
     r4bridge::ForestMode forestMode = r4bridge::ForestMode::NOISE;
     float forestDensity = 1;
+    // in km, apart from lod_scale: the detailed trees up to treeDetailKm, the simple ones up to treeKm, thinned beyond treeDetailKm
+    float treeDetailKm = 1.5f;
+    float treeKm = 6;
     bool buildings = false;
     r4::assets::Upscale upscale = r4::assets::Upscale::NONE;
     bool mipmaps = false;
