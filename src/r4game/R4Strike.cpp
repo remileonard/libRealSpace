@@ -117,6 +117,10 @@ void R4Strike::runFrame() {
     // the area before the view of the target camera, which also draws it
     const Uint64 start = SDL_GetPerformanceCounter();
     useArea();
+    R4Renderer *r = activeRenderer();
+    if (r && this->cockpit && this->cockpit->cockpit) {
+        r->noShadows(this->cockpit->cockpit->REAL.OBJS);
+    }
     SCStrike::runFrame();
     R4Screen::counters().gameMs += R4Screen::msSince(start);
 }

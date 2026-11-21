@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // the options of the section [R4nkine] of config.ini; the defaults keep the look of the game
@@ -106,6 +107,8 @@ public:
     void beginWorld(RSArea *area);
     // the node of an entity, made at its first use
     r4::scene::NodePtr modelOf(RSEntity *object);
+    // an entity drawn without shadows, neither cast nor received: the model of the 3D cockpit, about the eye
+    void noShadows(RSEntity *object);
     // the terrain, the runways, the clouds, the forests and the buildings of the area, made when the area or keepOut changes; null without them
     // keepOut: x, z, radius in libRealSpace where no tree nor building goes; null keeps the one of the area
     void useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut = nullptr);
@@ -274,6 +277,7 @@ private:
 
     std::unique_ptr<r4::render::Renderer> renderer_;
     std::unordered_map<RSEntity *, r4::scene::NodePtr> models_;
+    std::unordered_set<RSEntity *> unshadowed_;
     RSArea *area_ = nullptr;
     r4::scene::NodePtr terrain_;
     r4::scene::NodePtr overlay_;

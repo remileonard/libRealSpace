@@ -458,6 +458,12 @@ void R4Renderer::applyTerrainLod() {
     }
 }
 
+void R4Renderer::noShadows(RSEntity *object) {
+    if (object && unshadowed_.insert(object).second) {
+        models_.erase(object);
+    }
+}
+
 r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
     auto it = models_.find(object);
     if (it != models_.end()) {
@@ -466,6 +472,12 @@ r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
     r4::scene::NodePtr node;
     r4bridge::Lighting lighting = objectLighting();
     auto model = renderer_ ? r4bridge::toModel(object, palette, terrain_ranges, lighting, r4bridge::Axes::REAL_SPACE) : nullptr;
+    if (model && unshadowed_.count(object)) {
+        for (r4::assets::Material &m : model->materials) {
+            m.castShadows = false;
+            m.receiveShadows = false;
+        }
+    }
     if (model) {
         R4Screen *screen = R4Screen::current();
         screen->device().beginHostInterop();
@@ -486,6 +498,7 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
     if (area != area_) {
         // a new mission can free its entities and make others at the same addresses
         models_.clear();
+        unshadowed_.clear();
         terrain_.reset();
         overlay_.reset();
         clouds_.reset();
