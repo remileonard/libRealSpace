@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // the options of the section [R4nkine] of config.ini; the defaults keep the look of the game
@@ -106,6 +107,8 @@ public:
     void beginWorld(RSArea *area);
     // the node of an entity, made at its first use
     r4::scene::NodePtr modelOf(RSEntity *object);
+    // an entity drawn without shadows, neither cast nor received: the model of the 3D cockpit, about the eye
+    void noShadows(RSEntity *object);
     // the terrain, the runways, the clouds, the forests and the buildings of the area, made when the area or keepOut changes; null without them
     // keepOut: x, z, radius in libRealSpace where no tree nor building goes; null keeps the one of the area
     void useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut = nullptr);
@@ -262,6 +265,7 @@ private:
     void cubeLines(const r4::Mat4 &matrix, r4::Vec4 front, r4::Vec4 back, r4::Vec4 sides);
     r4::gpu::TextureHandle textureOf(Texture *tex);
     std::shared_ptr<r4::render::MaterialInstance> materialOf(const BatchKey &key);
+    std::shared_ptr<r4::render::GpuMesh> streamMesh(const BatchKey &key, const std::vector<r4::assets::Vertex> &vertices);
     r4::scene::NodePtr sky();
     void clearFrame(bool color, bool depth, r4::Vec3 rgb);
     r4::Vec3 clearColor() const;
@@ -273,6 +277,7 @@ private:
 
     std::unique_ptr<r4::render::Renderer> renderer_;
     std::unordered_map<RSEntity *, r4::scene::NodePtr> models_;
+    std::unordered_set<RSEntity *> unshadowed_;
     RSArea *area_ = nullptr;
     r4::scene::NodePtr terrain_;
     r4::scene::NodePtr overlay_;
@@ -289,6 +294,14 @@ private:
     std::vector<r4::scene::NodePtr> scenes_;
     std::map<BatchKey, std::vector<r4::assets::Vertex>> batches_;
     std::map<BatchKey, std::shared_ptr<r4::render::MaterialInstance>> materials_;
+    // the meshes of the batches, kept by state and filled again at each pass, in turn so that the GPU can still draw the one before
+    static constexpr int kStreamMeshes = 4;
+    struct Stream {
+        std::shared_ptr<r4::render::GpuMesh> meshes[kStreamMeshes];
+        size_t capacity[kStreamMeshes] = {};
+        int next = 0;
+    };
+    std::map<BatchKey, Stream> streams_;
     bool skyShown_ = false;
     r4::scene::NodePtr sky_;
     std::shared_ptr<r4::scene::Group> skyPlace_;

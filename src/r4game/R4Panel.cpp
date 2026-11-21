@@ -169,6 +169,12 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
             {"GL Buffers Made", fmt("%d", counters.buffers)},
             {"Target Readbacks", fmt("%d (%.2f ms)", counters.readbacks, counters.readbackMs)},
         });
+        gui_.label("CPU", r4::ui::Font::SMALL);
+        gui_.table({
+            {"Flight (runFrame)", fmt("%.2f ms", counters.gameMs)},
+            {"Renderer Passes", fmt("%.2f ms", counters.flushMs)},
+            {"Swap (wait for the GPU)", fmt("%.2f ms", counters.swapMs)},
+        });
     }
     if (gui_.section("Area", openArea_)) {
         area();

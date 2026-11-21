@@ -233,6 +233,7 @@ void R4Renderer::release() {
     items_.clear();
     scenes_.clear();
     batches_.clear();
+    streams_.clear();
     materials_.clear();
     places_.clear();
     root_.reset();
@@ -457,6 +458,12 @@ void R4Renderer::applyTerrainLod() {
     }
 }
 
+void R4Renderer::noShadows(RSEntity *object) {
+    if (object && unshadowed_.insert(object).second) {
+        models_.erase(object);
+    }
+}
+
 r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
     auto it = models_.find(object);
     if (it != models_.end()) {
@@ -465,6 +472,12 @@ r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
     r4::scene::NodePtr node;
     r4bridge::Lighting lighting = objectLighting();
     auto model = renderer_ ? r4bridge::toModel(object, palette, terrain_ranges, lighting, r4bridge::Axes::REAL_SPACE) : nullptr;
+    if (model && unshadowed_.count(object)) {
+        for (r4::assets::Material &m : model->materials) {
+            m.castShadows = false;
+            m.receiveShadows = false;
+        }
+    }
     if (model) {
         R4Screen *screen = R4Screen::current();
         screen->device().beginHostInterop();
@@ -485,6 +498,7 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
     if (area != area_) {
         // a new mission can free its entities and make others at the same addresses
         models_.clear();
+        unshadowed_.clear();
         terrain_.reset();
         overlay_.reset();
         clouds_.reset();
@@ -1225,11 +1239,46 @@ std::shared_ptr<r4::render::MaterialInstance> R4Renderer::materialOf(const Batch
     return material;
 }
 
+std::shared_ptr<r4::render::GpuMesh> R4Renderer::streamMesh(const BatchKey &key, const std::vector<r4::assets::Vertex> &vertices) {
+    r4::gpu::Device &device = R4Screen::current()->device();
+    Stream &stream = streams_[key];
+    stream.next = (stream.next + 1) % kStreamMeshes;
+    std::shared_ptr<r4::render::GpuMesh> &mesh = stream.meshes[stream.next];
+    size_t &capacity = stream.capacity[stream.next];
+    if (!mesh || capacity < vertices.size()) {
+        capacity = std::max<size_t>(vertices.size() * 2, 1024);
+        std::vector<uint32_t> indices(capacity);
+        for (uint32_t i = 0; i < (uint32_t)capacity; i++) {
+            indices[i] = i;
+        }
+        mesh = std::shared_ptr<r4::render::GpuMesh>(new r4::render::GpuMesh, [&device](r4::render::GpuMesh *m) {
+            device.destroyBuffer(m->vertices);
+            device.destroyBuffer(m->indices);
+            delete m;
+        });
+        mesh->name = "effects";
+        mesh->vertices = device.createBuffer(r4::gpu::BufferUsage::VERTEX, nullptr, capacity * sizeof(r4::assets::Vertex), true);
+        mesh->indices = device.createBuffer(r4::gpu::BufferUsage::INDEX, indices.data(), capacity * sizeof(uint32_t), false);
+        R4Screen::counters().buffers += 2;
+    }
+    device.updateBuffer(mesh->vertices, 0, vertices.data(), vertices.size() * sizeof(r4::assets::Vertex));
+    mesh->indexCount = (uint32_t)vertices.size();
+    mesh->primitive = key.primitive;
+    r4::Box box;
+    for (const r4::assets::Vertex &v : vertices) {
+        box.extend(v.position);
+    }
+    mesh->bounds = r4::sphereOf(box);
+    mesh->box = box;
+    return mesh;
+}
+
 void R4Renderer::flush() {
     R4Screen *screen = R4Screen::current();
     if (!pending()) {
         return;
     }
+    const Uint64 start = SDL_GetPerformanceCounter();
     if (!renderer_ || !screen) {
         items_.clear();
         scenes_.clear();
@@ -1267,17 +1316,8 @@ void R4Renderer::flush() {
         if (vertices.empty()) {
             continue;
         }
-        r4::assets::Mesh mesh;
-        mesh.name = "effects";
-        mesh.primitive = key.primitive;
-        mesh.vertices = std::move(vertices);
-        mesh.indices.resize(mesh.vertices.size());
-        for (uint32_t i = 0; i < (uint32_t)mesh.indices.size(); i++) {
-            mesh.indices[i] = i;
-        }
         auto geode = r4::scene::make<r4::scene::Geode>();
-        geode->addDrawable({renderer_->uploadMesh(mesh), materialOf(key)});
-        R4Screen::counters().buffers += 2;
+        geode->addDrawable({streamMesh(key, vertices), materialOf(key)});
         root_->addChild(geode);
     }
 
@@ -1326,6 +1366,7 @@ void R4Renderer::flush() {
     scenes_.clear();
     batches_.clear();
     skyShown_ = false;
+    R4Screen::counters().flushMs += R4Screen::msSince(start);
 }
 
 void R4Renderer::addStats(const r4::render::RenderStats &s) {

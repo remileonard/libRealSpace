@@ -31,6 +31,11 @@ struct R4FrameCounters {
     // readPixels of the view of the target camera, and their time
     int readbacks = 0;
     double readbackMs = 0;
+    // CPU milliseconds: runFrame of the flight (the passes of the renderer included), the passes of the renderer, and the swap of the
+    // frame before, where the CPU waits for the GPU
+    double gameMs = 0;
+    double flushMs = 0;
+    double swapMs = 0;
 };
 
 // the slots of the GPU timers of a frame
@@ -52,6 +57,8 @@ public:
     static R4Screen *current();
     // the counters of the frame; refresh gives them to the panel, then starts them again
     static R4FrameCounters &counters();
+    // the milliseconds since a value of SDL_GetPerformanceCounter
+    static double msSince(Uint64 start);
     // the GPU timers, off by default: on macOS, their queries slow the frame down and make the times larger
     static bool &gpuTiming();
     // an interval of a GPU timer, when gpuTiming is on
@@ -87,6 +94,7 @@ private:
     std::unique_ptr<r4::render::Overlay> tv_;
     std::unique_ptr<R4Panel> panel_;
     Uint64 lastFrame_ = 0;
+    double lastSwapMs_ = 0;
     r4::raster::Surface tvSurface_;
     float tvTime_ = 0;
 };
