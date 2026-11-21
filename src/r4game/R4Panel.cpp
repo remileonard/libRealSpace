@@ -182,6 +182,8 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
             {"Renderer Passes", fmt("%.2f ms", counters.flushMs)},
             {"   in the Flight", fmt("%.2f ms", counters.flightFlushMs)},
             {"Panel", fmt("%.2f ms", counters.panelMs)},
+            {"   Built", fmt("%.2f ms", std::max(0.0, counters.panelMs - renderMs_))},
+            {"   Sent and Drawn", fmt("%.2f ms", renderMs_)},
             {"Swap (wait for the GPU)", fmt("%.2f ms", counters.swapMs)},
             {"Outside the Flight", fmt("%.2f ms", std::max(0.0, frameMs - counters.gameMs - counters.panelMs - counters.swapMs))},
         });
@@ -200,7 +202,9 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
     }
     gui_.endPanel();
     gui_.endFrame();
+    const Uint64 render = SDL_GetPerformanceCounter();
     gui_.render();
+    renderMs_ = (double)(SDL_GetPerformanceCounter() - render) * 1000.0 / (double)SDL_GetPerformanceFrequency();
 }
 
 void R4Panel::performance(double frameMs) {

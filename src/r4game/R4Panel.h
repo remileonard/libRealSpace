@@ -49,6 +49,8 @@ private:
     bool openRender_ = true;
     bool openPost_ = false;
     bool vsync_ = true;
+    // the milliseconds of gui_.render() in the frame before: the vertices of the panel sent to the GPU and drawn
+    double renderMs_ = 0;
     std::deque<float> frameMs_;
     std::deque<float> cullMs_;
     std::deque<float> drawMs_;
