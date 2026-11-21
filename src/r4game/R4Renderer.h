@@ -111,6 +111,8 @@ public:
     void beginWorld(RSArea *area);
     // the node of an entity, made at its first use
     r4::scene::NodePtr modelOf(RSEntity *object);
+    // the models of these entities made now, converted on all the cores: no conversion when they appear in flight
+    void preloadModels(const std::vector<RSEntity *> &objects);
     // an entity drawn without shadows, neither cast nor received: the model of the 3D cockpit, about the eye
     void noShadows(RSEntity *object);
     // the terrain, the runways, the clouds, the forests and the buildings of the area, made when the area or keepOut changes; null without them
@@ -276,6 +278,8 @@ private:
     r4::scene::NodePtr makeForests(RSArea *area, size_t &trees);
     r4::scene::NodePtr makeClouds(RSArea *area);
     void addStats(const r4::render::RenderStats &s);
+    std::shared_ptr<r4::assets::Model> convert(RSEntity *object);
+    r4::scene::NodePtr upload(RSEntity *object, const std::shared_ptr<r4::assets::Model> &model);
     r4bridge::Lighting objectLighting() const;
     void applyTerrainLod();
 

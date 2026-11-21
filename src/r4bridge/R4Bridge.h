@@ -8,6 +8,8 @@
 #include "r4/assets/model.h"
 #include "r4/assets/upscale.h"
 
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -51,8 +53,24 @@ struct TextureQuality {
 };
 TextureQuality &textureQuality();
 
-// bled, upscaled and mipmapped as textureQuality(), clamped to its edges
+// bled, upscaled and mipmapped as textureQuality(), clamped to its edges; an upscaled image is made once in the game
 void finishTexture(r4::assets::Image &image);
+
+// a hash of bytes, started from salt: the key of a source image and of what is made from it
+uint64_t imageKey(const void *data, size_t size, uint64_t salt);
+// the image that make gives for key, made once in the game and then copied; any thread can ask
+r4::assets::Image cachedImage(uint64_t key, const std::function<r4::assets::Image()> &make);
+// what cachedImage did since the start: images found, images made and the milliseconds to make them (all threads)
+struct ImageCacheStats {
+    size_t hits = 0;
+    size_t made = 0;
+    double makeMs = 0;
+};
+ImageCacheStats imageCacheStats();
+// an image upscaled as mode, made once in the game
+r4::assets::Image upscaled(const r4::assets::Image &image, r4::assets::Upscale mode);
+// work(i) for i from 0 to count - 1, on all the cores; it returns when all are done
+void parallelFor(size_t count, const std::function<void(size_t)> &work);
 
 // An RSEntity as SCRenderer::drawModel draws it: its LODs, a color pass, a texture pass on LVL0 and a clear pass (property 2, additive).
 std::shared_ptr<r4::assets::Model> toModel(RSEntity *entity, const VGAPalette &palette, const std::vector<PaletteRange> &ranges, Lighting lighting = {}, Axes axes = Axes::R4);

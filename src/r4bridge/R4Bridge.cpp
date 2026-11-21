@@ -16,8 +16,13 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <atomic>
+#include <chrono>
 #include <map>
+#include <mutex>
 #include <string>
+#include <thread>
+#include <unordered_map>
 
 namespace r4bridge {
 
@@ -151,14 +156,93 @@ TextureQuality &textureQuality() {
     return quality;
 }
 
+uint64_t imageKey(const void *data, size_t size, uint64_t salt) {
+    // FNV-1a
+    uint64_t h = 14695981039346656037ull ^ salt;
+    const uint8_t *bytes = static_cast<const uint8_t *>(data);
+    for (size_t i = 0; i < size; i++) {
+        h = (h ^ bytes[i]) * 1099511628211ull;
+    }
+    return h;
+}
+
+namespace {
+
+std::mutex cacheLock;
+ImageCacheStats cacheStats;
+
+} // namespace
+
+ImageCacheStats imageCacheStats() {
+    std::lock_guard<std::mutex> guard(cacheLock);
+    return cacheStats;
+}
+
+r4::assets::Image cachedImage(uint64_t key, const std::function<r4::assets::Image()> &make) {
+    static std::unordered_map<uint64_t, r4::assets::Image> images;
+    {
+        std::lock_guard<std::mutex> guard(cacheLock);
+        auto it = images.find(key);
+        if (it != images.end()) {
+            cacheStats.hits++;
+            return it->second;
+        }
+    }
+    // made out of the lock: two threads can make the same image, the first one is kept
+    const auto start = std::chrono::steady_clock::now();
+    r4::assets::Image made = make();
+    const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    std::lock_guard<std::mutex> guard(cacheLock);
+    cacheStats.made++;
+    cacheStats.makeMs += ms;
+    return images.emplace(key, std::move(made)).first->second;
+}
+
+r4::assets::Image upscaled(const r4::assets::Image &image, r4::assets::Upscale mode) {
+    const uint64_t salt = (uint64_t)image.width << 40 ^ (uint64_t)image.height << 20 ^ (uint64_t)image.channels << 8 ^ (uint64_t)mode;
+    return cachedImage(imageKey(image.pixels.data(), image.pixels.size(), salt), [&]() {
+        return r4::assets::upscale(image, mode);
+    });
+}
+
+void parallelFor(size_t count, const std::function<void(size_t)> &work) {
+    const size_t threads = std::min<size_t>(count, std::max(1u, std::thread::hardware_concurrency()));
+    std::atomic<size_t> next{0};
+    auto run = [&]() {
+        for (size_t i = next++; i < count; i = next++) {
+            work(i);
+        }
+    };
+    std::vector<std::thread> pool;
+    for (size_t t = 1; t < threads; t++) {
+        pool.emplace_back(run);
+    }
+    run();
+    for (std::thread &t : pool) {
+        t.join();
+    }
+}
+
 void finishTexture(r4::assets::Image &img) {
     img.clampS = img.clampT = true;
-    bleedClearTexels(img);
     const TextureQuality &q = textureQuality();
-    if (q.upscale != r4::assets::Upscale::NONE) {
-        img = r4::assets::upscale(img, q.upscale);
+    if (q.upscale == r4::assets::Upscale::NONE) {
         bleedClearTexels(img);
+        img.mipmaps = q.mipmaps;
+        return;
     }
+    // the bleeding and the upscale of a texture, once in the game: the same images come back with each mission and each light
+    const std::string name = img.name;
+    const uint64_t salt = (uint64_t)img.width << 40 ^ (uint64_t)img.height << 20 ^ (uint64_t)img.channels << 8 ^ (uint64_t)q.upscale ^ 0xf1u << 4;
+    img = cachedImage(imageKey(img.pixels.data(), img.pixels.size(), salt), [&]() {
+        r4::assets::Image out = img;
+        bleedClearTexels(out);
+        out = r4::assets::upscale(out, q.upscale);
+        bleedClearTexels(out);
+        return out;
+    });
+    img.name = name;
+    img.clampS = img.clampT = true;
     img.mipmaps = q.mipmaps;
 }
 

@@ -60,7 +60,7 @@ uint8_t nearestIndex(const VGAPalette &palette, const std::vector<uint8_t> &cand
 }
 
 // the palette indices of an image in red and its alpha, upscaled as textureQuality() then brought back to the indices it uses
-r4::assets::Image indexTexture(const RSImage &src, const VGAPalette &palette) {
+r4::assets::Image makeIndexTexture(const RSImage &src, const VGAPalette &palette) {
     r4::assets::Image img;
     img.name = std::string(src.name);
     img.width = (int)src.width;
@@ -93,11 +93,21 @@ r4::assets::Image indexTexture(const RSImage &src, const VGAPalette &palette) {
         img.width = rgba.width;
         img.height = rgba.height;
         indices.resize((size_t)img.width * img.height);
+        // the colors that the upscale mixed, each looked for once
+        std::unordered_map<uint32_t, uint8_t> nearest;
         for (size_t i = 0; i < indices.size(); i++) {
             uint32_t c = 0;
             std::memcpy(&c, &rgba.pixels[i * 4], 4);
             auto it = exact.find(c);
-            indices[i] = it != exact.end() ? it->second : nearestIndex(palette, used, c);
+            if (it != exact.end()) {
+                indices[i] = it->second;
+                continue;
+            }
+            auto known = nearest.find(c);
+            if (known == nearest.end()) {
+                known = nearest.emplace(c, nearestIndex(palette, used, c)).first;
+            }
+            indices[i] = known->second;
         }
     }
     img.channels = 2;
@@ -106,6 +116,21 @@ r4::assets::Image indexTexture(const RSImage &src, const VGAPalette &palette) {
         img.pixels[i * 2] = indices[i];
         img.pixels[i * 2 + 1] = palette.colors[indices[i]].a;
     }
+    return img;
+}
+
+// makeIndexTexture once in the game for an upscale: the same textures come back with each map and each mission
+r4::assets::Image indexTexture(const RSImage &src, const VGAPalette &palette) {
+    const r4::assets::Upscale upscale = textureQuality().upscale;
+    if (upscale == r4::assets::Upscale::NONE) {
+        return makeIndexTexture(src, palette);
+    }
+    const uint64_t paletteKey = imageKey(palette.colors, sizeof palette.colors, 0);
+    const uint64_t salt = paletteKey ^ (uint64_t)src.width << 40 ^ (uint64_t)src.height << 20 ^ (uint64_t)upscale ^ 0x1du << 4;
+    r4::assets::Image img = cachedImage(imageKey(src.data, src.width * src.height, salt), [&]() {
+        return makeIndexTexture(src, palette);
+    });
+    img.name = std::string(src.name);
     return img;
 }
 
@@ -296,14 +321,22 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
     int atlasMaterial = -1;
     std::vector<r4::assets::Image> cells;
     int cellSize = 0;
+    std::vector<RSImage *> sources;
     for (int imageID : terrainImages(area)) {
         RSImage *src = area->GetImageByID(imageID);
         if (!src || !src->data || !src->width || !src->height) {
             continue;
         }
-        atlasCell[imageID] = (int)cells.size();
-        cells.push_back(indexTexture(*src, palette));
-        cellSize = std::max({cellSize, cells.back().width, cells.back().height});
+        atlasCell[imageID] = (int)sources.size();
+        sources.push_back(src);
+    }
+    // the textures of the terrain, upscaled on all the cores
+    cells.resize(sources.size());
+    parallelFor(sources.size(), [&](size_t i) {
+        cells[i] = indexTexture(*sources[i], palette);
+    });
+    for (const r4::assets::Image &cell : cells) {
+        cellSize = std::max({cellSize, cell.width, cell.height});
     }
     auto log2Of = [](int size) {
         int bits = 0;
@@ -450,7 +483,7 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
         m.vertices.push_back(out);
         m.indices.push_back((uint32_t)m.vertices.size() - 1);
     };
-    auto triangle = [&](const MapVertex *a, const MapVertex *b, const MapVertex *c, const float(*cols)[4], uint16_t imageID, const float(*uv)[2]) {
+    auto triangle = [&](const MapVertex *a, const MapVertex *b, const MapVertex *c, const float (*cols)[4], uint16_t imageID, const float (*uv)[2]) {
         const MapVertex *corner[3] = {a, b, c};
         if (dynamic) {
             uint32_t tone = topTone(typeOf(a, b, c));
@@ -930,7 +963,7 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
             }
         }
         if (src && scale > 1) {
-            c = r4::assets::upscale(c, quality.upscale);
+            c = upscaled(c, quality.upscale);
         }
         cells.push_back(std::move(c));
     }
@@ -1027,7 +1060,7 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
 }
 
 r4::Mat4 mapObjectMatrix(const MapObject &object) {
-    const float(*o)[3] = object.orientation;
+    const float (*o)[3] = object.orientation;
     r4::Mat4 rotation(1.0f);
     rotation[0] = r4::Vec4(o[1][0], o[1][2], -o[1][1], 0);
     rotation[1] = r4::Vec4(o[2][0], o[2][2], -o[2][1], 0);
@@ -1263,7 +1296,7 @@ std::vector<ForestChunk> forestChunks(RSArea *area, const ForestSettings &st) {
             bool any = false;
             float low = 1e30f;
             float high = -1e30f;
-            forEachTriangle(area, cx, cz, cells, [&](const MapVertex *a, const MapVertex *b, const MapVertex *c, int image, uint32_t, const float(*)[2]) {
+            forEachTriangle(area, cx, cz, cells, [&](const MapVertex *a, const MapVertex *b, const MapVertex *c, int image, uint32_t, const float (*)[2]) {
                 if (st.mode == ForestMode::TEXTURES ? treeTexelsOf(area, st, image).empty() : !green(a, b, c)) {
                     return;
                 }
@@ -1341,7 +1374,7 @@ void plantForest(RSArea *area, const ForestSettings &st, ForestChunk &chunk) {
         t.scaleUp = t.scale * (0.85f + species * 0.3f);
         chunk.trees[sp].push_back(t);
     };
-    forEachTriangle(area, chunk.cx, chunk.cz, cellsPerChunk(st), [&](const MapVertex *a, const MapVertex *b, const MapVertex *c, int image, uint32_t key, const float(*uv)[2]) {
+    forEachTriangle(area, chunk.cx, chunk.cz, cellsPerChunk(st), [&](const MapVertex *a, const MapVertex *b, const MapVertex *c, int image, uint32_t key, const float (*uv)[2]) {
         if (st.mode == ForestMode::TEXTURES) {
             const std::vector<uint32_t> &texels = treeTexelsOf(area, st, image);
             if (texels.empty()) {

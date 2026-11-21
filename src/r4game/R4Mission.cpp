@@ -144,6 +144,30 @@ R4Mission::R4Mission(std::string missionName, std::unordered_map<std::string, RS
     }
     // SCMission loads the mission in its constructor: the graph of its area is made just after
     useArea();
+    // the models of the actors, of their wheels and afterburners and of their stores, before the flight
+    if (R4Renderer *r = activeRenderer()) {
+        std::vector<RSEntity *> entities;
+        for (SCMissionActors *actor : this->actors) {
+            RSEntity *entity = actor->object != nullptr ? actor->object->entity : nullptr;
+            if (entity == nullptr) {
+                continue;
+            }
+            entities.push_back(entity);
+            for (const RSEntity::CHLD *child : entity->chld) {
+                entities.push_back(child->objct);
+            }
+            if (actor->plane != nullptr) {
+                for (SCWeaponLoadoutHardPoint *hp : actor->plane->weaps_load) {
+                    if (hp != nullptr) {
+                        entities.push_back(hp->objct);
+                    }
+                }
+            }
+        }
+        const Uint64 start = SDL_GetPerformanceCounter();
+        r->preloadModels(entities);
+        std::printf("[R4Mission] the models of %zu entities of the actors in %.0f ms\n", entities.size(), R4Screen::msSince(start));
+    }
 }
 
 R4Mission::~R4Mission() = default;

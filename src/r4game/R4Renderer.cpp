@@ -464,14 +464,16 @@ void R4Renderer::noShadows(RSEntity *object) {
     }
 }
 
-r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
-    auto it = models_.find(object);
-    if (it != models_.end()) {
-        return it->second;
+// any thread: toModel reads the entity and the palette
+std::shared_ptr<r4::assets::Model> R4Renderer::convert(RSEntity *object) {
+    if (!renderer_ || !object || object->vertices.empty()) {
+        return nullptr;
     }
+    return r4bridge::toModel(object, palette, terrain_ranges, objectLighting(), r4bridge::Axes::REAL_SPACE);
+}
+
+r4::scene::NodePtr R4Renderer::upload(RSEntity *object, const std::shared_ptr<r4::assets::Model> &model) {
     r4::scene::NodePtr node;
-    r4bridge::Lighting lighting = objectLighting();
-    auto model = renderer_ ? r4bridge::toModel(object, palette, terrain_ranges, lighting, r4bridge::Axes::REAL_SPACE) : nullptr;
     if (model && unshadowed_.count(object)) {
         for (r4::assets::Material &m : model->materials) {
             m.castShadows = false;
@@ -487,6 +489,37 @@ r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
     }
     models_.emplace(object, node);
     return node;
+}
+
+r4::scene::NodePtr R4Renderer::modelOf(RSEntity *object) {
+    auto it = models_.find(object);
+    if (it != models_.end()) {
+        return it->second;
+    }
+    return upload(object, convert(object));
+}
+
+void R4Renderer::preloadModels(const std::vector<RSEntity *> &objects) {
+    std::vector<RSEntity *> missing;
+    for (RSEntity *object : objects) {
+        if (object && !models_.count(object) && std::find(missing.begin(), missing.end(), object) == missing.end()) {
+            missing.push_back(object);
+        }
+    }
+    const r4bridge::ImageCacheStats before = r4bridge::imageCacheStats();
+    const Uint64 start = SDL_GetPerformanceCounter();
+    std::vector<std::shared_ptr<r4::assets::Model>> models(missing.size());
+    r4bridge::parallelFor(missing.size(), [&](size_t i) {
+        models[i] = convert(missing[i]);
+    });
+    const double convertMs = R4Screen::msSince(start);
+    const Uint64 uploadStart = SDL_GetPerformanceCounter();
+    // the GPU from this thread only
+    for (size_t i = 0; i < missing.size(); i++) {
+        upload(missing[i], models[i]);
+    }
+    const r4bridge::ImageCacheStats after = r4bridge::imageCacheStats();
+    std::printf("[R4Renderer] %zu models: converted in %.0f ms (textures: %zu found, %zu made in %.0f ms on all the cores), sent to the GPU in %.0f ms\n", missing.size(), convertMs, after.hits - before.hits, after.made - before.made, after.makeMs - before.makeMs, R4Screen::msSince(uploadStart));
 }
 
 void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
@@ -559,7 +592,8 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
     areaStats_.buildings = buildings;
     areaStats_.clouds = clouds_ ? clouds_->children().size() : 0;
     areaStats_.ms = (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
-    std::printf("[R4Renderer] area: %zu trees, %zu buildings, shadows %s\n", trees, buildings, settings_.shadows ? "on" : "off");
+    const r4bridge::ImageCacheStats cache = r4bridge::imageCacheStats();
+    std::printf("[R4Renderer] area in %.0f ms: %zu trees, %zu buildings, shadows %s; textures since the start: %zu found, %zu made in %.0f ms\n", areaStats_.ms, trees, buildings, settings_.shadows ? "on" : "off", cache.hits, cache.made, cache.makeMs);
 }
 
 // the forests of r4objviewer: chunks of trees, each a LOD with an instancer by species, the full tree near and the simple one far
