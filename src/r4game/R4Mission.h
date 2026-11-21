@@ -59,6 +59,10 @@ private:
         bool seen = false;
         // the node that holds it, when it is not the layer
         r4::scene::Node *parent = nullptr;
+        // the position and the orientation of its matrix: a still object keeps its matrix, and its area its bounds
+        r4::Vec3 position;
+        r4::Vec3 orientation;
+        bool placed = false;
     };
     // the parts of a plane: its body, its wheels, its afterburner and its weapons under the hard points
     struct PlanePlace {
@@ -72,6 +76,10 @@ private:
         std::vector<RSEntity *> loaded;
         bool seen = false;
         r4::scene::Node *parent = nullptr;
+        r4::Vec3 position;
+        r4::Vec3 orientation;
+        bool placed = false;
+        int thrust = -1;
     };
 
     // the terrain, the runways, the forests and the buildings of the area, made once
@@ -109,4 +117,6 @@ private:
     std::unordered_map<const void *, Place> objects_;
     std::unordered_map<const void *, Place> shotPlaces_;
     std::vector<SCSimulatedObject *> shotList_;
+    // the stores of a plane in a frame, kept to make no allocation
+    std::vector<RSEntity *> loaded_;
 };

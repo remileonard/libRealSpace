@@ -17,20 +17,23 @@ namespace {
 // SCStrike's RENDER_DISTANCE: the actors farther from the eye are not drawn
 constexpr float kRenderDistance = 40000.0f;
 
-r4::Mat4 toMat4(Matrix &m) {
-    return glm::make_mat4(&m.v[0][0]);
+// the matrix of SCRenderer::drawModelWithChilds and drawModel(object, position, orientation): angles in radians, about Y, Z then X
+// the same matrix as Matrix::translateM and rotateM (checked to 2e-7), without their twelve sines and cosines for each turn
+r4::Mat4 radianPlacement(Vector3D position, Vector3D orientation) {
+    return r4::translate({position.x, position.y, position.z}) * r4::rotate(orientation.x, {0, 1, 0}) * r4::rotate(orientation.y, {0, 0, 1}) * r4::rotate(orientation.z, {1, 0, 0});
 }
 
-// the matrix of SCRenderer::drawModelWithChilds and drawModel(object, position, orientation): angles in radians, about Y, Z then X
-r4::Mat4 radianPlacement(Vector3D position, Vector3D orientation) {
-    Matrix m;
-    m.Clear();
-    m.Identity();
-    m.translateM(position.x, position.y, position.z);
-    m.rotateM(orientation.x, 0.0f, 1.0f, 0.0f);
-    m.rotateM(orientation.y, 0.0f, 0.0f, 1.0f);
-    m.rotateM(orientation.z, 1.0f, 0.0f, 0.0f);
-    return toMat4(m);
+// true when the place has not its matrix for this position and this orientation, then they are kept
+template <class P> bool moved(P &place, Vector3D position, Vector3D orientation) {
+    const r4::Vec3 p{position.x, position.y, position.z};
+    const r4::Vec3 o{orientation.x, orientation.y, orientation.z};
+    if (place.placed && place.position == p && place.orientation == o) {
+        return false;
+    }
+    place.position = p;
+    place.orientation = o;
+    place.placed = true;
+    return true;
 }
 
 // the matrix of SCRenderer::drawModel(object, lod, position, orientation): glRotatef in degrees, about Y, Z then X
@@ -302,7 +305,9 @@ void R4Mission::updatePlane(PlanePlace &place, SCPlane *plane, SCMissionActors *
         setModel(*place.body, entity);
     }
     Vector3D orientation = {tenthOfDegreeToRad(plane->yaw + 900), tenthOfDegreeToRad(plane->pitch), -tenthOfDegreeToRad(plane->roll)};
-    place.node->setMatrix(radianPlacement({plane->x, plane->y, plane->z}, orientation));
+    if (moved(place, {plane->x, plane->y, plane->z}, orientation)) {
+        place.node->setMatrix(radianPlacement({plane->x, plane->y, plane->z}, orientation));
+    }
 
     const int wheel = plane->getWheelIndex();
     RSEntity *wheels = nullptr;
@@ -321,13 +326,27 @@ void R4Mission::updatePlane(PlanePlace &place, SCPlane *plane, SCMissionActors *
         if (place.afterburner->children().empty()) {
             setModel(*place.afterburner, entity->chld[0]->objct);
         }
-        const RSEntity::CHLD *c = entity->chld[0];
-        place.afterburner->setMatrix(r4::translate({c->z, c->y, c->x}) * r4::scale({1 + thrust / 100.0f, 1, 1}));
+        if (thrust != place.thrust) {
+            const RSEntity::CHLD *c = entity->chld[0];
+            place.afterburner->setMatrix(r4::translate({c->z, c->y, c->x}) * r4::scale({1 + thrust / 100.0f, 1, 1}));
+            place.thrust = thrust;
+        }
     }
 
-    // the stores under the hard points, laid out as SCPlane::Render
-    std::vector<RSEntity *> loaded;
-    std::vector<r4::Vec3> positions;
+    // the stores under the hard points, laid out as SCPlane::Render; made again only when they change
+    loaded_.clear();
+    for (SCWeaponLoadoutHardPoint *hp : plane->weaps_load) {
+        if (!hp || hp->hpts_type == 0) {
+            continue;
+        }
+        for (int i = 0; i < hp->nb_weap && i < 6; i++) {
+            loaded_.push_back(hp->objct);
+        }
+    }
+    if (loaded_ == place.loaded) {
+        return;
+    }
+    place.weapons->removeAllChildren();
     for (SCWeaponLoadoutHardPoint *hp : plane->weaps_load) {
         if (!hp || hp->hpts_type == 0) {
             continue;
@@ -336,23 +355,14 @@ void R4Mission::updatePlane(PlanePlace &place, SCPlane *plane, SCMissionActors *
         const Vector3D path[6] = {{0, -2 * decy, 0}, {decy, -decy, 0}, {-decy, -decy, 0}, {0, -2 * decy, -2 * decy}, {decy, -decy, -2 * decy}, {-decy, -decy, -2 * decy}};
         Vector3D position = hp->position;
         for (int i = 0; i < hp->nb_weap && i < 6; i++) {
-            positions.push_back({position.z / 250 + path[i].z, position.y / 250 + path[i].y, -position.x / 250 + path[i].x});
-            loaded.push_back(hp->objct);
+            auto slot = group("store");
+            setModel(*slot, hp->objct);
+            slot->setMatrix(r4::translate({position.z / 250 + path[i].z, position.y / 250 + path[i].y, -position.x / 250 + path[i].x}));
+            place.weapons->addChild(slot);
             position.y -= 0.5f;
         }
     }
-    if (loaded != place.loaded) {
-        place.weapons->removeAllChildren();
-        for (RSEntity *store : loaded) {
-            auto slot = group("store");
-            setModel(*slot, store);
-            place.weapons->addChild(slot);
-        }
-        place.loaded = loaded;
-    }
-    for (size_t i = 0; i < positions.size(); i++) {
-        place.weapons->children()[i]->setMatrix(r4::translate(positions[i]));
-    }
+    place.loaded = loaded_;
 }
 
 void R4Mission::placeObject(SCMissionActors *actor) {
@@ -381,7 +391,9 @@ void R4Mission::updateObject(Place &place, SCMissionActors *actor) {
         place.entity = part->entity;
     }
     Vector3D orientation = {360.0f - (float)part->azymuth + 90.0f, (float)part->pitch, -(float)part->roll};
-    place.node->setMatrix(degreePlacement(part->position, orientation));
+    if (moved(place, part->position, orientation)) {
+        place.node->setMatrix(degreePlacement(part->position, orientation));
+    }
     place.node->setMask(LAYER_ACTORS);
 }
 
@@ -407,7 +419,9 @@ void R4Mission::updateShot(Place &place, SCSimulatedObject *shot) {
         setModel(*place.node, shot->obj);
         place.entity = shot->obj;
     }
-    place.node->setMatrix(radianPlacement({shot->x, shot->y, shot->z}, {shot->azimuthf, shot->elevationf, 0.0f}));
+    if (moved(place, {shot->x, shot->y, shot->z}, {shot->azimuthf, shot->elevationf, 0.0f})) {
+        place.node->setMatrix(radianPlacement({shot->x, shot->y, shot->z}, {shot->azimuthf, shot->elevationf, 0.0f}));
+    }
 }
 
 r4::scene::Node &R4Mission::objectParent(const MISN_PART *part) {
