@@ -49,25 +49,10 @@ void GameEngine::bindFlightAxes() {
         const std::vector<InputBinding> *list = input.getBindings(CreateAction(InputAction::SIM_START, axis));
         return list == nullptr || list->empty();
     };
-    // Les liaisons des anciens sticks, le tangage dans le sens du manche tire.
-    auto copy = [&](SimActionOfst from, SimActionOfst to, float sign) {
-        if (!unbound(to)) {
-            return;
-        }
-        const std::vector<InputBinding> *list = input.getBindings(CreateAction(InputAction::SIM_START, from));
-        if (list == nullptr) {
-            return;
-        }
-        const std::vector<InputBinding> old = *list;
-        for (InputBinding b : old) {
-            b.scale *= sign;
-            input.bindInput(CreateAction(InputAction::SIM_START, to), b);
-        }
-    };
-    copy(SimActionOfst::CONTROLLER_STICK_LEFT_X, SimActionOfst::AXIS_ROLL, 1.0f);
-    copy(SimActionOfst::CONTROLLER_STICK_LEFT_Y, SimActionOfst::AXIS_PITCH, -1.0f);
-    copy(SimActionOfst::CONTROLLER_STICK_RIGHT_X, SimActionOfst::AXIS_LOOK_X, 1.0f);
-    copy(SimActionOfst::CONTROLLER_STICK_RIGHT_Y, SimActionOfst::AXIS_LOOK_Y, 1.0f);
+    // Les liaisons des anciens sticks (55 a 58), que le jeu ne lit plus.
+    for (int old = 55; old <= 58; old++) {
+        input.clearBindings(CreateAction(InputAction::SIM_START, old));
+    }
     if (unbound(SimActionOfst::AXIS_ROLL)) {
         m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_ROLL), 0, SDL_CONTROLLER_AXIS_LEFTX, 1.0f);
     }
@@ -176,10 +161,6 @@ void GameEngine::initKeyboard() {
         SimActionOfst::COMM_RADIO_M6,
         SimActionOfst::COMM_RADIO_M7,
         SimActionOfst::COMM_RADIO_M8,
-        SimActionOfst::CONTROLLER_STICK_LEFT_X,
-        SimActionOfst::CONTROLLER_STICK_LEFT_Y,
-        SimActionOfst::CONTROLLER_STICK_RIGHT_X,
-        SimActionOfst::CONTROLLER_STICK_RIGHT_Y,
         SimActionOfst::RADAR_MODE_TOGGLE,
         SimActionOfst::RUDDER_LEFT,
         SimActionOfst::RUDDER_RIGHT,
@@ -274,12 +255,6 @@ void GameEngine::initKeyboard() {
     m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AUTOPILOT), 0, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
     m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::PAUSE), 0, SDL_CONTROLLER_BUTTON_START);
     m_keyboard->bindGamepadButtonToAction(CreateAction(InputAction::SIM_START, SimActionOfst::SHOW_NAVMAP), 0, SDL_CONTROLLER_BUTTON_BACK);
-
-    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X), 0, SDL_CONTROLLER_AXIS_LEFTX, 1.0f);
-    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y), 0, SDL_CONTROLLER_AXIS_LEFTY, -1.0f);
-
-    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_X), 0, SDL_CONTROLLER_AXIS_RIGHTX, 1.0f);
-    m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_Y), 0, SDL_CONTROLLER_AXIS_RIGHTY, -1.0f);
 
     this->bindFlightAxes();
 

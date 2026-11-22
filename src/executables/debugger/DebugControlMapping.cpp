@@ -80,10 +80,12 @@ void DebugControlMapping::buildActionList() {
         // --- Axes souris/stick ---
         { "Mouse X",                CreateAction(InputAction::SIM_START, S::MOUSE_X)            },
         { "Mouse Y",                CreateAction(InputAction::SIM_START, S::MOUSE_Y)            },
-        { "Stick Left X",           CreateAction(InputAction::SIM_START, S::CONTROLLER_STICK_LEFT_X)  },
-        { "Stick Left Y",           CreateAction(InputAction::SIM_START, S::CONTROLLER_STICK_LEFT_Y)  },
-        { "Stick Right X",          CreateAction(InputAction::SIM_START, S::CONTROLLER_STICK_RIGHT_X) },
-        { "Stick Right Y",          CreateAction(InputAction::SIM_START, S::CONTROLLER_STICK_RIGHT_Y) },
+        { "Axis Pitch",             CreateAction(InputAction::SIM_START, S::AXIS_PITCH)         },
+        { "Axis Roll",              CreateAction(InputAction::SIM_START, S::AXIS_ROLL)          },
+        { "Axis Rudder",            CreateAction(InputAction::SIM_START, S::AXIS_RUDDER)        },
+        { "Axis Throttle",          CreateAction(InputAction::SIM_START, S::AXIS_THROTTLE)      },
+        { "Axis Look X",            CreateAction(InputAction::SIM_START, S::AXIS_LOOK_X)        },
+        { "Axis Look Y",            CreateAction(InputAction::SIM_START, S::AXIS_LOOK_Y)        },
 
         // --- Combat ---
         { "Fire Primary",           CreateAction(InputAction::SIM_START, S::FIRE_PRIMARY)       },

@@ -85,10 +85,7 @@ enum SimActionOfst {
     COMM_RADIO_M6 = 52,
     COMM_RADIO_M7 = 53,
     COMM_RADIO_M8 = 54,
-    CONTROLLER_STICK_LEFT_X = 55,
-    CONTROLLER_STICK_LEFT_Y = 56,
-    CONTROLLER_STICK_RIGHT_X = 57,
-    CONTROLLER_STICK_RIGHT_Y = 58,
+    // 55 a 58 : les anciens sticks de la manette, remplaces par les AXIS_*
     RADAR_MODE_TOGGLE = 59,
     SPEC_KEY_1 = 60,
     SPEC_KEY_2 = 61,

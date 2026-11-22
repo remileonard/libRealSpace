@@ -63,6 +63,7 @@ private:
     int caughtCode_ = 0;
     float caughtSign_ = 1;
     std::string caughtGuid_;
+    int caughtRank_ = 0;
     bool adding_ = false;
     bool cancelled_ = false;
     std::string message_;

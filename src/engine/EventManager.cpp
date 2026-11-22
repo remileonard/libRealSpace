@@ -558,10 +558,40 @@ std::string EventManager::getJoystickGuid(int joystickIndex) const {
     return m_joysticks[joystickIndex].guid;
 }
 
-int EventManager::findJoystick(const std::string &guid) const {
+int EventManager::findJoystick(const std::string &guid, int rank) const {
+    int count = 0;
     for (size_t i = 0; i < m_joysticks.size(); ++i) {
         if (m_joysticks[i].guid == guid) {
-            return static_cast<int>(i);
+            if (count == rank) {
+                return static_cast<int>(i);
+            }
+            count++;
+        }
+    }
+    return -1;
+}
+
+int EventManager::getJoystickRank(int joystickIndex) const {
+    if (joystickIndex < 0 || joystickIndex >= static_cast<int>(m_joysticks.size())) {
+        return 0;
+    }
+    int rank = 0;
+    for (int i = 0; i < joystickIndex; ++i) {
+        if (m_joysticks[i].guid == m_joysticks[joystickIndex].guid) {
+            rank++;
+        }
+    }
+    return rank;
+}
+
+int EventManager::findGamepad(int gamepadIndex) const {
+    int count = 0;
+    for (size_t i = 0; i < m_joysticks.size(); ++i) {
+        if (m_joysticks[i].isGamepad) {
+            if (count == gamepadIndex) {
+                return static_cast<int>(i);
+            }
+            count++;
         }
     }
     return -1;

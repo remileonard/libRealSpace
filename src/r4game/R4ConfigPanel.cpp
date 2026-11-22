@@ -255,11 +255,13 @@ std::string deviceText(const InputBinding &b, const char *kind) {
         return kind;
     }
     EventManager &events = EventManager::getInstance();
-    const int index = events.findJoystick(b.device);
+    const int rank = std::max(b.deviceId, 0);
+    const std::string second = rank > 0 ? fmt(" #%d", rank + 1) : std::string();
+    const int index = events.findJoystick(b.device, rank);
     if (index < 0) {
-        return std::string(kind) + " (unplugged)";
+        return std::string(kind) + second + " (unplugged)";
     }
-    return events.getJoystickName(index);
+    return events.getJoystickName(index) + second;
 }
 
 std::string bindingText(const InputBinding &b) {
@@ -295,10 +297,16 @@ bool isAxisBinding(const InputBinding &b) {
     return b.type == InputType::GAMEPAD_AXIS || b.type == InputType::JOYSTICK_AXIS;
 }
 
-std::string guidOf(SDL_JoystickID instance) {
-    char guid[33];
-    SDL_JoystickGetGUIDString(SDL_JoystickGetGUID(SDL_JoystickFromInstanceID(instance)), guid, sizeof(guid));
-    return guid;
+// the index in EventManager of the device of an event, else -1
+int deviceOf(SDL_JoystickID instance) {
+    EventManager &events = EventManager::getInstance();
+    for (int i = 0; i < events.getJoystickCount(); i++) {
+        SDL_Joystick *joystick = events.getJoystick(i);
+        if (joystick != nullptr && SDL_JoystickInstanceID(joystick) == instance) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 std::string bindingsText(InputAction action) {
@@ -471,7 +479,12 @@ void R4ConfigPanel::look(const SDL_Event &event) {
     } else {
         return;
     }
-    caughtGuid_ = guidOf(which);
+    const int device = deviceOf(which);
+    if (device < 0) {
+        return;
+    }
+    caughtGuid_ = EventManager::getInstance().getJoystickGuid(device);
+    caughtRank_ = EventManager::getInstance().getJoystickRank(device);
     caughtDevice_ = true;
 }
 
@@ -517,7 +530,7 @@ void R4ConfigPanel::draw(SDL_Window *window, int pixelWidth, int pixelHeight) {
             const InputAction action = actionOf(name.action);
             InputBinding binding(InputType::KEYBOARD, -1, caught_, 1.0f, caughtModifiers_);
             if (caughtDevice_) {
-                binding = InputBinding(caughtType_, -1, caughtCode_, name.axis != 0 ? caughtSign_ * name.axis : 1.0f);
+                binding = InputBinding(caughtType_, caughtRank_, caughtCode_, name.axis != 0 ? caughtSign_ * name.axis : 1.0f);
                 binding.device = caughtGuid_;
             }
             if (!adding_) {

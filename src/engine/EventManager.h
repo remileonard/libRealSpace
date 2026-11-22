@@ -76,10 +76,14 @@ public:
     // Valeur des axes gamepad (entre -1.0 et 1.0)
     float getGamepadAxisValue(int gamepadIndex, SDL_GameControllerAxis axis) const;
 
-    // The GUID of SDL of a device, the same from a start and a plug to the next; the index of the device of a GUID, else -1;
-    // the device of an index, else null (the controller is null for a joystick that is not a gamepad)
+    // The GUID of SDL of a device, the same from a start and a plug to the next (two devices of the same model have the same
+    // GUID: rank 0 is the first plugged in, rank 1 the second); the index of a device by its GUID and its rank, else -1; the
+    // rank of a device among the devices of its GUID; the index of a gamepad (the gamepads counted alone), else -1; the
+    // device of an index, else null (the controller is null for a joystick that is not a gamepad)
     std::string getJoystickGuid(int joystickIndex) const;
-    int findJoystick(const std::string &guid) const;
+    int findJoystick(const std::string &guid, int rank = 0) const;
+    int getJoystickRank(int joystickIndex) const;
+    int findGamepad(int gamepadIndex) const;
     SDL_Joystick *getJoystick(int joystickIndex) const;
     SDL_GameController *getGameController(int joystickIndex) const;
     

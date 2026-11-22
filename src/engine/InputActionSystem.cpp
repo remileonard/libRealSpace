@@ -153,6 +153,19 @@ float InputActionSystem::getActionValue(const InputAction actionId) const {
     return 0.0f;
 }
 
+// With a GUID: deviceId is the rank among the devices of the GUID. Else: the index of a gamepad, or the index of a joystick
+// in the devices plugged in.
+int InputActionSystem::findDevice(const InputBinding &binding) const {
+    const int id = binding.deviceId >= 0 ? binding.deviceId : 0;
+    if (!binding.device.empty()) {
+        return m_eventManager->findJoystick(binding.device, id);
+    }
+    if (binding.type == InputType::GAMEPAD_BUTTON || binding.type == InputType::GAMEPAD_AXIS) {
+        return m_eventManager->findGamepad(id);
+    }
+    return id;
+}
+
 float InputActionSystem::shapeAxis(const InputBinding &binding, float raw) const {
     float deadzone = binding.deadzone >= 0.0f ? binding.deadzone : m_axisDeadZone;
     float magnitude = std::min(std::abs(raw), 1.0f);
@@ -208,50 +221,25 @@ bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outV
             return true; // Always true as we can always get mouse position
         }
         case InputType::GAMEPAD_BUTTON: {
-            if (!binding.device.empty()) {
-                SDL_GameController *controller = m_eventManager->getGameController(m_eventManager->findJoystick(binding.device));
-                if (controller == nullptr) {
-                    return false;
-                }
-                bool isPressed = SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(binding.code)) != 0;
-                outValue = isPressed ? 1.0f : 0.0f;
-                return isPressed;
+            SDL_GameController *controller = m_eventManager->getGameController(findDevice(binding));
+            if (controller == nullptr) {
+                return false;
             }
-            int gamepadId = (binding.deviceId >= 0) ? binding.deviceId : 0;
-            if (gamepadId < m_eventManager->getJoystickCount()) {
-                SDL_GameControllerButton button = static_cast<SDL_GameControllerButton>(binding.code);
-                bool isPressed = m_eventManager->isGamepadButtonPressed(gamepadId, button);
-                outValue = isPressed ? 1.0f : 0.0f;
-                return isPressed;
-            }
-            return false;
+            bool isPressed = SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(binding.code)) != 0;
+            outValue = isPressed ? 1.0f : 0.0f;
+            return isPressed;
         }
         
         case InputType::GAMEPAD_AXIS: {
-            float value = 0.0f;
-            if (!binding.device.empty()) {
-                SDL_GameController *controller = m_eventManager->getGameController(m_eventManager->findJoystick(binding.device));
-                if (controller == nullptr) {
-                    return false;
-                }
-                value = SDL_GameControllerGetAxis(controller, static_cast<SDL_GameControllerAxis>(binding.code)) / 32767.0f;
-            } else {
-                int gamepadId = (binding.deviceId >= 0) ? binding.deviceId : 0;
-                if (gamepadId >= m_eventManager->getJoystickCount()) {
-                    return false;
-                }
-                value = m_eventManager->getGamepadAxisValue(gamepadId, static_cast<SDL_GameControllerAxis>(binding.code));
+            SDL_GameController *controller = m_eventManager->getGameController(findDevice(binding));
+            if (controller == nullptr) {
+                return false;
             }
-            outValue = shapeAxis(binding, value);
+            outValue = shapeAxis(binding, SDL_GameControllerGetAxis(controller, static_cast<SDL_GameControllerAxis>(binding.code)) / 32767.0f);
             return std::abs(outValue) > 0.0f;
         }
         case InputType::JOYSTICK_AXIS: {
-            SDL_Joystick *joy = nullptr;
-            if (!binding.device.empty()) {
-                joy = m_eventManager->getJoystick(m_eventManager->findJoystick(binding.device));
-            } else {
-                joy = SDL_JoystickFromInstanceID((binding.deviceId >= 0) ? binding.deviceId : 0);
-            }
+            SDL_Joystick *joy = m_eventManager->getJoystick(findDevice(binding));
             if (joy == nullptr) {
                 return false;
             }
@@ -260,12 +248,7 @@ bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outV
         }
 
         case InputType::JOYSTICK_BUTTON: {
-            SDL_Joystick *joy = nullptr;
-            if (!binding.device.empty()) {
-                joy = m_eventManager->getJoystick(m_eventManager->findJoystick(binding.device));
-            } else {
-                joy = SDL_JoystickFromInstanceID((binding.deviceId >= 0) ? binding.deviceId : 0);
-            }
+            SDL_Joystick *joy = m_eventManager->getJoystick(findDevice(binding));
             if (joy == nullptr) {
                 return false;
             }
