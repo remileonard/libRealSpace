@@ -378,6 +378,12 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
         this->brain->just_hit = true;
         this->brain->last_attacker = attacker;
     }
+    if (weapon == nullptr) {
+        return;
+    }
+    if (weapon->obj == nullptr || weapon->obj->wdat == nullptr) {
+        return;
+    }
     int damage = weapon->obj->wdat->damage;
     if (this->plane != nullptr) {
         int nb_systems = this->plane->system_health.size();
@@ -754,6 +760,12 @@ bool SCMissionActorsPlayer::setMessage(uint8_t arg) {
 
 void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker) {
     if (this->object->alive == false) {
+        return;
+    }
+    if (weapon == nullptr) {
+        return;
+    }
+    if (weapon->obj == nullptr || weapon->obj->wdat == nullptr) {
         return;
     }
     int damage = weapon->obj->wdat->damage;
