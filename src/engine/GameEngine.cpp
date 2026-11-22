@@ -401,6 +401,7 @@ void GameEngine::terminate(const char *reason, ...) {
     va_end(args);
     log("\n");
     Loader::setInstance(nullptr);
+    RSSmokeSet::setInstance(nullptr);
     RSVGA::setInstance(nullptr);
     SCRenderer::setInstance(nullptr);
     RSScreen::setInstance(nullptr);

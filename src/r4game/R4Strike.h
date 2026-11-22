@@ -27,4 +27,6 @@ private:
     // the mission of the flight when it is a R4Mission, else null
     R4Mission *mission() const;
     bool playerPlaneShown() const;
+    void drawTargetSquare();
+    int32_t viewport_h_ = 1;
 };

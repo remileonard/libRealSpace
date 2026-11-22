@@ -46,6 +46,10 @@ RSSmokeSet &RSSmokeSet::getInstance() {
     return *s_instance;
 }
 
+void RSSmokeSet::setInstance(RSSmokeSet *instance) {
+    s_instance.reset(instance);
+}
+
 void RSSmokeSet::load() {
     AssetManager &assets = AssetManager::getInstance();
     TreEntry *smk = assets.GetEntryByName("..\\..\\DATA\\OBJECTS\\SMOKESET.IFF");

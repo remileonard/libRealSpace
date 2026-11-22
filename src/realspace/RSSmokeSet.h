@@ -94,6 +94,7 @@ public:
     ~RSSmokeSet();
     // Jeu de fumées partagé : OBJECTS\SMOKESET.IFF, PALETTE\PALETTE.IFF et PALETTE\PALFADE.IFF, lus au premier appel.
     static RSSmokeSet &getInstance();
+    static void setInstance(RSSmokeSet *instance);
     void InitFromRam(uint8_t *data, size_t size);
 
     uint16_t declaredModels{ 0 };

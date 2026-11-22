@@ -477,16 +477,14 @@ void GunSimulatedObject::Simulate(int tps) {
                 hit_event->weapon = this;
                 hit_event->mission = this->mission;
                 MessageBus::getInstance().publish(std::move(hit_event));
-                
-                this->alive = false;
                 break;
             }
         }
         if (this->y < this->mission->area->getY(this->x, this->z)) {
-            this->alive = false;
             if (this->obj->wdat->radius > 5 && (this->obj->entity_type == EntityType::bomb ||
                                                 this->obj->entity_type == EntityType::torp ||
                                                 this->obj->entity_type == EntityType::nplm)) {
+                bool has_hit = false;
                 for (auto entity : this->mission->actors) {
                     float distance = entity->object->position.Distance(&position);
                     if (!entity->object->alive) {
@@ -498,9 +496,14 @@ void GunSimulatedObject::Simulate(int tps) {
                         hit_event->target = entity;
                         hit_event->weapon = this;
                         hit_event->mission = this->mission;
+                        has_hit = true;
                         MessageBus::getInstance().publish(std::move(hit_event));
                     }
                 }
+                if (!has_hit) {
+                    this->alive = false;
+                }
+                
             }
             if (this->obj->explos != nullptr && this->obj->explos->objct != nullptr) {
                 SCExplosion *explosion = new SCExplosion(this->obj->explos->objct, position);
