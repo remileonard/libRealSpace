@@ -14,7 +14,7 @@ if(NOT REALSPACE_R4)
 endif()
 
 set(R4NKINE_DIR "" CACHE PATH "Un clone local de R4nkine (vide : FetchContent)")
-set(R4NKINE_TAG "claude/magical-bell-y9meqd" CACHE STRING "La branche ou le tag de R4nkine")
+set(R4NKINE_TAG "main" CACHE STRING "La branche ou le tag de R4nkine")
 
 # seulement la bibliothèque : pas les applications, exemples ni tests de R4nkine
 set(R4_BUILD_APPS OFF CACHE BOOL "" FORCE)
