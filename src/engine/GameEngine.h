@@ -99,6 +99,14 @@ enum SimActionOfst {
     RUDDER_RIGHT = 66,
     EJECT = 67,
     FLIGHT_OPTIONS = 68,
+    // Axes de vol, de -1 a 1 : tangage (manche tire > 0), roulis (a droite > 0), palonnier (a droite > 0),
+    // gaz en absolu (-1 : 100 %, 1 : 0 %, comme une manette des gaz poussee vers l'avant), regard.
+    AXIS_PITCH = 69,
+    AXIS_ROLL = 70,
+    AXIS_RUDDER = 71,
+    AXIS_THROTTLE = 72,
+    AXIS_LOOK_X = 73,
+    AXIS_LOOK_Y = 74,
 };
 
 class GameEngine{
@@ -152,6 +160,8 @@ public:
     virtual IActivity* getCurrentActivity(void);
     Keyboard* getKeyboard() const { return m_keyboard; }
     void initKeyboard();
+    // Les axes de vol d'un fichier de touches d'avant AXIS_* : repris des sticks de la manette.
+    void bindFlightAxes();
     virtual void pumpEvents(void);
 
 };

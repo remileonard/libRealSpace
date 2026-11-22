@@ -43,6 +43,50 @@ void GameEngine::init() {
 
 }
 
+void GameEngine::bindFlightAxes() {
+    InputActionSystem &input = InputActionSystem::getInstance();
+    auto unbound = [&](SimActionOfst axis) {
+        const std::vector<InputBinding> *list = input.getBindings(CreateAction(InputAction::SIM_START, axis));
+        return list == nullptr || list->empty();
+    };
+    // Les liaisons des anciens sticks, le tangage dans le sens du manche tire.
+    auto copy = [&](SimActionOfst from, SimActionOfst to, float sign) {
+        if (!unbound(to)) {
+            return;
+        }
+        const std::vector<InputBinding> *list = input.getBindings(CreateAction(InputAction::SIM_START, from));
+        if (list == nullptr) {
+            return;
+        }
+        const std::vector<InputBinding> old = *list;
+        for (InputBinding b : old) {
+            b.scale *= sign;
+            input.bindInput(CreateAction(InputAction::SIM_START, to), b);
+        }
+    };
+    copy(SimActionOfst::CONTROLLER_STICK_LEFT_X, SimActionOfst::AXIS_ROLL, 1.0f);
+    copy(SimActionOfst::CONTROLLER_STICK_LEFT_Y, SimActionOfst::AXIS_PITCH, -1.0f);
+    copy(SimActionOfst::CONTROLLER_STICK_RIGHT_X, SimActionOfst::AXIS_LOOK_X, 1.0f);
+    copy(SimActionOfst::CONTROLLER_STICK_RIGHT_Y, SimActionOfst::AXIS_LOOK_Y, 1.0f);
+    if (unbound(SimActionOfst::AXIS_ROLL)) {
+        m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_ROLL), 0, SDL_CONTROLLER_AXIS_LEFTX, 1.0f);
+    }
+    if (unbound(SimActionOfst::AXIS_PITCH)) {
+        m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_PITCH), 0, SDL_CONTROLLER_AXIS_LEFTY, 1.0f);
+    }
+    if (unbound(SimActionOfst::AXIS_LOOK_X)) {
+        m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_LOOK_X), 0, SDL_CONTROLLER_AXIS_RIGHTX, 1.0f);
+    }
+    if (unbound(SimActionOfst::AXIS_LOOK_Y)) {
+        m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_LOOK_Y), 0, SDL_CONTROLLER_AXIS_RIGHTY, -1.0f);
+    }
+    // Le palonnier sur les gachettes : la gauche vers la gauche, la droite vers la droite.
+    if (unbound(SimActionOfst::AXIS_RUDDER)) {
+        m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_RUDDER), 0, SDL_CONTROLLER_AXIS_TRIGGERLEFT, -1.0f);
+        m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_RUDDER), 0, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 1.0f);
+    }
+}
+
 void GameEngine::initKeyboard() {
     m_keyboard = new Keyboard();
     Config &config = Config::getInstance();
@@ -52,6 +96,7 @@ void GameEngine::initKeyboard() {
         if (f.good()) {
             f.close();
             m_keyboard->loadActionBindings(bindingsFile);
+            this->bindFlightAxes();
             return;
         }
     }
@@ -137,7 +182,13 @@ void GameEngine::initKeyboard() {
         SimActionOfst::CONTROLLER_STICK_RIGHT_Y,
         SimActionOfst::RADAR_MODE_TOGGLE,
         SimActionOfst::RUDDER_LEFT,
-        SimActionOfst::RUDDER_RIGHT
+        SimActionOfst::RUDDER_RIGHT,
+        SimActionOfst::AXIS_PITCH,
+        SimActionOfst::AXIS_ROLL,
+        SimActionOfst::AXIS_RUDDER,
+        SimActionOfst::AXIS_THROTTLE,
+        SimActionOfst::AXIS_LOOK_X,
+        SimActionOfst::AXIS_LOOK_Y
     };
     
     for (auto action : allActions) {
@@ -229,6 +280,8 @@ void GameEngine::initKeyboard() {
 
     m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_X), 0, SDL_CONTROLLER_AXIS_RIGHTX, 1.0f);
     m_keyboard->bindGamepadAxisToAction(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_Y), 0, SDL_CONTROLLER_AXIS_RIGHTY, -1.0f);
+
+    this->bindFlightAxes();
 
     m_keyboard->bindGamepadAxisToAction(InputAction::CONTROLLER_STICK_LEFT_X, 0, SDL_CONTROLLER_AXIS_LEFTX, 1.0f);
     m_keyboard->bindGamepadAxisToAction(InputAction::CONTROLLER_STICK_LEFT_Y, 0, SDL_CONTROLLER_AXIS_LEFTY, -1.0f);

@@ -3,6 +3,7 @@
 //  libRealSpace
 //
 #include "R4Screen.h"
+#include "R4ConfigPanel.h"
 #include "R4Panel.h"
 #include "R4Renderer.h"
 
@@ -86,6 +87,7 @@ R4Screen::~R4Screen() {
         renderer->release();
     }
     stopVR();
+    configPanel_.reset();
     panel_.reset();
     tv_.reset();
     post_.reset();
@@ -207,6 +209,7 @@ void R4Screen::init(int width, int height, bool fullscreen) {
     post_ = std::make_unique<r4::render::PostProcess>(*device_);
     tv_ = std::make_unique<r4::render::Overlay>(*device_);
     panel_ = std::make_unique<R4Panel>(*device_);
+    configPanel_ = std::make_unique<R4ConfigPanel>(*device_);
     device_->endHostInterop();
     tv_->smooth = true;
     tvSurface_ = r4::raster::Surface(kTvWidth, kTvHeight, r4::raster::Format::RGBA8);
@@ -640,6 +643,7 @@ void R4Screen::refresh(void) {
     beginGpuTimer(GpuTimer::PANEL);
     const Uint64 panel = SDL_GetPerformanceCounter();
     panel_->draw(m_window, this->width, this->height, &post_->settings, frameMs, frame);
+    configPanel_->draw(m_window, this->width, this->height);
     lastPanelMs_ = msSince(panel);
     device_->endGpuTimer();
     device_->endGpuFrame();

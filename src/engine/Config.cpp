@@ -30,5 +30,6 @@ void Config::setBool(const std::string &section, const std::string &key, bool va
 }
 
 void Config::save(const std::string &filePath) const {
-    _ini.SaveFile(filePath.c_str());
+    // without the UTF-8 signature: the file stays as it was written by hand
+    _ini.SaveFile(filePath.c_str(), false);
 }

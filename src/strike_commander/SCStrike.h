@@ -254,6 +254,9 @@ protected:
     static std::map<int, KeyCommand> buildKeyCommandTable();
     // Posé par keyRudderLeft / keyRudderRight pendant le parcours de la table ; sans palonnier, il revient au centre.
     bool rudder_pressed{false};
+    // Les axes de vol : le manche normalise qu'ils ont pose, et la derniere position de l'axe des gaz appliquee.
+    bool axis_stick{false};
+    float throttle_axis{-2.0f};
 
     void setThrottlePreset(int throttle);
     void sendCommRadioMessage(int message);

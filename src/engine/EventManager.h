@@ -75,6 +75,13 @@ public:
     
     // Valeur des axes gamepad (entre -1.0 et 1.0)
     float getGamepadAxisValue(int gamepadIndex, SDL_GameControllerAxis axis) const;
+
+    // The GUID of SDL of a device, the same from a start and a plug to the next; the index of the device of a GUID, else -1;
+    // the device of an index, else null (the controller is null for a joystick that is not a gamepad)
+    std::string getJoystickGuid(int joystickIndex) const;
+    int findJoystick(const std::string &guid) const;
+    SDL_Joystick *getJoystick(int joystickIndex) const;
+    SDL_GameController *getGameController(int joystickIndex) const;
     
     // Zone morte pour les joysticks (valeur en dessous de laquelle l'entrée est ignorée)
     void setJoystickDeadzone(float deadzone) { m_joystickDeadzone = deadzone; }
@@ -152,6 +159,7 @@ private:
         std::vector<Uint8> previousButtonStates;
         std::vector<float> axisValues;
         bool isGamepad = false;
+        std::string guid;
     };
     
     std::vector<JoystickState> m_joysticks;

@@ -576,19 +576,35 @@ void SCStrike::checkKeyboard(void) {
     } else {
         this->player_plane->rudder = (std::clamp)(this->player_plane->rudder, -10.0f, 10.0f);
     }
-    float lx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_X)); 
-    float ly = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_LEFT_Y)); 
+    // Les axes de vol, de -1 a 1, sans dependre de la taille de l'ecran : le manche normalise de SCJetpPlane.
+    float roll = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_ROLL));
+    float pitch = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_PITCH));
+    float yaw = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_RUDDER));
+    float gas = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_THROTTLE));
+    float rx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_LOOK_X));
+    float ry = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_LOOK_Y));
 
-    float rx = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_X));
-    float ry = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::CONTROLLER_STICK_RIGHT_Y));
-
-    if (fabs(lx) > 0.1f) {
-        this->player_plane->control_stick_x = static_cast<int>(lx * (Screen->width/2.5f));
+    if (fabs(roll) > 0.02f || fabs(pitch) > 0.02f) {
+        this->player_plane->SetNormalizedStick(true, roll, pitch);
+        this->axis_stick = true;
         this->mouse_control = false;
+    } else if (this->axis_stick) {
+        // L'axe revient au centre : la souris et le clavier reprennent le manche.
+        this->player_plane->SetNormalizedStick(false, 0.0f, 0.0f);
+        this->player_plane->control_stick_x = 0;
+        this->player_plane->control_stick_y = 0;
+        this->axis_stick = false;
     }
-    if (fabs(ly) > 0.1f) {
-        this->player_plane->control_stick_y = static_cast<int>(-ly * (Screen->height/2.5f));
-        this->mouse_control = false;
+    if (fabs(yaw) > 0.02f) {
+        this->player_plane->rudder = yaw * 10.0f;
+        this->rudder_pressed = true;
+    }
+    // Les gaz suivent l'axe quand il bouge : les touches des gaz gardent la main entre deux mouvements.
+    if (fabs(gas - this->throttle_axis) > 0.02f) {
+        if (this->throttle_axis > -1.5f) {
+            this->player_plane->SetThrottle(static_cast<int>(std::lround((1.0f - gas) * 50.0f)));
+        }
+        this->throttle_axis = gas;
     }
     if (fabs(rx) > 0.1f) {
         this->pilote_lookat.x = static_cast<int>((rx * Screen->width) / 6);

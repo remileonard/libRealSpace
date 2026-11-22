@@ -1,6 +1,7 @@
 #include "InputActionSystem.h"
 #include "EventManager.h"
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <unordered_set>
@@ -99,9 +100,17 @@ void InputActionSystem::unbindInput(const InputAction actionId, const InputBindi
                                return b.type == binding.type &&
                                       b.deviceId == binding.deviceId &&
                                       b.code == binding.code &&
-                                      b.modifiers == binding.modifiers;
+                                      b.modifiers == binding.modifiers &&
+                                      b.device == binding.device;
                            }),
             bindings.end());
+    }
+}
+
+void InputActionSystem::setBinding(const InputAction actionId, size_t index, const InputBinding &binding) {
+    auto it = m_actions.find(actionId);
+    if (it != m_actions.end() && index < it->second.bindings.size()) {
+        it->second.bindings[index] = binding;
     }
 }
 
@@ -142,6 +151,20 @@ float InputActionSystem::getActionValue(const InputAction actionId) const {
         return it->second.currentValue;
     }
     return 0.0f;
+}
+
+float InputActionSystem::shapeAxis(const InputBinding &binding, float raw) const {
+    float deadzone = binding.deadzone >= 0.0f ? binding.deadzone : m_axisDeadZone;
+    float magnitude = std::min(std::abs(raw), 1.0f);
+    if (magnitude <= deadzone || deadzone >= 1.0f) {
+        return 0.0f;
+    }
+    magnitude = (magnitude - deadzone) / (1.0f - deadzone);
+    if (binding.curve > 0.0f && binding.curve != 1.0f) {
+        magnitude = std::pow(magnitude, binding.curve);
+    }
+    float sign = raw > 0.0f ? 1.0f : -1.0f;
+    return sign * magnitude * binding.scale;
 }
 
 bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outValue) const {
@@ -185,6 +208,15 @@ bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outV
             return true; // Always true as we can always get mouse position
         }
         case InputType::GAMEPAD_BUTTON: {
+            if (!binding.device.empty()) {
+                SDL_GameController *controller = m_eventManager->getGameController(m_eventManager->findJoystick(binding.device));
+                if (controller == nullptr) {
+                    return false;
+                }
+                bool isPressed = SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(binding.code)) != 0;
+                outValue = isPressed ? 1.0f : 0.0f;
+                return isPressed;
+            }
             int gamepadId = (binding.deviceId >= 0) ? binding.deviceId : 0;
             if (gamepadId < m_eventManager->getJoystickCount()) {
                 SDL_GameControllerButton button = static_cast<SDL_GameControllerButton>(binding.code);
@@ -196,48 +228,47 @@ bool InputActionSystem::evaluateBinding(const InputBinding& binding, float& outV
         }
         
         case InputType::GAMEPAD_AXIS: {
-            int gamepadId = (binding.deviceId >= 0) ? binding.deviceId : 0;
-            if (gamepadId < m_eventManager->getJoystickCount()) {
-                SDL_GameControllerAxis axis = static_cast<SDL_GameControllerAxis>(binding.code);
-                float value = m_eventManager->getGamepadAxisValue(gamepadId, axis) * binding.scale;
-                
-                // Appliquer la zone morte
-                if (std::abs(value) < m_axisDeadZone) {
-                    value = 0.0f;
-                } else {
-                    // Normaliser après application de la zone morte
-                    float sign = (value > 0) ? 1.0f : -1.0f;
-                    value = sign * (std::abs(value) - m_axisDeadZone) / (1.0f - m_axisDeadZone);
+            float value = 0.0f;
+            if (!binding.device.empty()) {
+                SDL_GameController *controller = m_eventManager->getGameController(m_eventManager->findJoystick(binding.device));
+                if (controller == nullptr) {
+                    return false;
                 }
-                
-                outValue = value;
-                return std::abs(value) > 0.0f;
+                value = SDL_GameControllerGetAxis(controller, static_cast<SDL_GameControllerAxis>(binding.code)) / 32767.0f;
+            } else {
+                int gamepadId = (binding.deviceId >= 0) ? binding.deviceId : 0;
+                if (gamepadId >= m_eventManager->getJoystickCount()) {
+                    return false;
+                }
+                value = m_eventManager->getGamepadAxisValue(gamepadId, static_cast<SDL_GameControllerAxis>(binding.code));
             }
-            return false;
+            outValue = shapeAxis(binding, value);
+            return std::abs(outValue) > 0.0f;
         }
         case InputType::JOYSTICK_AXIS: {
-            int joystickId = (binding.deviceId >= 0) ? binding.deviceId : 0;
-            SDL_Joystick* joy = SDL_JoystickFromInstanceID(joystickId);
-            if (!joy) return false;
-
-            Sint16 raw = SDL_JoystickGetAxis(joy, binding.code);
-            float value = (raw / 32767.0f) * binding.scale;
-
-            if (std::abs(value) < m_axisDeadZone) {
-                value = 0.0f;
+            SDL_Joystick *joy = nullptr;
+            if (!binding.device.empty()) {
+                joy = m_eventManager->getJoystick(m_eventManager->findJoystick(binding.device));
             } else {
-                float sign = (value > 0) ? 1.0f : -1.0f;
-                value = sign * (std::abs(value) - m_axisDeadZone) / (1.0f - m_axisDeadZone);
+                joy = SDL_JoystickFromInstanceID((binding.deviceId >= 0) ? binding.deviceId : 0);
             }
-            outValue = value;
-            return std::abs(value) > 0.0f;
+            if (joy == nullptr) {
+                return false;
+            }
+            outValue = shapeAxis(binding, SDL_JoystickGetAxis(joy, binding.code) / 32767.0f);
+            return std::abs(outValue) > 0.0f;
         }
 
         case InputType::JOYSTICK_BUTTON: {
-            int joystickId = (binding.deviceId >= 0) ? binding.deviceId : 0;
-            SDL_Joystick* joy = SDL_JoystickFromInstanceID(joystickId);
-            if (!joy) return false;
-
+            SDL_Joystick *joy = nullptr;
+            if (!binding.device.empty()) {
+                joy = m_eventManager->getJoystick(m_eventManager->findJoystick(binding.device));
+            } else {
+                joy = SDL_JoystickFromInstanceID((binding.deviceId >= 0) ? binding.deviceId : 0);
+            }
+            if (joy == nullptr) {
+                return false;
+            }
             bool isPressed = SDL_JoystickGetButton(joy, binding.code) != 0;
             outValue = isPressed ? 1.0f : 0.0f;
             return isPressed;
@@ -260,7 +291,10 @@ bool InputActionSystem::saveBindings(const std::string &filename) const {
                  << binding.deviceId << ","
                  << binding.code << ","
                  << binding.scale << ","
-                 << binding.modifiers << std::endl;
+                 << binding.modifiers << ","
+                 << binding.device << ","
+                 << binding.deadzone << ","
+                 << binding.curve << std::endl;
         }
     }
     
@@ -301,9 +335,20 @@ bool InputActionSystem::loadBindings(const std::string &filename) {
                 ss.ignore();
                 ss >> modifiers;
             }
+            InputBinding binding(static_cast<InputType>(type), deviceId, code, scale, modifiers);
+            // Format etendu : ,GUID de l'appareil (peut etre vide),zone morte,courbe
+            if (ss.peek() == ',') {
+                ss.ignore();
+                std::getline(ss, binding.device, ',');
+                ss >> binding.deadzone;
+                if (ss.peek() == ',') {
+                    ss.ignore();
+                    ss >> binding.curve;
+                }
+            }
 
             registerAction(actionId);
-            bindInput(actionId, InputBinding(static_cast<InputType>(type), deviceId, code, scale, modifiers));
+            bindInput(actionId, binding);
         }
     }
     

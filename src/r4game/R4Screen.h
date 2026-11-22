@@ -19,6 +19,7 @@
 #include <memory>
 
 class R4Panel;
+class R4ConfigPanel;
 
 namespace r4::xr {
 class Session;
@@ -137,6 +138,7 @@ private:
     r4::gpu::RenderTargetHandle frameTarget_;
     std::unique_ptr<r4::render::Overlay> tv_;
     std::unique_ptr<R4Panel> panel_;
+    std::unique_ptr<R4ConfigPanel> configPanel_;
     Uint64 lastFrame_ = 0;
     double lastSwapMs_ = 0;
     double lastPanelMs_ = 0;

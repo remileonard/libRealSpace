@@ -83,6 +83,11 @@ struct InputBinding {
     float scale;   // Pour les axes (1.0 ou -1.0 pour inverser)
     // Clavier : 0 = modificateurs ignorés ; sinon la touche ne compte qu'avec exactement ces KeyModifier enfoncés.
     int modifiers;
+    // Manettes et joysticks : le GUID SDL de l'appareil, stable d'un lancement et d'un branchement a l'autre (vide : par
+    // numero, deviceId). Axes : zone morte (-1 : celle du systeme) et courbe de reponse (exposant, 1 : lineaire).
+    std::string device;
+    float deadzone = -1.0f;
+    float curve = 1.0f;
 
     InputBinding(InputType t, int dev, int c, float s = 1.0f, int m = KEY_MOD_NONE)
         : type(t), deviceId(dev), code(c), scale(s), modifiers(m) {
@@ -142,6 +147,9 @@ public:
     // Supprimer une liaison pour une action
     void unbindInput(const InputAction actionId, const InputBinding& binding);
     
+    // Remplacer la liaison d'une action a sa place dans la liste (les reglages d'un axe)
+    void setBinding(const InputAction actionId, size_t index, const InputBinding &binding);
+
     // Supprimer toutes les liaisons pour une action
     void clearBindings(const InputAction actionId);
     
@@ -191,4 +199,6 @@ private:
     class EventManager* m_eventManager = nullptr;
     
     bool evaluateBinding(const InputBinding& binding, float& outValue) const;
+    // an axis from -1 to 1 through the deadzone, the curve and the scale of its binding
+    float shapeAxis(const InputBinding &binding, float raw) const;
 };

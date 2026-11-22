@@ -133,6 +133,9 @@ void EventManager::openJoysticks() {
         
         // Vérifier si c'est un gamepad
         state.isGamepad = SDL_IsGameController(i);
+        char guid[33];
+        SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(i), guid, sizeof(guid));
+        state.guid = guid;
         
         if (state.isGamepad) {
             // Ouvrir comme un gamecontroller
@@ -547,4 +550,33 @@ float EventManager::getGamepadAxisValue(int gamepadIndex, SDL_GameControllerAxis
         }
     }
     return 0.0f;
+}
+std::string EventManager::getJoystickGuid(int joystickIndex) const {
+    if (joystickIndex < 0 || joystickIndex >= static_cast<int>(m_joysticks.size())) {
+        return std::string();
+    }
+    return m_joysticks[joystickIndex].guid;
+}
+
+int EventManager::findJoystick(const std::string &guid) const {
+    for (size_t i = 0; i < m_joysticks.size(); ++i) {
+        if (m_joysticks[i].guid == guid) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+SDL_Joystick *EventManager::getJoystick(int joystickIndex) const {
+    if (joystickIndex < 0 || joystickIndex >= static_cast<int>(m_joysticks.size())) {
+        return nullptr;
+    }
+    return m_joysticks[joystickIndex].joystick;
+}
+
+SDL_GameController *EventManager::getGameController(int joystickIndex) const {
+    if (joystickIndex < 0 || joystickIndex >= static_cast<int>(m_joysticks.size())) {
+        return nullptr;
+    }
+    return m_joysticks[joystickIndex].gameController;
 }

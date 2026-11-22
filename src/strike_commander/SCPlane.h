@@ -346,6 +346,12 @@ public:
     int GetSpoilers();
 
     void SetControlStick(int x, int y);
+    // Le manche en -1..1 (axes de vol), sans dependre de la taille de l'ecran ; on = false rend la main au manche en pixels.
+    void SetNormalizedStick(bool on, float x, float y) {
+        this->stick_normalized = on;
+        this->stick_norm_x = x;
+        this->stick_norm_y = y;
+    }
     virtual void Simulate();
     virtual void getPosition(Point3D *position);
     virtual void Render();

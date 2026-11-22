@@ -91,7 +91,8 @@ void R4Panel::show(bool shown) {
 
 void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::render::PostSettings *post, double frameMs, const R4FrameCounters &counters) {
     const Uint8 *keys = SDL_GetKeyboardState(nullptr);
-    const bool toggle = keys[SDL_SCANCODE_F11] != 0;
+    // F11 alone: Ctrl+F11 is the configuration
+    const bool toggle = keys[SDL_SCANCODE_F11] && !keys[SDL_SCANCODE_LCTRL] && !keys[SDL_SCANCODE_RCTRL];
     if (toggle && !toggleDown_) {
         show(!shown_);
     }
@@ -149,7 +150,7 @@ void R4Panel::draw(SDL_Window *window, int pixelWidth, int pixelHeight, r4::rend
     built_ = true;
 
     gui_.beginFrame(pointWidth, pointHeight, input, pointWidth > 0 ? (float)pixelWidth / pointWidth : 1);
-    gui_.beginPanel("r4nkine", {(float)pointWidth - kPanelWidth, 0, kPanelWidth, (float)pointHeight}, "R4nkine (F12)");
+    gui_.beginPanel("r4nkine", {(float)pointWidth - kPanelWidth, 0, kPanelWidth, (float)pointHeight}, "R4nkine (F11)");
     if (gui_.section("Performance", openPerformance_)) {
         performance(frameMs);
         const r4::render::RenderStats &s = frame.sum;
