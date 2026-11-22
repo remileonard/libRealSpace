@@ -400,6 +400,10 @@ void GameEngine::terminate(const char *reason, ...) {
     vfprintf(stdout, reason, args);
     va_end(args);
     log("\n");
+    Loader::setInstance(nullptr);
+    RSVGA::setInstance(nullptr);
+    SCRenderer::setInstance(nullptr);
+    RSScreen::setInstance(nullptr);
     exit(0);
 }
 
