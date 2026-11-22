@@ -1,5 +1,5 @@
 # cmake/R4nkine.cmake - R4nkine dans libRealSpace : la bibliothèque, le pont
-# r4bridge et le viewer r4objviewer.
+# r4bridge, le viewer r4objviewer, r4game et le jeu neosc_r4.
 #
 # Dans le CMakeLists.txt principal, après les add_subdirectory(src/...) :
 #
@@ -8,7 +8,7 @@
 # R4nkine vient :
 #   - d'un dossier local :  cmake -DR4NKINE_DIR=/chemin/vers/r4nkine ...
 #   - sinon de GitHub (FetchContent), à la branche R4NKINE_TAG.
-option(REALSPACE_R4 "Construire r4bridge et r4objviewer (R4nkine)" ON)
+option(REALSPACE_R4 "Construire r4bridge, r4objviewer, r4game et neosc_r4 (R4nkine)" ON)
 if(NOT REALSPACE_R4)
     return()
 endif()
@@ -35,12 +35,5 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/r4bridge)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/r4objviewer)
 
-# neosc_r4 demande le patch patches/r4-hooks.patch (les méthodes virtuelles de RSVGA, de Loader et du rendu de SCStrike)
-file(READ ${CMAKE_SOURCE_DIR}/src/engine/RSVGA.h R4_RSVGA_HEADER)
-file(READ ${CMAKE_SOURCE_DIR}/src/strike_commander/SCStrike.h R4_STRIKE_HEADER)
-if(R4_RSVGA_HEADER MATCHES "virtual void displayBuffer" AND R4_STRIKE_HEADER MATCHES "virtual void renderWorld")
-    add_subdirectory(${CMAKE_SOURCE_DIR}/src/r4game)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/neosc_r4)
-else()
-    message(WARNING "neosc_r4 n'est pas construit : appliquer patches/r4-hooks.patch à libRealSpace (git apply)")
-endif()
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/r4game)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/neosc_r4)

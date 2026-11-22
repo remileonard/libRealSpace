@@ -157,7 +157,7 @@ public:
     virtual IActivity* getCurrentActivity(void);
     Keyboard* getKeyboard() const { return m_keyboard; }
     void initKeyboard();
-    // Les axes de vol d'un fichier de touches d'avant AXIS_* : repris des sticks de la manette.
+    // Les axes de vol sans liaison prennent ceux de la manette ; les liaisons des anciens sticks (55 a 58) sont effacees.
     void bindFlightAxes();
     virtual void pumpEvents(void);
 

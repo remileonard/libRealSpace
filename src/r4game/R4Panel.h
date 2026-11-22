@@ -2,7 +2,7 @@
 //  R4Panel.h
 //  libRealSpace
 //
-//  The panel of R4nkine over the frame of the game, shown and hidden with F12: the performance of the renderer and its settings.
+//  The panel of R4nkine over the frame of the game, shown and hidden with F11 (Ctrl+F11 is the configuration): the performance of the renderer and its settings.
 //  It reads the mouse and the keyboard of SDL each frame, and the wheel by an event watch: the events stay with the game.
 //  While it is shown, the cursor is shown and the mouse is not relative.
 //
