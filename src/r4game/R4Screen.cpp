@@ -595,6 +595,7 @@ void R4Screen::refresh(void) {
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->flush();
     }
+#ifdef R4GAME_XR
     if (xr_) {
         device_->beginHostInterop();
         R4Screen::countInterop();
@@ -608,6 +609,7 @@ void R4Screen::refresh(void) {
             stopVR();
         }
     }
+#endif
     if (frameTarget_) {
         device_->bindForHost(r4::gpu::RenderTargetHandle{});
         device_->beginHostInterop();
