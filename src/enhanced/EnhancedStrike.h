@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include "../strike_commander/SCStrike.h"
+#include "EnhancedOrbit.h"
 #include "CockpitGlassEffect.h"
 #include "EnhancedCockpit.h"
 #include "DamageSmokeEffect.h"
@@ -15,7 +16,7 @@
 
 // Flight activity with visual effects (engine exhaust, wing tip vortices, damage smoke/fire, cockpit glass), mouse orbit for
 // the external cameras and the 3D cockpit as forward and side view.
-class EnhancedStrike : public SCStrike {
+class EnhancedStrike : public EnhancedOrbit<SCStrike> {
 public:
     EnhancedStrike() = default;
     void init() override;
@@ -37,6 +38,8 @@ protected:
     void applyOption(int index);
     void applyWater();
     void applyTerrain();
+    void applyClouds();
+    void applyRunway();
     void saveConfig() const;
 
 private:
@@ -51,12 +54,8 @@ private:
     static const float SMOKE_MIN_DAMAGE;
     static const float FIRE_MIN_DAMAGE;
 
-    bool orbitAllowed() const;
-    void updateOrbit();
-    void setOrbitRelativeMouse(bool on);
     void updateCockpit3D();
     void debugDamage();
-    Vector3D orbitedPosition(Vector3D pivot, Vector3D position) const;
     float damageLevel(SCPlane *plane) const;
     enhanced::Mat4 modelMatrix(SCPlane *plane, Vector3D position) const;
     void forgetOldTrails(float now);
@@ -69,14 +68,6 @@ private:
     bool cockpitKeyPressed{false}; // posé par keyViewCockpit, lu par updateCockpit3D dans la même frame
     float cockpitLookYaw{0.0f};
 
-    bool orbitActive{false};
-    bool orbitInvertY{true};
-    bool orbitRelativeMouse{false};
-    float orbitYaw{0.0f};
-    float orbitPitch{0.0f};
-    float orbitZoom{1.0f};
-    int orbitLastView{-1};
-    int orbitTraceFrames{5};
     bool debugKeys{false};
     bool debugF12Down{false};
     int debugDamageStage{0};
@@ -96,7 +87,10 @@ private:
     bool enhancedTerrain{false};
     int waveStrength{25};
     int detailStrength{25};
-    bool orbitEnabled{true};
+    bool enhancedClouds{false};
+    int cloudStrength{70};
+    bool enhancedRunway{false};
+    int runwaySize{2048};
     bool msaaAvailable{false};
     bool msaaOn{true};
     bool showFps{false};

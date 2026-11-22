@@ -77,8 +77,8 @@ test LEQUAL). Textured polygons are left alone. Pacific Strike cockpits are not 
 With `[Video] g_effects = 1` (default 0) `EnhancedStrike` draws a screen overlay in `afterFrameRendered()` in the first person views
 (forward, left, right, rear and the free cockpit look) while the pilot is on board: a tunnel vision, a grey-out and a blackout
 that never gets complete at high positive G, and a red-out at negative G. The G load of the player aircraft is low-passed (the body
-reacts slowly: onset about 1.2 s, recovery about 0.7 s). `g_effects_threshold` (2..9, default 4.5) is the G load where the tunnel
-vision starts, `g_effects_strength` (0..2, default 1) scales all effects. The grey-out is a grey veil with alpha, not a true
+reacts slowly: onset about 1.2 s, recovery about 0.7 s). `g_effects_threshold` (2..9, default 6) is the G load where the tunnel
+vision starts, `g_effects_strength` (0..2, default 0.6) scales all effects. The grey-out is a grey veil with alpha, not a true
 desaturation. For testing, `NEOSC_GTEST=9` in the environment forces a G load.
 
 ## HD cockpit textures (`EnhancedCockpit`)
@@ -113,3 +113,11 @@ finished frame. `NEOSC_UI_SHEET=NAME` shows all images of `DATA\FONTS\NAME.SHP` 
 ALT+O pauses the mission and opens a panel with the switches of the enhanced module: "Enhanced Water" (`water_splash` and `water_waves`), "Enhanced Terrain Textures" (`terrain_detail`), "Enhanced Cockpit"
 (`cockpit = 3d`, with the cockpit glass) "Enhanced Outside Camera" (`camera_mouse_orbit`, mouse orbit of the external cameras) and "Enhanced F-16 Model" (`enhanced_f16_model`: the OBJ airframe from `assets/models` and the thrust dependent exhaust flame, off = original model and flame; `EnhancedEntity` keeps both geometries and swaps them at run time). A click
 flips the switch at once and writes it to `./assets/config.ini` (a copy `config.ini.bak` is made on the first save). ESC or CLOSE leaves.
+
+## Pacific Strike enhanced (`neops_enhanced`)
+`src/executables/ps_enhanced` builds `neops_enhanced`: Pacific Strike like `neops`, but with the `EnhancedRenderer` and the `EnhancedScreen`, so the
+renderer features that are switched in `config.ini` work there too (`cloud_shading`, `texture_filter`, `msaa`, `runway_texture`, ...).
+`EnhancedPSGameFlow` flies the missions with an `EnhancedPSStrike` (derived from `PSStrike`), which has the mouse orbit of the external cameras (F2 chase, F7 target,
+F8 missile camera) and the `engine_volume` setting. The orbit code is the `EnhancedOrbit<Base>` mixin (`EnhancedOrbit.h`), shared with `EnhancedStrike`
+(`EnhancedStrike : EnhancedOrbit<SCStrike>`, `EnhancedPSStrike : EnhancedOrbit<PSStrike>`). The other effects of `EnhancedStrike` (exhaust, vortices,
+smoke, glass, 3D cockpit, options screen) are not available in Pacific Strike. Run it like `neops`: from a folder with `./assets/PACIFIC.DAT` and `./assets/config.ini`.
