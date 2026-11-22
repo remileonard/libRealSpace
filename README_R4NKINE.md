@@ -1,470 +1,471 @@
-# R4nkine dans libRealSpace : r4bridge, r4objviewer et neosc_r4
+# R4nkine in libRealSpace: r4bridge, r4objviewer and neosc_r4
 
-Ce code, sur la branche `r4nkine` de libRealSpace, branche **R4nkine** sur **libRealSpace** sans rien relire.
-- libRealSpace lit les données, comme aujourd'hui :
-  - `AssetManager` ouvre les TRE ;
-  - `RSPalette` lit la palette ;
-  - `RSEntity` lit un objet 3D.
-- **r4bridge** convertit un `RSEntity` en modèle R4nkine (`r4::assets::Model`).
-- **R4nkine** le charge sur le GPU et le dessine (OpenGL 3.3 core, ou 4.1 sur macOS).
+This code, on the `r4nkine` branch of libRealSpace, connects **R4nkine** to **libRealSpace**. It reads nothing again.
+- libRealSpace reads the data, as before:
+  - `AssetManager` opens the TRE files;
+  - `RSPalette` reads the palette;
+  - `RSEntity` reads a 3D object.
+- **r4bridge** converts an `RSEntity` into an R4nkine model (`r4::assets::Model`).
+- **R4nkine** loads it on the GPU and draws it (OpenGL 3.3 core, or 4.1 on macOS).
 
 ```
 TOBIGTRE.TRE ──AssetManager──▶ TreEntry ──RSEntity::InitFromRAM──▶ RSEntity
                                                                │
                                      r4bridge::toModel(entity, palette)
                                                                ▼
-                       r4::assets::Model (images, matériaux, meshes, nœuds)
+                       r4::assets::Model (images, materials, meshes, nodes)
                                                                │
                                           renderer.upload(model)
                                                                ▼
-                       r4::scene::Node ──renderer.render(root, camera)──▶ l'écran
+                       r4::scene::Node ──renderer.render(root, camera)──▶ the screen
 ```
 
-## Contenu
+## Contents
 
-| Fichier | Rôle |
+| File | Function |
 |---|---|
-| `src/r4bridge/R4Bridge.h/.cpp` | L'adaptateur `RSEntity` vers `r4::assets::Model`, et la table des teintes de la palette |
-| `src/r4bridge/R4World.h/.cpp` | Le terrain d'une zone (`RSArea`) et ses overlays (les pistes) en modèles R4nkine, et les matrices des objets de la carte (`MapObject`) et de la mission (`MISN_PART`), calculées comme `SCRenderer` |
-| `src/r4bridge/CMakeLists.txt` | La bibliothèque statique `r4bridge` |
-| `src/executables/r4objviewer/main.cpp` | Le viewer : liste des objets ou des missions, caméra, GUI, post-process |
-| `src/executables/r4objviewer/WorldScene.h/.cpp` | Une mission en scène R4nkine : `RSMission`, `RSWorld` et `RSArea` chargés par libRealSpace, le terrain, les objets de la carte et de la mission |
-| `src/executables/r4objviewer/TerrainDiag.h/.cpp` | Le diagnostic d'un terrain (`-diag`) : ses types et ses textures en images |
-| `src/executables/r4objviewer/CMakeLists.txt` | L'exécutable, lié comme le debugger |
-| `src/r4game/R4Screen.h/.cpp` | La fenêtre du jeu sur R4nkine : contexte GL, device, post-process, l'image où le jeu dessine, l'allumage de la TV |
-| `src/r4game/R4VGA.h/.cpp` | L'écran 320 x 200 (menus, conversations, films, cockpit 2D) affiché par les overlays de R4nkine, par-dessus ce que le jeu a dessiné |
-| `src/r4game/R4Loader.h/.cpp` | L'écran de chargement affiché par un overlay de R4nkine |
-| `src/r4game/R4Renderer.h/.cpp` | Le rendu de libRealSpace sur R4nkine, sans aucun appel GL : sa pile de matrices, les modèles et les effets du jeu gardés puis dessinés en une passe, le ciel, la caméra de cible |
-| `src/r4game/R4Panel.h/.cpp` | Le panneau de R4nkine sur le jeu (F11) : performance et réglages du rendu |
-| `src/r4game/R4ConfigPanel.h/.cpp` | Le panneau de configuration (Ctrl+F11) : les options de `config.ini` et les entrées des actions |
-| `src/r4game/R4Timer.h/.cpp` | Le temps du jeu : la durée de chaque image mesurée, à toutes les fréquences |
-| `src/r4game/R4Mission.h/.cpp` | La mission sur le graphe de scène : le graphe de la mission (terrain, aires, scènes, acteurs, déclencheurs) et son APP |
-| `src/r4game/R4Strike.h/.cpp` | La vue du vol : l'affichage, l'ordre des passes, les touches et les caméras ; elle lance l'APP de la mission et la dessine |
-| `src/executables/neosc_r4/main.cpp` | `neosc_r4` : le `main` de neosc avec `R4Screen`, `R4VGA`, `R4Loader`, `R4Renderer`, `R4Strike` et `R4Timer` |
-| `cmake/R4nkine.cmake` | Ajoute R4nkine (dossier local ou FetchContent), r4bridge, r4objviewer, r4game et neosc_r4 |
+| `src/r4bridge/R4Bridge.h/.cpp` | The adapter from `RSEntity` to `r4::assets::Model`, and the table of the shades of the palette |
+| `src/r4bridge/R4World.h/.cpp` | The terrain of an area (`RSArea`) and its overlays (the runways) as R4nkine models, and the matrices of the map objects (`MapObject`) and of the mission parts (`MISN_PART`), calculated as `SCRenderer` does |
+| `src/r4bridge/CMakeLists.txt` | The static library `r4bridge` |
+| `src/executables/r4objviewer/main.cpp` | The viewer: list of the objects or of the missions, camera, GUI, post process |
+| `src/executables/r4objviewer/WorldScene.h/.cpp` | A mission as an R4nkine scene: `RSMission`, `RSWorld` and `RSArea` loaded by libRealSpace, the terrain, the map objects and the mission parts |
+| `src/executables/r4objviewer/TerrainDiag.h/.cpp` | The diagnostic of a terrain (`-diag`): its types and its textures as images |
+| `src/executables/r4objviewer/CMakeLists.txt` | The executable, linked as the debugger |
+| `src/r4game/R4Screen.h/.cpp` | The window of the game on R4nkine: GL context, device, post process, the image where the game draws, the TV start effect |
+| `src/r4game/R4VGA.h/.cpp` | The 320 x 200 screen (menus, conversations, films, 2D cockpit) shown by the overlays of R4nkine, over what the game drew |
+| `src/r4game/R4Loader.h/.cpp` | The loading screen shown by an overlay of R4nkine |
+| `src/r4game/R4Renderer.h/.cpp` | The renderer of libRealSpace on R4nkine, with no GL call: its matrix stack, the models and the effects of the game kept and then drawn in one pass, the sky, the target camera |
+| `src/r4game/R4Panel.h/.cpp` | The R4nkine panel over the game (F11): performance and render settings |
+| `src/r4game/R4ConfigPanel.h/.cpp` | The configuration panel (Ctrl+F11): the options of `config.ini` and the inputs of the actions |
+| `src/r4game/R4Timer.h/.cpp` | The time of the game: the measured duration of each frame, at all frame rates |
+| `src/r4game/R4Mission.h/.cpp` | The mission on the scene graph: the graph of the mission (terrain, areas, scenes, actors, triggers) and its APP |
+| `src/r4game/R4Strike.h/.cpp` | The view of the flight: the display, the order of the passes, the keys and the cameras; it starts the APP of the mission and draws it |
+| `src/executables/neosc_r4/main.cpp` | `neosc_r4`: the `main` of neosc with `R4Screen`, `R4VGA`, `R4Loader`, `R4Renderer`, `R4Strike` and `R4Timer` |
+| `cmake/R4nkine.cmake` | Adds R4nkine (local folder or FetchContent), r4bridge, r4objviewer, r4game and neosc_r4 |
 
-## Construire
+## Build
 
-Tout est déjà dans la branche `r4nkine` de libRealSpace : `include(cmake/R4nkine.cmake)` dans le `CMakeLists.txt` principal, et `glm`, `stb` et `cgltf` dans `vcpkg.json` (R4nkine n'a besoin que de leurs en-têtes).
+All is already on the `r4nkine` branch of libRealSpace: `include(cmake/R4nkine.cmake)` in the main `CMakeLists.txt`, and `glm`, `stb` and `cgltf` in `vcpkg.json` (R4nkine needs only their headers).
 
-1. **Configurer.** Il y a deux façons d'obtenir R4nkine.
-   - Depuis un clone local (recommandé pour modifier les deux à la fois) :
+1. **Configure.** There are two ways to get R4nkine.
+   - From a local clone (recommended to change the two at the same time):
      ```
-     cmake --preset <ton preset> -DR4NKINE_DIR=/chemin/vers/r4nkine
+     cmake --preset <your preset> -DR4NKINE_DIR=/path/to/r4nkine
      ```
-   - Sans `R4NKINE_DIR` : CMake le télécharge depuis GitHub (FetchContent), branche `R4NKINE_TAG`. Par défaut c'est `claude/magical-bell-y9meqd`. Pour prendre les nouveaux commits de R4nkine, relancer `cmake .` dans le dossier de build.
+   - Without `R4NKINE_DIR`: CMake downloads it from GitHub (FetchContent), branch `R4NKINE_TAG`. The default is `claude/magical-bell-y9meqd`. To get the new commits of R4nkine, run `cmake .` again in the build folder.
 
-   Avec `-DREALSPACE_R4=OFF`, rien de tout cela n'est construit.
+   With `-DREALSPACE_R4=OFF`, none of this is built.
 
-2. **Lancer** :
+2. **Run**:
    ```
-   r4objviewer -data /chemin/vers/les/TRE [-object F-16DES] [-tre TOBIGTRE.TRE] [-textures]
-   r4objviewer -data /chemin/vers/les/TRE -mission MISN-A1 [-focus TOWB24] [-distance 2500] [-graph]
+   r4objviewer -data /path/to/the/TRE [-object F-16DES] [-tre TOBIGTRE.TRE] [-textures]
+   r4objviewer -data /path/to/the/TRE -mission MISN-A1 [-focus TOWB24] [-distance 2500] [-graph]
    ```
-   - **Les jeux** : sans `-tre`, le viewer ouvre chaque jeu présent **seul**, car les deux ont des fichiers différents sous les mêmes noms (301 objets, la palette, les polices) :
-     - `BIGTRE.TRE` pour Strike Commander. Ses textures du terrain (TXMPACK, ACCPACK) sont dans `TEXTURES.TRE`. Sans ce fichier, celles de `TOBIGTRE.TRE` les remplacent : il est ouvert en second et ne fournit que les fichiers absents de BIGTRE. Ses objets et ses missions ne sont pas listés.
-     - `TOBIGTRE.TRE` pour Tactical Operations.
-     - Sans aucun des deux, `OBJECTS.TRE` et `MISC.TRE`.
+   - **The games**: without `-tre`, the viewer opens each game that is there **alone**, because the two games have different files with the same names (301 objects, the palette, the fonts):
+     - `BIGTRE.TRE` for Strike Commander. Its terrain textures (TXMPACK, ACCPACK) are in `TEXTURES.TRE`. Without this file, those of `TOBIGTRE.TRE` replace them: it is opened second and gives only the files that are not in BIGTRE. Its objects and its missions are not listed.
+     - `TOBIGTRE.TRE` for Tactical Operations.
+     - Without the two, `OBJECTS.TRE` and `MISC.TRE`.
 
-     Le menu **Game** en haut à gauche passe d'un jeu à l'autre et refait tout (palette, objets, missions). La fenêtre reste ouverte. `-game sc|to` choisit le jeu au départ ; avec `-mission`, c'est le jeu qui a cette mission qui est ouvert. Sans les textures du terrain, une mission est refusée avec un message au lieu de planter RSArea.
-   - En haut à gauche, **Mode** : *Objects* (un objet à la fois) ou *Missions*.
-   - Mode **Missions** :
-     - la liste ne montre que les missions et les mondes dont le terrain (`<tera>.PAK`) est dans le dossier `-data` ;
-     - un monde seul, sans mission, montre son terrain et les objets de la carte ;
-     - à droite, la section **World** :
-       - couches *Terrain*, *Runways*, *Map Objects*, *Mission Parts* et *Forests* ;
-       - **Forest Density** (`-forests 0..3`) : aucune, clairsemée, normale ou dense ;
-       - niveau de détail du terrain ;
-       - chiffres : triangles, textures, objets, objets absents du TRE, lumière du monde, temps de chargement ;
-     - le graphe : sous « parts of the mission », un nœud par zone de la mission (entrer dans une zone déclenche ses scènes), puis les scènes de cette zone ;
-     - la section **Scenes** : les parts groupées par la scène qui les fait apparaître ; chaque scène s'affiche ou se cache, et « No scene » (les parts amenées par un programme de la mission) est cachée au départ ;
-     - les sections **Parts** et **Map Objects** : un clic met la caméra sur l'objet ;
-     - `-focus NOM` fait de même au démarrage, `-at X,Y` met la caméra sur un point de la carte (axes de R4nkine), et `-distance D` règle le recul de la caméra.
-   - En haut à droite, **Scene Graph** (ou `-graph`), en haut du panneau de droite : le graphe de la scène affichée (objet ou mission) s'affiche sous ce bouton. On y voit le type de chaque nœud, un voyant pour le cacher ou le montrer, et un clic sur un nœud y amène la caméra.
-   - Panneau de gauche en mode Objects, **Objects** : la liste des objets des TRE. Un clic choisit un objet, la molette fait défiler la liste, et il y a des boutons Précédent et Suivant.
-   - Panneau de droite :
-     - **Render** : fil de fer, textures, facteur de LOD, lumière, ciel, angles de la caméra ;
-     - **Post Process** : MSAA, FXAA, scanlines, palette… ;
-     - **Performance** : FPS, courbes des temps (image, cull, draw), draw calls, triangles, changements d'état, items et nœuds ;
-     - **Object** : sommets, faces, textures, les LOD avec leurs distances (celui affiché est marqué), le temps de chargement et de conversion, les meshes R4nkine ;
-     - **Textures** : chaque image de l'objet, avec sa taille et son nombre de frames. `-textures` ouvre cette section au départ.
-   - Souris : bouton gauche pour tourner, molette pour le zoom, bouton droit pour déplacer.
-   - Clavier : flèches haut et bas pour l'objet précédent ou suivant, Échap pour quitter.
-   - Dans **Render** :
-     - **Flat Shading** (ou `-flat`) : les objets prennent la normale de leur face, comme `object_gouraud = false` dans le jeu, et le terrain est recalculé par `RSArea` avec `terrain_flat` ;
-     - **Gouraud by Vertex** (ou `-gouraud`) : l'éclairage des objets est calculé aux sommets puis interpolé, comme le jeu (le dos d'une face double prend la normale de la face). Sinon, il est calculé à chaque pixel.
-     - **Texture Upscale** (`-upscale 0..3`) : les textures du jeu agrandies une seule fois, à leur chargement, en 2xSaI, xBR 2x ou xBR 4x (`r4/assets/upscale.h`). Cela concerne les objets, le terrain et les pistes ; dans l'atlas des pistes, chaque image est agrandie avant d'y être rangée. L'alpha compte comme une couleur, donc les trous (index 255) gardent des bords nets. xBR 4x ajoute environ 1 s au chargement de TURKEY.
-     - **Mipmaps** (`-mipmaps`) : avec leurs mipmaps. Le jeu n'en a pas ; avec, les bordures des cellules de l'atlas des pistes passent de 2 à 8 texels. Les textures du terrain n'en ont pas : ce sont des index de palette, filtrés dans le shader après leur ombrage.
-     - **Anisotropic Filter** (`-aniso N`, de 2 à 16) : le filtrage anisotrope, quand le GPU le permet.
+     The **Game** menu at the top left goes from a game to the other and makes all again (palette, objects, missions). The window stays open. `-game sc|to` selects the game at the start; with `-mission`, the game that has this mission is opened. Without the terrain textures, the viewer refuses a mission with a message. Thus RSArea does not crash.
+   - At the top left, **Mode**: *Objects* (one object at a time) or *Missions*.
+   - **Missions** mode:
+     - the list shows only the missions and the worlds whose terrain (`<tera>.PAK`) is in the `-data` folder;
+     - a world alone, without a mission, shows its terrain and the map objects;
+     - on the right, the **World** section:
+       - the layers *Terrain*, *Runways*, *Map Objects*, *Mission Parts* and *Forests*;
+       - **Forest Density** (`-forests 0..3`): none, sparse, normal or dense;
+       - the level of detail of the terrain;
+       - numbers: triangles, textures, objects, objects that are not in the TRE, light of the world, load time;
+     - the graph: below "parts of the mission", a node for each area of the mission (to go into an area starts its scenes), then the scenes of this area;
+     - the **Scenes** section: the parts grouped by the scene that makes them appear; each scene can be shown or hidden, and "No scene" (the parts that a program of the mission adds) is hidden at the start;
+     - the **Parts** and **Map Objects** sections: a click puts the camera on the object;
+     - `-focus NAME` does the same at the start, `-at X,Y` puts the camera on a point of the map (axes of R4nkine), and `-distance D` sets the distance of the camera.
+   - At the top right, **Scene Graph** (or `-graph`), at the top of the right panel: the graph of the scene shown (object or mission) is below this button. It shows the type of each node and a light to hide or show it. A click on a node moves the camera to it.
+   - Left panel in Objects mode, **Objects**: the list of the objects of the TRE files. A click selects an object, the wheel scrolls the list, and there are Previous and Next buttons.
+   - Right panel:
+     - **Render**: wireframe, textures, LOD factor, light, sky, angles of the camera;
+     - **Post Process**: MSAA, FXAA, scanlines, palette...;
+     - **Performance**: FPS, curves of the times (frame, cull, draw), draw calls, triangles, state changes, items and nodes;
+     - **Object**: vertices, faces, textures, the LODs with their distances (the one shown is marked), the load and conversion time, the R4nkine meshes;
+     - **Textures**: each image of the object, with its size and its number of frames. `-textures` opens this section at the start.
+   - Mouse: left button to turn, wheel to zoom, right button to move.
+   - Keyboard: up and down arrows for the previous or the next object, Esc to quit.
+   - In **Render**:
+     - **Flat Shading** (or `-flat`): the objects use the normal of their face, as `object_gouraud = false` in the game, and `RSArea` calculates the terrain again with `terrain_flat`;
+     - **Gouraud by Vertex** (or `-gouraud`): the lighting of the objects is calculated at the vertices and then interpolated, as in the game (the back of a double face uses the normal of the face). Else, it is calculated at each pixel.
+     - **Texture Upscale** (`-upscale 0..3`): the textures of the game are made larger one time, when they load, with 2xSaI, xBR 2x or xBR 4x (`r4/assets/upscale.h`). This applies to the objects, the terrain and the runways; in the atlas of the runways, each image is made larger before it goes into the atlas. The alpha counts as a color, thus the holes (index 255) keep sharp edges. xBR 4x adds approximately 1 s to the load of TURKEY.
+     - **Mipmaps** (`-mipmaps`): with their mipmaps. The game has none; with them, the borders of the cells of the runway atlas go from 2 to 8 texels. The terrain textures have none: they are palette indices, filtered in the shader after their shading.
+     - **Anisotropic Filter** (`-aniso N`, from 2 to 16): the anisotropic filter, when the GPU has it.
 
-       Ces trois réglages refont l'objet ou le monde affiché (`r4bridge::textureQuality()`, `finishTexture`). Par défaut, tout est comme le jeu.
+       These three settings make the object or the world shown again (`r4bridge::textureQuality()`, `finishTexture`). By default, all is as in the game.
 
-     Les deux se règlent au départ d'après le `config.ini` du jeu s'il est là.
-   - **Sun** (les deux modes) :
-     - **Sun Heading / Sun Elevation** : la direction du soleil (`-sun C E`), qui éclaire les objets ;
-     - **World's Light** : revient à la lumière du monde, `RSWorld::light_direction` ;
-     - **Lit Terrain** (`-lit`) : le terrain éclairé par le soleil plutôt que par la lumière des données. Chaque triangle prend le ton le plus clair de la rampe de son type de terrain (`RSArea::terrainTone`), assombri le long de cette rampe par l'intensité, comme les objets (PaletteRamp : ambiant + lumière × N·L). Les normales sont calculées à partir du relief, sur toute la carte ;
-     - **Relief of the Light** (`-relief 0..4`) : multiplie le relief pour les normales seulement (×1 à ×16, ×4 par défaut). Le relief des cartes est doux, avec un sommet tous les 1 000, alors que la lumière des données l'exagère beaucoup.
-     - **Cast Shadows** (`-shadows`) : les ombres portées du soleil. Une *shadow map* (2048², vue orthographique depuis le soleil) couvre la vue jusqu'à **Shadow Distance** (Auto : 3 fois la distance de la caméra), avec un PCF 3×3 et un fondu au bord. Les objets jusqu'à 8 km vers le soleil y projettent leur ombre, par exemple un avion haut au-dessus du sol. Les objets éclairés perdent la lumière directe et gardent l'ambiante. Ce qui n'est pas éclairé, comme le terrain de la lumière des données ou les pistes, est assombri de **Shadow on Unlit**.
-   - **Navigation**, dans une mission :
-     - les touches à leur place sur le clavier (WASD en QWERTY, ZQSD en AZERTY) et les flèches pour avancer et se décaler, Q/E (A/E en AZERTY) pour tourner, R/F pour se rapprocher ou s'éloigner, Maj pour aller plus vite ;
-     - **double clic** sur le terrain : la caméra y va (rayon lancé contre `RSArea::getY`) ;
-     - **Follow the Ground** : la cible reste sur le sol ;
-     - les boutons **Whole Map**, **Top View** et un par zone de la mission.
-   - `-frames N -shot image.bmp` fait une capture après N images, utile pour les tests.
-   - `-mission NOM -diag DOSSIER` écrit le diagnostic du terrain dans DOSSIER, qui doit exister. Tout est au niveau LVL0, 360 × 360 sommets, avec le nord en haut :
-     - `terrain.ppm` : les couleurs de RSArea ;
-     - `types.ppm` : le type de chaque sommet, dans le ton le plus clair de sa rampe ;
-     - `textures.ppm` : les triangles texturés, chacun dans la couleur moyenne de son image ;
-     - `tex_<id>.ppm` : chaque image utilisée, avec les texels clairs en magenta ;
-     - `types.txt` : le nombre de sommets par type ;
-     - `textures.txt` : par image, le nombre de triangles, les types sur lesquels elle est posée et ses premières cellules.
+     The two are set at the start from the `config.ini` of the game, if it is there.
+   - **Sun** (the two modes):
+     - **Sun Heading / Sun Elevation**: the direction of the sun (`-sun H E`), which lights the objects;
+     - **World's Light**: goes back to the light of the world, `RSWorld::light_direction`;
+     - **Lit Terrain** (`-lit`): the sun lights the terrain, not the light of the data. Each triangle takes the lightest shade of the ramp of its terrain type (`RSArea::terrainTone`), made darker along this ramp by the intensity, as the objects (PaletteRamp: ambient + light × N·L). The normals are calculated from the relief, on all the map;
+     - **Relief of the Light** (`-relief 0..4`): multiplies the relief for the normals only (×1 to ×16, ×4 by default). The relief of the maps is soft, with a vertex each 1,000, but the light of the data makes it much stronger.
+     - **Cast Shadows** (`-shadows`): the shadows of the sun. A *shadow map* (2048², orthographic view from the sun) covers the view up to **Shadow Distance** (Auto: 3 times the distance of the camera), with a 3×3 PCF and a fade at the edge. The objects up to 8 km toward the sun cast their shadow into it, for example a plane high above the ground. The lit objects lose the direct light and keep the ambient light. What is not lit, as the terrain with the light of the data or the runways, is made darker by **Shadow on Unlit**.
+   - **Navigation**, in a mission:
+     - the keys at their place on the keyboard (WASD on QWERTY, ZQSD on AZERTY) and the arrows to go forward and to the side, Q/E (A/E on AZERTY) to turn, R/F to go nearer or farther, Shift to go faster;
+     - **double click** on the terrain: the camera goes there (a ray against `RSArea::getY`);
+     - **Follow the Ground**: the target stays on the ground;
+     - the **Whole Map** and **Top View** buttons, and one button for each area of the mission.
+   - `-frames N -shot image.bmp` makes a capture after N frames, for the tests.
+   - `-mission NAME -diag FOLDER` writes the diagnostic of the terrain into FOLDER, which must exist. All is at the LVL0 level, 360 × 360 vertices, with north at the top:
+     - `terrain.ppm`: the colors of RSArea;
+     - `types.ppm`: the type of each vertex, in the lightest shade of its ramp;
+     - `textures.ppm`: the textured triangles, each in the average color of its image;
+     - `tex_<id>.ppm`: each image used, with the light texels in magenta;
+     - `types.txt`: the number of vertices of each type;
+     - `textures.txt`: for each image, the number of triangles, the types where it is and its first cells.
 
-     Avec `-frames 1`, le viewer se ferme ensuite.
+     With `-frames 1`, the viewer then closes.
 
-## neosc_r4 : le jeu sur R4nkine
+## neosc_r4: the game on R4nkine
 
-`neosc_r4` est neosc dont l'affichage passe par R4nkine. Le travail se fait par étapes :
+`neosc_r4` is neosc with its display through R4nkine. The work is done in steps:
 
-| Étape | Contenu | État |
+| Step | Content | State |
 |---|---|---|
-| 1 | `R4Screen`, `R4VGA`, `R4Loader` : la fenêtre, le post-process, l'écran 320 x 200 et le chargement | **fait** |
-| 2 | `R4Strike` : le vol sur le graphe de scène (terrain, avions, objets, armes), mis à jour par l'APP | **fait** |
-| 3 | Tout le reste par R4nkine : effets, nuages, ciel, caméra de cible, cockpit 3D, visionneuse d'objets | **fait** |
-| 4 | Le contexte core (3.3, 4.1 sous macOS) : le jeu ne fait plus aucun appel GL | **fait** |
-| 5 | `R4Mission` : le graphe appartient à la mission (aires, scènes, déclencheurs) ; l'APP passe par les callbacks des nœuds | **fait** |
-| 6 | La performance : nuages faits une fois par zone, forêts en instancers statiques, `R4Timer` | **fait** |
-| 7 | `R4ConfigPanel` (Ctrl+F11) : les options de `config.ini`, les touches, les manettes et les joysticks | **fait** |
+| 1 | `R4Screen`, `R4VGA`, `R4Loader`: the window, the post process, the 320 x 200 screen and the loading screen | **done** |
+| 2 | `R4Strike`: the flight on the scene graph (terrain, planes, objects, weapons), updated by the APP | **done** |
+| 3 | All the rest by R4nkine: effects, clouds, sky, target camera, 3D cockpit, object viewer | **done** |
+| 4 | The core context (3.3, 4.1 on macOS): the game makes no GL call | **done** |
+| 5 | `R4Mission`: the graph belongs to the mission (areas, scenes, triggers); the APP goes through the callbacks of the nodes | **done** |
+| 6 | The performance: clouds made one time for each area, forests in static instancers, `R4Timer` | **done** |
+| 7 | `R4ConfigPanel` (Ctrl+F11): the options of `config.ini`, the keys, the controllers and the joysticks | **done** |
 
-**Les points d'accroche dans libRealSpace.** Ces changements de libRealSpace (autrefois le patch `r4-hooks.patch`) ne changent pas le comportement de neosc :
-- `RSVGA` : `displayBuffer`, `init`, `activate` et le destructeur sont virtuels ; la création des textures GL est dans `initTextures()`, virtuelle ; les membres privés sont protégés ;
-- `Loader` : l'affichage de la surface de chargement est dans `presentSurface()`, virtuelle ; le destructeur est virtuel ;
-- `SCStrike` : le dessin d'une vue est dans `renderScene`, `renderWorld` et `renderPlayerPlane`, virtuelles ; `SCStrike::create()` et `setFactory()` choisissent le type des vols (`SCGameFlow::flyMission` et `SCTrainingMenu::OnSearchAndDestroy` passent par `create()`) ; `createMission`, virtuelle, fait la mission du vol ;
-- `SCMission` : le destructeur est virtuel ; `SCMissionEvent` a `MissionEventAreaEntered` et `MissionEventAreaLeft` ;
-- `RSArea::ground` : une fonction qui donne la hauteur du sol à `getY` ; `R4Mission` y met `r4bridge::groundHeight` ;
-- `SCPlane` : `getWheelIndex()`, `ground_clearance` (la hauteur des roues sous l'origine du modèle) et `SetNormalizedStick` ; `SCSimulatedObject::smokeSet()` ;
-- `SCRenderer` : `pushMatrix`, `popMatrix`, `translateMatrix`, `rotateMatrix`, `scaleMatrix`, `clearDepth` et `readRenderToTexture`, virtuelles (par défaut les appels GL d'avant) ; `SCVirtualCockpit::render`, `SCObjectViewer::runFrame` et `SCCockpit::RenderMFDSCamera` passent par elles au lieu d'appeler GL ;
-- les entrées : les actions d'axes `AXIS_*` et `bindFlightAxes` (`GameEngine`), le GUID des appareils, la zone morte et la courbe de chaque axe (`InputActionSystem`, `EventManager`) ;
-- `Config` : l'écriture de `config.ini`.
+**The hooks in libRealSpace.** These changes of libRealSpace (before, the patch `r4-hooks.patch`) do not change the behavior of neosc:
+- `RSVGA`: `displayBuffer`, `init`, `activate` and the destructor are virtual; the creation of the GL textures is in `initTextures()`, virtual; the private members are protected;
+- `Loader`: the display of the loading surface is in `presentSurface()`, virtual; the destructor is virtual;
+- `SCStrike`: the draw of a view is in `renderScene`, `renderWorld` and `renderPlayerPlane`, virtual; `SCStrike::create()` and `setFactory()` select the type of the flights (`SCGameFlow::flyMission` and `SCTrainingMenu::OnSearchAndDestroy` use `create()`); `createMission`, virtual, makes the mission of the flight;
+- `SCMission`: the destructor is virtual; `SCMissionEvent` has `MissionEventAreaEntered` and `MissionEventAreaLeft`;
+- `RSArea::ground`: a function that gives the height of the ground to `getY`; `R4Mission` sets it to `r4bridge::groundHeight`;
+- `SCPlane`: `getWheelIndex()`, `ground_clearance` (the height of the wheels below the origin of the model) and `SetNormalizedStick`; `SCSimulatedObject::smokeSet()`;
+- `SCRenderer`: `pushMatrix`, `popMatrix`, `translateMatrix`, `rotateMatrix`, `scaleMatrix`, `clearDepth` and `readRenderToTexture`, virtual (by default, the GL calls of before); `SCVirtualCockpit::render`, `SCObjectViewer::runFrame` and `SCCockpit::RenderMFDSCamera` use them and do not call GL;
+- the inputs: the axis actions `AXIS_*` and `bindFlightAxes` (`GameEngine`), the GUID of the devices, the deadzone and the curve of each axis (`InputActionSystem`, `EventManager`);
+- `Config`: the write of `config.ini`.
 
-**L'étape 1.**
-- `R4Screen` ouvre la fenêtre et le contexte OpenGL (voir l'étape 4).
-- Le post-process de libRealSpace (`fx_cpc_palette`, `fx_scanlines`, `fx_pixel_scale`, `fx_fxaa` de `[video]`, et `msaa` de `[Video]`) passe par celui de R4nkine. Quand un effet est actif, le jeu dessine dans la cible du post-process (`Device::bindForHost`), puis `refresh()` applique les effets dans la fenêtre. La palette CPC compte 27 couleurs (0, 128 ou 255 par canal).
-- `R4VGA` reçoit l'image 320 x 200 déjà passée par la palette, les fondus, le contraste et la teinte (`displayBuffer`). Il la montre en 4:3 au centre de la fenêtre avec un overlay, net ou filtré avec `super_eagle_2x`, et les bandes latérales de l'écran large (`widescreen_ambilight`). L'index 255 reste transparent : le cockpit 2D se pose sur la 3D.
-- `R4Loader` montre la surface de chargement en 4:3, ses couleurs converties depuis le format de la surface SDL.
-- Testé ici sans les données complètes du jeu (SC.DAT, LILTRE.TRE et VOCLIST.TRE manquent) : un programme de test lance les vraies classes. L'allumage de la TV s'affiche, puis l'écran 320 x 200 sur une scène dessinée en pipeline fixe, sa zone transparente laisse voir la scène, et l'état GL du jeu est intact après chaque passage de R4nkine. Avec scanlines, pixels x 2 et MSAA 4x, l'image finale porte les effets.
+**Step 1.**
+- `R4Screen` opens the window and the OpenGL context (refer to step 4).
+- The post process of libRealSpace (`fx_cpc_palette`, `fx_scanlines`, `fx_pixel_scale`, `fx_fxaa` of `[video]`, and `msaa` of `[Video]`) goes through the post process of R4nkine. When an effect is on, the game draws into the target of the post process (`Device::bindForHost`), then `refresh()` applies the effects into the window. The CPC palette has 27 colors (0, 128 or 255 for each channel).
+- `R4VGA` receives the 320 x 200 image after the palette, the fades, the contrast and the tint (`displayBuffer`). It shows it in 4:3 at the center of the window with an overlay, sharp or filtered with `super_eagle_2x`, and the side bands of the wide screen (`widescreen_ambilight`). Index 255 stays transparent: the 2D cockpit is over the 3D.
+- `R4Loader` shows the loading surface in 4:3, with its colors converted from the format of the SDL surface.
+- Tested here without the full data of the game (SC.DAT, LILTRE.TRE and VOCLIST.TRE are missing): a test program runs the real classes. The TV start effect is shown, then the 320 x 200 screen over a scene drawn with the fixed pipeline. Its transparent part shows the scene, and the GL state of the game is the same after each pass of R4nkine. With scanlines, pixels x 2 and MSAA 4x, the final image has the effects.
 
-**L'étape 2, puis l'étape 5 : le vol sur le graphe de scène.**
-- `R4Strike` remplace `SCStrike` pour tous les vols : campagne, entraînement, Tactical Operations. `neosc_r4` lui donne la fabrique `SCStrike::create()` (`SCStrike::setFactory`).
-- `SCMission` charge et fait tourner la mission. Le graphe appartient à `R4Mission : SCMission`, que fait `R4Strike::createMission`. Il est fait au chargement de la mission et vit autant qu'elle, en axes de libRealSpace (Y en haut) :
-  - `terrain` (masque `LAYER_TERRAIN`) : le terrain de `r4bridge::terrainModel` (quadtree, anneaux, atlas) et les pistes de `overlayModel`, faits une fois par zone ;
-  - les avions (masque `LAYER_ACTORS`, `LAYER_PLAYER` pour celui du joueur) : dans un seul groupe, car un avion passe d'une aire à l'autre ; chacun a son corps, ses roues, sa postcombustion et ses armes sous les points d'emport ;
-  - un nœud par aire de la mission, avec les objets qui y sont ; ceux d'une scène sont sous un `Switch` de cette scène, allumé quand la scène est activée ;
-  - `simulated objects` (masque `LAYER_SHOTS`) : un nœud par missile, bombe ou obus avec un modèle ;
-  - un déclencheur par aire (masque `LAYER_TRIGGERS`), avec son volume (sphère, tube ou boîte) : il met `MissionEventAreaEntered` et `MissionEventAreaLeft` des avions sur le bus de messages.
-- Chaque acteur a un nœud `LOD` à la distance de rendu de `SCStrike` (`RENDER_DISTANCE`).
-- Les modèles des `RSEntity` sont faits par `r4bridge::toModel` au chargement de la mission et partagés entre les nœuds.
-- **APP** (`R4Mission::app`, lancé par `R4Strike` une fois par image, après le placement de la caméra) : il crée les nœuds de ce qui apparaît et retire ceux de ce qui disparaît. Puis `r4::scene::app` lance le callback de chaque nœud, qui prend l'état de son objet : matrice, roues, postcombustion, emports, modèle, avec les mêmes calculs que `SCPlane::Render` et `SCRenderer::drawModel`. Enfin, les déclencheurs comparent la place des avions à leurs volumes.
-- **Le sol** : `RSArea::ground` donne à `getY` la hauteur de `r4bridge::groundHeight`, sur les triangles LVL0 que le renderer dessine. Les avions au sol sont posés sur leurs roues (`ground_clearance`).
-- **CULL et DRAW** (`R4Strike::renderWorld`) : le graphe de la mission entre dans la passe de `R4Renderer` (`addScene`), avec le ciel, les effets du jeu et le cockpit 3D. Une seule passe du renderer dessine la vue, avec la caméra du jeu.
-- Le vol avec les boîtes de debug (`show_bbox`) reprend le dessin de `SCStrike`, par `R4Renderer`.
-- `RenderOptions::clear` à faux : une passe du renderer garde la couleur et la profondeur de la cible (le ciel du jeu).
-- Testé ici avec un programme de test sur MISN-1A (avant `R4Mission`, quand `R4Strike` gardait le graphe) : la vue cockpit (cockpit 2D sur la 3D) et la vue extérieure (F-16 du joueur avec ses emports, un autre avion, la piste) donnent la même image avec `SCRenderer` et `SCStrike` qu'avec `R4Strike` et son graphe. Avec scanlines et pixels x 2, la 3D passe par la cible du post-process.
+**Step 2, then step 5: the flight on the scene graph.**
+- `R4Strike` replaces `SCStrike` for all the flights: campaign, training, Tactical Operations. `neosc_r4` gives it to the factory `SCStrike::create()` (`SCStrike::setFactory`).
+- `SCMission` loads and runs the mission. The graph belongs to `R4Mission : SCMission`, which `R4Strike::createMission` makes. It is made when the mission loads and lives as long as the mission, in the axes of libRealSpace (Y up):
+  - `terrain` (mask `LAYER_TERRAIN`): the terrain of `r4bridge::terrainModel` (quadtree, rings, atlas) and the runways of `overlayModel`, made one time for each area;
+  - the planes (mask `LAYER_ACTORS`, `LAYER_PLAYER` for the plane of the player): in one group, because a plane goes from an area to another; each has its body, its wheels, its afterburner and its weapons below the hardpoints;
+  - a node for each area of the mission, with the objects that are in it; the objects of a scene are below a `Switch` of this scene, on when the scene is activated;
+  - `simulated objects` (mask `LAYER_SHOTS`): a node for each missile, bomb or shell that has a model;
+  - a trigger for each area (mask `LAYER_TRIGGERS`), with its volume (sphere, tube or box): it puts `MissionEventAreaEntered` and `MissionEventAreaLeft` of the planes on the message bus.
+- Each actor has a `LOD` node at the render distance of `SCStrike` (`RENDER_DISTANCE`).
+- `r4bridge::toModel` makes the models of the `RSEntity` objects when the mission loads. The nodes share them.
+- **APP** (`R4Mission::app`, started by `R4Strike` one time in each frame, after the camera is set): it makes the nodes of what appears and removes the nodes of what is gone. Then `r4::scene::app` runs the callback of each node, which takes the state of its object: matrix, wheels, afterburner, stores, model, with the same calculations as `SCPlane::Render` and `SCRenderer::drawModel`. Then the triggers compare the positions of the planes with their volumes.
+- **The ground**: `RSArea::ground` gives to `getY` the height of `r4bridge::groundHeight`, on the LVL0 triangles that the renderer draws. The planes on the ground stand on their wheels (`ground_clearance`).
+- **CULL and DRAW** (`R4Strike::renderWorld`): the graph of the mission goes into the pass of `R4Renderer` (`addScene`), with the sky, the effects of the game and the 3D cockpit. One pass of the renderer draws the view, with the camera of the game.
+- The flight with the debug boxes (`show_bbox`) uses the draw of `SCStrike`, through `R4Renderer`.
+- `RenderOptions::clear` is false: a pass of the renderer keeps the color and the depth of the target (the sky of the game).
+- Tested here with a test program on MISN-1A (before `R4Mission`, when `R4Strike` kept the graph): the cockpit view (2D cockpit over the 3D) and the outside view (F-16 of the player with its stores, another plane, the runway) give the same image with `SCRenderer` and `SCStrike` as with `R4Strike` and its graph. With scanlines and pixels x 2, the 3D goes through the target of the post process.
 
-**L'étape 3 : tout le rendu par R4nkine.** `R4Renderer` remplace toutes les méthodes de `SCRenderer` qui dessinent, et n'appelle plus GL.
-- **Matrices** : une pile de matrices propre (`pushMatrix`, `translateMatrix`, `rotateMatrix`, `scaleMatrix`, `popMatrix`) à la place de celle de GL. Tous les `drawModel` (position, orientation, ajustement, échelle, `drawModelWithChilds`, `renderObjects`, `renderMissionObjects`) calculent leur matrice comme `SCRenderer` (`glRotatef` en degrés ou `Matrix::rotateM` en radians).
-- **Caméra** : `bindCameraProjectionAndViewViewport` et `initRenderCameraView` donnent la vue, la projection (avec le décalage vertical) et le viewport de la passe, depuis la `Camera` du jeu.
-- **Passe** : les modèles, les effets, le ciel et les graphes (`addScene`) sont gardés, puis dessinés en un seul `render()` : avant un changement de vue, avant l'écran 320 x 200 (`R4Screen::beginGamePass`) et à la fin de l'image (`refresh`).
-- **Effets** : billboards, sprites, particules, traçantes, triangles d'effets (`drawTriangles`, additifs ou alpha), quads texturés (panneaux du cockpit 3D), nuages, lignes, boîtes et points deviennent des triangles en monde, regroupés par état (texture, mélange, test et écriture de profondeur, test alpha, bac). Un maillage par groupe et par passe.
-- **Ordre** : le ciel (bac -2, sans profondeur, hors du brouillard) puis les nuages (bac -1) avant tout, comme le dôme et les nuages de `renderWorldSolid` ; les points et les lignes en dernier, sans profondeur, comme le jeu les dessine après les modèles.
-- **Nuages** : faits une seule fois par zone dans le graphe (`makeClouds`, à l'appel de `useArea`), un Geode par nuage avec toutes ses bouffées dans un seul maillage, éliminé par ses bornes. Avant, chaque image refaisait sur le CPU et renvoyait au GPU jusqu'à 500 nuages de 7 à 11 bouffées de 432 sommets. Les bouffées sont blanches : leur mélange donne la même couleur dans tous les ordres, donc il n'y a plus de tri par la distance.
-- **Textures du jeu** : les `Texture` (billboards, panneaux du cockpit 3D) et les textures de `createTexture` sont envoyées à R4nkine ; `uploadTextureContentToGPU` les met à jour.
-- **Caméra de cible** : sa vue a sa propre cible de rendu de 107 x 75. `getRenderToTexture` la relit, et le cockpit la lit par `readRenderToTexture`. Le problème du MSAA de l'étape 1 disparaît.
-- **R4nkine** : `Material::depthTest` et `Material::fog` (le ciel), les bacs de fond (`drawOrder` négatif, dessinés avant tout, mélangés ou non).
-- Testé ici, avec la même scène par `SCRenderer` (contexte compatibilité) et par `R4Renderer` (contexte core) : terrain, modèles, billboard, sprite, particule, triangles additifs et alpha, traçante, quad texturé, ligne, point, boîtes, nuage, et l'image de la caméra de cible. Les images sont les mêmes. Différence voulue : les sprites et les particules n'écrivent plus la profondeur et gardent le test de profondeur ; dans le jeu, ils le perdaient par un état GL laissé par `drawModel`.
+**Step 3: all the rendering by R4nkine.** `R4Renderer` replaces all the methods of `SCRenderer` that draw. It does not call GL.
+- **Matrices**: its own matrix stack (`pushMatrix`, `translateMatrix`, `rotateMatrix`, `scaleMatrix`, `popMatrix`) in place of the GL stack. All the `drawModel` methods (position, orientation, adjustment, scale, `drawModelWithChilds`, `renderObjects`, `renderMissionObjects`) calculate their matrix as `SCRenderer` does (`glRotatef` in degrees or `Matrix::rotateM` in radians).
+- **Camera**: `bindCameraProjectionAndViewViewport` and `initRenderCameraView` give the view, the projection (with the vertical offset) and the viewport of the pass, from the `Camera` of the game.
+- **Pass**: the models, the effects, the sky and the graphs (`addScene`) are kept, then drawn in one `render()`: before a change of view, before the 320 x 200 screen (`R4Screen::beginGamePass`) and at the end of the frame (`refresh`).
+- **Effects**: billboards, sprites, particles, tracers, effect triangles (`drawTriangles`, additive or alpha), textured quads (panels of the 3D cockpit), clouds, lines, boxes and points become triangles in the world, grouped by state (texture, blend, depth test and depth write, alpha test, bin). One mesh for each group and each pass.
+- **Order**: the sky (bin -2, no depth, no fog) then the clouds (bin -1) before all, as the dome and the clouds of `renderWorldSolid`; the points and the lines last, with no depth, as the game draws them after the models.
+- **Clouds**: made one time for each area in the graph (`makeClouds`, when `useArea` is called), a Geode for each cloud with all its puffs in one mesh, culled by its bounds. Before, each frame made again on the CPU, and sent again to the GPU, up to 500 clouds of 7 to 11 puffs of 432 vertices. The puffs are white: their blend gives the same color in all orders, thus there is no sort by distance.
+- **Textures of the game**: the `Texture` objects (billboards, panels of the 3D cockpit) and the textures of `createTexture` go to R4nkine; `uploadTextureContentToGPU` updates them.
+- **Target camera**: its view has its own render target of 107 x 75. `getRenderToTexture` reads it back, and the cockpit reads it through `readRenderToTexture`. The MSAA problem of step 1 is gone.
+- **R4nkine**: `Material::depthTest` and `Material::fog` (the sky), the background bins (negative `drawOrder`, drawn before all, blended or not).
+- Tested here, with the same scene through `SCRenderer` (compatibility context) and through `R4Renderer` (core context): terrain, models, billboard, sprite, particle, additive and alpha triangles, tracer, textured quad, line, point, boxes, cloud, and the image of the target camera. The images are the same. One difference is intentional: the sprites and the particles do not write the depth and keep the depth test; in the game, they lost it because of a GL state that `drawModel` left.
 
-**L'étape 4 : le contexte core.**
-- `R4Screen` demande un contexte OpenGL 3.3 core (4.1 core avec forward compatible sous macOS). La clé `gl_compatibility` de `[Video]` demande un contexte compatibilité, seulement pour comparer avec `SCRenderer`.
-- Le jeu ne fait plus aucun appel GL en vol, dans les menus et dans la visionneuse d'objets. Seul l'affichage VR de `SCStrike` (`drawTargetSquareOverlay`) appelle encore GL : il sera repris avec OpenXR.
-- R4nkine : `createShader` laissait une erreur GL après une interop (programme inconnu restauré). Corrigé.
-- Testé ici en contexte core avec la sortie de debug de GL : MISN-1A en vue cockpit, extérieure et cible, 200 images chacune, la visionneuse d'objets, et la scène des effets : aucune erreur GL. macOS n'est pas testé ici.
+**Step 4: the core context.**
+- `R4Screen` requests an OpenGL 3.3 core context (4.1 core with forward compatibility on macOS). The `gl_compatibility` key of `[Video]` requests a compatibility context, only to compare with `SCRenderer`.
+- The game makes no GL call in flight, in the menus and in the object viewer. Only the VR display of `SCStrike` (`drawTargetSquareOverlay`) still calls GL: it will be done again with OpenXR.
+- R4nkine: `createShader` left a GL error after an interop (an unknown program was restored). Fixed.
+- Tested here in a core context with the GL debug output: MISN-1A in the cockpit, outside and target views, 200 frames each, the object viewer, and the scene of the effects: no GL error. macOS is not tested here.
 
 
-**Les options du rendu (`config.ini`, section `[R4nkine]`).** `R4Renderer` les lit à son démarrage. Sans elles, l'image reste celle du jeu.
+**The render options (`config.ini`, section `[R4nkine]`).** `R4Renderer` reads them when it starts. Without them, the image stays the image of the game.
 
 ```ini
 [R4nkine]
-; ombres portées : une carte d'ombre depuis la lumière des objets du jeu
+; cast shadows: a shadow map from the light of the objects of the game
 shadows = false
 shadow_map_size = 2048
-; en mètres : la zone couverte devant la caméra
+; in meters: the zone covered in front of the camera
 shadow_distance = 1500
-; les arbres projettent aussi leur ombre (coûteux)
+; the trees also cast their shadow (costly)
 tree_shadows = false
-; off, noise (bois et clairières sur le vert du terrain) ou textures (les arbres peints dans les textures)
+; off, noise (woods and clearings on the green of the terrain) or textures (the trees painted in the textures)
 forests = off
-; multiplie toutes les densités
+; multiplies all the densities
 forest_density = 1.0
-; en km (multipliés par lod_scale) : les arbres détaillés, puis les arbres simples, éclaircis au-delà des arbres détaillés
+; in km (multiplied by lod_scale): the detailed trees, then the simple trees, thinned beyond the detailed trees
 tree_detail_km = 1.5
 tree_km = 6
-; les bâtiments sur les textures de villes, villages, fermes et ports
+; the buildings on the textures of cities, villages, farms and harbors
 buildings = false
-; none, 2xsai, xbr2x ou xbr4x : agrandit les textures des objets et du terrain
+; none, 2xsai, xbr2x or xbr4x: makes the textures of the objects and of the terrain larger
 texture_upscale = none
 texture_mipmaps = false
-; filtre anisotrope, de 1 à 16
+; anisotropic filter, from 1 to 16
 anisotropy = 1
-; le terrain éclairé par le soleil le long de ses rampes, comme les objets, plutôt que par la lumière des données (-lit de r4objviewer)
+; the sun lights the terrain along its ramps, as the objects, not the light of the data (-lit of r4objviewer)
 sun_terrain = false
-; multiplie le relief pour les normales seulement, de 1 à 16 (-relief)
+; multiplies the relief for the normals only, from 1 to 16 (-relief)
 terrain_relief = 4
-; la part de leur couleur que perd dans l'ombre ce qui n'est pas éclairé : terrain des données, pistes (Shadow on Unlit)
+; the part of its color that what is not lit loses in the shadow: terrain of the data, runways (Shadow on Unlit)
 shadow_strength = 0.5
-; le soleil, en degrés : cap depuis le nord vers l'est, hauteur (-sun C E) ; sans ces clés, la lumière des objets du jeu
+; the sun, in degrees: heading from north to east, elevation (-sun H E); without these keys, the light of the objects of the game
 ; sun_heading = 120
 ; sun_elevation = 30
-; la lumière des objets (ambiante + directe x N.L) ; sans ces clés, celle du jeu (Ambient, Light)
+; the light of the objects (ambient + direct x N.L); without these keys, the light of the game (Ambient, Light)
 ; light_ambient = 0.375
 ; light_direct = 0.625
-; le brouillard en km depuis l'œil ; sans ces clés, celui du jeu (0,40 et 0,93 x max_view_distance) ; show_fog de [Game] l'active
+; the fog in km from the eye; without these keys, the fog of the game (0.40 and 0.93 x max_view_distance); show_fog of [Game] turns it on
 ; fog_start = 64
 ; fog_end = 149
 ; Wireframe, Flat Shading
 wireframe = false
 flat_shading = false
-; multiplie les distances des LOD du terrain, des objets et des arbres (LOD Scale, 0,05 à 4)
+; multiplies the LOD distances of the terrain, of the objects and of the trees (LOD Scale, 0.05 to 4)
 lod_scale = 1
-; distance (par la distance), fine, medium ou coarse (Terrain Detail)
+; distance (by the distance), fine, medium or coarse (Terrain Detail)
 terrain_lod = distance
 vsync = true
-; le dôme du jeu (ciel et sol) ; sans lui, le fond du monde est sky_color, comme dans r4objviewer, et le brouillard prend cette couleur
+; the dome of the game (sky and ground); without it, the background of the world is sky_color, as in r4objviewer, and the fog takes this color
 sky = true
 sky_color = 0.30, 0.42, 0.60
 
-; le post-process de r4objviewer ; chaque clé présente remplace le réglage du jeu (fx_* de [video], msaa de [Video])
-; msaa = 1               ; 1, 2, 4 ou 8
+; the post process of r4objviewer; each key that is there replaces the setting of the game (fx_* of [video], msaa of [Video])
+; msaa = 1               ; 1, 2, 4 or 8
 ; fxaa = false
-; pixelate = 1           ; l'image dessinée comme si elle était N fois moins large
-; brightness = 0         ; -1 à 1
+; pixelate = 1           ; the image drawn as if it were N times less wide
+; brightness = 0         ; -1 to 1
 ; contrast = 1
-; saturation = 1         ; 0 : gris
+; saturation = 1         ; 0: grey
 ; gamma = 1
-; tint = 1, 1, 1         ; r, g, b de 0 à 1, multipliés
-; fade = 0               ; 0 à 1 vers fade_color
+; tint = 1, 1, 1         ; r, g, b from 0 to 1, multiplied
+; fade = 0               ; 0 to 1 toward fade_color
 ; fade_color = 0, 0, 0
-; palette = none         ; none, vga256, ega16, cga4, handheld4, amber8, grey16 ou cpc27 (Reduce to a Palette)
-; dither = true          ; Bayer 4 x 4 avec la palette
+; palette = none         ; none, vga256, ega16, cga4, handheld4, amber8, grey16 or cpc27 (Reduce to a Palette)
+; dither = true          ; Bayer 4 x 4 with the palette
 ; scanlines = false
 ; scanline_strength = 0.35
-; scanline_size = 3      ; pixels par ligne
-; curvature = 0          ; 0 à 0,3
-; aberration = 0         ; pixels, aux bords
-; vignette = 0           ; 0 à 1
+; scanline_size = 3      ; pixels for each line
+; curvature = 0          ; 0 to 0.3
+; aberration = 0         ; pixels, at the edges
+; vignette = 0           ; 0 to 1
 ```
 
-Les réglages de r4objviewer qui ne sont pas ici : **Textures** et **Gouraud by Vertex** sont `show_texture` et `object_gouraud` de `[Game]`, **Fog** est `show_fog` de `[Game]`. Le mode, la caméra, la navigation, les couches (terrain, pistes, objets, parties), Follow the Ground, On Ground et `-nolift` sont propres au viewer : dans le jeu, c'est lui qui place sa caméra et ses objets.
+The settings of r4objviewer that are not here: **Textures** and **Gouraud by Vertex** are `show_texture` and `object_gouraud` of `[Game]`, **Fog** is `show_fog` of `[Game]`. The mode, the camera, the navigation, the layers (terrain, runways, objects, parts), Follow the Ground, On Ground and `-nolift` are only for the viewer: in the game, the game places its camera and its objects.
 
-- Les forêts et les bâtiments viennent de `r4bridge` (`forestChunks`, `plantForest`, `treeModel`, `cityModel`), comme dans r4objviewer. Ils sont faits une fois par zone. Il n'y en a pas sur les pistes, sur les objets de la carte, ni sur les objets de la mission (`R4Mission` donne leur place et leur taille). Un objet de la mission sans sommets n'en écarte rien : sa boîte (`RSEntity::CalcBoundingBox`) reste à `FLT_MAX`, et son rayon infini retirait toutes les forêts et tous les bâtiments de la carte.
-- Les forêts sont des blocs de 2 km : un LOD par bloc, un instancer par espèce, l'arbre complet jusqu'à `tree_detail_km` et l'arbre simple jusqu'à `tree_km`. Les instancers sont statiques : leurs arbres vont une seule fois sur le GPU, il n'y a aucun travail par arbre à chaque image, et au-delà des arbres détaillés une partie des arbres est retirée.
-- Le soleil (`sun_heading`, `sun_elevation`) éclaire les objets et le terrain (`sun_terrain`) et donne la direction des ombres. Sans ces clés, c'est la lumière des objets du jeu (`setObjectLight`), presque verticale : les ombres sont courtes.
-- En fil de fer, le dôme du ciel et les nuages sont aussi en lignes : ce sont des maillages, alors que le ciel de r4objviewer est la couleur du fond.
-- Les ombres ne sont pas faites dans la vue de la caméra de cible. Sans `tree_shadows`, les forêts (masque `R4Renderer::kForestMask`) sont hors de la passe d'ombre.
-- Au chargement d'une zone, la console donne le nombre d'arbres et de bâtiments.
-- Mesuré ici sur ARENA (rendu logiciel, donc seulement pour comparer) : chargement de la zone 1,0 s sans option ; `forests=noise` 5,3 s pour 8,7 millions d'arbres et environ 320 Mo de plus ; `forest_density=0.4` 2,8 s pour 3,5 millions ; `forests=textures` 1,8 s pour 3,0 millions ; `buildings=true` 1,1 s pour 6 838 bâtiments.
-- Testé ici sans erreur GL, en contexte core : MISN-1A et ARENA avec toutes les options, une vue proche où le F-16 et le char projettent leur ombre sur le terrain, puis le post-process (MSAA 4x, FXAA, palette EGA tramée, scanlines, courbure, vignette, aberration ; luminosité, contraste, saturation, gamma, fondu), le fil de fer, le rendu plat avec une autre lumière, le terrain grossier avec `lod_scale` 0,2 et un brouillard de 0,2 à 1,5 km.
-**Le timer (`R4Timer`).** `neosc_r4` remplace `DesktopTimer` par `R4Timer` (`GameTimer::setTimer`, dans le `main`). La physique, l'IA et la mission avancent de `getDeltaTime()` à chaque image. `DesktopTimer` ne donnait pas le temps réel :
-- après 90 images, il arrondit la fréquence mesurée à 60 au plus (`snapToStandardFPS`) ;
-- il ne suit ensuite la fréquence que si elle reste entre 10 et 200 images par seconde ;
-- au-delà de 200 (sans vsync), chaque image compte donc 1/60 s : à 300 images par seconde, le jeu va 5 fois trop vite ;
-- il mesure en millisecondes (`SDL_GetTicks64`) : à 3,3 ms par image, chaque mesure vaut 3 ou 4 ms.
+- The forests and the buildings come from `r4bridge` (`forestChunks`, `plantForest`, `treeModel`, `cityModel`), as in r4objviewer. They are made one time for each area. There are none on the runways, on the map objects and on the mission objects (`R4Mission` gives their positions and their sizes). A mission object with no vertices keeps nothing away: its box (`RSEntity::CalcBoundingBox`) stays at `FLT_MAX`, and its infinite radius removed all the forests and all the buildings of the map.
+- The forests are in blocks of 2 km: a LOD for each block, an instancer for each species, the full tree up to `tree_detail_km` and the simple tree up to `tree_km`. The instancers are static: their trees go one time to the GPU, there is no work for each tree in a frame, and beyond the detailed trees a part of the trees is removed.
+- The sun (`sun_heading`, `sun_elevation`) lights the objects and the terrain (`sun_terrain`) and gives the direction of the shadows. Without these keys, it is the light of the objects of the game (`setObjectLight`), almost vertical: the shadows are short.
+- In wireframe, the sky dome and the clouds are also lines: they are meshes, but the sky of r4objviewer is the background color.
+- The shadows are not made in the view of the target camera. Without `tree_shadows`, the forests (mask `R4Renderer::kForestMask`) are not in the shadow pass.
+- When an area loads, the console gives the number of trees and of buildings.
+- Measured here on ARENA (software rendering, thus only to compare): area load 1.0 s with no option; `forests=noise` 5.3 s for 8.7 million trees and approximately 320 MB more; `forest_density=0.4` 2.8 s for 3.5 million; `forests=textures` 1.8 s for 3.0 million; `buildings=true` 1.1 s for 6,838 buildings.
+- Tested here with no GL error, in a core context: MISN-1A and ARENA with all the options, a near view where the F-16 and the tank cast their shadow on the terrain, then the post process (MSAA 4x, FXAA, dithered EGA palette, scanlines, curvature, vignette, aberration; brightness, contrast, saturation, gamma, fade), the wireframe, the flat shading with another light, the coarse terrain with `lod_scale` 0.2 and a fog from 0.2 to 1.5 km.
 
-`R4Timer` donne la durée mesurée de chaque image avec `SDL_GetPerformanceCounter`, sans lissage. Une image plus longue que 0,1 s (un chargement) compte pour 0,1 s. `shouldSimulate` garde le pas fixe de 1/30 s.
+**The timer (`R4Timer`).** `neosc_r4` replaces `DesktopTimer` with `R4Timer` (`GameTimer::setTimer`, in the `main`). The physics, the AI and the mission advance by `getDeltaTime()` at each frame. `DesktopTimer` did not give the real time:
+- after 90 frames, it rounds the measured rate to 60 at most (`snapToStandardFPS`);
+- then it follows the rate only if it stays between 10 and 200 frames per second;
+- above 200 (without vsync), each frame thus counts 1/60 s: at 300 frames per second, the game goes 5 times too fast;
+- it measures in milliseconds (`SDL_GetTicks64`): at 3.3 ms for each frame, each measure is 3 or 4 ms.
 
-**Le panneau R4nkine (F11).** `R4Panel` (dans `src/r4game`) est le GUI de R4nkine par-dessus l'image du jeu, après le post-process. F11 seul le montre ou le cache (Ctrl+F11 est le panneau de configuration). Il lit la souris et le clavier de SDL à chaque image, et la molette par un `SDL_AddEventWatch` : les événements restent au jeu, donc un clic sur le panneau va aussi au jeu. Tant qu'il est affiché, le curseur est visible et la souris n'est pas relative (le jeu cache le curseur dans sa fenêtre, et ses menus utilisent la souris relative) ; F11 rend ensuite l'état du jeu.
-- **Performance** : FPS et temps moyen sur 240 images, courbes de l'image, du cull et du draw, puis, par image et pour toutes les passes du renderer : passes, draw calls, triangles, changements de pipeline et de texture, nœuds visités et éliminés, drawables, instances, items opaques et transparents, objets qui projettent une ombre, temps de l'ombre, du tri et de l'envoi. Le dessin du panneau n'est pas compté.
-- **Area** : ce que `useArea` a fait pour la zone (temps, arbres, bâtiments, nuages), et les options de `config.ini` qui ne changent qu'avec une nouvelle zone (forêts, bâtiments, upscale, mipmaps, anisotrope, terrain éclairé, relief, niveau du terrain, lumière).
-- **Render** : les réglages que la passe suivante lit, changés en direct : fil de fer, rendu plat, textures, Gouraud, brouillard, nuages, ciel et couleur du fond sans ciel, ombres, ombres des arbres, LOD Scale, distance et force des ombres, soleil et brouillard des réglages, VSync.
-- **Post Process** : les contrôles de r4objviewer (`r4::ui::postProcessControls`), en direct.
+`R4Timer` gives the measured duration of each frame with `SDL_GetPerformanceCounter`, with no smoothing. A frame longer than 0.1 s (a load) counts as 0.1 s. `shouldSimulate` keeps the fixed step of 1/30 s.
 
-**Le panneau de configuration (Ctrl+F11).** `R4ConfigPanel` est une fenêtre de R4nkine au centre de l'écran (70 %). Ctrl+F11 ou sa croix la ferme. Tant qu'elle est affichée, le jeu ne reçoit ni touche ni souris : un filtre d'événements de SDL les garde, et remet à zéro l'état du clavier que le jeu lit. Les manettes et les joysticks continuent d'agir : le panneau regarde seulement leurs événements.
-- **Window, Game, Video, Render (R4nkine), Sound** : les options de `config.ini`. Chaque option dit quand elle s'applique : tout de suite, à la prochaine mission (*mission*) ou au prochain démarrage (*restart*).
-- **Input** : le fichier des touches (`bindings_file` de `[Input]`), puis les actions du vol.
-  - **Change** attend une touche (avec Ctrl, Alt ou Maj) ou un bouton de manette ou de joystick. Pour une action d'axe, il attend un axe poussé loin de son repos, dans le sens du nom de l'action : ce sens donne le signe. Échap annule.
-  - **Change** remplace les entrées de la même famille (le clavier, ou les manettes et les joysticks), **Add** les garde, **Clear** enlève tout sauf la souris.
-  - Sous une action d'axe, chaque axe a sa zone morte (0 à 0,5), sa courbe (exposant de 1 à 3) et **Inverted**.
-- **Devices** : les manettes et les joysticks branchés, leur GUID, leurs axes en direct et les boutons enfoncés.
-- **Save** écrit `./assets/config.ini` et le fichier des touches.
+**The R4nkine panel (F11).** `R4Panel` (in `src/r4game`) is the GUI of R4nkine over the image of the game, after the post process. F11 alone shows or hides it (Ctrl+F11 is the configuration panel). It reads the mouse and the keyboard of SDL at each frame, and the wheel through an `SDL_AddEventWatch`: the events stay with the game, thus a click on the panel also goes to the game. While it is shown, the cursor is visible and the mouse is not relative (the game hides the cursor in its window, and its menus use the relative mouse); F11 then gives back the state of the game.
+- **Performance**: FPS and average time on 240 frames, curves of the frame, of the cull and of the draw, then, for each frame and for all the passes of the renderer: passes, draw calls, triangles, pipeline and texture changes, nodes visited and culled, drawables, instances, opaque and transparent items, objects that cast a shadow, times of the shadow, of the sort and of the submit. The draw of the panel is not counted.
+- **Area**: what `useArea` did for the area (time, trees, buildings, clouds), and the options of `config.ini` that change only with a new area (forests, buildings, upscale, mipmaps, anisotropic, lit terrain, relief, terrain level, light).
+- **Render**: the settings that the next pass reads, changed live: wireframe, flat shading, textures, Gouraud, fog, clouds, sky and background color without sky, shadows, tree shadows, LOD Scale, distance and strength of the shadows, sun and fog of the settings, VSync.
+- **Post Process**: the controls of r4objviewer (`r4::ui::postProcessControls`), live.
 
-**Les entrées.** Les axes du vol sont des actions : `AXIS_PITCH`, `AXIS_ROLL`, `AXIS_RUDDER`, `AXIS_THROTTLE`, `AXIS_LOOK_X` et `AXIS_LOOK_Y` (69 à 74 dans `SimActionOfst`).
-- Par défaut, quand un axe n'a pas de liaison (`bindFlightAxes`) : le stick gauche pour le roulis et le tangage, le stick droit pour le regard, les gâchettes pour le palonnier. La manette des gaz n'a pas d'axe par défaut.
-- Les anciennes actions des sticks (55 à 58) ne servent plus : leurs liaisons sont effacées au chargement.
-- Une ligne du fichier des touches : `action,type,deviceId,code,scale,modifiers,guid,deadzone,curve`. Les trois derniers champs sont facultatifs : les anciens fichiers se chargent.
-- Avec un GUID (le GUID de SDL, le même d'un lancement et d'un branchement à l'autre), `deviceId` est le rang de l'appareil parmi ceux de ce GUID : 0 pour la première manette d'un modèle, 1 pour la deuxième. Sans GUID, c'est le numéro de la manette ou du joystick.
-- Une zone morte de -1 prend celle du système (0,1). Le jeu lit les axes et les boutons directement dans SDL.
+**The configuration panel (Ctrl+F11).** `R4ConfigPanel` is an R4nkine window at the center of the screen (70 %). Ctrl+F11 or its cross closes it. While it is shown, the game gets no key and no mouse: an SDL event filter keeps them, and resets the keyboard state that the game reads. The controllers and the joysticks still act: the panel only looks at their events.
+- **Window, Game, Video, Render (R4nkine), Sound**: the options of `config.ini`. Each option tells when it applies: now, at the next mission (*mission*) or at the next start (*restart*).
+- **Input**: the keys file (`bindings_file` of `[Input]`), then the actions of the flight.
+  - **Change** waits for a key (with Ctrl, Alt or Shift) or a button of a controller or of a joystick. For an axis action, it waits for an axis pushed far from its rest, in the direction of the name of the action: this direction gives the sign. Esc cancels.
+  - **Change** replaces the inputs of the same family (the keyboard, or the controllers and the joysticks), **Add** keeps them, **Clear** removes all but the mouse.
+  - Below an axis action, each axis has its deadzone (0 to 0.5), its curve (exponent from 1 to 3) and **Inverted**.
+- **Devices**: the controllers and the joysticks that are plugged in, their GUID, their axes live and the buttons pressed.
+- **Save** writes `./assets/config.ini` and the keys file.
 
-## Ce qu'il faut regarder pour apprendre R4nkine
+**The inputs.** The axes of the flight are actions: `AXIS_PITCH`, `AXIS_ROLL`, `AXIS_RUDDER`, `AXIS_THROTTLE`, `AXIS_LOOK_X` and `AXIS_LOOK_Y` (69 to 74 in `SimActionOfst`).
+- By default, when an axis has no binding (`bindFlightAxes`): the left stick for the roll and the pitch, the right stick for the look, the triggers for the rudder. The throttle has no default axis.
+- The old actions of the sticks (55 to 58) are not used: their bindings are cleared when the file loads.
+- A line of the keys file: `action,type,deviceId,code,scale,modifiers,guid,deadzone,curve`. The last three fields are optional: the old files load.
+- With a GUID (the SDL GUID, the same from a start and a plug to the next), `deviceId` is the rank of the device among the devices of this GUID: 0 for the first controller of a model, 1 for the second. Without a GUID, it is the number of the controller or of the joystick.
+- A deadzone of -1 uses the deadzone of the system (0.1). The game reads the axes and the buttons directly from SDL.
 
-Le viewer suit les étapes d'un programme R4nkine, numérotées dans `main.cpp`.
+## What to look at to learn R4nkine
 
-1. **Le device** : `r4::gpu::createGLDevice(SDL_GL_GetProcAddress)`.
-   - C'est la couche la plus basse : buffers, textures, shaders, pipelines.
-   - Les fonctions GL sont chargées à l'exécution, donc il n'y a ni GLEW ni GLAD.
-2. **Le renderer** : `r4::render::Renderer renderer(*device)`.
-   - Il dessine un graphe de scène : cull, tri opaque/transparent, puis draw.
-   - `renderer.environment()` règle la lumière et le fond.
-   - `renderer.options()` règle les textures, le facteur de LOD et le reste.
-3. **Le modèle neutre** : `r4::assets::Model`.
-   - Les chargeurs de R4nkine (OBJ, glTF, OpenFlight…) produisent ce modèle, et r4bridge aussi.
-   - Il ne contient que des données : `images`, `materials`, `meshes` et `nodes`, avec `nodes[0]` pour la racine.
-   - `renderer.upload(model)` en fait un sous-graphe prêt à dessiner.
-4. **La caméra** : `r4::render::Orbit` tourne autour d'un point et `orbit.apply(camera, fov, aspect, near, far)` remplit la `Camera`.
-5. **La GUI** : `r4::ui::Context`, de l'immédiat comme ImGui mais avec le look Performer.
-   - Le code : `beginFrame`, `beginPanel`, les widgets (`button`, `toggle`, `slider`, `section`…), `endPanel`, `endFrame`, puis `render()` après la scène.
-   - `r4::ui::postProcessControls()` fournit d'un coup tout le panneau des effets.
-6. **Le post-process** : `r4::render::PostProcess`.
-   - `post.begin()` donne une cible, le renderer y dessine avec `setTarget`, puis `post.end()` applique les effets : MSAA, FXAA, scanlines, palette…
-   - Quand aucun effet n'est actif, `begin()` renvoie une cible nulle et la scène est dessinée directement.
+The viewer follows the steps of an R4nkine program, numbered in `main.cpp`.
 
-## Comment r4bridge convertit un RSEntity
+1. **The device**: `r4::gpu::createGLDevice(SDL_GL_GetProcAddress)`.
+   - It is the lowest layer: buffers, textures, shaders, pipelines.
+   - The GL functions are loaded at run time, thus there is no GLEW and no GLAD.
+2. **The renderer**: `r4::render::Renderer renderer(*device)`.
+   - It draws a scene graph: cull, opaque/transparent sort, then draw.
+   - `renderer.environment()` sets the light and the background.
+   - `renderer.options()` sets the textures, the LOD factor and the rest.
+3. **The neutral model**: `r4::assets::Model`.
+   - The loaders of R4nkine (OBJ, glTF, OpenFlight...) make this model, and r4bridge also.
+   - It contains only data: `images`, `materials`, `meshes` and `nodes`, with `nodes[0]` for the root.
+   - `renderer.upload(model)` makes a subgraph ready to draw from it.
+4. **The camera**: `r4::render::Orbit` turns around a point and `orbit.apply(camera, fov, aspect, near, far)` fills the `Camera`.
+5. **The GUI**: `r4::ui::Context`, immediate mode as ImGui but with the Performer look.
+   - The code: `beginFrame`, `beginPanel`, the widgets (`button`, `toggle`, `slider`, `section`...), `endPanel`, `endFrame`, then `render()` after the scene.
+   - `r4::ui::postProcessControls()` gives all the panel of the effects at one time.
+6. **The post process**: `r4::render::PostProcess`.
+   - `post.begin()` gives a target, the renderer draws into it with `setTarget`, then `post.end()` applies the effects: MSAA, FXAA, scanlines, palette...
+   - When no effect is on, `begin()` gives a null target and the scene is drawn directly.
 
-Le pont suit `SCRenderer::drawModel` passe par passe (couleur, texture, transparence) :
+## How r4bridge converts an RSEntity
+
+The bridge follows `SCRenderer::drawModel` pass by pass (color, texture, transparency):
 
 | RealSpace (libRealSpace) | R4nkine |
 |---|---|
-| Axes : Y en haut (`entity->vertices`) | Z en haut : (x, y, z) devient (x, −z, y), une rotation de 90° |
-| Faces dans le sens horaire (`glFrontFace(GL_CW)`) | Ordre inversé (a, c, b) : R4nkine attend le sens anti-horaire |
-| Normales `(a − b) × (c − b)`, lissées comme `objectNormals` (un quad compte pour deux triangles) | Même calcul, après le changement d'axes |
-| `lods` (LVL0, LVL1…) et `attrs` (T/Q/L) | Un nœud `NodeKind::LOD`, avec un enfant par niveau ; `lodRanges` = [0, dist1, dist2, …, ∞] |
-| Passe couleur : triangle `color`, quad `color − 1` | Matériau `Shading::PALETTE_RAMP` ; l'index est dans le rouge de la couleur de sommet |
-| Éclairage (ambiant 3/8, lumière 5/8, `shadeAlongRamp`) | Image 256 × 32 (`rampImage`) : ligne k = intensité k/31 |
-| Face double : `flags[2] == 1` (triangle), `attrs->props2 == 1` (quad) | `doubleSided`, sinon face arrière éliminée comme dans le jeu |
-| Textures (`uvs`, `qmapuvs`, `images`) | Images RGBA à travers la palette, index 255 transparent ; `GL_LINEAR` sans mipmaps et bords bornés (`Image::mipmaps = false`, `clampS/T`), comme `createTextureInGPU` |
-| Passe texture : mélange `SRC_ALPHA, ONE_MINUS_SRC_ALPHA` et test alpha `> 0,1` | `AlphaMode::BLEND` avec `alphaTest = 0,1` |
-| Propriété 6 ou 9 : la texture est la face (`GL_LESS`, profondeur écrite) | Matériau `rampTextured`, `blendDepthWrite` |
-| Autres faces texturées : sur la face colorée (`GL_EQUAL`, profondeur non écrite) | `depthEqual`, `depthWrite = false` : la texture n'apparaît que là où la face colorée est dessinée |
-| Textures animées (`nbframes` > 1 : les images les unes sous les autres, `RSImage::GetNextFrame` toutes les 10 images d'affichage) | Matériau `frames` et `framesPerSecond` (6 par seconde, soit 10 images à 60 Hz) : le shader choisit l'image avec `Environment::time`, le filtrage reste dans l'image |
-| Passe transparente : propriété 2, couleur `color − 1`, `glBlendFunc(GL_ONE, GL_ONE)` | `AlphaMode::ADDITIVE`, palette sans rampe (couleur × intensité) |
+| Axes: Y up (`entity->vertices`) | Z up: (x, y, z) becomes (x, −z, y), a rotation of 90° |
+| Faces clockwise (`glFrontFace(GL_CW)`) | Order reversed (a, c, b): R4nkine expects counterclockwise |
+| Normals `(a − b) × (c − b)`, smoothed as `objectNormals` (a quad counts as two triangles) | Same calculation, after the change of axes |
+| `lods` (LVL0, LVL1...) and `attrs` (T/Q/L) | A `NodeKind::LOD` node, with a child for each level; `lodRanges` = [0, dist1, dist2, ..., ∞] |
+| Color pass: triangle `color`, quad `color − 1` | Material `Shading::PALETTE_RAMP`; the index is in the red of the vertex color |
+| Lighting (ambient 3/8, light 5/8, `shadeAlongRamp`) | Image 256 × 32 (`rampImage`): line k = intensity k/31 |
+| Double face: `flags[2] == 1` (triangle), `attrs->props2 == 1` (quad) | `doubleSided`, else back face culled as in the game |
+| Textures (`uvs`, `qmapuvs`, `images`) | RGBA images through the palette, index 255 transparent; `GL_LINEAR` without mipmaps and clamped edges (`Image::mipmaps = false`, `clampS/T`), as `createTextureInGPU` |
+| Texture pass: blend `SRC_ALPHA, ONE_MINUS_SRC_ALPHA` and alpha test `> 0.1` | `AlphaMode::BLEND` with `alphaTest = 0.1` |
+| Property 6 or 9: the texture is the face (`GL_LESS`, depth written) | Material `rampTextured`, `blendDepthWrite` |
+| Other textured faces: on the colored face (`GL_EQUAL`, depth not written) | `depthEqual`, `depthWrite = false`: the texture appears only where the colored face is drawn |
+| Animated textures (`nbframes` > 1: the images one below the other, `RSImage::GetNextFrame` each 10 display frames) | Material `frames` and `framesPerSecond` (6 per second, thus 10 frames at 60 Hz): the shader selects the image with `Environment::time`, the filter stays in the image |
+| Transparent pass: property 2, color `color − 1`, `glBlendFunc(GL_ONE, GL_ONE)` | `AlphaMode::ADDITIVE`, palette without ramp (color × intensity) |
 
-La lumière se règle avec `r4bridge::Lighting` ou avec les curseurs Ambient et Light du viewer.
+Set the light with `r4bridge::Lighting` or with the Ambient and Light sliders of the viewer.
 
-Pour afficher un objet ailleurs que dans le viewer, par exemple dans un futur `SCRenderer` sur R4nkine :
+To show an object in another program than the viewer, for example in a future `SCRenderer` on R4nkine:
 
 ```cpp
-RSEntity *entity = ...;                       // déjà chargé par libRealSpace
+RSEntity *entity = ...;                       // already loaded by libRealSpace
 auto model = r4bridge::toModel(entity, *palette.GetColorPalette(), palette.ranges);
 r4::scene::NodePtr node = renderer.upload(*model);
-someGroup->addChild(node);                    // et le renderer s'en occupe
+someGroup->addChild(node);                    // and the renderer does the rest
 ```
 
-## Les missions : un seul changement de repère
+## The missions: one change of axes only
 
-Une mission reste entièrement dans le repère de libRealSpace (Y en haut) :
-- le terrain : `terrainModel` reprend les sommets de `RSArea` tels quels ;
-- les objets : `toModel(..., Axes::REAL_SPACE)` ;
-- leurs matrices : `mapObjectMatrix` et `missionPartMatrix` reprennent les `glTranslate`, `glRotate` et `glMultMatrix` de `SCRenderer`.
+A mission stays fully in the axes of libRealSpace (Y up):
+- the terrain: `terrainModel` uses the vertices of `RSArea` as they are;
+- the objects: `toModel(..., Axes::REAL_SPACE)`;
+- their matrices: `mapObjectMatrix` and `missionPartMatrix` use the `glTranslate`, `glRotate` and `glMultMatrix` of `SCRenderer`.
 
-Une seule matrice, `r4bridge::realSpaceToR4()`, posée à la racine de la scène, passe dans le repère de R4nkine (Z en haut). C'est la frontière unique entre les deux conventions : physique, IA et mission n'ont rien à convertir.
+One matrix, `r4bridge::realSpaceToR4()`, at the root of the scene, goes into the axes of R4nkine (Z up). It is the only border between the two conventions: physics, AI and mission have nothing to convert.
 
-Pour la lumière du monde, `setObjectLight` reçoit (c0, c1, c2) et en fait (c0, c2, −c1) en Y up. Ramenée dans le repère de R4nkine, elle redevient (c0, c1, c2), c'est-à-dire les valeurs du fichier telles quelles.
+For the light of the world, `setObjectLight` receives (c0, c1, c2) and makes (c0, c2, −c1) in Y up. Back in the axes of R4nkine, it becomes (c0, c1, c2) again, that is, the values of the file as they are.
 
-Le terrain (`WorldScene` et `R4World`) :
-- **Un nœud par bloc** : un `Group` « terrain » contient les 324 blocs (« block x,y »). Chacun est un nœud `LOD` sur les trois niveaux de `RSArea` (LVL0 400 sommets, LVL1 100, LVL2 25), avec ses jointures vers ses voisins de droite et du bas, comme `renderBlock`. Le renderer élimine donc les blocs hors du champ et choisit le niveau de chacun selon sa distance : fin jusqu'à 40 000, grossier au-delà de 100 000, réglable avec « LOD Scale ». Le jeu, lui, dessine tous ses blocs au même niveau (`world_detail`). Le menu « Terrain Detail » propose les deux : « By Distance », ou un niveau forcé partout.
-- **Les ombres des arbres** : le nœud des forêts a le masque `WorldScene::kForestMask` (le bit 31). Sans **Tree Shadows** (dans la section Sun ; `-treeshadows` au départ), le viewer retire ce bit de `RenderOptions::shadowMask` : la passe d'ombre saute toute la branche des forêts, sans parcourir les arbres. Sur NICARAGA, les objets qui projettent une ombre passent de 304 à 4, et leur temps CPU de 0,26 à 0,05 ms.
-- **Les parts amenées par une scène** (placement 1) sont placées comme `SCMission::placeRelativeToPlayer` les place par rapport au joueur, mais par rapport au centre de la zone de la scène, cap au nord : position = centre de la zone + `relative_position`, cap = `relative_azymuth`. Les avions ont donc l'altitude de la zone plus leur décalage, au lieu des 4 000 fixes d'avant ; ils sont ensuite remontés s'ils sont sous le sol.
-- **La sélection dans le graphe** montre la sphère de culling du nœud (trois cercles jaunes) et sa boîte englobante (violette, dans l'espace du parent : les boîtes des meshes des Geodes, les sphères des Instancers), tant que la section Scene Graph est ouverte.
-- **Les objets posés sur le terrain** : `r4bridge::onGround(area, entity, matrix, flies)` déplace un objet pour que le plus bas de ses sommets, une fois tourné par sa matrice, soit sur le sol à son origine ; un objet qui vole n'est que remonté s'il est dessous. La hauteur du sol vient de `r4bridge::groundHeight`, calculée sur les triangles LVL0 tels que `terrainModel` les dessine. `RSArea::getY` n'est pas utilisé ici : il prend le sommet le plus proche puis interpole dans la cellule qui part de ce sommet, même quand le point est de l'autre côté, et ajoute 5 au bord des blocs ; sur ARENAMIS, il donnait des écarts jusqu'à 86 unités, d'où des chars qui flottaient. Avec le calcul exact, les objets d'ARENAMIS bougent de -3 à +7 unités. Le viewer l'applique aux objets de la carte et aux parts de la mission (toggle **On Ground** du panneau World, actif par défaut ; `-nolift` garde la hauteur des données). Un avion de la mission vole quand il est à plus de 10 au-dessus du sol après `placeParts`. Un objet hors de la carte n'est pas touché. Le sol est mesuré à l'origine de l'objet et sur LVL0 : de loin, sur LVL1 et LVL2, un objet peut paraître un peu au-dessus ou dans le terrain.
-- **Un atlas des textures du terrain** : toutes les images posées sur la carte (TXMPACK, ACCPACK ou les textures propres à la carte) sont rangées dans une seule image d'index de palette, en grille de cases égales (la case fait la taille de la plus grande image). Chaque image garde sa taille dans sa case, sans être agrandie. Il n'y a donc qu'un seul matériau texturé pour tout le terrain. Chaque sommet porte le numéro de sa case dans le vert et le bleu de sa couleur, et le log2 de la largeur et de la hauteur de son image dans son alpha. Le shader borne le filtrage bilinéaire à l'image dans sa case, donc rien ne déborde d'une case à l'autre. Le rendu est le même qu'avec une texture par image, mais un bloc ou un groupe du quadtree ne coûte plus que deux draw calls (couleurs et textures) : sur TURKEY, de 66 à 50 à 30 km, de 100 à 49 à 150 km, de 92 à 75 à 400 km, et de 62 changements de texture à 6. Avec `-upscale 3` (xBR 4x), les cases de 128 texels passent à 512 et l'atlas de TURKEY fait 4096², la taille maximale garantie par beaucoup de GPU.
-- **Un quadtree sur les blocs** : les blocs sont groupés par 2×2, 4×4… jusqu'à 32×32 (la carte en fait 18×18). Chaque groupe est un nœud `LOD` à deux enfants. De près, il montre ses quatre enfants, que le renderer élimine par leurs bornes. Dès que tous ses blocs sont de toute façon au niveau le plus grossier (la distance de son centre dépasse le début de LVL2 plus l'écart entre ce centre et le centre de son bloc le plus éloigné), il montre un mesh fusionné par matériau des LVL2 de ses blocs, bandes de raccord comprises. L'image ne change pas, mais les draw calls baissent : sur TURKEY, de 126 à 66 à 30 km, de 215 à 100 à 150 km et de 634 à 92 à 400 km. Le centre des LOD des blocs est celui de leurs sommets LVL0. « Terrain Detail » force les groupes à montrer leurs blocs pour Fine et Medium, et leurs meshes fusionnés pour Coarse.
-- **Hors de la carte**, le terrain continue jusqu'au bord du monde (deux fois la taille de la carte de chaque côté, comme les jupes de `RSArea::BuildSkirts`). libRealSpace n'a pas de données au-delà de la carte : le bord de la carte est prolongé, ses hauteurs et ses couleurs lissées le long du bord, puis il s'efface sur 150 km vers la hauteur 0 et la couleur moyenne du bord (en `-lit`, vers le type de terrain le plus fréquent du bord, ombré sur sa rampe comme la carte).
-  - Une **bande de raccord** de 20 km entoure la carte. Chaque bloc du bord porte la sienne dans chacun de ses niveaux de détail : elle part des sommets du bord de ce niveau (LVL1 et LVL2 s'arrêtent avant LVL0 sur les bords droit et bas) et change de niveau avec le bloc, sans fente. Elle utilise le matériau du terrain, donc aucun draw call en plus.
-  - Puis **deux anneaux de tuiles** : le premier jusqu'à 360 km du centre, en cellules de 20 km ; le second jusqu'au bord du monde (720 km), plat, une cellule par tuile. Chaque anneau compte 12 tuiles, chacune un nœud avec ses bornes et un seul mesh : le renderer élimine celles hors du champ, et il y a au plus 24 draw calls pour tout l'extérieur.
-  - Le **brouillard**, de la couleur du ciel, commence 120 km et finit 450 km au-delà de la cible (réglables dans le panneau, `-nofog` pour l'enlever). Le plan lointain s'arrête juste après le brouillard, ce qui garde la précision du depth buffer ; sans brouillard, il passe à 1 500 km. « Whole Map » cadre la carte seule.
-- **Les couleurs** sont celles des rampes de `RSArea` (`ComputeTriangleColors`). Leurs ombres dépendent de `terrain_shadow_lift` et `terrain_shadow_range` du `config.ini` du jeu : le viewer le lit dans `-data` (`config.ini` ou `assets/config.ini`) ou dans `./assets/config.ini`, et prend les valeurs par défaut sinon.
-- **Des jupes** : des murs de 600 descendent le long des bords de chaque bloc, pour qu'un voisin à un autre niveau ne laisse pas de fente. Le jeu n'en a pas besoin.
-- **Les couleurs** viennent de `RSArea` et ne sont pas éclairées, comme dans le jeu. Les textures sont une couche en `Blend` par-dessus la couleur, bornée aux bords. Leurs texels sont des index de palette ombrés le long de leur rampe, comme les sommets : l'intensité de chaque sommet est sa lumière (`flag` / 255, moyennée avec `terrain_flat`), ou le soleil avec **Lit Terrain**. Une texture garde donc le ton de son voisinage à l'ombre, sans halo autour des zones texturées. L'index le plus sombre d'une rampe reste lui-même (`RampFirst::ITSELF`), alors que pour les faces des objets il désigne toute la rampe. Le filtrage bilinéaire est fait dans le shader après l'ombrage ; avec `-upscale`, l'image agrandie est ramenée aux index qu'elle utilise. Le relèvement des ombres de `terrain_shadow_lift` ne s'applique qu'aux couleurs des sommets. Elles sont dans **la palette du jeu** (PALETTE.IFF), index 255 transparent. Attention : la palette propre à chaque `RSImage` est celle de `SCRenderer`, qui reste vide tant que `SCRenderer::init` n'a pas été appelé. Le pont ne l'utilise donc pas.
-- **Les overlays** (les pistes et leur sol, `objectOverlay`) : comme `renderMapOverlay`.
-  - Un mesh par overlay, ses triangles dans l'ordre de `drawList`, dessinés après le terrain (`drawOrder` 1) et sans écrire la profondeur. Chaque triangle recouvre donc les précédents, comme le `GL_LEQUAL` du jeu, sans surélévation.
-  - Un triangle à la couleur 255 prend sa couleur de palette ; les autres prennent l'image `GetImageByID(color + 255)`, avec les UV / 128. Leurs pixels transparents prennent la couleur de palette du triangle, comme sous `GL_DECAL`.
-  - Les images sont réunies dans un atlas, avec des bords répétés (le `GL_CLAMP_TO_EDGE` du jeu).
-- **Les forêts** (`forestChunks`, `plantForest` et `treeModel` dans R4World). RSArea n'a pas d'arbres : le jeu en peint seulement dans quelques textures (217 sur TURKEY). Le pont en génère sur le vert.
-  Deux sources, au choix (menu **Forest Source**, `-woods 0|1`) :
-  - **Green Terrain + Noise** (`ForestMode::NOISE`, par défaut) : le vert du terrain et un bruit, décrits ci-dessous.
-  - **Woods of the Textures** (`ForestMode::TEXTURES`) : un arbre sur les bois peints dans les textures du jeu, comme pour les bâtiments.
-    - **Texels d'arbre** : vert foncé, et pas un aplat (leurs voisins varient), car les arbres dessinés sont ombrés alors qu'un aplat de jungle est uni.
-    - **Textures retenues** : celles qui ont au moins 8 % de texels d'arbre, soit les bois, les vergers, les bosquets des villages et des parcs, et les buissons des cratères. Les rangs de culture des champs (232, 233) sont écartés.
-    - **Densité** : un arbre par 400 de surface, les couronnes se touchent. Les arbres sont posés par les UV de chaque triangle.
-    - **Comparaison** :
+The terrain (`WorldScene` and `R4World`):
+- **A node for each block**: a `Group` "terrain" contains the 324 blocks ("block x,y"). Each is a `LOD` node on the three levels of `RSArea` (LVL0 400 vertices, LVL1 100, LVL2 25), with its seams to its right and bottom neighbors, as `renderBlock`. Thus the renderer culls the blocks out of the view and selects the level of each by its distance: fine up to 40,000, coarse beyond 100,000, set with "LOD Scale". The game draws all its blocks at the same level (`world_detail`). The "Terrain Detail" menu has the two: "By Distance", or one level for all.
+- **The shadows of the trees**: the node of the forests has the mask `WorldScene::kForestMask` (bit 31). Without **Tree Shadows** (in the Sun section; `-treeshadows` at the start), the viewer removes this bit from `RenderOptions::shadowMask`: the shadow pass skips all the branch of the forests and does not go through the trees. On NICARAGA, the objects that cast a shadow go from 304 to 4, and their CPU time from 0.26 to 0.05 ms.
+- **The parts that a scene adds** (placement 1) are placed as `SCMission::placeRelativeToPlayer` places them relative to the player, but relative to the center of the area of the scene, heading north: position = center of the area + `relative_position`, heading = `relative_azymuth`. Thus the planes have the altitude of the area plus their offset, not the fixed 4,000 of before; then they are raised if they are below the ground.
+- **The selection in the graph** shows the culling sphere of the node (three yellow circles) and its bounding box (purple, in the space of the parent: the boxes of the meshes of the Geodes, the spheres of the Instancers), while the Scene Graph section is open.
+- **The objects put on the terrain**: `r4bridge::onGround(area, entity, matrix, flies)` moves an object so that its lowest vertex, turned by its matrix, is on the ground at its origin; an object that flies is only raised if it is below. The height of the ground comes from `r4bridge::groundHeight`, calculated on the LVL0 triangles as `terrainModel` draws them. `RSArea::getY` is not used here: it takes the nearest vertex, then interpolates in the cell that starts at this vertex, also when the point is on the other side, and adds 5 at the edge of the blocks; on ARENAMIS, its errors were up to 86 units, thus tanks floated. With the exact calculation, the objects of ARENAMIS move from -3 to +7 units. The viewer applies it to the map objects and to the parts of the mission (toggle **On Ground** of the World panel, on by default; `-nolift` keeps the height of the data). A plane of the mission flies when it is more than 10 above the ground after `placeParts`. An object out of the map does not move. The ground is measured at the origin of the object and on LVL0: from far, on LVL1 and LVL2, an object can look a little above the terrain or in it.
+- **An atlas of the terrain textures**: all the images on the map (TXMPACK, ACCPACK or the textures of the map) are in one image of palette indices, in a grid of equal cells (the cell has the size of the largest image). Each image keeps its size in its cell, and is not made larger. Thus there is only one textured material for all the terrain. Each vertex has the number of its cell in the green and the blue of its color, and the log2 of the width and of the height of its image in its alpha. The shader keeps the bilinear filter in the image of the cell, thus nothing goes from a cell into another. The result is the same as with one texture for each image, but a block or a group of the quadtree costs only two draw calls (colors and textures): on TURKEY, from 66 to 50 at 30 km, from 100 to 49 at 150 km, from 92 to 75 at 400 km, and from 62 texture changes to 6. With `-upscale 3` (xBR 4x), the cells of 128 texels become 512 and the atlas of TURKEY is 4096², the maximum size that many GPUs guarantee.
+- **A quadtree on the blocks**: the blocks are grouped by 2×2, 4×4... up to 32×32 (the map has 18×18). Each group is a `LOD` node with two children. Near, it shows its four children, which the renderer culls by their bounds. When all its blocks are at the coarsest level in all cases (the distance of its center is more than the start of LVL2 plus the distance between this center and the center of its farthest block), it shows one merged mesh for each material of the LVL2 of its blocks, seam bands included. The image does not change, but there are fewer draw calls: on TURKEY, from 126 to 66 at 30 km, from 215 to 100 at 150 km and from 634 to 92 at 400 km. The center of the LODs of the blocks is the center of their LVL0 vertices. "Terrain Detail" makes the groups show their blocks for Fine and Medium, and their merged meshes for Coarse.
+- **Out of the map**, the terrain continues to the edge of the world (two times the size of the map on each side, as the skirts of `RSArea::BuildSkirts`). libRealSpace has no data beyond the map: the edge of the map is extended, its heights and its colors smoothed along the edge, then it fades on 150 km to the height 0 and to the average color of the edge (with `-lit`, to the most frequent terrain type of the edge, shaded on its ramp as the map).
+  - A **seam band** of 20 km is around the map. Each block of the edge has its band in each of its levels of detail: the band starts at the edge vertices of this level (LVL1 and LVL2 stop before LVL0 on the right and bottom edges) and changes level with the block, with no gap. It uses the material of the terrain, thus there is no more draw call.
+  - Then **two rings of tiles**: the first up to 360 km from the center, in cells of 20 km; the second up to the edge of the world (720 km), flat, one cell for each tile. Each ring has 12 tiles, each a node with its bounds and one mesh: the renderer culls the tiles out of the view, and there are at most 24 draw calls for all the outside.
+  - The **fog**, in the color of the sky, starts 120 km and ends 450 km beyond the target (set in the panel, `-nofog` to remove it). The far plane stops just after the fog, which keeps the precision of the depth buffer; without fog, it goes to 1,500 km. "Whole Map" frames the map only.
+- **The colors** are those of the ramps of `RSArea` (`ComputeTriangleColors`). Their shades depend on `terrain_shadow_lift` and `terrain_shadow_range` of the `config.ini` of the game: the viewer reads it in `-data` (`config.ini` or `assets/config.ini`) or in `./assets/config.ini`, else it uses the default values.
+- **Skirts**: walls of 600 go down along the edges of each block, so that a neighbor at another level leaves no gap. The game does not need them.
+- **The colors** come from `RSArea` and are not lit, as in the game. The textures are a `Blend` layer over the color, clamped at the edges. Their texels are palette indices shaded along their ramp, as the vertices: the intensity of each vertex is its light (`flag` / 255, averaged with `terrain_flat`), or the sun with **Lit Terrain**. Thus a texture keeps the shade of what is near it in the shadow, with no halo around the textured zones. The darkest index of a ramp stays itself (`RampFirst::ITSELF`), but for the faces of the objects it is all the ramp. The bilinear filter is done in the shader after the shading; with `-upscale`, the larger image goes back to the indices that it uses. The lift of the shadows of `terrain_shadow_lift` applies only to the colors of the vertices. They are in **the palette of the game** (PALETTE.IFF), index 255 transparent. Caution: the palette of each `RSImage` is the palette of `SCRenderer`, which stays empty until `SCRenderer::init` is called. Thus the bridge does not use it.
+- **The overlays** (the runways and their ground, `objectOverlay`): as `renderMapOverlay`.
+  - One mesh for each overlay, its triangles in the order of `drawList`, drawn after the terrain (`drawOrder` 1) and without depth write. Thus each triangle covers the triangles before it, as the `GL_LEQUAL` of the game, with no offset.
+  - A triangle with the color 255 takes its palette color; the others take the image `GetImageByID(color + 255)`, with the UVs / 128. Their transparent pixels take the palette color of the triangle, as with `GL_DECAL`.
+  - The images are in an atlas, with repeated edges (the `GL_CLAMP_TO_EDGE` of the game).
+- **The forests** (`forestChunks`, `plantForest` and `treeModel` in R4World). RSArea has no trees: the game paints them only in some textures (217 on TURKEY). The bridge makes trees on the green.
+  Two sources, to select (menu **Forest Source**, `-woods 0|1`):
+  - **Green Terrain + Noise** (`ForestMode::NOISE`, by default): the green of the terrain and a noise, described below.
+  - **Woods of the Textures** (`ForestMode::TEXTURES`): a tree on the woods painted in the textures of the game, as for the buildings.
+    - **Tree texels**: dark green, and not a flat area (their neighbors change), because the drawn trees are shaded, but a flat area of jungle has one color.
+    - **Textures kept**: those with at least 8 % of tree texels, that is, the woods, the orchards, the groves of the villages and of the parks, and the bushes of the craters. The rows of the fields (232, 233) are not kept.
+    - **Density**: one tree for each 400 of surface, the crowns touch. The trees are placed through the UVs of each triangle.
+    - **Comparison**:
 
-      | Carte | Noise | Textures |
+      | Map | Noise | Textures |
       |---|---|---|
-      | NICARAGA | 11,2 M arbres, 2,4 s | 3,8 M arbres, 0,5 s |
-      | TURKEY | 2,1 M arbres, 1,2 s | 70 000 arbres, 0,3 s |
-      | MAURITAN | 2,5 M arbres, 1,4 s | 139 000 arbres, 0,4 s |
+      | NICARAGA | 11.2 M trees, 2.4 s | 3.8 M trees, 0.5 s |
+      | TURKEY | 2.1 M trees, 1.2 s | 70,000 trees, 0.3 s |
+      | MAURITAN | 2.5 M trees, 1.4 s | 139,000 trees, 0.4 s |
 
-  Le reste ci-dessous vaut pour les deux sources (modèles, graphe, chargement).
-  - **Où** : les triangles de LVL0 de type 3 (la rampe verte de la palette) ou de type 4 (la jungle, rampe verte foncée à partir de 128), sans sommet d'eau. Le type est celui du sommet le plus haut, comme dans `RSArea`. Les cellules de la ville et du port (224, 225, 229, 231) restent nues.
-  - **La jungle** (NICARAGA) : des bois sur la plus grande partie, mais moins denses (×0,4), et presque seulement des feuillus, dans la rampe verte foncée de leur sol.
-  - **Densité** : un bruit de quelques km fait des bois, jusqu'à 750 arbres/km² en leur cœur, et des arbres isolés entre eux. Sous les textures de bois (216 et 217), la densité est fixe. Il n'y a pas d'arbre près des pistes ni des objets de la carte et de la mission.
-  - **Les mêmes arbres à chaque chargement** : le tirage est calé sur la cellule.
-  - **Les modèles** : deux essences en low poly, à faces plates, dans les rampes de la palette (PaletteRamp) :
-    - un conifère, plus fréquent en altitude ;
-    - un feuillu.
+  The rest below applies to the two sources (models, graph, load).
+  - **Where**: the LVL0 triangles of type 3 (the green ramp of the palette) or of type 4 (the jungle, dark green ramp from 128), with no water vertex. The type is the type of the highest vertex, as in `RSArea`. The cells of the city and of the harbor (224, 225, 229, 231) stay empty.
+  - **The jungle** (NICARAGA): woods on the largest part, but less dense (×0.4), and almost only broadleaf trees, in the dark green ramp of their ground.
+  - **Density**: a noise of some km makes the woods, up to 750 trees/km² at their center, and single trees between them. Below the wood textures (216 and 217), the density is fixed. There is no tree near the runways and near the map and mission objects.
+  - **The same trees at each load**: the random values come from the cell.
+  - **The models**: two low poly species, with flat faces, in the ramps of the palette (PaletteRamp):
+    - a conifer, more frequent at altitude;
+    - a broadleaf tree.
 
-    Chacune a une version détaillée jusqu'à 1 500 et une version simple (pyramide, octaèdre) jusqu'à 6 000.
-  - **Le graphe** : la carte est découpée en carrés de 5 km, chacun un nœud `LOD` coupé au-delà de 6 000 avec un `Instancer` par essence. Le renderer cule chaque arbre et choisit son niveau ; les arbres projettent leur ombre.
-  - **Tout au chargement**, en `Placement` compactes de R4nkine (24 octets par arbre) :
-    - TURKEY : environ 2,1 millions d'arbres, 50 Mo, plantés en environ 1 s ;
-    - NICARAGA : environ 11 millions d'arbres, 270 Mo, plantés en environ 1,5 s.
+    Each has a detailed version up to 1,500 and a simple version (pyramid, octahedron) up to 6,000.
+  - **The graph**: the map is cut into squares of 5 km, each a `LOD` node cut beyond 6,000 with an `Instancer` for each species. The renderer culls each tree and selects its level; the trees cast their shadow.
+  - **All at the load**, in compact R4nkine `Placement` values (24 bytes for each tree):
+    - TURKEY: approximately 2.1 million trees, 50 MB, planted in approximately 1 s;
+    - NICARAGA: approximately 11 million trees, 270 MB, planted in approximately 1.5 s.
 
-    Seuls les arbres visités par le renderer reçoivent une matrice. Pendant le vol, les carrés hors du champ ou au-delà de 6 km sont écartés d'un bloc par leur nœud `LOD`.
-- **Les villes, villages, fermes et ports** (`cityModel` dans R4World ; couche **Buildings** du viewer). Les textures du jeu (TXMPACK) sont les mêmes sur toutes les cartes. Sur chaque cellule dont la texture montre des bâtiments, des immeubles sont posés sur ce que l'image montre :
-  - **relevés à la main** sur les images (`kBuildings`, 143 bâtiments) :
-    - les deux centres-villes (229, 230) ;
-    - le port (223 à 228, en morceaux qui ne couvrent chacun que la moitié d'une cellule) ;
-    - la ferme (233) ;
-    - les villages sur herbe (248, 249) et sur sable (250, 251) ; ces derniers sont sur TURKEY ;
-  - **trouvées sur l'image** : les maisons (231), à leurs toits gris clair. Les maisons dessinées seulement en contour restent à plat.
+    Only the trees that the renderer visits get a matrix. During the flight, their `LOD` node removes in one block the squares out of the view or beyond 6 km.
+- **The cities, villages, farms and harbors** (`cityModel` in R4World; **Buildings** layer of the viewer). The textures of the game (TXMPACK) are the same on all the maps. On each cell whose texture shows buildings, buildings are put on what the image shows:
+  - **found by hand** on the images (`kBuildings`, 143 buildings):
+    - the two city centers (229, 230);
+    - the harbor (223 to 228, in parts that each cover only half of a cell);
+    - the farm (233);
+    - the villages on grass (248, 249) and on sand (250, 251); the last are on TURKEY;
+  - **found in the image**: the houses (231), by their light grey roofs. The houses drawn only as an outline stay flat.
 
-  Le passage d'un texel de l'image au sol se fait par les UV de chaque triangle, ceux que `RSArea` donne : l'image entière sur la cellule, ou une moitié d'image sur un triangle pour les textures 64 × 64 du port.
+  A texel of the image goes to the ground through the UVs of each triangle, those that `RSArea` gives: the full image on the cell, or half of an image on a triangle for the 64 × 64 textures of the harbor.
 
-  **Rendu** :
-  - **toit** : l'image elle-même, donc vue de haut la carte reste la texture ;
-  - **murs** : des façades faites par le pont (bureaux à fenêtres, maisons, bardage des hangars), sur des étages de 8 ;
-  - **éclairage** : par le soleil comme les objets, et ils projettent leur ombre.
+  **Rendering**:
+  - **roof**: the image itself, thus from above the map stays the texture;
+  - **walls**: facades made by the bridge (offices with windows, houses, cladding of the hangars), on floors of 8;
+  - **lighting**: by the sun as the objects, and they cast their shadow.
 
-  **Aucun bâtiment sur un objet de la carte ou de la mission** : un bâtiment dont l'emprise touche le rayon d'un objet n'est pas posé. Par exemple, les deux silos d'un village de TURKEY laissent la place à l'objet de la carte posé à cet endroit.
+  **No building on a map object or on a mission object**: a building whose footprint touches the radius of an object is not put. For example, the two silos of a village of TURKEY leave the place to the map object at this position.
 
-  Un nœud par cellule (« city x,y »). NICARAGA en compte environ 2 200, TURKEY 136. `-diag` écrit aussi toutes les textures du jeu (`all_<id>.ppm`), utilisées ou non.
-- **Pas encore fait** : le ciel, les nuages et le brouillard.
+  One node for each cell ("city x,y"). NICARAGA has approximately 2,200, TURKEY 136. `-diag` also writes all the textures of the game (`all_<id>.ppm`), used or not.
+- **Not done yet**: the sky, the clouds and the fog.
 
-Le placement des parts reprend `SCMission::loadMission` et `SCMissionScene::spawnCast` :
-- **Le joueur** : sa position plus celle de la zone de la mission qu'il nomme.
-- **Les autres parts** apparaissent avec la première scène dont le `cast` les contient (le `cast` donne l'index de la part dans la liste) :
-  - avec `placement` 0, elles sont placées dans leur zone (position plus `areas[area_id]->position`) ;
-  - avec `placement` 1, le jeu les place par rapport au joueur au moment où la scène s'active (`placeRelativeToPlayer`). Le viewer les met au centre de la zone de la scène, à 4000 d'altitude pour un avion (`EntityType::jet`).
-- **Ensuite**, une part sous le sol est posée dessus (`RSArea::getY`), et un avion à moins de 10 du sol aussi.
-- **Une part placée dans le repère du monde** (`area_id` 255, `placement` 0) reste telle quelle.
+The placement of the parts follows `SCMission::loadMission` and `SCMissionScene::spawnCast`:
+- **The player**: its position plus the position of the area of the mission that it names.
+- **The other parts** appear with the first scene whose `cast` contains them (the `cast` gives the index of the part in the list):
+  - with `placement` 0, they are placed in their area (position plus `areas[area_id]->position`);
+  - with `placement` 1, the game places them relative to the player when the scene is activated (`placeRelativeToPlayer`). The viewer puts them at the center of the area of the scene, at an altitude of 4000 for a plane (`EntityType::jet`).
+- **Then**, a part below the ground is put on it (`RSArea::getY`), and a plane less than 10 above the ground also.
+- **A part placed in the axes of the world** (`area_id` 255, `placement` 0) stays as it is.
 
-## Testé
+## Tested
 
-- Mode Missions : testé avec `TURKEY.PAK` sur les mondes TURKEY et TURKEY22 :
-  - 257 762 triangles de terrain, 22 textures et 44 objets de carte ;
-  - environ 0,3 s de chargement ;
-  - les objets sont posés sur le terrain.
+- Missions mode: tested with `TURKEY.PAK` on the worlds TURKEY and TURKEY22:
+  - 257,762 terrain triangles, 22 textures and 44 map objects;
+  - approximately 0.3 s of load;
+  - the objects are on the terrain.
 
-  Aucune mission de TOBIGTRE.TRE n'utilise la Turquie.
-- Avec `BIGTRE.TRE` (Strike Commander, textures du terrain prises dans TOBIGTRE.TRE), `MAURITAN.PAK` et `TURKEY.PAK`, on obtient 11 missions et mondes : MISN-1A à 2A, 12A/B, 14A/B, MAURITAN, TURKEY et TURKEY2.
-  - MISN-1A : 31 objets de carte et 9 parts.
-  - Nouakchott, avec son centre-ville, ses maisons et son port, et 28 fermes autour ; 3 074 bâtiments en tout.
-  - 2,5 millions d'arbres, plantés en environ 1,4 s.
-  - Les forêts sont en carrés de 2 km groupés par bloc : la culture passe de 23 à 5 ms sur cette carte.
-- Avec `SYRIA.PAK`, MISN-A1 (la première mission de Tactical Operations) montre :
-  - les deux pistes (236 triangles d'overlay) ;
-  - les 41 parts réparties dans 10 scènes, plus 8 sans scène ;
-  - la base d'attaque (scène 0) et la base d'entraînement (scène 6), posées au sol à côté de leurs pistes.
-- Testé sur Linux (GCC 13) avec une copie de libRealSpace et R4nkine `6af0d4b`. Les données venaient de `TOBIGTRE.TRE`.
-- 342 objets listés. Rendu vérifié sur F-16DES, A-10 (verrière), 747, CARRIERW et T-72.
-- R4nkine doit être au moins à `6af0d4b` (le mode `AlphaMode::ADDITIVE`, ajouté pour les verrières).
-- Les objets sans géométrie (les obus `20MM`…) s'affichent vides, c'est normal.
-- T-72 : les bandes derrière les chenilles sont les faces `TRAX` (propriété 9, `flags[1] = 255`), des traces au sol que `SCRenderer` dessine aussi. Si on veut les cacher, c'est probablement `flags[1] == 255` qui les distingue.
+  No mission of TOBIGTRE.TRE uses Turkey.
+- With `BIGTRE.TRE` (Strike Commander, terrain textures from TOBIGTRE.TRE), `MAURITAN.PAK` and `TURKEY.PAK`, there are 11 missions and worlds: MISN-1A to 2A, 12A/B, 14A/B, MAURITAN, TURKEY and TURKEY2.
+  - MISN-1A: 31 map objects and 9 parts.
+  - Nouakchott, with its city center, its houses and its harbor, and 28 farms around it; 3,074 buildings in all.
+  - 2.5 million trees, planted in approximately 1.4 s.
+  - The forests are in squares of 2 km grouped by block: the cull goes from 23 to 5 ms on this map.
+- With `SYRIA.PAK`, MISN-A1 (the first mission of Tactical Operations) shows:
+  - the two runways (236 overlay triangles);
+  - the 41 parts in 10 scenes, plus 8 with no scene;
+  - the attack base (scene 0) and the training base (scene 6), on the ground near their runways.
+- Tested on Linux (GCC 13) with a copy of libRealSpace and R4nkine `6af0d4b`. The data came from `TOBIGTRE.TRE`.
+- 342 objects listed. Rendering checked on F-16DES, A-10 (canopy), 747, CARRIERW and T-72.
+- R4nkine must be at least at `6af0d4b` (the `AlphaMode::ADDITIVE` mode, added for the canopies).
+- The objects with no geometry (the `20MM` shells...) are empty, which is normal.
+- T-72: the bands behind the tracks are the `TRAX` faces (property 9, `flags[1] = 255`), marks on the ground that `SCRenderer` also draws. To hide them, `flags[1] == 255` is probably what identifies them.
