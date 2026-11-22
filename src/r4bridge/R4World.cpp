@@ -137,9 +137,9 @@ r4::assets::Image indexTexture(const RSImage &src, const VGAPalette &palette) {
 // the land outside the map: a collar of one block around it, joined to the border of each level, then two rings of tiles to the edge of the world
 constexpr float kMapHalf = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE / 2.0f;
 constexpr float kCollarEdge = kMapHalf + BLOCK_WIDTH;
-constexpr float kInnerRingEdge = kMapHalf * 2;
-constexpr float kWorldEdge = kMapHalf * 4;
-constexpr float kFade = kMapHalf * 5 / 6;
+constexpr float kInnerRingEdge = kMapHalf * 2.0f;
+constexpr float kWorldEdge = kMapHalf * 4.0f;
+constexpr float kFade = kMapHalf * 5.0f / 6.0f;
 
 // the LVL0 border of the map, its heights and colors smoothed along it as RSArea::BuildSkirts does
 struct Border {
@@ -147,15 +147,15 @@ struct Border {
     std::vector<float> height;
     std::vector<r4::Vec3> color;
     std::vector<uint8_t> type;
-    r4::Vec3 meanColor{0, 0, 0};
+    r4::Vec3 meanColor{0.0f, 0.0f, 0.0f};
     uint8_t mainType = 0;
-    r4::Vec2 min{0, 0};
-    r4::Vec2 max{0, 0};
+    r4::Vec2 min{0.0f, 0.0f};
+    r4::Vec2 max{0.0f, 0.0f};
 };
 
 struct Outside {
-    float height = 0;
-    r4::Vec3 color{0, 0, 0};
+    float height = 0.0f;
+    r4::Vec3 color{0.0f, 0.0f, 0.0f};
     uint8_t type = 0;
 };
 
@@ -188,8 +188,8 @@ Border mapBorder(RSArea *area) {
     const int halfWidth = 8;
     std::map<uint8_t, int> typeCount;
     for (size_t i = 0; i < m; i++) {
-        float height = 0;
-        r4::Vec3 color{0, 0, 0};
+        float height = 0.0f;
+        r4::Vec3 color{0.0f, 0.0f, 0.0f};
         for (int k = -halfWidth; k <= halfWidth; k++) {
             const MapVertex *v = ring[(i + m + k) % m];
             height += v->v.y;
@@ -223,7 +223,7 @@ Outside outside(const Border &border, float x, float z) {
     }
     r4::Vec2 p{std::clamp(x, border.min.x, border.max.x), std::clamp(z, border.min.y, border.max.y)};
     size_t nearest = 0;
-    float best = -1;
+    float best = -1.0f;
     for (size_t i = 0; i < border.position.size(); i++) {
         r4::Vec2 d = border.position[i] - p;
         float d2 = d.x * d.x + d.y * d.y;
@@ -461,7 +461,7 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
                 });
             }
             for (auto &[v, nv] : n) {
-                nv = r4::length(nv) > 0 ? r4::normalize(nv) : r4::Vec3{0, 1, 0};
+                nv = r4::length(nv) > 0 ? r4::normalize(nv) : r4::Vec3{0.0f, 1.0f, 0.0f};
             }
         }
     }
@@ -471,7 +471,7 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
         Mesh &m = meshes[material];
         Vertex out;
         out.position = {v->v.x, v->v.y, v->v.z};
-        out.normal = {0, 1, 0};
+        out.normal = {0.0f, 1.0f, 0.0f};
         if (dynamic) {
             auto it = normals[currentLevel].find(normalOf ? normalOf : v);
             if (it != normals[currentLevel].end()) {
@@ -488,11 +488,11 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
         if (dynamic) {
             uint32_t tone = topTone(typeOf(a, b, c));
             for (int k = 0; k < 3; k++) {
-                add(0, corner[k], tone, {0, 0});
+                add(0, corner[k], tone, {0.0f, 0.0f});
             }
         } else {
             for (int k = 0; k < 3; k++) {
-                add(0, corner[k], packColor(cols[k]), {0, 0});
+                add(0, corner[k], packColor(cols[k]), {0.0f, 0.0f});
             }
         }
         if (imageID == TEXTURE_NONE) {
@@ -575,9 +575,9 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
                 c1 = tone;
                 c2 = tone;
             }
-            add(0, p0, c0, {0, 0});
-            add(0, p1, c1, {0, 0});
-            add(0, p2, c2, {0, 0});
+            add(0, p0, c0, {0.0f, 0.0f});
+            add(0, p1, c1, {0.0f, 0.0f});
+            add(0, p2, c2, {0.0f, 0.0f});
         };
         for (size_t k = 0; k + 1 < count; k++) {
             uint32_t inner0 = packColor(chain[k]->color);
@@ -645,7 +645,7 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
             strip(chain, outsidePoint(kCollarEdge, zs), outsidePoint(kCollarEdge, ze));
         }
     };
-    std::vector<r4::Vec3> blockCenter(BLOCKS_PER_MAP, r4::Vec3{0, 0, 0});
+    std::vector<r4::Vec3> blockCenter(BLOCKS_PER_MAP, r4::Vec3{0.0f, 0.0f, 0.0f});
     std::vector<int> blockNode(BLOCKS_PER_MAP, -1);
     std::vector<int> coarsestNode(BLOCKS_PER_MAP, -1);
     for (int i = 0; i < BLOCKS_PER_MAP; i++) {
@@ -720,12 +720,12 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
                     dc.v.y -= kSkirt;
                     uint32_t ca = dynamic ? topTone(a->type) : packColor(a->color);
                     uint32_t cc = dynamic ? topTone(c->type) : packColor(c->color);
-                    add(0, a, ca, {0, 0});
-                    add(0, c, cc, {0, 0});
-                    add(0, &dc, cc, {0, 0}, c);
-                    add(0, a, ca, {0, 0});
-                    add(0, &dc, cc, {0, 0}, c);
-                    add(0, &da, ca, {0, 0}, a);
+                    add(0, a, ca, {0.0f, 0.0f});
+                    add(0, c, cc, {0.0f, 0.0f});
+                    add(0, &dc, cc, {0.0f, 0.0f}, c);
+                    add(0, a, ca, {0.0f, 0.0f});
+                    add(0, &dc, cc, {0.0f, 0.0f}, c);
+                    add(0, &da, ca, {0.0f, 0.0f}, a);
                 };
                 for (int x = 0; x < endX; x++) {
                     skirt(at(x, 0), at(x + 1, 0));
@@ -774,7 +774,7 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
         }
         const int x1 = std::min(n, x0 + size);
         const int y1 = std::min(n, y0 + size);
-        r4::Vec3 center{0, 0, 0};
+        r4::Vec3 center{0.0f, 0.0f, 0.0f};
         int count = 0;
         std::map<int, Mesh> merged;
         for (int by = y0; by < y1; by++) {
@@ -859,7 +859,7 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
             const MapVertex *corner[3] = {a, b, c};
             uint32_t tone = dynamic ? topTone(outside(border, (a->v.x + b->v.x + c->v.x) / 3, (a->v.z + b->v.z + c->v.z) / 3).type) : 0;
             for (const MapVertex *v : corner) {
-                add(0, v, dynamic ? tone : outsideColor(outside(border, v->v.x, v->v.z)), {0, 0});
+                add(0, v, dynamic ? tone : outsideColor(outside(border, v->v.x, v->v.z)), {0.0f, 0.0f});
             }
         };
         for (int z = 0; z < nz; z++) {
@@ -888,11 +888,11 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
                 float zb = edges[zi + 1];
                 std::vector<std::pair<float, float>> spans{{xa, xb}};
                 if (xi == 1) {
-                    spans = {{xa, 0}, {0, xb}};
+                    spans = {{xa, 0.0f}, {0.0f, xb}};
                 }
                 std::vector<std::pair<float, float>> zspans{{za, zb}};
                 if (zi == 1) {
-                    zspans = {{za, 0}, {0, zb}};
+                    zspans = {{za, 0.0f}, {0.0f, zb}};
                 }
                 for (const auto &[x0, x1] : spans) {
                     for (const auto &[z0, z1] : zspans) {
@@ -1038,7 +1038,7 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
                 const AoVPoints &p = ov.vertices[tri.verticesIdx[k]];
                 Vertex v;
                 v.position = {(float)p.x, (float)p.y, (float)p.z};
-                v.normal = {0, 1, 0};
+                v.normal = {0.0f, 1.0f, 0.0f};
                 v.uv = img ? atlasUV(cell, tri.uv[k].u / kTriUvScale * img->width, tri.uv[k].v / kTriUvScale * img->height) : atlasUV(0, 64, 64);
                 v.color = color;
                 mesh.vertices.push_back(v);
@@ -1069,7 +1069,7 @@ r4::Mat4 mapObjectMatrix(const MapObject &object) {
 }
 
 r4::Mat4 missionPartMatrix(const MISN_PART &part) {
-    return r4::translate({part.position.x, part.position.y, part.position.z}) * r4::rotate(r4::radians(360.0f - (float)part.azymuth + 90.0f), {0, 1, 0}) * r4::rotate(r4::radians((float)part.pitch), {0, 0, 1}) * r4::rotate(r4::radians(-(float)part.roll), {1, 0, 0});
+    return r4::translate({part.position.x, part.position.y, part.position.z}) * r4::rotate(r4::radians(360.0f - (float)part.azymuth + 90.0f), {0.0f, 1.0f, 0.0f}) * r4::rotate(r4::radians((float)part.pitch), {0.0f, 0.0f, 1.0f}) * r4::rotate(r4::radians(-(float)part.roll), {1.0f, 0.0f, 0.0f});
 }
 
 bool groundHeight(RSArea *area, float x, float z, float &height) {
@@ -1502,7 +1502,7 @@ std::shared_ptr<r4::assets::Model> treeModel(int species, bool simple, const VGA
     };
     // no face under a solid: a tree is seen from above, the faces turned to the ground are not drawn
     auto solid = [&](const std::vector<std::pair<float, float>> &rings, int sides, uint32_t color, float turn = 0) {
-        r4::Vec3 center{0, (rings.front().second + rings.back().second) / 2, 0};
+        r4::Vec3 center{0.0f, (rings.front().second + rings.back().second) / 2.0f, 0.0f};
         for (size_t k = 0; k + 1 < rings.size(); k++) {
             auto lo = ring(sides, rings[k].first, rings[k].second, turn);
             auto hi = ring(sides, rings[k + 1].first, rings[k + 1].second, turn);
@@ -1520,19 +1520,19 @@ std::shared_ptr<r4::assets::Model> treeModel(int species, bool simple, const VGA
     // detailed: 6 + 5 + 5 triangles for a conifer (37 before), 6 + 20 for a broadleaf (55); simple: 3 (6) and 6 (8)
     if (isConifer(species)) {
         if (simple) {
-            solid({{5.5f, 2}, {0, 25}}, 3, conifer, 0.5f);
+            solid({{5.5f, 2.0f}, {0.0f, 25.0f}}, 3, conifer, 0.5f);
         } else {
-            solid({{0.8f, 0}, {0.6f, 5}}, 3, trunk);
-            solid({{6, 4}, {0, 17}}, 5, conifer);
-            solid({{4.5f, 11}, {0, 25}}, 5, conifer, 0.5f);
+            solid({{0.8f, 0.0f}, {0.6f, 5.0f}}, 3, trunk);
+            solid({{6.0f, 4.0f}, {0.0f, 17.0f}}, 5, conifer);
+            solid({{4.5f, 11.0f}, {0.0f, 25.0f}}, 5, conifer, 0.5f);
         }
     } else {
         if (simple) {
-            solid({{7, 11}, {0, 21}}, 3, leaves);
-            solid({{0, 5}, {7, 11}}, 3, leaves);
+            solid({{7.0f, 11.0f}, {0.0f, 21.0f}}, 3, leaves);
+            solid({{0.0f, 5.0f}, {7.0f, 11.0f}}, 3, leaves);
         } else {
-            solid({{0.9f, 0}, {0.7f, 6}}, 3, trunk);
-            solid({{0, 5.5f}, {6.5f, 10}, {5.5f, 16}, {0, 21}}, 5, leaves);
+            solid({{0.9f, 0.0f}, {0.7f, 6.0f}}, 3, trunk);
+            solid({{0.0f, 5.5f}, {6.5f, 10.0f}, {5.5f, 16.0f}, {0.0f, 21.0f}}, 5, leaves);
         }
     }
     model->meshes.push_back(std::move(mesh));
@@ -1557,26 +1557,26 @@ struct Footprint {
 // read by hand on the images of TXMPACK; the dark towers of the downtowns higher
 const std::map<int, std::vector<Footprint>> kBuildings{
     // 223-228 : the harbor (64 x 64, a triangle each half): sheds on the piers, goods
-    {TEXTURE_HARBOR_A, {{16, 13, 63, 16, 16}, {50, 17, 55, 39, 16}, {5, 50, 38, 54, 16}}},
-    {TEXTURE_HARBOR_B, {{22, 3, 58, 7, 16}, {8, 34, 19, 52, 12}, {23, 48, 45, 53, 16}}},
-    {TEXTURE_HARBOR_C, {{22, 3, 56, 9, 16}, {7, 15, 14, 40, 16}}},
-    {TEXTURE_HARBOR_D, {{15, 4, 44, 10, 16}, {4, 18, 12, 38, 16}, {47, 19, 58, 32, 12}, {13, 53, 19, 58, 10}, {48, 41, 56, 46, 10}}},
-    {TEXTURE_HARBOR_E, {{25, 8, 63, 15, 16}, {6, 45, 46, 54, 16}}},
-    {TEXTURE_HARBOR_F, {{47, 9, 56, 46, 16}, {9, 50, 44, 55, 16}}},
+    {TEXTURE_HARBOR_A, {{16, 13, 63, 16, 16.0f}, {50, 17, 55, 39, 16.0f}, {5, 50, 38, 54, 16.0f}}},
+    {TEXTURE_HARBOR_B, {{22, 3, 58, 7, 16.0f}, {8, 34, 19, 52, 12.0f}, {23, 48, 45, 53, 16.0f}}},
+    {TEXTURE_HARBOR_C, {{22, 3, 56, 9, 16.0f}, {7, 15, 14, 40, 16.0f}}},
+    {TEXTURE_HARBOR_D, {{15, 4, 44, 10, 16.0f}, {4, 18, 12, 38, 16.0f}, {47, 19, 58, 32, 12.0f}, {13, 53, 19, 58, 10.0f}, {48, 41, 56, 46, 10.0f}}},
+    {TEXTURE_HARBOR_E, {{25, 8, 63, 15, 16.0f}, {6, 45, 46, 54, 16.0f}}},
+    {TEXTURE_HARBOR_F, {{47, 9, 56, 46, 16.0f}, {9, 50, 44, 55, 16.0f}}},
     // 229 : downtown
-    {TEXTURE_DOWNTOWN_A, {{5, 4, 24, 27, 140}, {25, 3, 41, 12, 30}, {43, 3, 57, 29, 70}, {67, 3, 93, 23, 60}, {5, 37, 26, 57, 160}, {26, 37, 46, 57, 90}, {46, 37, 58, 57, 120}, {67, 34, 88, 58, 200}, {98, 35, 117, 58, 80}, {8, 67, 55, 91, 35}, {100, 68, 122, 92, 150}, {68, 82, 100, 90, 25}, {35, 102, 53, 119, 60}, {76, 99, 119, 121, 50}}},
+    {TEXTURE_DOWNTOWN_A, {{5, 4, 24, 27, 140.0f}, {25, 3, 41, 12, 30.0f}, {43, 3, 57, 29, 70.0f}, {67, 3, 93, 23, 60.0f}, {5, 37, 26, 57, 160.0f}, {26, 37, 46, 57, 90.0f}, {46, 37, 58, 57, 120.0f}, {67, 34, 88, 58, 200.0f}, {98, 35, 117, 58, 80.0f}, {8, 67, 55, 91, 35.0f}, {100, 68, 122, 92, 150.0f}, {68, 82, 100, 90, 25.0f}, {35, 102, 53, 119, 60.0f}, {76, 99, 119, 121, 50.0f}}},
     // 230 : downtown, the other
-    {TEXTURE_DOWNTOWN_B, {{5, 5, 27, 24, 90}, {37, 4, 57, 27, 150}, {5, 26, 14, 59, 40}, {13, 46, 29, 58, 40}, {38, 29, 57, 59, 180}, {68, 8, 92, 55, 70}, {104, 17, 116, 53, 110}, {4, 68, 25, 94, 60}, {34, 67, 59, 88, 130}, {69, 68, 89, 98, 160}, {69, 101, 92, 124, 100}, {100, 77, 122, 119, 25}, {44, 99, 60, 115, 25}}},
+    {TEXTURE_DOWNTOWN_B, {{5, 5, 27, 24, 90.0f}, {37, 4, 57, 27, 150.0f}, {5, 26, 14, 59, 40.0f}, {13, 46, 29, 58, 40.0f}, {38, 29, 57, 59, 180.0f}, {68, 8, 92, 55, 70.0f}, {104, 17, 116, 53, 110.0f}, {4, 68, 25, 94, 60.0f}, {34, 67, 59, 88, 130.0f}, {69, 68, 89, 98, 160.0f}, {69, 101, 92, 124, 100.0f}, {100, 77, 122, 119, 25.0f}, {44, 99, 60, 115, 25.0f}}},
     // 233 : a farm
-    {TEXTURE_FARM, {{34, 69, 53, 82, 18}, {74, 74, 80, 80, 14}, {84, 86, 94, 96, 12}, {17, 87, 24, 105, 12}, {17, 107, 24, 117, 10}, {56, 80, 61, 84, 8}}},
+    {TEXTURE_FARM, {{34, 69, 53, 82, 18.0f}, {74, 74, 80, 80, 14.0f}, {84, 86, 94, 96, 12.0f}, {17, 87, 24, 105, 12.0f}, {17, 107, 24, 117, 10.0f}, {56, 80, 61, 84, 8.0f}}},
     // 248 : a village on green, with its church
-    {TEXTURE_VILLAGE_GREEN_A, {{9, 11, 32, 30, 18}, {36, 34, 50, 57, 30}, {51, 44, 59, 57, 12}, {84, 18, 109, 46, 25}, {107, 4, 114, 8, 10}, {119, 28, 126, 35, 10}, {3, 53, 9, 58, 10}, {11, 53, 17, 58, 10}, {19, 53, 25, 58, 10}, {12, 69, 56, 78, 14}, {47, 81, 54, 87, 10}, {20, 88, 30, 97, 12}, {20, 100, 30, 109, 12}, {44, 89, 56, 100, 16}, {44, 103, 56, 113, 16}, {81, 69, 86, 79, 14}, {93, 71, 107, 80, 12}, {113, 71, 123, 82, 12}, {69, 73, 77, 79, 10}, {69, 80, 77, 85, 10}, {69, 86, 77, 91, 10}, {69, 98, 76, 102, 10}, {69, 104, 76, 108, 10}, {99, 91, 107, 100, 12}, {99, 102, 107, 106, 10}, {99, 108, 107, 113, 10}, {69, 115, 104, 124, 14}}},
+    {TEXTURE_VILLAGE_GREEN_A, {{9, 11, 32, 30, 18.0f}, {36, 34, 50, 57, 30.0f}, {51, 44, 59, 57, 12.0f}, {84, 18, 109, 46, 25.0f}, {107, 4, 114, 8, 10.0f}, {119, 28, 126, 35, 10.0f}, {3, 53, 9, 58, 10.0f}, {11, 53, 17, 58, 10.0f}, {19, 53, 25, 58, 10.0f}, {12, 69, 56, 78, 14.0f}, {47, 81, 54, 87, 10.0f}, {20, 88, 30, 97, 12.0f}, {20, 100, 30, 109, 12.0f}, {44, 89, 56, 100, 16.0f}, {44, 103, 56, 113, 16.0f}, {81, 69, 86, 79, 14.0f}, {93, 71, 107, 80, 12.0f}, {113, 71, 123, 82, 12.0f}, {69, 73, 77, 79, 10.0f}, {69, 80, 77, 85, 10.0f}, {69, 86, 77, 91, 10.0f}, {69, 98, 76, 102, 10.0f}, {69, 104, 76, 108, 10.0f}, {99, 91, 107, 100, 12.0f}, {99, 102, 107, 106, 10.0f}, {99, 108, 107, 113, 10.0f}, {69, 115, 104, 124, 14.0f}}},
     // 249 : a village on green
-    {TEXTURE_VILLAGE_GREEN_B, {{33, 24, 44, 33, 12}, {19, 33, 28, 43, 12}, {30, 46, 40, 56, 12}, {49, 35, 56, 45, 10}, {50, 48, 57, 56, 10}, {68, 51, 75, 56, 9}, {3, 53, 9, 58, 9}, {11, 53, 17, 58, 9}, {19, 53, 25, 58, 9}, {77, 53, 83, 58, 9}, {85, 53, 91, 58, 9}, {93, 53, 99, 58, 9}, {101, 53, 107, 58, 9}, {109, 53, 115, 58, 9}, {117, 53, 123, 58, 9}, {78, 69, 122, 78, 14}, {113, 81, 120, 87, 10}, {19, 71, 34, 82, 12}, {38, 70, 44, 76, 10}, {47, 70, 54, 80, 12}}},
+    {TEXTURE_VILLAGE_GREEN_B, {{33, 24, 44, 33, 12.0f}, {19, 33, 28, 43, 12.0f}, {30, 46, 40, 56, 12.0f}, {49, 35, 56, 45, 10.0f}, {50, 48, 57, 56, 10.0f}, {68, 51, 75, 56, 9.0f}, {3, 53, 9, 58, 9.0f}, {11, 53, 17, 58, 9.0f}, {19, 53, 25, 58, 9.0f}, {77, 53, 83, 58, 9.0f}, {85, 53, 91, 58, 9.0f}, {93, 53, 99, 58, 9.0f}, {101, 53, 107, 58, 9.0f}, {109, 53, 115, 58, 9.0f}, {117, 53, 123, 58, 9.0f}, {78, 69, 122, 78, 14.0f}, {113, 81, 120, 87, 10.0f}, {19, 71, 34, 82, 12.0f}, {38, 70, 44, 76, 10.0f}, {47, 70, 54, 80, 12.0f}}},
     // 250 : a village on sand
-    {TEXTURE_VILLAGE_SAND_A, {{55, 31, 61, 41, 10}, {26, 41, 40, 45, 8}, {26, 48, 40, 53, 8}, {45, 40, 51, 45, 9}, {57, 47, 63, 56, 10}, {43, 52, 48, 55, 8}, {73, 44, 90, 49, 8}, {73, 50, 90, 55, 8}, {98, 50, 116, 56, 10}, {22, 70, 35, 75, 8}, {38, 76, 42, 92, 7}, {48, 76, 52, 92, 7}, {53, 89, 58, 93, 8}, {62, 69, 82, 86, 12}, {76, 84, 82, 95, 10}, {88, 69, 95, 75, 10}, {97, 69, 112, 76, 12}, {97, 81, 110, 86, 8}, {98, 92, 105, 98, 10}, {38, 102, 45, 108, 9}}},
+    {TEXTURE_VILLAGE_SAND_A, {{55, 31, 61, 41, 10.0f}, {26, 41, 40, 45, 8.0f}, {26, 48, 40, 53, 8.0f}, {45, 40, 51, 45, 9.0f}, {57, 47, 63, 56, 10.0f}, {43, 52, 48, 55, 8.0f}, {73, 44, 90, 49, 8.0f}, {73, 50, 90, 55, 8.0f}, {98, 50, 116, 56, 10.0f}, {22, 70, 35, 75, 8.0f}, {38, 76, 42, 92, 7.0f}, {48, 76, 52, 92, 7.0f}, {53, 89, 58, 93, 8.0f}, {62, 69, 82, 86, 12.0f}, {76, 84, 82, 95, 10.0f}, {88, 69, 95, 75, 10.0f}, {97, 69, 112, 76, 12.0f}, {97, 81, 110, 86, 8.0f}, {98, 92, 105, 98, 10.0f}, {38, 102, 45, 108, 9.0f}}},
     // 251 : a village on sand, with its silos
-    {TEXTURE_VILLAGE_SAND_B, {{39, 13, 45, 26, 30}, {49, 13, 56, 27, 30}, {5, 25, 13, 37, 12}, {70, 6, 88, 17, 10}, {8, 47, 26, 57, 12}, {28, 44, 41, 51, 10}, {28, 52, 42, 59, 10}, {43, 53, 50, 59, 9}, {71, 31, 103, 56, 14}, {104, 43, 111, 49, 12}, {51, 42, 57, 47, 10}, {9, 68, 40, 74, 10}, {23, 77, 43, 84, 10}, {44, 75, 51, 80, 9}, {45, 81, 52, 86, 10}, {86, 70, 112, 77, 10}, {79, 75, 86, 81, 10}, {104, 78, 125, 92, 12}, {15, 90, 42, 117, 12}, {44, 90, 54, 103, 10}, {44, 107, 51, 112, 10}, {60, 96, 95, 117, 10}, {99, 98, 120, 117, 12}, {61, 87, 73, 92, 9}, {89, 90, 97, 96, 10}, {68, 115, 75, 121, 9}}},
+    {TEXTURE_VILLAGE_SAND_B, {{39, 13, 45, 26, 30.0f}, {49, 13, 56, 27, 30.0f}, {5, 25, 13, 37, 12.0f}, {70, 6, 88, 17, 10.0f}, {8, 47, 26, 57, 12.0f}, {28, 44, 41, 51, 10.0f}, {28, 52, 42, 59, 10.0f}, {43, 53, 50, 59, 9.0f}, {71, 31, 103, 56, 14.0f}, {104, 43, 111, 49, 12.0f}, {51, 42, 57, 47, 10.0f}, {9, 68, 40, 74, 10.0f}, {23, 77, 43, 84, 10.0f}, {44, 75, 51, 80, 9.0f}, {45, 81, 52, 86, 10.0f}, {86, 70, 112, 77, 10.0f}, {79, 75, 86, 81, 10.0f}, {104, 78, 125, 92, 12.0f}, {15, 90, 42, 117, 12.0f}, {44, 90, 54, 103, 10.0f}, {44, 107, 51, 112, 10.0f}, {60, 96, 95, 117, 10.0f}, {99, 98, 120, 117, 12.0f}, {61, 87, 73, 92, 9.0f}, {89, 90, 97, 96, 10.0f}, {68, 115, 75, 121, 9.0f}}},
 };
 
 constexpr int kWallTints = 4;
@@ -1856,8 +1856,8 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
                         continue;
                     }
                     placed.insert({t.image, fi});
-                    const float u[4] = {(float)f.x0, (float)f.x1 + 1, (float)f.x1 + 1, (float)f.x0};
-                    const float v[4] = {(float)f.y0, (float)f.y0, (float)f.y1 + 1, (float)f.y1 + 1};
+                    const float u[4] = {(float)f.x0, (float)f.x1 + 1.0f, (float)f.x1 + 1.0f, (float)f.x0};
+                    const float v[4] = {(float)f.y0, (float)f.y0, (float)f.y1 + 1.0f, (float)f.y1 + 1.0f};
                     r4::Vec2 c[4];
                     r4::Vec2 lo{1e30f, 1e30f};
                     r4::Vec2 hi{-1e30f, -1e30f};
@@ -1899,7 +1899,7 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
                         foot[k] = {c[k].x, bottomY, c[k].y};
                         roofUV[k] = {u[k] / b->w, 1 - v[k] / b->h};
                     }
-                    quad(meshes[b->roofs], roof, roofUV, {0, 1, 0});
+                    quad(meshes[b->roofs], roof, roofUV, {0.0f, 1.0f, 0.0f});
                     r4::Vec2 mid = (c[0] + c[1] + c[2] + c[3]) * 0.25f;
                     for (int k = 0; k < 4; k++) {
                         int j = (k + 1) % 4;
@@ -1912,7 +1912,7 @@ std::shared_ptr<r4::assets::Model> cityModel(RSArea *area, const VGAPalette &pal
                         const r4::Vec3 p[4] = {foot[k], foot[j], roof[j], roof[k]};
                         float len = r4::length(e) / 8;
                         float up = (top - bottomY) / 8;
-                        const r4::Vec2 uv[4] = {{0, -up}, {len, -up}, {len, 0}, {0, 0}};
+                        const r4::Vec2 uv[4] = {{0.0f, -up}, {len, -up}, {len, 0.0f}, {0.0f, 0.0f}};
                         quad(meshes[wall], p, uv, n);
                     }
                     if (buildings) {

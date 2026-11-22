@@ -52,25 +52,25 @@ enum class ForestMode {
 
 struct ForestSettings {
     ForestMode mode = ForestMode::NOISE;
-    float density = 1; // multiplies all the densities
+    float density = 1.0f; // multiplies all the densities
     // NOISE: perKm2 x 25 at the heart of the woods, x 0.1 between them
-    float perKm2 = 30;
+    float perKm2 = 30.0f;
     float treeScale = 1.4f; // the size of the trees
     // the jungle (type 4) is most of its map: its woods larger, less dense
     float jungleDensity = 0.4f;
     // NOISE: per km2 under these textures
-    std::map<int, float> images{{TEXTURE_WOOD, 250}, {TEXTURE_MEADOW_WOOD, 120}, {TEXTURE_JUNGLE_A, 300}, {TEXTURE_JUNGLE_B, 300}};
+    std::map<int, float> images{{TEXTURE_WOOD, 250.0f}, {TEXTURE_MEADOW_WOOD, 120.0f}, {TEXTURE_JUNGLE_A, 300.0f}, {TEXTURE_JUNGLE_B, 300.0f}};
     // NOISE: no tree under these
     std::set<int> bare{TEXTURE_HARBOR_B, TEXTURE_HARBOR_C, TEXTURE_DOWNTOWN_A, TEXTURE_HOUSES};
     // TEXTURES: a tree per areaPerTree on the tree texels of the textures with minTreeShare at least, but notWoods
     const VGAPalette *palette = nullptr; // to read the textures
     std::set<int> notWoods{TEXTURE_FIELDS, TEXTURE_FARM};
     float minTreeShare = 0.08f;
-    float areaPerTree = 400;
+    float areaPerTree = 400.0f;
 
     std::shared_ptr<std::map<int, std::vector<uint32_t>>> treeTexels = std::make_shared<std::map<int, std::vector<uint32_t>>>();
     // small, so that the chunks out of the view are culled whole
-    float chunk = 2000;
+    float chunk = 2000.0f;
     std::vector<r4::Vec3> keepOut; // x, z, radius (libRealSpace)
     uint32_t seed = 1;
 };
@@ -94,7 +94,7 @@ struct ForestChunk {
     int cx = 0; // its place in the grid of chunks
     int cz = 0;
     r4::Vec3 center; // bounds, the trees included
-    float radius = 0;
+    float radius = 0.0f;
     std::vector<r4::scene::Placement> trees[TREE_SPECIES_COUNT]; // by species, about Y (libRealSpace's up)
 };
 std::vector<ForestChunk> forestChunks(RSArea *area, const ForestSettings &settings = {});
@@ -119,4 +119,4 @@ bool groundHeight(RSArea *area, float x, float z, float &height);
 // the matrix moved so that the lowest vertex of the entity, turned by it, is on the ground of the area at its origin; a flying object is only raised
 r4::Mat4 onGround(RSArea *area, const RSEntity *entity, const r4::Mat4 &matrix, bool flies);
 
-} // namespace r4bridge
+}
