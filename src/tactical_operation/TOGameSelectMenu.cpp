@@ -26,9 +26,6 @@ void TOGameSelectMenu::applyPalette(PakEntry *entry) {
     this->palette.ReadPatch(&reader);
 }
 
-// MENU.EXE (fonction en 18340) : palettes OPTPALS 21 et 24, MID1 59, TOMENU 2 ; fond OPTSHPS 44 ; panneau TOMENU 0
-// en (45, 24) ; boutons, images de TOMENU 1 : Strike Commander en (44, 9), 166 x 26, Tactical Operations en (45, 47),
-// 165 x 26 (images 0 et 1 relevées, 2 et 3 enfoncées, d'après les images).
 void TOGameSelectMenu::init(void) {
     TreEntry *optpals = Assets.GetEntryByName(Assets.optpals_filename);
     PakArchive optpals_pak;
@@ -68,8 +65,6 @@ void TOGameSelectMenu::init(void) {
     this->panel.addButton(45, 47, 165, 26, this->button_images.GetEntry(1), this->button_images.GetEntry(3), std::bind(&TOGameSelectMenu::onTacticalOperations, this));
     printf("CD MENU: menu de choix du jeu pret\n");
 }
-
-// Musique du menu (morceau 23, comme MENU.EXE et SCMainMenu) et minuteur, à chaque retour du menu en haut de la pile.
 void TOGameSelectMenu::focus(void) {
     if (this->focused) {
         return;
@@ -108,10 +103,7 @@ void TOGameSelectMenu::runFrame(void) {
     Mouse.draw();
     VGA.vSync();
 }
-
-// PLAY STRIKE COMMANDER : intro puis menu principal, comme main.cpp sans le menu de choix.
 void TOGameSelectMenu::onStrikeCommander() {
-    printf("CD MENU: Strike Commander\n");
     this->unFocus();
     this->stop();
     SCMainMenu::registerType<SCMainMenu>();
@@ -124,10 +116,7 @@ void TOGameSelectMenu::onStrikeCommander() {
     intro->init();
     Game->addActivity(intro);
 }
-
-// PLAY TACTICAL OPERATIONS : données de Tactical Operations, puis son menu principal.
 void TOGameSelectMenu::onTacticalOperations() {
-    printf("CD MENU: Tactical Operations\n");
     this->unFocus();
     this->stop();
     this->loadTacticalOperationsData();
@@ -140,7 +129,6 @@ void TOGameSelectMenu::onTacticalOperations() {
     Game->addActivity(main);
 }
 
-// Copie du chargement de DebugGame::loadTO, sans la partie de débogage.
 void TOGameSelectMenu::loadTacticalOperationsData() {
     ConvAssetManager::setInstance(std::make_unique<TOConvAssetManager>());
     std::vector<std::string> cdTreFiles = {
@@ -173,5 +161,4 @@ void TOGameSelectMenu::loadTacticalOperationsData() {
     ConvAssetManager::getInstance().init();
     RSSound::getInstance().init();
     RSMixer::getInstance().init();
-    printf("CD MENU: donnees de Tactical Operations chargees\n");
 }
