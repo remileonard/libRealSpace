@@ -85,19 +85,41 @@ class SCConvPlayer   : public IActivity, public Creatable<SCConvPlayer>   { ... 
 class SCRegister     : public IActivity, public Creatable<SCRegister>     { ... };
 ```
 
-### 3.3 Emplacement propre à une sous-classe
+### 3.3 Changement de mode à l'exécution
 
-Quand une sous-classe doit pouvoir être créée en même temps que sa base dans un même exécutable
-(voir § 5), elle déclare son propre emplacement et lève l'ambiguïté de nom :
+Un emplacement contient un seul type pour tout le processus. Quand un exécutable choisit son jeu
+à l'exécution (`TOGameSelectMenu` dans `neosc` et `neosc_r4`, `DebugGame` dans le debugger), le point
+de choix **réenregistre** les emplacements qui dépendent du mode avant de créer la première activité.
+
+Les emplacements se répartissent en deux catégories :
+
+- **emplacements de la cible** : fixés une fois dans le `main.cpp`, jamais modifiés par le choix
+  du jeu. Exemple : `SCStrike` dans `neosc_r4` (`R4Strike` sert à SC et à TO) ;
+- **emplacements du mode** : enregistrés au point de choix, **tous à chaque fois**, y compris quand
+  le mode utilise le type de base. Le résultat ne dépend donc pas du mode lancé précédemment.
 
 ```cpp
-class TOGameFlow : public virtual SCGameFlow, public Creatable<TOGameFlow> {
-public:
-    using Creatable<TOGameFlow>::create;
-    using Creatable<TOGameFlow>::registerType;
+void TOGameSelectMenu::onStrikeCommander() {
+    SCMainMenu::registerType<SCMainMenu>();
+    SCGameFlow::registerType<SCGameFlow>();
+    SCConvPlayer::registerType<SCConvPlayer>();
     ...
-};
+    SCMainMenu *main = SCMainMenu::create();
+    ...
+}
+
+void TOGameSelectMenu::onTacticalOperations() {
+    SCMainMenu::registerType<TOMainMenu>();
+    SCGameFlow::registerType<TOGameFlow>();
+    SCConvPlayer::registerType<TOConvPlayer>();
+    ...
+    SCMainMenu *main = SCMainMenu::create();
+    ...
+}
 ```
+
+`registerType<SCConvPlayer>()` est valide : `std::is_base_of_v<SCConvPlayer, SCConvPlayer>` est vrai.
+Aucune sous-classe ne déclare son propre emplacement : il n'y a qu'un emplacement par rôle.
 
 ### 3.4 Création
 
@@ -127,46 +149,41 @@ void SCGameFlow::playConv(uint8_t convId) {
 1. **Toute activité est créée par `X::create()`**, jamais par `new X()`.
 2. **Chaque rôle d'activité possède un emplacement `Creatable<Rôle>`**, y compris ceux qui n'ont
    pas de variante aujourd'hui (`SCRegister`, `SCCredit`, `SCNavMap`…).
-3. **Les types concrets sont enregistrés dans le `main.cpp`**, avant la première création.
+3. **Les types concrets sont enregistrés dans le `main.cpp`**, avant la première création, ou au
+   point de choix du mode pour les exécutables qui choisissent leur jeu à l'exécution (§ 3.3).
 4. **`registerType` s'appelle sur la classe qui porte l'emplacement**. `PSGameFlow::registerType<X>()`
    écrirait dans l'emplacement de `SCGameFlow` : à éviter.
 5. **Les objets qui ne sont pas des activités** (`SCMission`, `SCScene`, `TOScene`, cockpits,
    entités) restent créés par l'activité qui les utilise, via les hooks existants
    (`createMission`, `createCockpit`, `createVirtualCockpit`, `createEntity`, `createScen`…).
+6. **Un point de choix enregistre tous les emplacements du mode**, jamais seulement ceux qui changent,
+   et ne touche pas aux emplacements de la cible (§ 3.3).
 
 ## 5. Emplacements
 
 | Emplacement | Créé par | Variantes enregistrées |
 |---|---|---|
 | `SCStrike` | `SCGameFlow::flyMission`, `SCTrainingMenu::OnSearchAndDestroy` | `R4Strike`, `EnhancedStrike`, `PSStrike`, `EnhancedPSStrike`, `DebugStrike` |
-| `SCGameFlow` | `SCMainMenu` | — |
+| `SCGameFlow` | `SCMainMenu` | `TOGameFlow` |
 | `SCTrainingMenu` | `SCMainMenu` | — |
-| `SCMainMenu` | `main.cpp`, `TOGameSelectMenu` | — |
-| `SCConvPlayer` | `SCGameFlow::playConv` | `PSConvPlayer`, `DebugConvPlayer`, `DebugPSConvPlayer` |
-| `SCRegister` | `SCMainMenu`, `TOMainMenu` | — |
-| `TOMainMenu` | `TOGameSelectMenu` | — |
-| `TOGameFlow` | `TOMainMenu` | — |
-| `TOConvPlayer` | `TOGameFlow::playConv` | — |
+| `SCMainMenu` | `main.cpp`, `TOGameSelectMenu` | `TOMainMenu` |
+| `SCConvPlayer` | `SCGameFlow::playConv` | `PSConvPlayer`, `TOConvPlayer`, `DebugConvPlayer`, `DebugPSConvPlayer` |
+| `SCRegister` | `SCMainMenu` | — |
 | autres activités (`SCCredit`, `SCFlicPlayer`, `SCAnimationPlayer`, `SCShot`, `MapShot`, `SCNavMap`, `SCObjectViewer`, `SCDogFightMenu`, `TOGameSelectMenu`) | — | — |
 
-TO possède ses propres emplacements parce que `neosc` et `neosc_r4` font cohabiter SC et TO dans le
-même exécutable (choix dans `TOGameSelectMenu`) : un emplacement unique par rôle ne permettrait pas
-d'y créer à la fois `SCConvPlayer` et `TOConvPlayer`. `TOGameFlow::playConv` appelle donc
-`TOConvPlayer::create()`.
-
-PS n'a pas besoin de ses propres emplacements : aucun exécutable ne fait cohabiter PS et SC.
-`PSStrike` et `PSConvPlayer` sont enregistrés dans `SCStrike` et `SCConvPlayer`.
+SC, TO et PS partagent les mêmes emplacements. Quand un exécutable fait cohabiter plusieurs jeux,
+le point de choix réenregistre les emplacements du mode (§ 3.3).
 
 ## 6. Enregistrements par exécutable
 
 | Exécutable | Enregistrements |
 |---|---|
-| `neosc` | aucun |
-| `neosc_r4` | `SCStrike::registerType<R4Strike>()` (remplace `setFactory`) |
+| `neosc` | aucun dans le `main` ; emplacements du mode dans `TOGameSelectMenu` (§ 3.3) |
+| `neosc_r4` | `SCStrike::registerType<R4Strike>()` (remplace `setFactory`) ; emplacements du mode dans `TOGameSelectMenu` |
 | `neosc_enhanced` | `SCStrike::registerType<EnhancedStrike>()` |
 | `neops`, `vrpacific` | `SCStrike::registerType<PSStrike>()`, `SCConvPlayer::registerType<PSConvPlayer>()` |
 | `neops_enhanced` | `SCStrike::registerType<EnhancedPSStrike>()`, `SCConvPlayer::registerType<PSConvPlayer>()` |
-| `vrstrike`, `neoto` | aucun |
+| `vrstrike` | aucun |
 | `debugger` | selon le mode choisi dans `DebugGame`, voir § 7 |
 
 Exemple `neosc_r4/main.cpp` :
@@ -179,8 +196,9 @@ RSScreen::setInstance(std::make_unique<R4Screen>());
 
 ## 7. Debugger
 
-`DebugGame` lance SC, TO ou PS à l'exécution. Chaque méthode de chargement enregistre les types de
-son mode avant de créer l'activité :
+`DebugGame` lance SC, TO ou PS à l'exécution : c'est un point de choix au sens du § 3.3. Dans le
+debugger, le vol dépend aussi du mode, donc `SCStrike` est un emplacement du mode. Chaque méthode de
+chargement enregistre l'ensemble de ses emplacements avant de créer l'activité :
 
 ```cpp
 void DebugGame::loadSC() {
@@ -189,7 +207,14 @@ void DebugGame::loadSC() {
     ...
 }
 
+void DebugGame::loadTO() {
+    SCStrike::registerType<DebugStrike>();
+    SCConvPlayer::registerType<TOConvPlayer>();
+    ...
+}
+
 void DebugGame::loadPacificConv() {
+    SCStrike::registerType<DebugStrike>();         // non utilisé dans ce mode, voir l'exception
     SCConvPlayer::registerType<DebugPSConvPlayer>();
     ...
 }
@@ -197,6 +222,10 @@ void DebugGame::loadPacificConv() {
 
 `DebugGameFlow::flyMission` et `DebugGameFlow::playConv` deviennent inutiles, ainsi que
 `DebugPSGameFlow::playConv` et `DebugTOGameFlow`.
+
+Les variantes héritant virtuellement de `SCConvPlayer` (`DebugConvPlayer`, `DebugPSConvPlayer`,
+`PSConvPlayer`) s'enregistrent normalement : la conversion vers une base virtuelle unique n'est pas
+ambiguë.
 
 **Exception** : `DebugPacificStrikeMISN` hérite deux fois de `SCStrike` (par `DebugStrike` et par
 `PSStrike`, sans héritage virtuel). La conversion `DebugPacificStrikeMISN *` → `SCStrike *` est
@@ -210,20 +239,27 @@ reprise (hors du périmètre de ce document).
   `SCStrike::create()` garde le même nom : les appelants actuels ne changent pas.
 - `EnhancedMainMenu`, `EnhancedTrainingMenu`, `EnhancedGameFlow`, `EnhancedPSGameFlow`,
   `DebugTOGameFlow`.
-- `PSGameFlow::flyMission`, `PSGameFlow::playConv`, `DebugGameFlow::flyMission`,
-  `DebugGameFlow::playConv`, `DebugPSGameFlow::playConv`.
+- `PSGameFlow::flyMission`, `PSGameFlow::playConv`, `TOGameFlow::playConv`,
+  `DebugGameFlow::flyMission`, `DebugGameFlow::playConv`, `DebugPSGameFlow::playConv`.
+- `TOMainMenu::OnStartNewGame` : identique à `SCMainMenu::OnStartNewGame` une fois que
+  `SCGameFlow::create()` rend `TOGameFlow`.
 - L'écart sur `player_loadout` dans Enhanced (§ 2.2), puisque `SCGameFlow::flyMission` est utilisé.
 
-`TOMainMenu` reste : il diffère aussi par `GameState.LoadTO`. Il crée `TOGameFlow::create()`.
+`TOMainMenu` reste, pour `LoadGame` qui appelle `GameState.LoadTO`. Il crée `SCGameFlow::create()`.
+`TOGameFlow` et `TOConvPlayer` restent pour leurs comportements propres, sans emplacement dédié.
 
 ## 9. Contraintes
 
 - **Constructeur sans argument** : `create()` appelle `new T()`. Toutes les activités le respectent,
   sauf `EndMissionScene` et `TOKillMarksScene` (paramètres `PakArchive *`). Elles gardent un `new`
   direct, ou reçoivent leurs données par une méthode après la création.
-- **Un type par emplacement et par processus** : l'enregistrement est global. Quand deux variantes
-  d'un même rôle doivent cohabiter, il faut un emplacement distinct (cas de TO, § 5) ou un
-  réenregistrement au changement de mode (cas du debugger, § 7).
+- **Un type par emplacement et par processus** : l'enregistrement est global. Quand plusieurs jeux
+  cohabitent dans un exécutable, le point de choix réenregistre les emplacements du mode
+  (`TOGameSelectMenu`, `DebugGame`, § 3.3 et § 7).
+- **Variante de cible sur un emplacement du mode** : `TOGameSelectMenu` enregistre les types de base
+  ou TO. Si une cible avait besoin de sa propre variante d'un emplacement du mode (un `SCConvPlayer`
+  propre à R4, par exemple), il faudrait transmettre cette variante au menu de sélection. Ce n'est
+  pas le cas aujourd'hui.
 - **Ordre d'initialisation** : enregistrer avant la première création, comme les `setInstance`.
 - **`create()` n'appelle pas `init()`** : la séquence actuelle `create` → `init` → `addActivity`
   est conservée.
@@ -243,7 +279,9 @@ Chaque étape doit compiler et garder tous les exécutables fonctionnels.
    listées au § 8. `neosc_enhanced/main.cpp` crée `SCMainMenu::create()`.
 5. PS : enregistrements dans `neops`, `vrpacific`, `neops_enhanced`, suppression de
    `PSGameFlow::flyMission` et `PSGameFlow::playConv`.
-6. TO : emplacements `TOMainMenu`, `TOGameFlow`, `TOConvPlayer`.
+6. TO : enregistrements des emplacements du mode dans `TOGameSelectMenu` (§ 3.3), création par
+   `SCMainMenu::create()` dans les deux branches, suppression de `TOGameFlow::playConv` et de
+   `TOMainMenu::OnStartNewGame`.
 7. Debugger : enregistrements par mode dans `DebugGame`, suppression des surcharges du § 8.
 8. Activités restantes : emplacement et `create()` pour `SCCredit`, `SCFlicPlayer`,
    `SCAnimationPlayer`, `SCShot`, `MapShot`, `SCNavMap`, `SCObjectViewer`, `SCDogFightMenu`,
@@ -257,4 +295,8 @@ Chaque étape doit compiler et garder tous les exécutables fonctionnels.
 - Vérification par exécutable : menu principal → nouvelle partie → conversation → mission → retour ;
   entraînement ; chargement de partie ; sélection SC/TO pour `neosc` et `neosc_r4`.
 - Vérifier que le type obtenu est bien la variante attendue (R4Strike, EnhancedStrike, PSStrike…).
+- `neosc` / `neosc_r4` : conversation TO après le choix TO, conversation SC après le choix SC ;
+  si le retour au menu de sélection est possible, enchaîner SC → TO → SC dans la même session.
+  Dans `neosc_r4`, le vol reste un `R4Strike` dans les deux jeux.
+- Debugger : enchaîner plusieurs modes dans la même session et vérifier les types obtenus.
 - Vérifier que le loadout choisi par le joueur est transmis au vol dans Enhanced (§ 2.2).
