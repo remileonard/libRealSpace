@@ -347,9 +347,16 @@ class DebugPacificStrikeMISN : public DebugStrike, public PSStrike { ... };
   ne l'est pas : `PSStrike::setMission` le masque (musique, joueur au sol, première arme) et
   `DebugStrike::setMission(std::string)` a une autre signature. `setMission(char const *)` devient
   virtuel dans `SCStrike`, `PSStrike` et `DebugStrike` le redéfinissent avec cette signature.
-  Sinon, `SCGameFlow::flyMission` appellerait `SCStrike::setMission` pour un `PSStrike`. Effet
-  à vérifier : `DebugGameFlow::flyMission` appelle aujourd'hui `SCStrike::setMission` sur un
-  `DebugStrike` ; avec la redéfinition, le nettoyage de `DebugStrike::setMission` s'exécute aussi.
+  Sinon, `SCGameFlow::flyMission` appellerait `SCStrike::setMission` pour un `PSStrike`. Pour
+  `DebugStrike`, la redéfinition ne change rien dans `flyMission` : son nettoyage ne s'exécute qu'au
+  rechargement (`current_mission != nullptr`), jamais sur un vol qui vient d'être créé.
+
+**Hors périmètre : fuite de `simulated_objects`.** Les objets éjectés (`SCStrike.cpp`, ~1578 et
+~1592) sont ajoutés à `simulated_objects` mais ne sont libérés ni par `SCStrike::~SCStrike()`, ni par
+`SCStrike::setMission` au rechargement ; seul `DebugStrike::setMission` les libère. La fuite existe
+dans toutes les variantes. Correction indépendante de ce document : libérer `simulated_objects` dans
+le destructeur et au rechargement dans `SCStrike::setMission`, puis retirer cette libération de
+`DebugStrike::setMission`.
 
 ## 10. Plan de migration
 
