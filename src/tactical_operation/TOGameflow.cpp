@@ -31,14 +31,8 @@ void TOGameFlow::opWeaponLoadout(EFCT *instruction) {
     this->weapon_loadout_id = instruction->value;
     this->playEndMission();
 }
-void TOGameFlow::playConv(uint8_t convId) {
-    TOConvPlayer *conv = new TOConvPlayer();
-    conv->init();
-    conv->SetID(convId);
-    this->pending_activities.push(conv);
-}
 void TOGameFlow::playMidGame(uint8_t midGameId) {
-    SCAnimationPlayer *midgame = new SCAnimationPlayer();
+    SCAnimationPlayer *midgame = SCAnimationPlayer::create();
     midgame->init();
     SCAnimationArchive archive;
     std::vector<MIDGAME_SHOT *> shots;
@@ -131,7 +125,8 @@ void TOGameFlow::opShowKillMarksAlt(EFCT *instruction) {
     int kills = report.kills[PilotsId::PLAYER][KillBoardType::AIR_KILL] + report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
     printf("GAMEFLOW: SHOW_KILL_MARKS_ALT, %d victoires au dernier vol, mort %d\n", kills, GameState.player_dead);
     if (kills > 0 && !GameState.player_dead) {
-        TOKillMarksScene *end = new TOKillMarksScene(&this->optShps2, &this->optPals2);
+        TOKillMarksScene *end = TOKillMarksScene::create();
+        end->setArchives(&this->optShps2, &this->optPals2);
         end->init();
         this->pending_activities.push(end);
     }

@@ -5,8 +5,6 @@ class DebugGameFlow : public virtual SCGameFlow {
 protected:
     bool pause{false};
     bool conv_player{false};
-    void flyMission(uint8_t missionid) override;
-    void playConv(uint8_t convId) override;
     void renderGameState();
     void renderMissionInfos();
     virtual void renderConvPlayer();

@@ -9,7 +9,7 @@
 #ifndef __libRealSpace__SCDogFightMenu__
 #define __libRealSpace__SCDogFightMenu__
 
-class SCDogFightMenu : public IActivity{
+class SCDogFightMenu : public IActivity, public Creatable<SCDogFightMenu> {
     
 public:
     

@@ -9,7 +9,7 @@
 #pragma once
 #include "../realspace/RSFlic.h"
 
-class SCFlicPlayer : public IActivity {
+class SCFlicPlayer : public IActivity, public Creatable<SCFlicPlayer> {
 private:
     RSFlic flic;
     PakArchive flicPak;

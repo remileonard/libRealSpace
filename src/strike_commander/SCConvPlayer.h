@@ -69,7 +69,7 @@ protected:
     ConvAssetManager &ConvAssets = ConvAssetManager::getInstance();
 };
 
-class SCConvPlayer : public IActivity {
+class SCConvPlayer : public IActivity, public Creatable<SCConvPlayer> {
 protected:
     int32_t conversationID;
     bool initialized;

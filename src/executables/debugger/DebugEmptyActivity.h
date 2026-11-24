@@ -2,7 +2,7 @@
 #include "../../strike_commander/precomp.h"
 
 
-class DebugEmptyActivity : public IActivity {
+class DebugEmptyActivity : public IActivity, public Creatable<DebugEmptyActivity> {
 public:
     DebugEmptyActivity();
     ~DebugEmptyActivity();

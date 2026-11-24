@@ -17,14 +17,3 @@ void EnhancedPSStrike::afterInput() {
 void EnhancedPSStrike::afterCameraPlaced() {
     this->orbitAfterCameraPlaced();
 }
-
-void EnhancedPSGameFlow::flyMission(uint8_t missionid) {
-    EnhancedPSStrike *fly = new EnhancedPSStrike();
-    fly->init();
-    fly->player_loadout = this->player_loadout_pending;
-    this->player_loadout_pending = false;
-    fly->setMission(this->missionToFly);
-    this->missionToFly = nullptr;
-    fly_mission.push(fly);
-    this->next_miss = GameState.mission_id;
-}

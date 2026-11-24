@@ -8,6 +8,7 @@
 
 #include "../../strike_commander/precomp.h"
 #include "../../pacific_strike/PSGameFlow.h"
+#include "../../pacific_strike/PSConvplayer.h"
 #include "../../pacific_strike/PSState.h"
 #include "../../pacific_strike/PSConvAssetManager.h"
 #include "../../pacific_strike/PSSound.h"
@@ -22,6 +23,9 @@ int main(int argc, char* argv[]) {
     config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
     SCRenderer::setInstance(std::make_unique<EnhancedRenderer>());
+    SCStrike::registerType<EnhancedPSStrike>();
+    SCConvPlayer::registerType<PSConvPlayer>();
+    SCGameFlow::registerType<PSGameFlow>();
     RSScreen::setInstance(std::make_unique<EnhancedScreen>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
 
@@ -93,7 +97,7 @@ int main(int argc, char* argv[]) {
     SCState::getInstance().Reset();
     PSState::getInstance().Reset();
     // Pas encore de menu principal porté : la campagne démarre directement sur le gameflow.
-    PSGameFlow *gameflow = new EnhancedPSGameFlow();
+    SCGameFlow *gameflow = SCGameFlow::create();
     gameflow->init();
     game->addActivity(gameflow);
     game->run();

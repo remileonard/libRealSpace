@@ -5,7 +5,7 @@
 
 #include "TOKillMarksScene.h"
 
-TOKillMarksScene::TOKillMarksScene(PakArchive *optShps2, PakArchive *optPals2) : EndMissionScene(nullptr, nullptr) {
+void TOKillMarksScene::setArchives(PakArchive *optShps2, PakArchive *optPals2) {
     this->optShps2 = optShps2;
     this->optPals2 = optPals2;
 }

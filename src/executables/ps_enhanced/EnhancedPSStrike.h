@@ -8,7 +8,6 @@
 //
 #pragma once
 #include "../../pacific_strike/PSStrike.h"
-#include "../../pacific_strike/PSGameFlow.h"
 #include "../../enhanced/EnhancedOrbit.h"
 
 class EnhancedPSStrike : public EnhancedOrbit<PSStrike> {
@@ -21,10 +20,4 @@ protected:
 
 private:
     int engineVolume{100}; // [Sound] engine_volume, -1 = as the core
-};
-
-// Pacific Strike campaign flow that flies the missions with an EnhancedPSStrike (copy of PSGameFlow::flyMission)
-class EnhancedPSGameFlow : public PSGameFlow {
-public:
-    void flyMission(uint8_t missionid) override;
 };

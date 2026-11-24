@@ -187,7 +187,7 @@ SCZone *SCGameFlow::CheckZones(void) {
     return nullptr;
 }
 void SCGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {
-    MapShot *map = new MapShot();
+    MapShot *map = MapShot::create();
     map->init();
     map->SetPoints(points);
     this->pending_activities.push(map);
@@ -396,7 +396,7 @@ void SCGameFlow::opShowKillMarks(EFCT *instruction) {
                 report.kills[PilotsId::PLAYER][KillBoardType::GROUND_KILL];
     printf("GAMEFLOW: SHOW_KILL_MARKS, %d victoires au dernier vol, mort %d\n", kills, GameState.player_dead);
     if (kills > 0 && !GameState.player_dead) {
-        EndMissionScene *end = new EndMissionScene(&this->optShps, &this->optPals);
+        EndMissionScene *end = EndMissionScene::create();
         end->init();
         this->pending_activities.push(end);
     }
@@ -1016,20 +1016,20 @@ void SCGameFlow::runFrame(void) {
     VGA.vSync();
 }
 void SCGameFlow::playShot(uint8_t shotId) {
-    SCShot *sht = new SCShot();
+    SCShot *sht = SCShot::create();
     sht->init();
     sht->SetShotId(shotId);
     this->pending_activities.push(sht);
 }
 void SCGameFlow::playConv(uint8_t convId) {
-    SCConvPlayer *conv = new SCConvPlayer();
+    SCConvPlayer *conv = SCConvPlayer::create();
     conv->init();
     conv->SetID(convId);
     this->pending_activities.push(conv);
 }
 
 void SCGameFlow::playMidGame(uint8_t midGameId) {
-    SCAnimationPlayer *midgame = new SCAnimationPlayer();
+    SCAnimationPlayer *midgame = SCAnimationPlayer::create();
     midgame->init();
     SCAnimationArchive archive;
     std::vector<MIDGAME_SHOT *> shots;
@@ -1064,7 +1064,7 @@ void SCGameFlow::playMidGame(uint8_t midGameId) {
 }
 
 void SCGameFlow::playCredits(bool the_end_only, bool wait_music_end) {
-    SCCredit *credits = new SCCredit();
+    SCCredit *credits = SCCredit::create();
     credits->the_end_only = the_end_only;
     credits->wait_music_end = wait_music_end;
     credits->init();

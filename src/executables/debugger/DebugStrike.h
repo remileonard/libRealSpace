@@ -1,7 +1,7 @@
 #pragma once
 #include "../../strike_commander/precomp.h"
 
-class DebugStrike : public SCStrike {
+class DebugStrike : public virtual SCStrike {
 protected:
     virtual void radar();
     virtual void simInfo();
@@ -86,7 +86,7 @@ public:
     DebugStrike();
     ~DebugStrike();
     void init() override;
-    virtual void setMission(std::string mission_name);
+    void setMission(char const *missionName) override;
     virtual void renderMenu() override;
     virtual void renderUI() override;
     virtual void renderWorkingRegisters();

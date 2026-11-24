@@ -17,7 +17,7 @@ struct shotBackground {
     uint8_t frameCounter {0};
 };
 
-class SCShot : public IActivity {
+class SCShot : public IActivity, public Creatable<SCShot> {
 
 public:
 
@@ -43,18 +43,20 @@ protected:
     int fps;
 };
 
-class EndMissionScene : public SCShot {
+class EndMissionScene : public SCShot, public Creatable<EndMissionScene> {
 protected:
     RSImageSet* scoringSprites{nullptr};
     VGAPalette *p2{nullptr};
     int part{0};
 public:
-    EndMissionScene(PakArchive *optShps, PakArchive *optPals) : SCShot() {};
+    using Creatable<EndMissionScene>::create;
+    using Creatable<EndMissionScene>::registerType;
+    EndMissionScene() : SCShot() {};
     void init() override;
     void runFrame(void) override;
     void checkKeyboard(void) override;
 };
-class MapShot : public SCShot {
+class MapShot : public SCShot, public Creatable<MapShot> {
     std::vector<uint8_t*> mapics;
     FrameBuffer *frameBuffer;
     FrameBuffer *frameBufferA;
@@ -78,6 +80,8 @@ class MapShot : public SCShot {
     float current_x;
     float current_y;
 public:
+    using Creatable<MapShot>::create;
+    using Creatable<MapShot>::registerType;
     MapShot() : SCShot() {};
     void init();
     void SetPoints(std::vector<MAP_POINT *> *points);

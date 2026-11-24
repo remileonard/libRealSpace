@@ -8,13 +8,9 @@ DebugPacificStrikeMISN::DebugPacificStrikeMISN() {
 }
 
 DebugPacificStrikeMISN::~DebugPacificStrikeMISN() {
-    DebugStrike::current_mission = nullptr;
-    DebugStrike::virtual_cockpit = nullptr;
 }
 
-// La frame tourne sur la partie DebugStrike de l'objet : le tir et le choix de l'arme sont rendus à PSStrike.
 void DebugPacificStrikeMISN::firePrimary() {
-    PSStrike::target = DebugStrike::target;
     PSStrike::firePrimary();
 }
 
@@ -22,16 +18,9 @@ void DebugPacificStrikeMISN::selectNextWeapon() {
     PSStrike::selectNextWeapon();
 }
 
-void DebugPacificStrikeMISN::setMission(std::string mission_name) { 
-    PSStrike::setMission(mission_name.c_str());
-    DebugStrike::target = nullptr;
-    DebugStrike::current_mission = PSStrike::current_mission;
-    DebugStrike::player_plane = PSStrike::player_plane;
-    DebugStrike::cockpit = PSStrike::cockpit;
-    DebugStrike::area = PSStrike::area;
-    DebugStrike::camera = PSStrike::camera;
-    DebugStrike::virtual_cockpit = PSStrike::virtual_cockpit;
-    
+void DebugPacificStrikeMISN::setMission(char const *missionName) {
+    PSStrike::setMission(missionName);
+    this->target = nullptr;
 }
 
 void DebugPacificStrikeMISN::renderMissionLoadingDialog(bool &show_mission) {
@@ -65,9 +54,9 @@ void DebugPacificStrikeMISN::renderMissionLoadingDialog(bool &show_mission) {
 
     ImGui::SameLine(300);
     if (ImGui::Button("Load PS Mission")) {
-        DebugStrike::Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
-        DebugStrike::Assets.navmap_add_filename = "";
-        this->setMission((char *)ps_mission_list[ps_mission_idx]);
+        this->Assets.navmap_filename = "..\\..\\DATA\\COCKPITS\\NAVMAP.IFF";
+        this->Assets.navmap_add_filename = "";
+        this->setMission(ps_mission_list[ps_mission_idx]);
     }
     ImGui::PopItemWidth();
     ImGui::End();

@@ -54,10 +54,10 @@ void SCMainMenu::OnLoadGame() {
 }
 
 void SCMainMenu::OnStartNewGame() {
-    SCGameFlow *gfl = new SCGameFlow();
+    SCGameFlow *gfl = SCGameFlow::create();
     GameState.Reset();
     gfl->init();
-    SCRegister *registerActivity = new SCRegister();
+    SCRegister *registerActivity = SCRegister::create();
     registerActivity->init();
     Game->addActivity(gfl);
     Game->addActivity(registerActivity);
@@ -65,13 +65,13 @@ void SCMainMenu::OnStartNewGame() {
 
 void SCMainMenu::OnTrainingMission() {
 
-    SCTrainingMenu *trainingActivity = new SCTrainingMenu();
+    SCTrainingMenu *trainingActivity = SCTrainingMenu::create();
     trainingActivity->init();
     Game->addActivity(trainingActivity);
 }
 
 void SCMainMenu::OnViewObject() {
-    SCObjectViewer *objViewer = new SCObjectViewer();
+    SCObjectViewer *objViewer = SCObjectViewer::create();
     objViewer->init();
     Game->addActivity(objViewer);
 }
@@ -114,7 +114,7 @@ void SCMainMenu::init(void) {
 }
 void SCMainMenu::LoadGame(std::string filename) {
     GameState.Load(filename);
-    SCGameFlow *gfl = new SCGameFlow();
+    SCGameFlow *gfl = SCGameFlow::create();
     gfl->InitFromGameState();
     Game->addActivity(gfl);
     if (this->frequest) {
@@ -243,7 +243,7 @@ void SCMainMenu::runFrame(void) {
         timer --;
     }
     if (timer <= 0) {
-        SCAnimationPlayer *intro = new SCAnimationPlayer();
+        SCAnimationPlayer *intro = SCAnimationPlayer::create();
         intro->init();
         timer = 4200;
         Mixer.stopMusic();

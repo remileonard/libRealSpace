@@ -751,7 +751,7 @@ void SCStrike::keyMfdWeapons() {
 }
 
 void SCStrike::keyShowNavMap() {
-    SCNavMap *nav_screen = new SCNavMap();
+    SCNavMap *nav_screen = SCNavMap::create();
     nav_screen->init();
     nav_screen->SetName((char *)this->current_mission->world->tera.c_str());
     nav_screen->mission = this->current_mission;
@@ -1982,17 +1982,6 @@ void SCStrike::renderWorld() {
 void SCStrike::renderPlayerPlane() {
     this->player_plane->Render();
     this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
-}
-
-SCStrike *SCStrike::create() {
-    if (s_factory != nullptr) {
-        return s_factory();
-    }
-    return new SCStrike();
-}
-
-void SCStrike::setFactory(SCStrike *(*factory)()) {
-    s_factory = factory;
 }
 
 // ALT+O (Input_AltKeyCommands_26F7E) : effets sonores coupés (SoundFX_StopAll_5AA95), vol figé, curseur des menus.

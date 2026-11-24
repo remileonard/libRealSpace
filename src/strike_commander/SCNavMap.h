@@ -9,7 +9,7 @@
 #pragma once
 #include "precomp.h"
 
-class SCNavMap : public IActivity {
+class SCNavMap : public IActivity, public Creatable<SCNavMap> {
     
 public:
     SCNavMap();

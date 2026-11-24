@@ -5,7 +5,7 @@
 #include <SDL.h>
 #include "../../strike_commander/precomp.h"
 
-class DebugControllerActivity : public IActivity {
+class DebugControllerActivity : public IActivity, public Creatable<DebugControllerActivity> {
 public:
     DebugControllerActivity();
     ~DebugControllerActivity();

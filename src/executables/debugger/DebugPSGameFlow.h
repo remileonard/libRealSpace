@@ -18,9 +18,7 @@ private:
     
 protected:
     void playMapShot(std::vector<MAP_POINT *> *points) override;
-    void flyMission(uint8_t missionid) override;
     void playShot(uint8_t shotId) override;
-    void playConv(uint8_t convId) override;
     void playMidGame(uint8_t midGameId) override;
     void playShowMap(uint8_t mapId) override;
     void playEndMission() override;

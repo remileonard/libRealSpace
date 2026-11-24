@@ -2,7 +2,7 @@
 #include "precomp.h"
 
 // OPTEST.EXE Credits_Play_BDE10 : générique déroulant de MIDGAMES\CREDITS.IFF puis score final, ou « THE END » seul.
-class SCCredit : public IActivity {
+class SCCredit : public IActivity, public Creatable<SCCredit> {
 public:
     SCCredit();
     ~SCCredit();

@@ -53,7 +53,7 @@
  * It has a createScen method which creates a new scenario.
  * It has a getShape method which gets a shape from the PakArchive.
  */
-class SCGameFlow : public IActivity {
+class SCGameFlow : public IActivity, public Creatable<SCGameFlow> {
 
 public:
     SCGameFlow();

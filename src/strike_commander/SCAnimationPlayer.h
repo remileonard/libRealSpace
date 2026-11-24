@@ -20,7 +20,7 @@ typedef struct MIDGAME_DRAW_ENTRY {
     int index;
 } MIDGAME_DRAW_ENTRY;
 
-class SCAnimationPlayer: public IActivity {
+class SCAnimationPlayer : public IActivity, public Creatable<SCAnimationPlayer> {
 protected:
     AssetManager &Assets = AssetManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();

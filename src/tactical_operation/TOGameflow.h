@@ -12,7 +12,6 @@ public:
     ~TOGameFlow();
     void initInstructions() override;
     void playMidGame(uint8_t midGameId) override;
-    void playConv(uint8_t convId) override;
     void opWeaponLoadout(EFCT *instruction) override;
     // Fichier de partie de Tactical Operations : 598 octets (Gameflow_SaveGameFile_5357F).
     void loadGame(std::string filename) override;

@@ -31,7 +31,7 @@ static int mission_idx = 0;
  * This class implements the main game logic for Strike Commander. It handles
  * mission selection, keyboard input, game simulation, and rendering.
  */
-class SCStrike : public IActivity {
+class SCStrike : public IActivity, public Creatable<SCStrike> {
 protected:
     /**
      * @brief Hook, empty by default: called right after an aircraft has been drawn, with the world camera active.
@@ -322,8 +322,6 @@ protected:
     virtual void keyEyesOnTarget();
     virtual void keySpecKey1();
     virtual void keySpecKey2();
-private:
-    inline static SCStrike *(*s_factory)() = nullptr;
 public:
     float verticalOffset{0.45f};
     // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).
@@ -332,11 +330,6 @@ public:
      * @brief Constructor
      */
     SCStrike();
-    /**
-     * @brief Makes the activity of a flight: a SCStrike, or the type that setFactory gives
-     */
-    static SCStrike *create();
-    static void setFactory(SCStrike *(*factory)());
     /**
      * @brief Destructor
      */
@@ -350,7 +343,7 @@ public:
      * @brief Sets the current mission
      * @param missionName The name of the mission to load
      */
-    void setMission(char const *missionName);
+    virtual void setMission(char const *missionName);
     /**
      * @brief Creates the mission object for setMission, derived activities return their own mission type
      */

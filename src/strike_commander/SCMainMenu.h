@@ -17,7 +17,7 @@ enum ButtonIDS { BUTTON_CONTINUE, BUTTON_LOADGAME, BUTTON_STARTNEWGAME, BUTTON_T
 #define MAINMENU_PAK_BOARD_INDICE 1
 #define MAINMENU_PAK_BOARD_PALETTE 2
 
-class SCMainMenu : public IActivity{
+class SCMainMenu : public IActivity, public Creatable<SCMainMenu> {
     
 public:
     SCMainMenu();

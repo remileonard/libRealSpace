@@ -11,7 +11,7 @@
 
 #include "../realspace/RSObjviewer.h"
 
-class SCObjectViewer : public IActivity{
+class SCObjectViewer : public IActivity, public Creatable<SCObjectViewer> {
     
 public:
     SCObjectViewer();

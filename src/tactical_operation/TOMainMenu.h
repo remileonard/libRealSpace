@@ -12,5 +12,4 @@
 class TOMainMenu : public SCMainMenu {
 protected:
     void LoadGame(std::string filename) override;
-    void OnStartNewGame() override;
 };

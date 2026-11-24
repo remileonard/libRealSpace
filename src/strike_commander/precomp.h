@@ -25,6 +25,7 @@
 #include "../engine/SCButton.h"
 #include "../engine/SCZone.h"
 #include "../engine/IActivity.h"
+#include "../engine/Creatable.h"
 #include "../engine/GameEngine.h"
 #include "../realspace/ConvAssetManager.h"
 

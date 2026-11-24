@@ -14,6 +14,8 @@ class PSGameFlow : public virtual SCGameFlow {
 protected:
     PSState &PSGameState = PSState::getInstance();
 
+    void playConv(uint8_t convId) override;
+    void flyMission(uint8_t missionid) override;
 public:
     // Commandes propres à Pacific Strike (noms proposés dans l'analyse).
     enum PSGameflowCommand : uint8_t {
@@ -42,8 +44,6 @@ public:
     void init() override;
     void initInstructions() override;
     void createScen() override;
-    void playConv(uint8_t convId) override;
-    void flyMission(uint8_t missionid) override;
 
 protected:
     // [partie+1382], posé par SET_BYTE_1382 ; rôle non établi.

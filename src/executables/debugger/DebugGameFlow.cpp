@@ -1,6 +1,4 @@
 #include "DebugGameFlow.h"
-#include "DebugStrike.h"
-#include "DebugConvPlayer.h"
 
 #include <imgui.h>
 #include <imgui_impl_opengl2.h>
@@ -10,29 +8,13 @@ DebugGameFlow::DebugGameFlow() {}
 
 DebugGameFlow::~DebugGameFlow() {}
 
-void DebugGameFlow::flyMission(uint8_t missionid) {
-    SCStrike *fly = new DebugStrike();
-    fly->init();
-    fly->player_loadout = this->player_loadout_pending;
-    this->player_loadout_pending = false;
-    fly->setMission(this->missionToFly);
-    this->missionToFly = nullptr;
-    fly_mission.push(fly);
-    this->next_miss = GameState.mission_id;
-}
-void DebugGameFlow::playConv(uint8_t convId) {
-    SCConvPlayer *conv = new DebugConvPlayer();
-    conv->init();
-    conv->SetID(convId);
-    this->pending_activities.push(conv);
-}
 void DebugGameFlow::renderConvPlayer() {
     ImGui::Begin("Convert Player", &conv_player);
     static ImGuiComboFlags flags = 0;
     if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
         for (int i = 0; i < 256; i++) {
             if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
-                SCConvPlayer *conv = new DebugConvPlayer();
+                SCConvPlayer *conv = SCConvPlayer::create();
                 conv->init();
                 conv->SetID(i);
                 this->pending_activities.push(conv);
@@ -166,7 +148,7 @@ void DebugGameFlow::renderMenu() {
         if (ImGui::BeginCombo("List des shots", nullptr, shtsflags)) {
             for (auto shot : this->optionParser.estb) {
                 if (ImGui::Selectable(std::to_string(shot.first).c_str(), false)) {
-                    SCShot *sht = new SCShot();
+                    SCShot *sht = SCShot::create();
                     sht->init();
                     sht->SetShotId(shot.first);
                     this->pending_activities.push(sht);

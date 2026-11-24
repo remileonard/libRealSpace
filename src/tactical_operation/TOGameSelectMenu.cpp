@@ -6,6 +6,8 @@
 #include "TOGameSelectMenu.h"
 #include "TOConvAssetManager.h"
 #include "TOMainMenu.h"
+#include "TOGameflow.h"
+#include "TOConvPlayer.h"
 
 TOGameSelectMenu::TOGameSelectMenu() {
     this->music_playing = false;
@@ -92,7 +94,7 @@ void TOGameSelectMenu::unFocus(void) {
 void TOGameSelectMenu::runFrame(void) {
     if (SDL_GetTicks() - this->shown_at > IDLE_MS && SCFlicPlayer::IsAvailable()) {
         printf("CD MENU: pas de choix depuis %u ms, l'animation est rejouee\n", IDLE_MS);
-        SCFlicPlayer *flic = new SCFlicPlayer();
+        SCFlicPlayer *flic = SCFlicPlayer::create();
         flic->init();
         Game->addActivity(flic);
         return;
@@ -112,10 +114,13 @@ void TOGameSelectMenu::onStrikeCommander() {
     printf("CD MENU: Strike Commander\n");
     this->unFocus();
     this->stop();
-    SCMainMenu *main = new SCMainMenu();
+    SCMainMenu::registerType<SCMainMenu>();
+    SCGameFlow::registerType<SCGameFlow>();
+    SCConvPlayer::registerType<SCConvPlayer>();
+    SCMainMenu *main = SCMainMenu::create();
     main->init();
     Game->addActivity(main);
-    SCAnimationPlayer *intro = new SCAnimationPlayer();
+    SCAnimationPlayer *intro = SCAnimationPlayer::create();
     intro->init();
     Game->addActivity(intro);
 }
@@ -127,7 +132,10 @@ void TOGameSelectMenu::onTacticalOperations() {
     this->stop();
     this->loadTacticalOperationsData();
     SCState::getInstance().Reset();
-    TOMainMenu *main = new TOMainMenu();
+    SCMainMenu::registerType<TOMainMenu>();
+    SCGameFlow::registerType<TOGameFlow>();
+    SCConvPlayer::registerType<TOConvPlayer>();
+    SCMainMenu *main = SCMainMenu::create();
     main->init();
     Game->addActivity(main);
 }

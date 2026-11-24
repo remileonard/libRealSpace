@@ -18,6 +18,7 @@
 #include "DebugControlMapping.h"
 #include "DebugAnimationPlayer.h"
 #include "../../tactical_operation/TOConvAssetManager.h"
+#include "../../tactical_operation/TOConvPlayer.h"
 #include "../../pacific_strike/PSConvAssetManager.h"
 #include "../../pacific_strike/PSSound.h"
 #include "DebugConvPlayer.h"
@@ -98,7 +99,10 @@ void DebugGame::loadSC() {
         // Load assets needed for Conversations (char and background)
         ConvAssets.init();
         RSSound::getInstance().init();
-        DebugGameFlow* main = new DebugGameFlow();
+        SCStrike::registerType<DebugStrike>();
+        SCConvPlayer::registerType<DebugConvPlayer>();
+        SCGameFlow::registerType<DebugGameFlow>();
+        SCGameFlow *main = SCGameFlow::create();
         SCState &GameState = SCState::getInstance();
         GameState.Reset();
         GameState.player_callsign = "Debug";
@@ -161,7 +165,10 @@ void DebugGame::loadSCCD() {
         ConvAssets.init();
         loader->setProgress(85.0f);
         RSSound::getInstance().init();
-        DebugGameFlow* main = new DebugGameFlow();
+        SCStrike::registerType<DebugStrike>();
+        SCConvPlayer::registerType<DebugConvPlayer>();
+        SCGameFlow::registerType<DebugGameFlow>();
+        SCGameFlow *main = SCGameFlow::create();
         SCState &GameState = SCState::getInstance();
         GameState.Reset();
         GameState.player_callsign = "Debug";
@@ -226,7 +233,8 @@ void DebugGame::testMissionSC() {
         RSMixer::getInstance().init();
         //Add MainMenu activity on the game stack.
         loader->setProgress(100.0f);
-        DebugStrike * main = new DebugStrike();
+        SCStrike::registerType<DebugStrike>();
+        SCStrike *main = SCStrike::create();
         main->init();
         main->setMission("MISN-1A.IFF");
         GameEngine *Game = &GameEngine::instance();
@@ -277,7 +285,10 @@ void DebugGame::loadTO() {
         ConvAssets.init();
         RSSound::getInstance().init();
         RSMixer::getInstance().init();
-        DebugTOGameFlow* main = new DebugTOGameFlow();
+        SCStrike::registerType<DebugStrike>();
+        SCConvPlayer::registerType<TOConvPlayer>();
+        SCGameFlow::registerType<DebugTOGameFlow>();
+        SCGameFlow *main = SCGameFlow::create();
         SCState &GameState = SCState::getInstance();
         GameState.Reset();
         GameState.player_callsign = "Debug";
@@ -332,7 +343,8 @@ void DebugGame::testObjects() {
         RSMixer::getInstance().init();
         RSSound::getInstance().init();
         FontManager.init();
-        DebugObjectViewer* main = new DebugObjectViewer();
+        SCObjectViewer::registerType<DebugObjectViewer>();
+        SCObjectViewer *main = SCObjectViewer::create();
         main->init();
         GameEngine *Game = &GameEngine::instance();
         Game->addActivity(main);
@@ -341,14 +353,14 @@ void DebugGame::testObjects() {
 }
 
 void DebugGame::testController() {
-    DebugControllerActivity* main = new DebugControllerActivity();
+    DebugControllerActivity* main = DebugControllerActivity::create();
     main->init();
     GameEngine *Game = &GameEngine::instance();
     Game->addActivity(main);
 }
 
 void DebugGame::setupMapping() {
-    DebugControlMapping* main = new DebugControlMapping();
+    DebugControlMapping* main = DebugControlMapping::create();
     main->init();
     GameEngine *Game = &GameEngine::instance();
     Game->addActivity(main);
@@ -393,7 +405,8 @@ void DebugGame::testMidGames() {
         RSMixer::getInstance().init();
         RSSound::getInstance().init();
         ConvAssetManager::getInstance().init();
-        DebugAnimationPlayer* main = new DebugAnimationPlayer();
+        SCAnimationPlayer::registerType<DebugAnimationPlayer>();
+        SCAnimationPlayer *main = SCAnimationPlayer::create();
         main->init();
         main->pause = true;
         GameEngine *Game = &GameEngine::instance();
@@ -413,7 +426,8 @@ void DebugGame::loadPacific() {
     RSMixer::getInstance().init();
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
-    DebugObjectViewer* main = new DebugObjectViewer();
+    SCObjectViewer::registerType<DebugObjectViewer>();
+    SCObjectViewer *main = SCObjectViewer::create();
     main->init();
     this->addActivity(main);
 }
@@ -450,7 +464,10 @@ void DebugGame::loadPacificConv() {
     SCRenderer::getInstance().init(1280,800);
     ConvAssetManager::setInstance(std::make_unique<PSConvAssetManager>());
     ConvAssetManager::getInstance().init();
-    DebugPSGameFlow* main = new DebugPSGameFlow();
+    SCStrike::registerType<DebugPacificStrikeMISN>();
+    SCConvPlayer::registerType<DebugPSConvPlayer>();
+    SCGameFlow::registerType<DebugPSGameFlow>();
+    SCGameFlow *main = SCGameFlow::create();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
     PSState::getInstance().Reset();
@@ -500,7 +517,8 @@ void DebugGame::loadPacificMISN() {
     ConvAssetManager::getInstance().init();
     RSSound::setInstance(std::make_unique<PSSound>());
     RSSound::getInstance().init();
-    DebugPacificStrikeMISN* main = new DebugPacificStrikeMISN();
+    SCStrike::registerType<DebugPacificStrikeMISN>();
+    SCStrike *main = SCStrike::create();
     SCState &GameState = SCState::getInstance();
     GameState.Reset();
     PSState::getInstance().Reset();
@@ -513,7 +531,7 @@ void DebugGame::loadPacificMISN() {
     }
     main->init();
     main->setMission("PRLH-M1.IFF");
-    this->addActivity(static_cast<IActivity*>(static_cast<DebugStrike*>(main)));
+    this->addActivity(main);
 }
 
 void DebugGame::loadWingsOfGlory() {
@@ -530,7 +548,8 @@ void DebugGame::loadWingsOfGlory() {
     RSMixer::getInstance().init();
     FontManager.init();
     SCRenderer::getInstance().init(1280,800);
-    DebugObjectViewer* main = new DebugObjectViewer();
+    SCObjectViewer::registerType<DebugObjectViewer>();
+    SCObjectViewer *main = SCObjectViewer::create();
     main->init();
     this->addActivity(main);
 }

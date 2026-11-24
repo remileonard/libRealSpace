@@ -1,6 +1,4 @@
-#include "DebugPSConvPlayer.h"
 #include "DebugPSGameFlow.h"
-#include "DebugPacificStrikeMISN.h"
 #include "../pacific_strike/PSGameFlowParser.h"
 #include <imgui.h>
 
@@ -25,12 +23,6 @@ void DebugPSGameFlow::init() {
         GameState.requierd_flags[i] = false;
     }
 }
-void DebugPSGameFlow::playConv(uint8_t convId) {
-    SCConvPlayer *conv = new DebugPSConvPlayer();
-    conv->init();
-    conv->SetID(convId);
-    this->pending_activities.push(conv);
-}
 void DebugPSGameFlow::playShot(uint8_t shotId) {}
 void DebugPSGameFlow::playMapShot(std::vector<MAP_POINT *> *points) {}
 DebugPSGameFlow::DebugPSGameFlow() { 
@@ -50,7 +42,7 @@ void DebugPSGameFlow::renderConvPlayer() {
     if (ImGui::BeginCombo("List des conversations", nullptr, flags)) {
         for (int i = 0; i < 313; i++) {
             if (ImGui::Selectable(std::to_string(i).c_str(), false)) {
-                SCConvPlayer *conv = new DebugPSConvPlayer();
+                SCConvPlayer *conv = SCConvPlayer::create();
                 conv->init();
                 conv->SetID(i);
                 this->pending_activities.push(conv);
@@ -70,11 +62,11 @@ void DebugPSGameFlow::playShowMap(uint8_t mapId) {
 
 void DebugPSGameFlow::playEndMission() {
     if (std::string(this->missionToFly).length() > 0) {
-        DebugPacificStrikeMISN *fly = new DebugPacificStrikeMISN();
+        SCStrike *fly = SCStrike::create();
         fly->init();
         fly->setMission(this->missionToFly);
         this->missionToFly = nullptr;
-        fly_mission.push(static_cast<DebugStrike*>(fly));   
+        fly_mission.push(fly);
     }
     this->next_miss = GameState.mission_id;
     this->openTest(true, "WEAPON_LOADOUT");
@@ -104,16 +96,6 @@ void DebugPSGameFlow::lookAtKillBoard() {
 
 void DebugPSGameFlow::viewCatalog() {
     m_showCatalogPopup = true;
-}
-
-void DebugPSGameFlow::flyMission(uint8_t missionid) {
-    
-    DebugPacificStrikeMISN *fly = new DebugPacificStrikeMISN();
-    fly->init();
-    fly->setMission(this->missionToFly);
-    this->missionToFly = nullptr;
-    fly_mission.push(static_cast<DebugStrike*>(fly));
-    this->next_miss = GameState.mission_id;
 }
 
 // Nouvelle méthode à appeler dans votre boucle de rendu principale

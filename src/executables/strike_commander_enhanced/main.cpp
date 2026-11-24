@@ -14,16 +14,12 @@
 #include "../../enhanced/EnhancedScreen.h"
 #define FLOPPY 0
 
-static SCStrike *newEnhancedStrike() {
-    return new EnhancedStrike();
-}
-
 int main(int argc, char* argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<DesktopTimer>());
     SCRenderer::setInstance(std::make_unique<EnhancedRenderer>());
-    SCStrike::setFactory(&newEnhancedStrike);
+    SCStrike::registerType<EnhancedStrike>();
     RSScreen::setInstance(std::make_unique<EnhancedScreen>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
 
@@ -108,10 +104,10 @@ int main(int argc, char* argv[]) {
     GameEngine *game = &GameEngine::instance();
     game->init();
     //Add MainMenu activity on the game stack.
-    SCMainMenu* main = new SCMainMenu();
+    SCMainMenu* main = SCMainMenu::create();
     main->init();
     game->addActivity(main);
-    SCAnimationPlayer *intro = new SCAnimationPlayer();
+    SCAnimationPlayer *intro = SCAnimationPlayer::create();
     intro->init();
     game->addActivity(intro);
     game->run();

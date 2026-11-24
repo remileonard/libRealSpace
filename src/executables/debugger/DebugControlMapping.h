@@ -18,7 +18,7 @@ struct CaptureState {
     float        timeout     = 5.0f; // secondes restantes
 };
 
-class DebugControlMapping : public IActivity {
+class DebugControlMapping : public IActivity, public Creatable<DebugControlMapping> {
 public:
     DebugControlMapping();
     ~DebugControlMapping();

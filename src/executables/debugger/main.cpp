@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
     loader.close();
     
     GameEngine *game = &GameEngine::instance();
-    DebugEmptyActivity *main = new DebugEmptyActivity();
+    DebugEmptyActivity *main = DebugEmptyActivity::create();
     game->init();
     main->init();
     game->addActivity(main);

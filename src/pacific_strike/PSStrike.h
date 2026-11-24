@@ -3,12 +3,12 @@
 #include "PSMission.h"
 #include "PSCockpit.h"
 
-class PSStrike : public SCStrike {
+class PSStrike : public virtual SCStrike {
 protected:
 public:
     PSStrike();
     ~PSStrike();
-    void setMission(char const *missionName);
+    void setMission(char const *missionName) override;
     void start(void) override;
     SCCockpit *createCockpit() override;
     SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit) override;

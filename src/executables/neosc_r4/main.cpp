@@ -15,16 +15,12 @@
 #include "../../engine/gametimer.h"
 #define FLOPPY 0
 
-static SCStrike *newR4Strike() {
-    return new R4Strike();
-}
-
 int main(int argc, char *argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<R4Timer>());
     SCRenderer::setInstance(std::make_unique<R4Renderer>());
-    SCStrike::setFactory(&newR4Strike);
+    SCStrike::registerType<R4Strike>();
     RSScreen::setInstance(std::make_unique<R4Screen>());
     RSVGA::setInstance(std::make_unique<R4VGA>());
     Loader::setInstance(std::make_unique<R4Loader>());
@@ -100,17 +96,17 @@ int main(int argc, char *argv[]) {
     GameEngine *game = &GameEngine::instance();
     game->init();
     if (SCFlicPlayer::IsAvailable()) {
-        TOGameSelectMenu *select = new TOGameSelectMenu();
+        TOGameSelectMenu *select = TOGameSelectMenu::create();
         select->init();
         game->addActivity(select);
-        SCFlicPlayer *flic = new SCFlicPlayer();
+        SCFlicPlayer *flic = SCFlicPlayer::create();
         flic->init();
         game->addActivity(flic);
     } else {
-        SCMainMenu *main = new SCMainMenu();
+        SCMainMenu *main = SCMainMenu::create();
         main->init();
         game->addActivity(main);
-        SCAnimationPlayer *intro = new SCAnimationPlayer();
+        SCAnimationPlayer *intro = SCAnimationPlayer::create();
         intro->init();
         game->addActivity(intro);
     }

@@ -10,9 +10,12 @@
 
 #include "../strike_commander/precomp.h"
 
-class TOKillMarksScene : public EndMissionScene {
+class TOKillMarksScene : public EndMissionScene, public Creatable<TOKillMarksScene> {
 public:
-    TOKillMarksScene(PakArchive *optShps2, PakArchive *optPals2);
+    using Creatable<TOKillMarksScene>::create;
+    using Creatable<TOKillMarksScene>::registerType;
+    // Archives lues par init(), à donner avant.
+    void setArchives(PakArchive *optShps2, PakArchive *optPals2);
     void init() override;
 
 private:

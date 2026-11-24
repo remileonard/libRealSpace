@@ -11,7 +11,7 @@
 #include "../strike_commander/precomp.h"
 #include "../engine/SCPanel.h"
 
-class TOGameSelectMenu : public IActivity {
+class TOGameSelectMenu : public IActivity, public Creatable<TOGameSelectMenu> {
 public:
     TOGameSelectMenu();
     ~TOGameSelectMenu();

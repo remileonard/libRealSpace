@@ -101,17 +101,17 @@ int main(int argc, char* argv[]) {
     GameEngine *game = &GameEngine::instance();
     game->init();
     if (SCFlicPlayer::IsAvailable()) {
-        TOGameSelectMenu *select = new TOGameSelectMenu();
+        TOGameSelectMenu *select = TOGameSelectMenu::create();
         select->init();
         game->addActivity(select);
-        SCFlicPlayer *flic = new SCFlicPlayer();
+        SCFlicPlayer *flic = SCFlicPlayer::create();
         flic->init();
         game->addActivity(flic);
     } else {
-        SCMainMenu *main = new SCMainMenu();
+        SCMainMenu *main = SCMainMenu::create();
         main->init();
         game->addActivity(main);
-        SCAnimationPlayer *intro = new SCAnimationPlayer();
+        SCAnimationPlayer *intro = SCAnimationPlayer::create();
         intro->init();
         game->addActivity(intro);
     }

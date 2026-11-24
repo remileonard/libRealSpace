@@ -32,12 +32,13 @@ std::unordered_map<std::string, imperial_plane_data> imperial_planes = {
     {"F-16GRAY", {10.0f, -7.0f, 40.0f, 40.0f, 30.0f, 100.0f, 390.0f, 18000.0f, 8000.0f, 23000.0f, 32.0f, .93f, 120.0f}},
     {"F-15", {8.0f, -5.0f, 30.0f, 60.0f, 32.0f, 140.0f, 608.0f, 28000.0f, 14000.0f, 46000.0f, 43.0f, .87f, 100.0f}}};
 
-DebugStrike::DebugStrike() : SCStrike() {}
+DebugStrike::DebugStrike() {}
 
 DebugStrike::~DebugStrike() {}
 
 
-void DebugStrike::setMission(std::string mission_name) {
+void DebugStrike::setMission(char const *missionName) {
+    std::string mission_name = missionName;
     bool reload = this->current_mission != nullptr;
     if (reload) {
         printf("DEBUG: nettoyage de la mission %s avant %s\n", this->miss_file_name.c_str(), mission_name.c_str());
@@ -68,7 +69,7 @@ void DebugStrike::setMission(std::string mission_name) {
         this->simulated_objects.clear();
         this->ejected_object = nullptr;
     }
-    SCStrike::setMission(mission_name.c_str());
+    SCStrike::setMission(missionName);
     if (reload) {
         printf("DEBUG: musique arretee (%u), musique de la nouvelle mission\n", Mixer.getMusicID());
         Mixer.stopMusic();

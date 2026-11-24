@@ -29,7 +29,7 @@ struct MISN_TRAINING_PLANE {
     bool armed;
 };
 
-class SCTrainingMenu : public IActivity {
+class SCTrainingMenu : public IActivity, public Creatable<SCTrainingMenu> {
 
 public:
     SCTrainingMenu();

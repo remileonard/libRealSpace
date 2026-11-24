@@ -10,7 +10,7 @@
 
 #include "../engine/keyboard.h"
 #include "SCState.h"
-class SCRegister : public IActivity {
+class SCRegister : public IActivity, public Creatable<SCRegister> {
 public:
     SCRegister();
     ~SCRegister();

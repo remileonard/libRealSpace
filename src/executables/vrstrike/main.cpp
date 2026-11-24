@@ -95,11 +95,11 @@ int main(int argc, char* argv[]) {
         game->init();
 
         // Add MainMenu activity on the game stack.
-        SCMainMenu* main = new SCMainMenu();
+        SCMainMenu* main = SCMainMenu::create();
         main->init();
         game->addActivity(main);
 
-        SCAnimationPlayer *intro = new SCAnimationPlayer();
+        SCAnimationPlayer *intro = SCAnimationPlayer::create();
         intro->init();
         game->addActivity(intro);
 
