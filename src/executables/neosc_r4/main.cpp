@@ -15,14 +15,16 @@
 #include "../../engine/gametimer.h"
 #define FLOPPY 0
 
+static SCStrike *newR4Strike() {
+    return new R4Strike();
+}
+
 int main(int argc, char *argv[]) {
     Config &config = Config::getInstance();
     config.load("./assets/config.ini");
     GameTimer::getInstance().setTimer(std::make_unique<R4Timer>());
     SCRenderer::setInstance(std::make_unique<R4Renderer>());
-    SCStrike::setFactory([]() -> SCStrike * {
-        return new R4Strike();
-    });
+    SCStrike::setFactory(&newR4Strike);
     RSScreen::setInstance(std::make_unique<R4Screen>());
     RSVGA::setInstance(std::make_unique<R4VGA>());
     Loader::setInstance(std::make_unique<R4Loader>());

@@ -255,7 +255,7 @@ void SCTrainingMenu::unFocus(void) {
 }
 
 // Départ du vol, pour les deux types : MISSIONS\TEMPLATE.IFF, complété par SCTrainingMenu::applyTraining dans
-// SCMission::loadMission. Le nom est gardé : EnhancedTrainingMenu le redéfinit pour lancer EnhancedStrike.
+// SCMission::loadMission.
 void SCTrainingMenu::OnSearchAndDestroy() {
     SCStrike *strike = SCStrike::create();
     strike->init();

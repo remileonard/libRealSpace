@@ -15,9 +15,9 @@ OBJ conventions: groups `lod0`..`lodN`, game axes (x forward, y up, z lateral); 
 
 ## Creation chain
 
-There is no factory. `main.cpp` creates `new EnhancedMainMenu()`; each class creates the next one with a visible `new`
-(`EnhancedGameFlow::flyMission` -> `new EnhancedStrike()`, `EnhancedStrike::createMission` -> `new EnhancedMission()`,
-`EnhancedMission::createEntity` -> `new EnhancedEntity()`).
+`main.cpp` gives the flight type with `SCStrike::setFactory(&newEnhancedStrike)` and starts on `SCMainMenu`; the
+gameflow and the training menu create their flights with `SCStrike::create()`. The rest is created with a visible
+`new` (`EnhancedStrike::createMission` -> `new EnhancedMission()`, `EnhancedMission::createEntity` -> `new EnhancedEntity()`).
 
 ## Effects (`EnhancedStrike`)
 
