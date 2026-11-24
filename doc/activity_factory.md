@@ -85,6 +85,31 @@ class SCConvPlayer   : public IActivity, public Creatable<SCConvPlayer>   { ... 
 class SCRegister     : public IActivity, public Creatable<SCRegister>     { ... };
 ```
 
+**Sous-classe qui est un rôle distinct.** Une variante (`TOGameFlow`, `PSConvPlayer`…) remplace sa
+base et n'a pas d'emplacement. Une sous-classe qui coexiste avec sa base dans un même jeu, en
+revanche, est un rôle à part entière et déclare son propre emplacement. C'est le cas de
+`EndMissionScene` (dérive de `SCShot`) et de `TOKillMarksScene` (dérive de `EndMissionScene`) :
+dans une partie TO, `SCShot`, `EndMissionScene` et `TOKillMarksScene` sont créés tous les trois.
+
+`create` et `registerType` sont alors hérités de deux `Creatable` différents : un `using` lève
+l'ambiguïté et désigne l'emplacement de la classe.
+
+```cpp
+class EndMissionScene : public SCShot, public Creatable<EndMissionScene> {
+public:
+    using Creatable<EndMissionScene>::create;
+    using Creatable<EndMissionScene>::registerType;
+    ...
+};
+
+class TOKillMarksScene : public EndMissionScene, public Creatable<TOKillMarksScene> {
+public:
+    using Creatable<TOKillMarksScene>::create;
+    using Creatable<TOKillMarksScene>::registerType;
+    ...
+};
+```
+
 ### 3.3 Changement de mode à l'exécution
 
 Un emplacement contient un seul type pour tout le processus. Quand un exécutable choisit son jeu
@@ -119,7 +144,7 @@ void TOGameSelectMenu::onTacticalOperations() {
 ```
 
 `registerType<SCConvPlayer>()` est valide : `std::is_base_of_v<SCConvPlayer, SCConvPlayer>` est vrai.
-Aucune sous-classe ne déclare son propre emplacement : il n'y a qu'un emplacement par rôle.
+Une variante ne déclare pas d'emplacement : il n'y a qu'un emplacement par rôle (§ 3.2).
 
 ### 3.4 Création
 
@@ -144,6 +169,19 @@ void SCGameFlow::playConv(uint8_t convId) {
 }
 ```
 
+Une activité qui a besoin de données externes les reçoit par un setter, **après `create()` et
+avant `init()`**. Le constructeur reste sans argument et `init()` garde sa signature virtuelle :
+
+```cpp
+TOKillMarksScene *end = TOKillMarksScene::create();
+end->setArchives(&this->optShps2, &this->optPals2);   // utilisées par init()
+end->init();
+this->pending_activities.push(end);
+```
+
+Un setter est préféré à une surcharge `init(PakArchive *, PakArchive *)`, qui masquerait le `init()`
+virtuel d'`IActivity`.
+
 ## 4. Règles
 
 1. **Toute activité est créée par `X::create()`**, jamais par `new X()`.
@@ -158,6 +196,8 @@ void SCGameFlow::playConv(uint8_t convId) {
    (`createMission`, `createCockpit`, `createVirtualCockpit`, `createEntity`, `createScen`…).
 6. **Un point de choix enregistre tous les emplacements du mode**, jamais seulement ceux qui changent,
    et ne touche pas aux emplacements de la cible (§ 3.3).
+7. **Toute activité a un constructeur sans argument**, sans exception. Les données externes sont
+   transmises par un setter entre `create()` et `init()` (§ 3.4).
 
 ## 5. Emplacements
 
@@ -169,6 +209,8 @@ void SCGameFlow::playConv(uint8_t convId) {
 | `SCMainMenu` | `main.cpp`, `TOGameSelectMenu` | `TOMainMenu` |
 | `SCConvPlayer` | `SCGameFlow::playConv` | `PSConvPlayer`, `TOConvPlayer`, `DebugConvPlayer`, `DebugPSConvPlayer` |
 | `SCRegister` | `SCMainMenu` | — |
+| `EndMissionScene` | `SCGameFlow` (`SHOW_KILL_MARKS`) | — |
+| `TOKillMarksScene` | `TOGameFlow` (`SHOW_KILL_MARKS_ALT`) | — |
 | autres activités (`SCCredit`, `SCFlicPlayer`, `SCAnimationPlayer`, `SCShot`, `MapShot`, `SCNavMap`, `SCObjectViewer`, `SCDogFightMenu`, `TOGameSelectMenu`) | — | — |
 
 SC, TO et PS partagent les mêmes emplacements. Quand un exécutable fait cohabiter plusieurs jeux,
@@ -250,9 +292,12 @@ reprise (hors du périmètre de ce document).
 
 ## 9. Contraintes
 
-- **Constructeur sans argument** : `create()` appelle `new T()`. Toutes les activités le respectent,
-  sauf `EndMissionScene` et `TOKillMarksScene` (paramètres `PakArchive *`). Elles gardent un `new`
-  direct, ou reçoivent leurs données par une méthode après la création.
+- **Constructeur sans argument** : `create()` appelle `new T()`. Deux activités sont à adapter :
+  - `EndMissionScene(PakArchive *, PakArchive *)` n'utilise pas ses paramètres (son `init()` lit
+    `optShps` / `optPals`, chargés par `SCShot::init`) : ils sont supprimés ;
+  - `TOKillMarksScene(PakArchive *, PakArchive *)` utilise `optShps2` / `optPals2` dans `init()` :
+    le constructeur devient sans argument et les archives passent par `setArchives()`, appelé
+    avant `init()` (§ 3.4).
 - **Un type par emplacement et par processus** : l'enregistrement est global. Quand plusieurs jeux
   cohabitent dans un exécutable, le point de choix réenregistre les emplacements du mode
   (`TOGameSelectMenu`, `DebugGame`, § 3.3 et § 7).
@@ -283,11 +328,14 @@ Chaque étape doit compiler et garder tous les exécutables fonctionnels.
    `SCMainMenu::create()` dans les deux branches, suppression de `TOGameFlow::playConv` et de
    `TOMainMenu::OnStartNewGame`.
 7. Debugger : enregistrements par mode dans `DebugGame`, suppression des surcharges du § 8.
-8. Activités restantes : emplacement et `create()` pour `SCCredit`, `SCFlicPlayer`,
+8. `EndMissionScene` et `TOKillMarksScene` : constructeurs sans argument, `setArchives()` pour
+   `TOKillMarksScene`, emplacements propres avec `using` (§ 3.2), création par `create()` dans
+   `SCGameFlow` et `TOGameFlow`.
+9. Activités restantes : emplacement et `create()` pour `SCCredit`, `SCFlicPlayer`,
    `SCAnimationPlayer`, `SCShot`, `MapShot`, `SCNavMap`, `SCObjectViewer`, `SCDogFightMenu`,
    `TOGameSelectMenu` et les activités Debug.
-9. Facultatif : passer les constructeurs des activités en `protected` pour interdire le `new`
-   direct (impose de rendre `Creatable<Base>` ami de chaque variante).
+10. Facultatif : passer les constructeurs des activités en `protected` pour interdire le `new`
+    direct (impose de rendre `Creatable<Base>` ami de chaque variante).
 
 ## 11. Validation
 
