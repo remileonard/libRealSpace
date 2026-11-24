@@ -4,14 +4,6 @@
 #include "../engine/SCPanel.h"
 
 class TOGameSelectMenu : public IActivity, public Creatable<TOGameSelectMenu> {
-public:
-    TOGameSelectMenu();
-    ~TOGameSelectMenu();
-    void init(void) override;
-    void runFrame(void) override;
-    void focus(void) override;
-    void unFocus(void) override;
-
 private:
     static const uint32_t IDLE_MS = 20000;
     PakArchive tomenu;
@@ -27,4 +19,12 @@ private:
     void onStrikeCommander();
     void onTacticalOperations();
     void loadTacticalOperationsData();
+
+public:
+    TOGameSelectMenu();
+    ~TOGameSelectMenu();
+    void init(void) override;
+    void runFrame(void) override;
+    void focus(void) override;
+    void unFocus(void) override;
 };
