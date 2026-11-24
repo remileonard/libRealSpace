@@ -256,24 +256,52 @@ void DebugGame::loadTO() {
 }
 
 void DebugGame::loadPacificConv() {
-    SCStrike::registerType<DebugStrike>();         // non utilisé dans ce mode, voir l'exception
+    SCStrike::registerType<DebugPacificStrikeMISN>();
     SCConvPlayer::registerType<DebugPSConvPlayer>();
     ...
+}
+
+void DebugGame::loadPacificMISN() {
+    SCStrike::registerType<DebugPacificStrikeMISN>();
+    ...
+    SCStrike *main = SCStrike::create();
+    main->init();
+    main->setMission("PRLH-M1.IFF");
+    this->addActivity(main);
 }
 ```
 
 `DebugGameFlow::flyMission` et `DebugGameFlow::playConv` deviennent inutiles, ainsi que
-`DebugPSGameFlow::playConv` et `DebugTOGameFlow`.
+`DebugPSGameFlow::flyMission`, `DebugPSGameFlow::playConv` et `DebugTOGameFlow`.
+`DebugPSGameFlow::playEndMission` crée son vol par `SCStrike::create()`.
 
 Les variantes héritant virtuellement de `SCConvPlayer` (`DebugConvPlayer`, `DebugPSConvPlayer`,
 `PSConvPlayer`) s'enregistrent normalement : la conversion vers une base virtuelle unique n'est pas
 ambiguë.
 
-**Exception** : `DebugPacificStrikeMISN` hérite deux fois de `SCStrike` (par `DebugStrike` et par
-`PSStrike`, sans héritage virtuel). La conversion `DebugPacificStrikeMISN *` → `SCStrike *` est
-ambiguë, il ne peut donc pas être enregistré dans `SCStrike`. `DebugPSGameFlow::flyMission` et
-`playEndMission` gardent leur `new DebugPacificStrikeMISN()` tant que cette double base n'est pas
-reprise (hors du périmètre de ce document).
+**Héritage virtuel de `SCStrike`.** `DebugPacificStrikeMISN` dérive de `DebugStrike` et de
+`PSStrike`. Aujourd'hui, ces deux classes héritent de `SCStrike` sans héritage virtuel : l'objet
+contient deux sous-objets `SCStrike`, la conversion vers `SCStrike *` est ambiguë et
+`DebugPacificStrikeMISN::setMission` recopie l'état de la partie `PSStrike` vers la partie
+`DebugStrike`. `DebugStrike` et `PSStrike` héritent donc virtuellement de `SCStrike`, comme les
+variantes de `SCConvPlayer` :
+
+```cpp
+class DebugStrike : public virtual SCStrike { ... };
+class PSStrike    : public virtual SCStrike { ... };
+class DebugPacificStrikeMISN : public DebugStrike, public PSStrike { ... };
+```
+
+- Un seul sous-objet `SCStrike` : `DebugPacificStrikeMISN` s'enregistre normalement, sans exception.
+- Les recopies d'état dans `setMission`, les préfixes `DebugStrike::` / `PSStrike::` sur les membres
+  de `SCStrike` et les `static_cast<DebugStrike *>` du debugger disparaissent.
+- Une méthode virtuelle redéfinie à la fois dans `DebugStrike` et dans `PSStrike` doit être
+  redéfinie dans `DebugPacificStrikeMISN` (déjà le cas pour `init`, `runFrame`, `renderMenu`,
+  `renderUI`, `firePrimary`, `selectNextWeapon`). Celles redéfinies dans `PSStrike` seulement
+  (`createMission`, `createCockpit`, `createVirtualCockpit`, `start`) viennent de `PSStrike`.
+- `R4Strike` et `EnhancedStrike` gardent un héritage simple, inchangé. `EnhancedPSStrike` hérite
+  de la base virtuelle par `PSStrike` ; `EnhancedOrbit` accède aux membres par `this->`, sans
+  changement.
 
 ## 8. Ce qui disparaît
 
@@ -283,6 +311,8 @@ reprise (hors du périmètre de ce document).
   `DebugTOGameFlow`.
 - `PSGameFlow::flyMission`, `PSGameFlow::playConv`, `TOGameFlow::playConv`,
   `DebugGameFlow::flyMission`, `DebugGameFlow::playConv`, `DebugPSGameFlow::playConv`.
+- `DebugPSGameFlow::flyMission`, les recopies d'état de `DebugPacificStrikeMISN::setMission` et
+  les `static_cast<DebugStrike *>` de `DebugPSGameFlow` et `DebugGame` (§ 7).
 - `TOMainMenu::OnStartNewGame` : identique à `SCMainMenu::OnStartNewGame` une fois que
   `SCGameFlow::create()` rend `TOGameFlow`.
 - L'écart sur `player_loadout` dans Enhanced (§ 2.2), puisque `SCGameFlow::flyMission` est utilisé.
@@ -309,7 +339,17 @@ reprise (hors du périmètre de ce document).
 - **`create()` n'appelle pas `init()`** : la séquence actuelle `create` → `init` → `addActivity`
   est conservée.
 - **`create()` rend un pointeur sur le rôle** (`SCStrike *`) : un appelant qui a besoin d'une API
-  propre à la variante fait un `dynamic_cast`, comme `R4Strike::mission()` aujourd'hui.
+  propre à la variante fait un `dynamic_cast`, comme `R4Strike::mission()` aujourd'hui. Avec la base
+  virtuelle (§ 7), un `static_cast` de `SCStrike *` vers `PSStrike *` ou `DebugStrike *` est
+  interdit ; il n'en existe aucun aujourd'hui.
+- **Méthodes appelées sur le rôle** : l'appelant ne connaît que `SCStrike *`, donc une méthode
+  spécialisée par une variante doit être virtuelle dans le rôle. `SCStrike::setMission(char const *)`
+  ne l'est pas : `PSStrike::setMission` le masque (musique, joueur au sol, première arme) et
+  `DebugStrike::setMission(std::string)` a une autre signature. `setMission(char const *)` devient
+  virtuel dans `SCStrike`, `PSStrike` et `DebugStrike` le redéfinissent avec cette signature.
+  Sinon, `SCGameFlow::flyMission` appellerait `SCStrike::setMission` pour un `PSStrike`. Effet
+  à vérifier : `DebugGameFlow::flyMission` appelle aujourd'hui `SCStrike::setMission` sur un
+  `DebugStrike` ; avec la redéfinition, le nettoyage de `DebugStrike::setMission` s'exécute aussi.
 
 ## 10. Plan de migration
 
@@ -317,7 +357,8 @@ Chaque étape doit compiler et garder tous les exécutables fonctionnels.
 
 1. Ajouter `src/engine/Creatable.h`.
 2. `SCStrike` : remplacer `s_factory` / `setFactory` / `create()` par `Creatable<SCStrike>`.
-   `neosc_r4` passe à `registerType<R4Strike>()`.
+   `neosc_r4` passe à `registerType<R4Strike>()`. `setMission(char const *)` devient virtuel,
+   redéfini dans `PSStrike` et `DebugStrike` (§ 9).
 3. Emplacements SC : `SCGameFlow`, `SCMainMenu`, `SCTrainingMenu`, `SCConvPlayer`, `SCRegister`.
    Remplacer les `new` correspondants par `create()`.
 4. Enhanced : enregistrements dans `neosc_enhanced` et `neops_enhanced`, suppression des classes
@@ -327,7 +368,9 @@ Chaque étape doit compiler et garder tous les exécutables fonctionnels.
 6. TO : enregistrements des emplacements du mode dans `TOGameSelectMenu` (§ 3.3), création par
    `SCMainMenu::create()` dans les deux branches, suppression de `TOGameFlow::playConv` et de
    `TOMainMenu::OnStartNewGame`.
-7. Debugger : enregistrements par mode dans `DebugGame`, suppression des surcharges du § 8.
+7. Debugger : héritage virtuel de `SCStrike` dans `DebugStrike` et `PSStrike`, simplification de
+   `DebugPacificStrikeMISN` ; enregistrements par mode dans `DebugGame`, suppression des surcharges
+   du § 8.
 8. `EndMissionScene` et `TOKillMarksScene` : constructeurs sans argument, `setArchives()` pour
    `TOKillMarksScene`, emplacements propres avec `using` (§ 3.2), création par `create()` dans
    `SCGameFlow` et `TOGameFlow`.
@@ -348,3 +391,5 @@ Chaque étape doit compiler et garder tous les exécutables fonctionnels.
   Dans `neosc_r4`, le vol reste un `R4Strike` dans les deux jeux.
 - Debugger : enchaîner plusieurs modes dans la même session et vérifier les types obtenus.
 - Vérifier que le loadout choisi par le joueur est transmis au vol dans Enhanced (§ 2.2).
+- Debugger, mode Pacific : vol `DebugPacificStrikeMISN` depuis la conversation et depuis
+  `loadPacificMISN` ; tir, changement d'arme, rechargement de mission dans le menu de debug.
