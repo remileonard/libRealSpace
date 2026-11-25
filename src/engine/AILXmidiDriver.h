@@ -92,6 +92,9 @@ public:
     uint8_t global_pitch_h[16];
     uint8_t active_notes[16];
     uint8_t lock_status[16];
+    // the loops without end (FOR_LOOP with a count of 0): their starts, and the jumps of their NEXT_LOOP back to the start
+    int endlessLoopStarts = 0;
+    int endlessLoopJumps = 0;
 
 private:
     void send(int st, int d1, int d2);

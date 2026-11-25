@@ -410,7 +410,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
     switch (this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id) {
         case weapon_ids::ID_20MM:
             weap = new GunSimulatedObject();
-            this->pilot->mission->playOrUpdateEffect(SoundEffectIds::GUN_FIRE, this, (this->position - Renderer.getCamera()->getPosition()).Length());
+            this->pilot->mission->playOrUpdateEffect(SoundEffectIds::GUN_FIRE, this, this->position);
             break;
         case weapon_ids::ID_MK20:
         case weapon_ids::ID_MK82:
@@ -1609,7 +1609,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
     switch (wobj->wdat->weapon_id) {
         case ID_20MM:
             weap = new GunSimulatedObject();
-            this->pilot->mission->playOrUpdateEffect(SoundEffectIds::GUN_FIRE, this, (this->position - Renderer.getCamera()->getPosition()).Length());
+            this->pilot->mission->playOrUpdateEffect(SoundEffectIds::GUN_FIRE, this, this->position);
             initial_trust = this->getWeaponIntialVector(1000.0f); // coefficient ajustable
             initial_trust = this->applyGunSpread(initial_trust, 0.4f); // ~0.4° de dispersion
 

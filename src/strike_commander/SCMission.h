@@ -93,7 +93,7 @@ public:
     bool aa_missile_launched_last{false};          
     float ai_clock_stagger{0.0f};                  
     void onWeaponSpawned(SCSimulatedObject *weapon);
-    void playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance);
+    void playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position);
     void playEffect(SoundEffectIds id, Vector3D position);
     void stopEffect(SoundEffectIds id, const void *emitter);
     bool digital_fx{false};

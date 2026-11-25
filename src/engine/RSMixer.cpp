@@ -64,6 +64,14 @@ void RSMixer::init() {
     if (this->audioFormat != AUDIO_S16SYS && this->audioFormat != AUDIO_F32SYS) {
         printf("RSMixer: format audio 0x%04X non gere, musique muette\n", this->audioFormat);
     }
+    this->outputOpened = true;
+    this->initEngine(this->sampleRate);
+    Mix_HookMusic(RSMixer::musicHook, this);
+    Mix_ChannelFinished(ChannelFinishedCallback);
+}
+
+void RSMixer::initEngine(int rate) {
+    this->sampleRate = rate;
     {
         Config &cfg = Config::getInstance();
         int profile = cfg.getInt("Sound", "midi_music", 0);
@@ -120,13 +128,22 @@ void RSMixer::init() {
         xmi.init(this->device.get());
         sequencer.init(&xmi, &this->music->timbres);
     }
-    Mix_HookMusic(RSMixer::musicHook, this);
-    Mix_ChannelFinished(ChannelFinishedCallback);
 }
 
 RSMixer::~RSMixer() {
     // Signaler arrêt avec un atomic bool serait préférable
     shuttingDown = true;
+
+    if (!this->outputOpened) {
+        if (this->music) {
+            delete this->music;
+            this->music = nullptr;
+        }
+        if (g_rsmixer_instance == this) {
+            g_rsmixer_instance = nullptr;
+        }
+        return;
+    }
 
     // Plus de rendu musical : le crochet est retire avant tout le reste
     Mix_HookMusic(nullptr, nullptr);
@@ -644,6 +661,24 @@ void RSMixer::playOrUpdateSoundFx(int effect, const void *emitter, float distanc
         sfxEmitter[c] = emitter;
     }
     printf("SFX effect=%d channel=%d volume=%d\n", effect, c, volume);
+}
+
+void RSMixer::playEffectAt(int effect, uint8_t *voc, size_t vocSize, const Vector3D &position, float distance) {
+    (void)position;
+    if (voc != nullptr) {
+        this->playSoundVocAtDistance(voc, vocSize, distance);
+        return;
+    }
+    this->playSoundFxAtDistance(effect, distance);
+}
+
+void RSMixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance) {
+    (void)position;
+    if (voc != nullptr) {
+        this->playOrUpdateSoundVoc(voc, vocSize, emitter, distance);
+        return;
+    }
+    this->playOrUpdateSoundFx(effect, emitter, distance);
 }
 
 // ---------------------------------------------------------------------------------------

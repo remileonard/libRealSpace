@@ -22,6 +22,11 @@
     "glm",
     "stb",
     "cgltf",
+    "openal-soft",
+    "assimp",
     "gtest"
+  ],
+  "overrides": [
+    { "name": "imgui", "version": "1.91.0" }
   ]
 }

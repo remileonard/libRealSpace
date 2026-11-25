@@ -3,6 +3,9 @@
 //  libRealSpace
 //
 #include "R4Screen.h"
+#ifdef R4GAME_AUDIO
+#include "R4Mixer.h"
+#endif
 #include "R4ConfigPanel.h"
 #include "R4Panel.h"
 #include "R4Renderer.h"
@@ -598,6 +601,11 @@ void R4Screen::refresh(void) {
     if (R4Renderer *renderer = R4Renderer::current()) {
         renderer->flush();
     }
+#ifdef R4GAME_AUDIO
+    if (R4Mixer *mixer = R4Mixer::current()) {
+        mixer->update();
+    }
+#endif
 #ifdef R4GAME_XR
     if (xr_) {
         device_->beginHostInterop();

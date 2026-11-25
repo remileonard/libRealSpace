@@ -8,6 +8,7 @@
 //  Musique et effets XMIDI : chaine du jeu original, sans ADLMIDI ni banque WOPL.
 //    SCMusicSequencer (20 Hz) -> AILXmidiDriver (120 Hz) -> MusicDevice (OPL3, MT-32, General MIDI),
 //  rendue dans le flux de SDL_mixer par Mix_HookMusic. Les VOC restent sur les canaux SDL_mixer.
+//  Une autre sortie (R4Mixer de r4game, OpenAL) hérite de RSMixer : setInstance avant le premier getInstance.
 //
 #pragma once
 #include "../realspace/AssetManager.h"
@@ -22,9 +23,12 @@
 #include "SCMusicSequencer.h"
 #include "MusicOutputs.h"
 #include "Mt32EmuOutput.h"
+#include "../commons/Matrix.h"
 #include <memory>
 
 class RSMixer {
+protected:
+    inline static std::unique_ptr<RSMixer> s_instance{};
     int initted;
     bool has_been_initialized{ false };
     bool isplaying;
@@ -74,6 +78,9 @@ class RSMixer {
     void playSequenced(const SCMusicSet *set, uint32_t index);
     void playIsolated(MemMusic *mus, int loop, int index);
     void serveDriver();
+    // les appareils de la musique et des effets selon [Sound] midi_music, a la frequence rate
+    void initEngine(int rate);
+    bool outputOpened{ false };
 
 public:
     RSMusic *music;
@@ -83,12 +90,17 @@ public:
     std::unordered_map<int, uint8_t *> vocData;
     MemMusic *currentMusicMemPtr = nullptr;
     static RSMixer &getInstance() {
-        static RSMixer instance;
-        return instance;
+        if (!s_instance) {
+            s_instance = std::make_unique<RSMixer>();
+        }
+        return *s_instance;
+    }
+    static void setInstance(std::unique_ptr<RSMixer> inst) {
+        s_instance = std::move(inst);
     }
     RSMixer();
-    ~RSMixer();
-    void init();
+    virtual ~RSMixer();
+    virtual void init();
     // Joue la piste index de la banque courante.
     // - Banque avec un .dat (COMBAT.ADL + COMBAT.DAT) : le changement de piste attend la barre
     //   de mesure suivante et passe par la piste de liaison que donne le .dat, s'il y en a une
@@ -121,31 +133,36 @@ public:
 
     // Effets XMIDI (SOUNDFX.ADL) : 5 canaux comme le jeu. volume en pourcentage (0..100,
     // SoundFX_Play3D_59902 : 100 - distance/10). Renvoie le canal, -1 si aucun libre.
-    int playSoundFx(MemMusic *fx, int volume = 100);
-    void setSoundFxVolume(int fxChannel, int volume);
-    void stopSoundFx(int fxChannel); // SoundFX_StopEffect_59A8A : Note Off seulement
-    void stopSoundFx(int effect, const void *emitter);
-    bool isSoundFxPlaying(int fxChannel);
-    void stopAllSoundFx(); // SoundFX_StopAll_5AA95 : arrete les effets et rend leurs canaux verrouilles
+    virtual int playSoundFx(MemMusic *fx, int volume = 100);
+    virtual void setSoundFxVolume(int fxChannel, int volume);
+    virtual void stopSoundFx(int fxChannel); // SoundFX_StopEffect_59A8A : Note Off seulement
+    virtual void stopSoundFx(int effect, const void *emitter);
+    virtual bool isSoundFxPlaying(int fxChannel);
+    virtual void stopAllSoundFx(); // SoundFX_StopAll_5AA95 : arrete les effets et rend leurs canaux verrouilles
     // Nombre d'effets XMIDI joués en même temps (5 dans Strike Commander, 1 dans Pacific Strike).
     void setSoundFxChannels(int count);
     // SoundFX_PlayOrUpdate_5A906 : effet de SOUNDFX.ADL pour cet emetteur, volume selon la distance
     // au point de vue (SoundFX_Play3D_59902) ; demarre s'il ne joue pas, sinon met a jour son volume.
-    void playOrUpdateSoundFx(int effect, const void *emitter, float distance);
+    virtual void playOrUpdateSoundFx(int effect, const void *emitter, float distance);
     // Effet de SOUNDFX.ADL joué une fois, volume selon la distance.
-    void playSoundFxAtDistance(int effect, float distance);
+    virtual void playSoundFxAtDistance(int effect, float distance);
     // SoundFX_Play3D_59902 : 100 - d / 10 sous 1 000 m, 5 jusqu'à 5 000 m, 0 au-delà.
     static int distanceVolume(float distance);
+    // Effet du jeu à une position (SCMission) : le son numérisé voc s'il y en a un, sinon l'effet de SOUNDFX.ADL. Ici, volume
+    // selon la distance ; une sortie dans l'espace se sert de la position.
+    virtual void playEffectAt(int effect, uint8_t *voc, size_t vocSize, const Vector3D &position, float distance);
+    // Même chose, relancé ou mis à jour par émetteur.
+    virtual void playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance);
 
-    void stopSound();
-    void stopSound(int chanl);
-    void playSoundVoc(uint8_t *data, size_t vocSize);
-    void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop = 0);
+    virtual void stopSound();
+    virtual void stopSound(int chanl);
+    virtual void playSoundVoc(uint8_t *data, size_t vocSize);
+    virtual void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop = 0);
     // Même règle que playOrUpdateSoundFx pour un son numérisé : relancé ou mis à jour par émetteur.
-    void playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance);
+    virtual void playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance);
     // Son numérisé joué une fois, volume selon la distance.
-    void playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance);
-    void setVolume(int volume, int channel = -1);
-    bool isSoundPlaying();
-    bool isSoundPlaying(int chanl);
+    virtual void playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance);
+    virtual void setVolume(int volume, int channel = -1);
+    virtual bool isSoundPlaying();
+    virtual bool isSoundPlaying(int chanl);
 };

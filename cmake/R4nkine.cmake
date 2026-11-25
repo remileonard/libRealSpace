@@ -1,5 +1,5 @@
 # cmake/R4nkine.cmake - R4nkine dans libRealSpace : la bibliothèque, le pont
-# r4bridge, le viewer r4objviewer, r4game et le jeu neosc_r4.
+# r4bridge, le viewer r4objviewer, r4game, le jeu neosc_r4 et r4soundplayer.
 #
 # Dans le CMakeLists.txt principal, après les add_subdirectory(src/...) :
 #
@@ -13,7 +13,7 @@ if(NOT REALSPACE_R4)
     return()
 endif()
 
-set(R4NKINE_DIR "" CACHE PATH "Un clone local de R4nkine (vide : FetchContent)")
+set(R4NKINE_DIR "/Users/remi/source/r4nkine/" CACHE PATH "Un clone local de R4nkine (vide : FetchContent)")
 set(R4NKINE_TAG "main" CACHE STRING "La branche ou le tag de R4nkine")
 
 # seulement la bibliothèque : pas les applications, exemples ni tests de R4nkine
@@ -37,3 +37,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/r4objviewer)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/r4game)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/neosc_r4)
+# le lecteur des sons du jeu, avec r4nkine_audio (OpenAL Soft)
+if(TARGET r4nkine::r4nkine_audio)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/src/executables/r4soundplayer)
+endif()

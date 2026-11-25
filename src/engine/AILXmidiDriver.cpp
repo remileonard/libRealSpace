@@ -293,6 +293,9 @@ void AILXmidiDriver::xmidiControl(XmidiSequence *s, int chan, int con, int val) 
             if (s->for_cnt[i] == -1) {
                 s->for_cnt[i] = val;
                 s->for_ptrs[i] = s->evnt_ptr;
+                if (val == 0) {
+                    endlessLoopStarts++;
+                }
                 break;
             }
         }
@@ -308,6 +311,9 @@ void AILXmidiDriver::xmidiControl(XmidiSequence *s, int chan, int con, int val) 
             if (s->for_cnt[i] != 0 && --s->for_cnt[i] == 0) {
                 s->for_cnt[i] = -1;
                 return;
+            }
+            if (s->for_cnt[i] == 0) {
+                endlessLoopJumps++;
             }
             s->evnt_ptr = s->for_ptrs[i];
             return;
@@ -380,6 +386,8 @@ void AILXmidiDriver::restoreSequence(XmidiSequence *s) {
 
 void AILXmidiDriver::init(MusicDevice *driver) {
     device = driver;
+    endlessLoopStarts = 0;
+    endlessLoopJumps = 0;
     for (auto &s : seq) {
         memset(&s, 0, sizeof s);
     }

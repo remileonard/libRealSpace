@@ -12,6 +12,9 @@
 #include "../../r4game/R4Screen.h"
 #include "../../r4game/R4VGA.h"
 #include "../../r4game/R4Timer.h"
+#ifdef R4GAME_AUDIO
+#include "../../r4game/R4Mixer.h"
+#endif
 #include "../../engine/gametimer.h"
 #define FLOPPY 0
 
@@ -25,6 +28,9 @@ int main(int argc, char *argv[]) {
     RSVGA::setInstance(std::make_unique<R4VGA>());
     Loader::setInstance(std::make_unique<R4Loader>());
     GameEngine::setInstance(std::make_unique<GameEngine>());
+#ifdef R4GAME_AUDIO
+    RSMixer::setInstance(std::make_unique<R4Mixer>());
+#endif
 
     RSScreen &screen = RSScreen::instance();
     Loader &loader = Loader::getInstance();

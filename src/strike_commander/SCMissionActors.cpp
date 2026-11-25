@@ -971,7 +971,7 @@ void SCMissionActorsSwpn::fireGun() {
     shell->vz = velocity.z;
     this->weapons_shooted.push_back(shell);
     this->mission->onWeaponSpawned(shell);
-    this->mission->playOrUpdateEffect(SoundEffectIds::TURRET_FIRE, this, (this->object->position - SCRenderer::getInstance().getCamera()->getPosition()).Length());
+    this->mission->playOrUpdateEffect(SoundEffectIds::TURRET_FIRE, this, this->object->position);
     printf("SWPN %s#%d fire gun at %s speed=%.0f ammo=%d\n", this->actor_name.c_str(), this->actor_id,
            this->target->actor_name.c_str(), speed, data->weapons_round - 1);
     data->weapons_round--;
