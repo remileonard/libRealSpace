@@ -8,6 +8,7 @@
 #include "engine/SCRenderer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace {
@@ -101,6 +102,7 @@ void R4Mixer::init() {
         for (int i = 0; i < frames * 2; i++) {
             out[i] = (int16_t)(out[i] * musicVolume / MIX_MAX_VOLUME);
         }
+        measureMusic(out, frames);
     });
     music_->source().play();
     lastUpdate_ = SDL_GetPerformanceCounter();
@@ -145,6 +147,9 @@ void R4Mixer::renderEffects() {
             opl.init(kRate);
             ok = fx && renderSoundFx(opl, &bank->sfx_timbres, fx->data, fx->size, kRate, pcm);
         }
+        if (ok) {
+            traceLevel("effet XMIDI", (int)effects_.size(), pcm.samples.data(), pcm.samples.size());
+        }
         effects_.push_back(ok ? soundOf(pcm) : nullptr);
         loops += ok && pcm.loops ? 1 : 0;
         effectPcm_.push_back(std::move(pcm));
@@ -152,6 +157,44 @@ void R4Mixer::renderEffects() {
     effectSynth_ = munt ? "MT-32" : "OPL";
     const double ms = (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
     std::printf("R4Mixer: %zu effects in PCM (%s), %d loops, %.0f ms\n", effects_.size(), effectSynth_.c_str(), loops, ms);
+}
+
+// Niveau d'un son en dB sous la pleine échelle (0 dB = 32767) : crête et moyenne quadratique.
+static float decibels(double level) {
+    if (level <= 0.0) {
+        return -120.0f;
+    }
+    return (float)(20.0 * std::log10(level / 32767.0));
+}
+
+void R4Mixer::traceLevel(const char *kind, int number, const int16_t *samples, size_t count) {
+    int peak = 0;
+    double sum = 0.0;
+    for (size_t i = 0; i < count; i++) {
+        int v = std::abs((int)samples[i]);
+        peak = std::max(peak, v);
+        sum += (double)samples[i] * (double)samples[i];
+    }
+    double rms = count > 0 ? std::sqrt(sum / (double)count) : 0.0;
+    std::printf("LEVEL: %s %d, %zu echantillons, crete %.1f dB, moyenne %.1f dB\n", kind, number, count, decibels(peak), decibels(rms));
+}
+
+// Niveau de la musique, une ligne par seconde : crête et moyenne quadratique, en dB sous la pleine échelle.
+void R4Mixer::measureMusic(const int16_t *samples, int frames) {
+    for (int i = 0; i < frames * 2; i++) {
+        int v = std::abs((int)samples[i]);
+        musicPeak_ = std::max(musicPeak_, v);
+        musicSum_ += (double)samples[i] * (double)samples[i];
+    }
+    musicFrames_ += frames;
+    if (musicFrames_ < kRate) {
+        return;
+    }
+    double rms = std::sqrt(musicSum_ / (double)(musicFrames_ * 2));
+    std::printf("LEVEL: musique (%s), volume %d/%d, crete %.1f dB, moyenne %.1f dB\n", effectSynth_.c_str(), musicVolume, MIX_MAX_VOLUME, decibels(musicPeak_), decibels(rms));
+    musicPeak_ = 0;
+    musicSum_ = 0.0;
+    musicFrames_ = 0;
 }
 
 std::shared_ptr<r4::audio::Sound> R4Mixer::soundOf(const R4SoundPcm &pcm) {
@@ -173,6 +216,8 @@ std::shared_ptr<r4::audio::Sound> R4Mixer::vocSound(uint8_t *data, size_t size) 
     std::shared_ptr<r4::audio::Sound> sound = decodeVoc(data, size, pcm) ? soundOf(pcm) : nullptr;
     if (!sound) {
         std::printf("R4Mixer: a VOC of %zu bytes cannot be read\n", size);
+    } else {
+        traceLevel("VOC", (int)size, pcm.samples.data(), pcm.samples.size());
     }
     vocs_[data] = sound;
     return sound;

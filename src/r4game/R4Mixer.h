@@ -102,4 +102,10 @@ private:
     // the channels of playSoundFx (5)
     std::shared_ptr<r4::audio::Source> fxChannels_[5];
     Uint64 lastUpdate_ = 0;
+    // mesure du niveau (traces LEVEL) : la musique cumulée sur une seconde, chaque son à sa préparation
+    void traceLevel(const char *kind, int number, const int16_t *samples, size_t count);
+    void measureMusic(const int16_t *samples, int frames);
+    int musicPeak_ = 0;
+    double musicSum_ = 0.0;
+    int musicFrames_ = 0;
 };
