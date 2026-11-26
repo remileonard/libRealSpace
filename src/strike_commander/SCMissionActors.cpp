@@ -503,7 +503,7 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
                     printf("SOUND: joueur touche en vue cockpit, PLAYER_HIT\n");
                     this->mission->playEffect(SoundEffectIds::PLAYER_HIT);
                 } else {
-                    printf("SOUND: objet %s touche, GUN_IMPACT_1\n", this->actor_name.c_str());
+                    printf("SOUND: objet %s touche, GUN_IMPACT_1 (joueur %d, vue cockpit %d)\n", this->actor_name.c_str(), this == this->mission->player, this->mission->cockpit_view);
                     this->mission->playEffect(SoundEffectIds::GUN_IMPACT_1, this->object->position);
                 }
             } else {

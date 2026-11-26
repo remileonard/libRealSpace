@@ -478,9 +478,11 @@ void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vecto
     int fx = this->sound.fxEffect(id);
     MemSound *sound = this->sound.effect(id, distance);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
+        this->traceEffect("son tenu", id, distance, "numerique");
         this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
         return;
     }
+    this->traceEffect("son tenu", id, distance, fx < 0 ? "aucun" : "synthese");
     this->Mixer.playOrUpdateSoundFx(fx, emitter, distance);
 }
 
@@ -490,19 +492,28 @@ void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
     int fx = this->sound.fxEffect(id);
     MemSound *sound = this->sound.effect(id, distance);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
+        this->traceEffect("effet", id, distance, "numerique");
         this->Mixer.playSoundVocAtDistance(sound->data, sound->size, distance);
         return;
     }
+    this->traceEffect("effet", id, distance, fx < 0 ? "aucun" : "synthese");
     this->Mixer.playSoundFxAtDistance(fx, distance);
 }
+// Trace de chaque son de la mission : identifiant, distance à la caméra en mètres, son numérique, synthèse ou aucun.
+void SCMission::traceEffect(const char *kind, SoundEffectIds id, float distance, const char *played) {
+    printf("SOUND: %s %d, distance %.0f m, %s\n", kind, (int)id, distance, played);
+}
+
 // Effet non positionné (son du joueur en vue cockpit) : distance 0.
 void SCMission::playEffect(SoundEffectIds id) {
     int fx = this->sound.fxEffect(id);
     MemSound *sound = this->sound.effect(id, 0.0f);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
+        this->traceEffect("effet sans distance", id, 0.0f, "numerique");
         this->Mixer.playSoundVocAtDistance(sound->data, sound->size, 0.0f);
         return;
     }
+    this->traceEffect("effet sans distance", id, 0.0f, fx < 0 ? "aucun" : "synthese");
     this->Mixer.playSoundFxAtDistance(fx, 0.0f);
 }
 void SCMission::stopEffect(SoundEffectIds id, const void *emitter) {

@@ -97,6 +97,7 @@ public:
     void playEffect(SoundEffectIds id, Vector3D position);
     void playEffect(SoundEffectIds id);
     void stopEffect(SoundEffectIds id, const void *emitter);
+    void traceEffect(const char *kind, SoundEffectIds id, float distance, const char *played);
     bool digital_fx{false};
     // Vue du cockpit (avant, droite, gauche, arrière), tenue à jour par SCStrike : sons du joueur joués sans distance.
     bool cockpit_view{false};
