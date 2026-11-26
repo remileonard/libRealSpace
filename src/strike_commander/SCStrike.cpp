@@ -648,52 +648,15 @@ void SCStrike::keyRudderRight() {
 void SCStrike::keyThrottleUp() {
     if (this->player_plane->GetThrottle() == 0) {
         this->player_plane->SetThrottle(21);
-        if (this->current_mission->sound.sounds.size() > 0) {
-            MemSound *engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_START_MIL);
-            if (engine != nullptr) {
-                Mixer.playSoundVoc(engine->data, engine->size, 5, 0);
-            }
-        }
     }
     if (this->player_plane->GetThrottle() < 100) {
         this->player_plane->SetThrottle(this->player_plane->GetThrottle() + 1);
-    }
-    if (this->current_mission->sound.sounds.size() > 0) {
-        if (!Mixer.isSoundPlaying(5)) {
-            if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                MemSound *engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_MIL);
-                if (engine != nullptr) {
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-                }
-            } else if (this->player_plane->GetThrottle() >= 60) {
-                MemSound *engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_AFB);
-                if (engine != nullptr) {
-                    Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
-                }
-            }
-        }
     }
 }
 
 void SCStrike::keyThrottleDown() {
     if (this->player_plane->GetThrottle() > -30) {
         this->player_plane->SetThrottle(this->player_plane->GetThrottle() - 1);
-    }
-    if (this->player_plane->GetThrottle() == 0) {
-        if (!Mixer.isSoundPlaying(5)) {
-            MemSound *engine = nullptr;
-            int can_repeat = 0;
-            if (this->player_plane->GetThrottle() > 0 && this->player_plane->GetThrottle() < 60) {
-                engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_MIL);
-                can_repeat = -1;
-            } else if (this->current_mission->sound.sounds.size() > 0) {
-                engine = this->current_mission->sound.effect(SoundEffectIds::ENGINE_MIL_SHUT_DOWN);
-                can_repeat = 0;
-            }
-            if (engine != nullptr) {
-                Mixer.playSoundVoc(engine->data, engine->size, 5, can_repeat);
-            }
-        }
     }
 }
 
@@ -886,15 +849,109 @@ void SCStrike::keySingleTargetMode() {
     }
 }
 
-// Cran de manette des gaz : son moteur militaire sous 60 %, postcombustion au-delà.
 void SCStrike::setThrottlePreset(int throttle) {
     this->player_plane->SetThrottle(throttle);
-    if (this->current_mission->sound.sounds.size() > 0) {
-        MemSound *engine = this->current_mission->sound.effect(throttle < 60 ? SoundEffectIds::ENGINE_MIL : SoundEffectIds::ENGINE_AFB);
-        if (engine != nullptr) {
-            Mixer.playSoundVoc(engine->data, engine->size, 5, -1);
+}
+
+// Son du moteur de l'avion du joueur sur le canal 5 (version CD-ROM, DigitalSFX_EngineTick_58BB4, SOUND_EFFECTS.md § 2.4) : cran
+// 0 = coupé, 1 à 5 = MIL, 6 et plus = postcombustion ; transitions arrêtées après 2,5 s, puis son en boucle.
+void SCStrike::updateEngineSound() {
+    int throttle = this->player_plane->GetThrottle();
+    int notch = 0;
+    if (throttle > 0) {
+        notch = (std::max)(1, throttle / 10);
+    }
+    bool afb = notch >= 6;
+    if (this->engine_sound != -1 && this->engine_sound != SoundEffectIds::ENGINE_OFF && !Mixer.isSoundPlaying(5)) {
+        printf("ENGINE: son %d termine\n", this->engine_sound);
+        this->engine_sound = -1;
+    }
+    bool transition = this->engine_sound == SoundEffectIds::ENGINE_START_MIL || this->engine_sound == SoundEffectIds::ENGINE_START_AFB || this->engine_sound == SoundEffectIds::ENGINE_MIL_SHUT_DOWN || this->engine_sound == SoundEffectIds::ENGINE_AFB_TO_MIL;
+    if (transition) {
+        this->engine_sound_frames++;
+        if (this->player_plane->tps > 0 && (float)this->engine_sound_frames / (float)this->player_plane->tps > 2.5f) {
+            printf("ENGINE: transition %d arretee apres 2,5 s\n", this->engine_sound);
+            Mixer.stopSound(5);
+            this->engine_sound = -1;
         }
     }
+    int next = this->engine_sound;
+    const char *reason = "continue";
+    switch (this->engine_sound) {
+    case -1:
+    case SoundEffectIds::ENGINE_OFF:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_OFF;
+            reason = "cran 0";
+        } else if (this->engine_previous_notch == 0) {
+            next = afb ? SoundEffectIds::ENGINE_START_AFB : SoundEffectIds::ENGINE_START_MIL;
+            reason = "demarrage";
+        } else {
+            next = afb ? SoundEffectIds::ENGINE_AFB : SoundEffectIds::ENGINE_MIL;
+            reason = "boucle";
+        }
+        break;
+    case SoundEffectIds::ENGINE_MIL:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_SHUT_DOWN;
+            reason = "arret depuis MIL";
+        } else if (afb) {
+            next = SoundEffectIds::ENGINE_MIL_SHUT_DOWN;
+            reason = "MIL vers postcombustion";
+        }
+        break;
+    case SoundEffectIds::ENGINE_AFB:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_AFB_SHUT_DOWN;
+            reason = "arret depuis la postcombustion";
+        } else if (!afb) {
+            next = SoundEffectIds::ENGINE_AFB_TO_MIL;
+            reason = "postcombustion vers MIL";
+        }
+        break;
+    case SoundEffectIds::ENGINE_START_MIL:
+    case SoundEffectIds::ENGINE_AFB_TO_MIL:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_SHUT_DOWN;
+            reason = "arret depuis MIL";
+        } else if (afb) {
+            next = SoundEffectIds::ENGINE_MIL_SHUT_DOWN;
+            reason = "MIL vers postcombustion";
+        }
+        break;
+    case SoundEffectIds::ENGINE_START_AFB:
+    case SoundEffectIds::ENGINE_MIL_SHUT_DOWN:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_AFB_SHUT_DOWN;
+            reason = "arret depuis la postcombustion";
+        } else if (!afb) {
+            next = SoundEffectIds::ENGINE_AFB_TO_MIL;
+            reason = "postcombustion vers MIL";
+        }
+        break;
+    default:
+        break;
+    }
+    this->engine_previous_notch = notch;
+    if (next == this->engine_sound) {
+        return;
+    }
+    printf("ENGINE: manette %d, cran %d, son %d -> %d (%s)\n", throttle, notch, this->engine_sound, next, reason);
+    if (this->engine_sound != -1 && Mixer.isSoundPlaying(5)) {
+        Mixer.stopSound(5);
+    }
+    this->engine_sound = next;
+    this->engine_sound_frames = 0;
+    if (next == SoundEffectIds::ENGINE_OFF) {
+        return;
+    }
+    MemSound *engine = this->current_mission->sound.effect((SoundEffectIds)next);
+    if (engine == nullptr) {
+        printf("ENGINE: pas de son pour %d\n", next);
+        return;
+    }
+    bool loop = next == SoundEffectIds::ENGINE_MIL || next == SoundEffectIds::ENGINE_AFB;
+    Mixer.playSoundVoc(engine->data, engine->size, 5, loop ? -1 : 0);
 }
 
 // Les crans 10 à 50 partagent leurs touches avec les messages radio : inactifs quand le menu radio est ouvert.
@@ -1180,6 +1237,9 @@ void SCStrike::setMission(char const *missionName) {
         this->current_mission = nullptr;
     } 
     this->miss_file_name = missionName;
+    this->engine_sound = -1;
+    this->engine_previous_notch = 0;
+    this->engine_sound_frames = 0;
     this->current_mission = this->createMission(missionName);
     ai_planes.clear();
     ai_planes.shrink_to_fit();
@@ -1418,6 +1478,8 @@ void SCStrike::runFrame(void) {
     if (!this->pause_simu && this->camera_mode!=View::AUTO_PILOT) {
         this->mfd_timeout--;
         this->player_plane->Simulate();
+        this->current_mission->cockpit_view = this->camera_mode == View::FRONT || this->camera_mode == View::RIGHT || this->camera_mode == View::LEFT || this->camera_mode == View::REAR;
+        this->updateEngineSound();
         this->current_mission->update();
         if (this->current_mission->mission_ended) {
             // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu).

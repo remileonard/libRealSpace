@@ -476,7 +476,7 @@ void SCMission::startMusic() {
 void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position) {
     float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
     int fx = this->sound.fxEffect(id);
-    MemSound *sound = this->sound.effect(id);
+    MemSound *sound = this->sound.effect(id, distance);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
         return;
@@ -488,12 +488,22 @@ void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vecto
 void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
     float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
     int fx = this->sound.fxEffect(id);
-    MemSound *sound = this->sound.effect(id);
+    MemSound *sound = this->sound.effect(id, distance);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->Mixer.playSoundVocAtDistance(sound->data, sound->size, distance);
         return;
     }
     this->Mixer.playSoundFxAtDistance(fx, distance);
+}
+// Effet non positionné (son du joueur en vue cockpit) : distance 0.
+void SCMission::playEffect(SoundEffectIds id) {
+    int fx = this->sound.fxEffect(id);
+    MemSound *sound = this->sound.effect(id, 0.0f);
+    if (sound != nullptr && (this->digital_fx || fx < 0)) {
+        this->Mixer.playSoundVocAtDistance(sound->data, sound->size, 0.0f);
+        return;
+    }
+    this->Mixer.playSoundFxAtDistance(fx, 0.0f);
 }
 void SCMission::stopEffect(SoundEffectIds id, const void *emitter) {
     this->Mixer.stopSoundFx(this->sound.fxEffect(id), emitter);

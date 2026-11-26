@@ -510,6 +510,10 @@ void GunSimulatedObject::Simulate(int tps) {
                 this->mission->explosions.push_back(explosion);
                 if (this->obj->entity_type != EntityType::tracer) {
                     this->mission->playEffect(SoundEffectIds::EXPLOSION_3, position);
+                } else {
+                    // Impact d'une traçante hors des objets (version CD-ROM, vers 4965A) : rang 31.
+                    printf("SOUND: traçante au sol, GUN_HIT\n");
+                    this->mission->playEffect(SoundEffectIds::GUN_HIT, position);
                 }
             }
         }

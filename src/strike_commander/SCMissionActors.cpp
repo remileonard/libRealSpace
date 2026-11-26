@@ -498,7 +498,14 @@ void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
         event.target->weapon_shooted_at_me = nullptr;
         if (event.target->object->alive == true) {
             if (event.weapon->obj->entity_type == EntityType::tracer) {
-                this->mission->playEffect(this == this->mission->player ? SoundEffectIds::PLAYER_HIT : SoundEffectIds::GUN_IMPACT_1, this->object->position);
+                // Impact d'une traçante (version CD-ROM, vers 4965A) : effet 9 sans distance pour le joueur en vue cockpit, effet 10 sinon.
+                if (this == this->mission->player && this->mission->cockpit_view) {
+                    printf("SOUND: joueur touche en vue cockpit, PLAYER_HIT\n");
+                    this->mission->playEffect(SoundEffectIds::PLAYER_HIT);
+                } else {
+                    printf("SOUND: objet %s touche, GUN_IMPACT_1\n", this->actor_name.c_str());
+                    this->mission->playEffect(SoundEffectIds::GUN_IMPACT_1, this->object->position);
+                }
             } else {
                 this->mission->explosions.push_back(new SCExplosion(event.weapon->obj->explos->objct, event.weapon->obj->position));
                 SCExplosion *explosion = new SCExplosion(this->object->entity->explos->objct, this->object->position);

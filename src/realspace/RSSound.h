@@ -28,6 +28,7 @@ enum SoundEffectIds {
     GEARS_UP = 19,
     GEARS_DOWN = 20,
     TOUCH_DOWN = 21,
+    ENGINE_OFF = 22,
     ENGINE_MIL = 23,
     ENGINE_AFB = 24,
     ENGINE_START_MIL = 25,
@@ -62,11 +63,14 @@ public:
     std::unordered_map<uint8_t, InGameVoice *> inGameVoices;
     std::vector<MemSound *> sounds;
     std::unordered_map<int, std::vector<MemSound *>> effects;
+    // Sons de l'effet joués au-delà de 1000 m de la caméra ; les sons de effects servent en deçà.
+    std::unordered_map<int, std::vector<MemSound *>> far_effects;
     // Effets joués en séquence XMIDI (SOUNDFX.ADL) : numéro de la séquence de chaque effet.
     std::unordered_map<int, int> fx_effects;
     virtual ~RSSound() = default;
     void init();
     MemSound *effect(SoundEffectIds id);
+    MemSound *effect(SoundEffectIds id, float distance);
     int fxEffect(SoundEffectIds id);
     static RSSound& getInstance() {
         if (!RSSound::hasInstance()) {
@@ -85,5 +89,7 @@ public:
 
 protected:
     virtual void initEffects();
+    void addEffect(SoundEffectIds id, size_t rank);
+    void addFarEffect(SoundEffectIds id, size_t rank);
 
 };

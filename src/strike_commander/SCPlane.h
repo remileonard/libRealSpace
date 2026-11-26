@@ -338,6 +338,7 @@ public:
     virtual int isOnRunWay();
     void SetThrottle(int throttle);
     int GetThrottle();
+    void playMissileLaunch(int weapon_id);
     void SetFlaps();
     void SetSpoilers();
     void SetWheel();

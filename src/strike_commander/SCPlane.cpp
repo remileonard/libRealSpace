@@ -389,6 +389,20 @@ void SCPlane::updateWeaponTimers(float dt) {
     this->gun_firing = false;
 }
 
+// Départ d'un missile (version CD-ROM, lancement d'une arme vers 39CBF) : AIM-9 = rang 7, autre missile = rang 9 pour le joueur
+// en vue cockpit, joué sans distance ; rangs 6 et 8 sinon, à la distance de la caméra.
+void SCPlane::playMissileLaunch(int weapon_id) {
+    SCMission *mission = this->pilot->mission;
+    bool aim9 = weapon_id == ID_AIM9M || weapon_id == ID_AIM9J;
+    if (this->pilot == mission->player && mission->cockpit_view) {
+        printf("SOUND: depart missile %d, joueur en vue cockpit, son %d\n", weapon_id, aim9 ? SoundEffectIds::AIM120_SHOOT : SoundEffectIds::MAVERICK_SHOOT);
+        mission->playEffect(aim9 ? SoundEffectIds::AIM120_SHOOT : SoundEffectIds::MAVERICK_SHOOT);
+        return;
+    }
+    printf("SOUND: depart missile %d, vu de l'exterieur, son %d\n", weapon_id, aim9 ? SoundEffectIds::AIM9_SHOOT : SoundEffectIds::POD_SHOOT);
+    mission->playEffect(aim9 ? SoundEffectIds::AIM9_SHOOT : SoundEffectIds::POD_SHOOT, this->position);
+}
+
 void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     // Prédire d'abord le tir
     Vector3D adjusted_direction = this->PredictShot(weapon_hard_point_id, target);
@@ -419,7 +433,7 @@ void SCPlane::ShootWithPrediction(int weapon_hard_point_id, SCMissionActors *tar
             this->pilot->mission->playEffect(SoundEffectIds::MK82_DROP, this->position);
             break;
         default:
-            this->pilot->mission->playEffect(SoundEffectIds::AIM9_SHOOT, this->position);
+            this->playMissileLaunch(this->weaps_load[weapon_hard_point_id]->objct->wdat->weapon_id);
             weap = new SCSimulatedObject();
             break;
     }
@@ -1642,7 +1656,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
         case ID_AGM65D:
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
-            this->pilot->mission->playEffect(SoundEffectIds::AIM9_SHOOT, this->position);
+            this->playMissileLaunch(wobj->wdat->weapon_id);
             weap = new AgmSimulatedObject();
             weap->target = target;
             weap->guidance = true;
@@ -1651,7 +1665,7 @@ void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SC
         default:
             initial_trust = this->getWeaponIntialVector(1.0f);
             initial_trust.Scale(1.0f/(float)tps);
-            this->pilot->mission->playEffect(SoundEffectIds::AIM9_SHOOT, this->position);
+            this->playMissileLaunch(wobj->wdat->weapon_id);
             weap = new SCSimulatedObject();
             weap->target = target;
         break;

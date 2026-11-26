@@ -50,6 +50,12 @@ protected:
     /** Volume (0..128) that runFrame() gives the engine sound channel (5) at the start of every frame; derived activities may raise it. */
     int engine_channel_volume{5};
 
+    /** Son du moteur en cours sur le canal 5 (rang de DSOUNDFX.PAK, -1 = aucun), cran de l'image précédente, images écoulées depuis le début du son. */
+    int engine_sound{-1};
+    int engine_previous_notch{0};
+    int engine_sound_frames{0};
+    void updateEngineSound();
+
     /**
      * @brief Hook, empty by default: called each frame once the camera of the current view has been placed, before the scene
      *        is rendered.

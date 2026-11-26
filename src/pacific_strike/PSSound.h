@@ -12,7 +12,4 @@
 class PSSound : public RSSound {
 protected:
     void initEffects() override;
-
-private:
-    void addEffect(SoundEffectIds id, size_t rank);
 };

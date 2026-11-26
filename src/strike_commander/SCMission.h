@@ -95,8 +95,11 @@ public:
     void onWeaponSpawned(SCSimulatedObject *weapon);
     void playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position);
     void playEffect(SoundEffectIds id, Vector3D position);
+    void playEffect(SoundEffectIds id);
     void stopEffect(SoundEffectIds id, const void *emitter);
     bool digital_fx{false};
+    // Vue du cockpit (avant, droite, gauche, arrière), tenue à jour par SCStrike : sons du joueur joués sans distance.
+    bool cockpit_view{false};
     void onWeaponRemoved(SCSimulatedObject *weapon);
     RSWorld *world{nullptr};
     SCCameraDirector *camera_director{nullptr};
