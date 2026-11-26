@@ -14,7 +14,7 @@ namespace {
 
 constexpr int kRate = 44100;
 // the game's rule (SoundFX_Play3D_59902): the volume goes down to 0 at 1000 units
-constexpr float kReach = 1000.0f;
+constexpr float kReach = 5000.0f;
 // a move of the camera longer than this in a frame is a change of view, not a speed
 constexpr float kJump = 300.0f;
 // the channels of playSoundVoc without a channel, as the channels of SDL_mixer
