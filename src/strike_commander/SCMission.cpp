@@ -476,28 +476,28 @@ void SCMission::startMusic() {
 void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position) {
     float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
     int fx = this->sound.fxEffect(id);
-    MemSound *sound = this->sound.effect(id, distance);
+    MemSound *sound = this->sound.effect(id);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->traceEffect("son tenu", id, distance, "numerique");
-        this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
+        this->Mixer.playOrUpdateEffectAt(fx, sound->data, sound->size, emitter, position, distance);
         return;
     }
     this->traceEffect("son tenu", id, distance, fx < 0 ? "aucun" : "synthese");
-    this->Mixer.playOrUpdateSoundFx(fx, emitter, distance);
+    this->Mixer.playOrUpdateEffectAt(fx, nullptr, 0, emitter, position, distance);
 }
 
-// Effet ponctuel à une position : volume selon la distance à la caméra, même choix que playOrUpdateEffect.
+// Effet ponctuel à une position, placé dans l'espace par le mixer (R4Mixer) ; même choix que playOrUpdateEffect.
 void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
     float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
     int fx = this->sound.fxEffect(id);
-    MemSound *sound = this->sound.effect(id, distance);
+    MemSound *sound = this->sound.effect(id);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->traceEffect("effet", id, distance, "numerique");
-        this->Mixer.playSoundVocAtDistance(sound->data, sound->size, distance);
+        this->Mixer.playEffectAt(fx, sound->data, sound->size, position, distance);
         return;
     }
     this->traceEffect("effet", id, distance, fx < 0 ? "aucun" : "synthese");
-    this->Mixer.playSoundFxAtDistance(fx, distance);
+    this->Mixer.playEffectAt(fx, nullptr, 0, position, distance);
 }
 // Trace de chaque son de la mission : identifiant, distance à la caméra en mètres, son numérique, synthèse ou aucun.
 void SCMission::traceEffect(const char *kind, SoundEffectIds id, float distance, const char *played) {
@@ -507,7 +507,7 @@ void SCMission::traceEffect(const char *kind, SoundEffectIds id, float distance,
 // Effet non positionné (son du joueur en vue cockpit) : distance 0.
 void SCMission::playEffect(SoundEffectIds id) {
     int fx = this->sound.fxEffect(id);
-    MemSound *sound = this->sound.effect(id, 0.0f);
+    MemSound *sound = this->sound.effect(id);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->traceEffect("effet sans distance", id, 0.0f, "numerique");
         this->Mixer.playSoundVocAtDistance(sound->data, sound->size, 0.0f);

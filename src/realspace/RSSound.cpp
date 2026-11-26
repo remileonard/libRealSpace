@@ -69,34 +69,21 @@ void RSSound::addEffect(SoundEffectIds id, size_t rank) {
     }
 }
 
-void RSSound::addFarEffect(SoundEffectIds id, size_t rank) {
-    if (rank < this->sounds.size()) {
-        this->far_effects[id].push_back(this->sounds[rank]);
-    }
-}
-
 // Strike Commander, version CD-ROM : rangs de DSOUNDFX.PAK écrits par DigitalSFX_Construct_58656 (SOUND_EFFECTS.md § 2.4) ;
 // les sons voisins d'un même effet sont tirés au hasard. Séquences XMIDI : numéros des effets de SOUNDFX.ADL (§ 2.2).
 void RSSound::initEffects() {
     this->addEffect(SoundEffectIds::MK82_DROP, 1);
-    this->addFarEffect(SoundEffectIds::MK82_DROP, 0);
     this->addEffect(SoundEffectIds::MK20_DROP, 1);
-    this->addFarEffect(SoundEffectIds::MK20_DROP, 0);
     this->addEffect(SoundEffectIds::EXPLOSION_1, 3);
     this->addEffect(SoundEffectIds::EXPLOSION_1, 4);
-    this->addFarEffect(SoundEffectIds::EXPLOSION_1, 2);
     this->addEffect(SoundEffectIds::EXPLOSION_2, 3);
     this->addEffect(SoundEffectIds::EXPLOSION_2, 4);
-    this->addFarEffect(SoundEffectIds::EXPLOSION_2, 2);
     this->addEffect(SoundEffectIds::EXPLOSION_3, 3);
     this->addEffect(SoundEffectIds::EXPLOSION_3, 4);
-    this->addFarEffect(SoundEffectIds::EXPLOSION_3, 2);
     this->addEffect(SoundEffectIds::EXPLOSION_4, 3);
     this->addEffect(SoundEffectIds::EXPLOSION_4, 4);
-    this->addFarEffect(SoundEffectIds::EXPLOSION_4, 2);
     this->addEffect(SoundEffectIds::WATER_SPLASH, 3);
     this->addEffect(SoundEffectIds::WATER_SPLASH, 4);
-    this->addFarEffect(SoundEffectIds::WATER_SPLASH, 2);
     this->addEffect(SoundEffectIds::AIM9_SHOOT, 6);
     this->addEffect(SoundEffectIds::AIM120_SHOOT, 7);
     this->addEffect(SoundEffectIds::POD_SHOOT, 8);
@@ -137,7 +124,7 @@ void RSSound::initEffects() {
     this->fx_effects[SoundEffectIds::GUN_IMPACT_1] = 10;
     this->fx_effects[SoundEffectIds::GUN_HIT] = 10;
     this->fx_effects[SoundEffectIds::TOUCH_DOWN] = 12;
-    printf("RSSound: %zu sons, %zu effets proches, %zu effets lointains\n", this->sounds.size(), this->effects.size(), this->far_effects.size());
+    printf("RSSound: %zu sons, %zu effets associes\n", this->sounds.size(), this->effects.size());
 }
 
 // Numéro de la séquence XMIDI de l'effet ; -1 si le jeu n'en a pas.
@@ -153,17 +140,6 @@ int RSSound::fxEffect(SoundEffectIds id) {
 MemSound *RSSound::effect(SoundEffectIds id) {
     auto found = this->effects.find(id);
     if (found == this->effects.end() || found->second.empty()) {
-        return nullptr;
-    }
-    return found->second[std::rand() % found->second.size()];
-}
-
-// Son de l'effet pour une distance à la caméra (DigitalSFX_PlayEffect_58789) : un son lointain au-delà de 1000 m, un son
-// proche en deçà ; nul si l'effet n'a pas de son de ce côté (la synthèse prend alors le relais).
-MemSound *RSSound::effect(SoundEffectIds id, float distance) {
-    std::unordered_map<int, std::vector<MemSound *>> &table = distance > 1000.0f ? this->far_effects : this->effects;
-    auto found = table.find(id);
-    if (found == table.end() || found->second.empty()) {
         return nullptr;
     }
     return found->second[std::rand() % found->second.size()];
