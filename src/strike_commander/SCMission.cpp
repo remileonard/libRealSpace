@@ -471,25 +471,28 @@ void SCMission::startMusic() {
     this->Mixer.switchBank(2);
     this->musicRequest(this->mission->mission_data.tune, "TUNE de la mission");
 }
-// SoundFX_PlayOrUpdate : son numérisé de l'effet s'il y en a un, sinon sa séquence XMIDI.
+// SoundFX_PlayOrUpdate : son numérisé de l'effet avec digital_fx, ou quand l'effet n'a pas de séquence XMIDI ; sinon sa
+// séquence XMIDI.
 void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance) {
-    MemSound *sound = this->digital_fx ? this->sound.effect(id) : nullptr;
-    if (sound != nullptr) {
+    int fx = this->sound.fxEffect(id);
+    MemSound *sound = this->sound.effect(id);
+    if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->Mixer.playOrUpdateSoundVoc(sound->data, sound->size, emitter, distance);
         return;
     }
-    this->Mixer.playOrUpdateSoundFx(this->sound.fxEffect(id), emitter, distance);
+    this->Mixer.playOrUpdateSoundFx(fx, emitter, distance);
 }
 
-// Effet ponctuel à une position : volume selon la distance à la caméra, son numérisé ou séquence XMIDI.
+// Effet ponctuel à une position : volume selon la distance à la caméra, même choix que playOrUpdateEffect.
 void SCMission::playEffect(SoundEffectIds id, Vector3D position) {
     float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
-    MemSound *sound = this->digital_fx ? this->sound.effect(id) : nullptr;
-    if (sound != nullptr) {
+    int fx = this->sound.fxEffect(id);
+    MemSound *sound = this->sound.effect(id);
+    if (sound != nullptr && (this->digital_fx || fx < 0)) {
         this->Mixer.playSoundVocAtDistance(sound->data, sound->size, distance);
         return;
     }
-    this->Mixer.playSoundFxAtDistance(this->sound.fxEffect(id), distance);
+    this->Mixer.playSoundFxAtDistance(fx, distance);
 }
 void SCMission::stopEffect(SoundEffectIds id, const void *emitter) {
     this->Mixer.stopSoundFx(this->sound.fxEffect(id), emitter);
