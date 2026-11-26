@@ -7,7 +7,8 @@
 //  the synthesizer of [Sound] midi_music, the VOC are decoded. The VOC of the channels (voices, radio, engine of the player) play
 //  at the listener. All the effects are heard: [Sound] max_voices (64) is the limit, then the farther are virtual.
 //  The listener is the camera of the game: update() once a frame (R4Screen::refresh).
-//  [Sound] keys: max_voices, hrtf, speed_of_sound (in units of the world a second, 1125: feet), doppler (0 stops it).
+//  [Sound] keys: max_voices, hrtf, speed_of_sound (in units of the world a second, 1125: feet), doppler (0 stops it),
+//  music_volume and sfx_volume (0 to 100), sfx_synth (auto, opl, mt32: the synthesizer that renders the effects).
 //
 #pragma once
 
@@ -33,6 +34,22 @@ public:
     void update();
 
     void init() override;
+
+    // the volume groups of the context: the user sets their volumes, [Sound] music_volume and sfx_volume (0 to 100)
+    enum Group {
+        GROUP_EFFECTS = 0,
+        GROUP_MUSIC = 1
+    };
+    // the volumes of config.ini, again: after a change in the configuration
+    void loadVolumes();
+    // the synthesizer of the effects: AUTO is the one of the music ([Sound] sfx_synth: auto, opl, mt32)
+    enum class EffectSynth {
+        AUTO,
+        OPL,
+        MT32
+    };
+    // the effects into PCM again with this synthesizer; false (the effects stay) for MT-32 without its ROMs
+    bool renderEffects(EffectSynth synth);
 
     int playSoundFx(MemMusic *fx, int volume = 100) override;
     void setSoundFxVolume(int fxChannel, int volume) override;
@@ -76,7 +93,6 @@ private:
         int loopsLeft = 0;
         int volume = 128;
     };
-    void renderEffects();
     std::shared_ptr<r4::audio::Sound> soundOf(const R4SoundPcm &pcm);
     std::shared_ptr<r4::audio::Sound> vocSound(uint8_t *data, size_t size);
     int effectIndex(MemMusic *fx) const;
@@ -102,10 +118,4 @@ private:
     // the channels of playSoundFx (5)
     std::shared_ptr<r4::audio::Source> fxChannels_[5];
     Uint64 lastUpdate_ = 0;
-    // mesure du niveau (traces LEVEL) : la musique cumulée sur une seconde, chaque son à sa préparation
-    void traceLevel(const char *kind, int number, const int16_t *samples, size_t count);
-    void measureMusic(const int16_t *samples, int frames);
-    int musicPeak_ = 0;
-    double musicSum_ = 0.0;
-    int musicFrames_ = 0;
 };

@@ -8,14 +8,13 @@
 #include "engine/SCRenderer.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdio>
 
 namespace {
 
 constexpr int kRate = 44100;
-// the reach of an effect in space: the volume goes down to 0 at 5000 m (the last sounds of SoundFX_Play3D_59902 are heard up to 5000 m)
-constexpr float kReach = 5000.0f;
+// the game's rule (SoundFX_Play3D_59902): the volume goes down to 0 at 1000 units
+constexpr float kReach = 1000.0f;
 // a move of the camera longer than this in a frame is a change of view, not a speed
 constexpr float kJump = 300.0f;
 // the channels of playSoundVoc without a channel, as the channels of SDL_mixer
@@ -28,22 +27,6 @@ r4::Vec3 vec(const Vector3D &v) {
 }
 
 std::shared_ptr<r4::audio::Sound> kNoSound;
-
-// the notes and the reverb of a device end: it can render the next effect
-void drain(MusicDevice &device) {
-    std::vector<int16_t> stereo(1024 * 2);
-    for (int i = 0; i < 3 * kRate / 1024; i++) {
-        std::fill(stereo.begin(), stereo.end(), 0);
-        device.render(stereo.data(), 1024);
-        bool quiet = true;
-        for (int16_t s : stereo) {
-            quiet = quiet && std::abs((int)s) <= 2;
-        }
-        if (quiet) {
-            return;
-        }
-    }
-}
 
 } // namespace
 
@@ -90,7 +73,11 @@ void R4Mixer::init() {
     context_->setSpeedOfSound((float)cfg.getInt("Sound", "speed_of_sound", 1125));
     context_->setDoppler((float)cfg.getInt("Sound", "doppler", 1));
     initEngine(kRate);
-    renderEffects();
+    const std::string synth = cfg.getString("Sound", "sfx_synth", "auto");
+    if (!renderEffects(synth == "opl" ? EffectSynth::OPL : synth == "mt32" ? EffectSynth::MT32 : EffectSynth::AUTO)) {
+        renderEffects(EffectSynth::OPL);
+    }
+    loadVolumes();
     // the music: the synthesis of RSMixer, as Mix_HookMusic did
     music_ = context_->createStream(2, kRate, [this](int16_t *out, int frames) {
         std::lock_guard<std::recursive_mutex> lock(engineMutex);
@@ -102,99 +89,85 @@ void R4Mixer::init() {
         for (int i = 0; i < frames * 2; i++) {
             out[i] = (int16_t)(out[i] * musicVolume / MIX_MAX_VOLUME);
         }
-        measureMusic(out, frames);
     });
+    music_->source().group = GROUP_MUSIC;
     music_->source().play();
     lastUpdate_ = SDL_GetPerformanceCounter();
 }
 
-// Each effect of SOUNDFX.ADL into PCM, with the synthesizer of the effects of the game: an OPL, or MT-32 emulated (munt). The
-// MT-32 of a MIDI port cannot be recorded: munt when its ROMs are there, else the OPL with the AdLib effects.
-void R4Mixer::renderEffects() {
-    if (!music) {
-        return;
+// Each effect of SOUNDFX into PCM, on a new synthesizer for each one: an OPL (SOUNDFX.ADL, STRIKE.AD) or MT-32 emulated by munt
+// (SOUNDFX.ROL, the timbres of STRIKE.MT). AUTO: the synthesizer of the music; the MT-32 of a MIDI port cannot be recorded, thus
+// munt. When the files of the music are not those of the synthesizer of the effects, the effects come from a bank of their own.
+bool R4Mixer::renderEffects(EffectSynth wanted) {
+    if (!music || !context_) {
+        return false;
     }
     const Uint64 start = SDL_GetPerformanceCounter();
-    Config &cfg = Config::getInstance();
-    const std::string romDir = cfg.getString("Sound", "mt32_rom_dir", "./assets/mt32");
-    RSMusic *bank = music;
-    std::unique_ptr<RSMusic> adlib;
-    std::unique_ptr<Mt32EmuDevice> munt;
-    const bool mt32 = dynamic_cast<Mt32EmuDevice *>(device.get()) || dynamic_cast<Mt32Device *>(device.get());
+    const std::string romDir = Config::getInstance().getString("Sound", "mt32_rom_dir", "./assets/mt32");
+    const bool musicMt32 = dynamic_cast<Mt32EmuDevice *>(device.get()) || dynamic_cast<Mt32Device *>(device.get());
+    bool mt32 = wanted == EffectSynth::MT32 || (wanted == EffectSynth::AUTO && musicMt32);
+    // the ROMs are read once; each effect starts a new munt from them
+    std::shared_ptr<const Mt32Roms> roms = mt32 ? Mt32Synth::readRoms(romDir) : nullptr;
+    std::unique_ptr<Mt32EmuDevice> first;
     if (mt32) {
-        munt = std::make_unique<Mt32EmuDevice>(false);
-        if (!munt->open(romDir, kRate)) {
-            munt.reset();
-            std::printf("R4Mixer: no MT-32 ROMs in %s, the effects on the OPL\n", romDir.c_str());
-            adlib = std::make_unique<RSMusic>("ADL", "AMUSIC.PAK", "STRIKE.AD", "ADL", "STRIKE.AD");
-            adlib->init();
-            bank = adlib.get();
+        first = std::make_unique<Mt32EmuDevice>(false);
+        if (!first->open(roms, kRate)) {
+            std::printf("R4Mixer: no MT-32 ROMs in %s\n", romDir.c_str());
+            if (wanted == EffectSynth::MT32) {
+                return false;
+            }
+            mt32 = false;
+            first.reset();
         }
+    }
+    RSMusic *bank = music;
+    std::unique_ptr<RSMusic> own;
+    if (mt32 != musicMt32) {
+        own = mt32 ? std::make_unique<RSMusic>("ROL", "RMUSIC.PAK", "STRIKE.MT", "ROL", "STRIKE.MT") : std::make_unique<RSMusic>("ADL", "AMUSIC.PAK", "STRIKE.AD", "ADL", "STRIKE.AD");
+        own->init();
+        bank = own.get();
     }
     auto set = bank->soundfx_musics.find(0);
     if (set == bank->soundfx_musics.end()) {
-        return;
+        return false;
     }
+    effects_.clear();
+    effectPcm_.clear();
     int loops = 0;
     for (MemMusic *fx : set->second) {
         R4SoundPcm pcm;
         bool ok = false;
-        if (munt) {
-            drain(*munt);
-            ok = fx && renderSoundFx(*munt, &bank->sfx_timbres, fx->data, fx->size, kRate, pcm);
-        } else {
+        if (fx && mt32) {
+            std::unique_ptr<Mt32EmuDevice> munt = std::move(first);
+            if (!munt) {
+                munt = std::make_unique<Mt32EmuDevice>(false);
+                ok = munt->open(roms, kRate);
+            } else {
+                ok = true;
+            }
+            ok = ok && renderSoundFx(*munt, &bank->sfx_timbres, fx->data, fx->size, kRate, pcm);
+        } else if (fx) {
             OplDevice opl;
             opl.init(kRate);
-            ok = fx && renderSoundFx(opl, &bank->sfx_timbres, fx->data, fx->size, kRate, pcm);
-        }
-        if (ok) {
-            traceLevel("effet XMIDI", (int)effects_.size(), pcm.samples.data(), pcm.samples.size());
+            ok = renderSoundFx(opl, &bank->sfx_timbres, fx->data, fx->size, kRate, pcm);
         }
         effects_.push_back(ok ? soundOf(pcm) : nullptr);
         loops += ok && pcm.loops ? 1 : 0;
         effectPcm_.push_back(std::move(pcm));
     }
-    effectSynth_ = munt ? "MT-32" : "OPL";
+    effectSynth_ = mt32 ? "MT-32" : "OPL";
     const double ms = (double)(SDL_GetPerformanceCounter() - start) * 1000.0 / (double)SDL_GetPerformanceFrequency();
     std::printf("R4Mixer: %zu effects in PCM (%s), %d loops, %.0f ms\n", effects_.size(), effectSynth_.c_str(), loops, ms);
+    return true;
 }
 
-// Niveau d'un son en dB sous la pleine échelle (0 dB = 32767) : crête et moyenne quadratique.
-static float decibels(double level) {
-    if (level <= 0.0) {
-        return -120.0f;
-    }
-    return (float)(20.0 * std::log10(level / 32767.0));
-}
-
-void R4Mixer::traceLevel(const char *kind, int number, const int16_t *samples, size_t count) {
-    int peak = 0;
-    double sum = 0.0;
-    for (size_t i = 0; i < count; i++) {
-        int v = std::abs((int)samples[i]);
-        peak = std::max(peak, v);
-        sum += (double)samples[i] * (double)samples[i];
-    }
-    double rms = count > 0 ? std::sqrt(sum / (double)count) : 0.0;
-    std::printf("LEVEL: %s %d, %zu echantillons, crete %.1f dB, moyenne %.1f dB\n", kind, number, count, decibels(peak), decibels(rms));
-}
-
-// Niveau de la musique, une ligne par seconde : crête et moyenne quadratique, en dB sous la pleine échelle.
-void R4Mixer::measureMusic(const int16_t *samples, int frames) {
-    for (int i = 0; i < frames * 2; i++) {
-        int v = std::abs((int)samples[i]);
-        musicPeak_ = std::max(musicPeak_, v);
-        musicSum_ += (double)samples[i] * (double)samples[i];
-    }
-    musicFrames_ += frames;
-    if (musicFrames_ < kRate) {
+void R4Mixer::loadVolumes() {
+    if (!context_) {
         return;
     }
-    double rms = std::sqrt(musicSum_ / (double)(musicFrames_ * 2));
-    std::printf("LEVEL: musique (%s), volume %d/%d, crete %.1f dB, moyenne %.1f dB\n", effectSynth_.c_str(), musicVolume, MIX_MAX_VOLUME, decibels(musicPeak_), decibels(rms));
-    musicPeak_ = 0;
-    musicSum_ = 0.0;
-    musicFrames_ = 0;
+    Config &cfg = Config::getInstance();
+    context_->setGroupGain(GROUP_MUSIC, (float)std::max(0, std::min(100, cfg.getInt("Sound", "music_volume", 100))) / 100.0f);
+    context_->setGroupGain(GROUP_EFFECTS, (float)std::max(0, std::min(100, cfg.getInt("Sound", "sfx_volume", 100))) / 100.0f);
 }
 
 std::shared_ptr<r4::audio::Sound> R4Mixer::soundOf(const R4SoundPcm &pcm) {
@@ -216,8 +189,6 @@ std::shared_ptr<r4::audio::Sound> R4Mixer::vocSound(uint8_t *data, size_t size) 
     std::shared_ptr<r4::audio::Sound> sound = decodeVoc(data, size, pcm) ? soundOf(pcm) : nullptr;
     if (!sound) {
         std::printf("R4Mixer: a VOC of %zu bytes cannot be read\n", size);
-    } else {
-        traceLevel("VOC", (int)size, pcm.samples.data(), pcm.samples.size());
     }
     vocs_[data] = sound;
     return sound;

@@ -154,18 +154,23 @@ int main(int argc, char *argv[]) {
     RSSound &sounds = RSSound::getInstance();
     sounds.init();
     std::vector<Item> xmidi;
-    for (size_t i = 0; i < mixer->effectCount(); i++) {
-        Item it;
-        it.name = "SOUNDFX " + std::to_string(i);
-        for (int id = 0; id < kEffectIds; id++) {
-            if (kEffectNames[id][0] != 0 && sounds.fxEffect((SoundEffectIds)id) == (int)i) {
-                it.name += std::string(" ") + kEffectNames[id];
+    // the effects of the mixer: again after they are rendered with another synthesizer
+    auto listEffects = [&]() {
+        xmidi.clear();
+        for (size_t i = 0; i < mixer->effectCount(); i++) {
+            Item it;
+            it.name = "SOUNDFX " + std::to_string(i);
+            for (int id = 0; id < kEffectIds; id++) {
+                if (kEffectNames[id][0] != 0 && sounds.fxEffect((SoundEffectIds)id) == (int)i) {
+                    it.name += std::string(" ") + kEffectNames[id];
+                }
             }
+            it.pcm = &mixer->effectPcm((int)i);
+            it.sound = mixer->effect((int)i);
+            xmidi.push_back(it);
         }
-        it.pcm = &mixer->effectPcm((int)i);
-        it.sound = mixer->effect((int)i);
-        xmidi.push_back(it);
-    }
+    };
+    listEffects();
     std::vector<R4SoundPcm> vocPcm(sounds.sounds.size());
     std::vector<Item> vocs;
     for (size_t i = 0; i < sounds.sounds.size(); i++) {
@@ -193,6 +198,9 @@ int main(int argc, char *argv[]) {
     int bank = 0;
     int track = -1;
     float musicVolume = 100;
+    float userMusic = 100.0f * audio.groupGain(R4Mixer::GROUP_MUSIC);
+    float userEffects = 100.0f * audio.groupGain(R4Mixer::GROUP_EFFECTS);
+    int synth = mixer->effectSynth() == "MT-32" ? 1 : 0;
     std::string status;
     r4::ui::Input input;
     Uint64 last = SDL_GetPerformanceCounter();
@@ -347,6 +355,30 @@ int main(int argc, char *argv[]) {
         char voices[96];
         std::snprintf(voices, sizeof voices, "OpenAL: %s, %d voices in use%s", audio.deviceName().c_str(), audio.voicesInUse(), audio.hrtf() ? ", HRTF" : "");
         gui->message(voices);
+        gui->label("Volumes of the user ([Sound] music_volume, sfx_volume)");
+        if (gui->slider("Music", userMusic, 0, 100, "%.0f")) {
+            audio.setGroupGain(R4Mixer::GROUP_MUSIC, userMusic / 100.0f);
+        }
+        if (gui->slider("Effects", userEffects, 0, 100, "%.0f")) {
+            audio.setGroupGain(R4Mixer::GROUP_EFFECTS, userEffects / 100.0f);
+        }
+        if (tab == 0) {
+            gui->radio("Synthesizer of the effects", synth, {"AdLib (OPL)", "MT-32 (munt)"});
+            if (gui->button("Render the effects again")) {
+                if (source) {
+                    source->stop();
+                    source.reset();
+                }
+                selected = -1;
+                const bool done = mixer->renderEffects(synth == 1 ? R4Mixer::EffectSynth::MT32 : R4Mixer::EffectSynth::OPL);
+                listEffects();
+                status = done ? "rendered with " + mixer->effectSynth() : "no MT-32 ROMs in [Sound] mt32_rom_dir";
+                synth = mixer->effectSynth() == "MT-32" ? 1 : 0;
+            }
+            if (selected < 0 && !status.empty()) {
+                gui->message(status.c_str());
+            }
+        }
         gui->endPanel();
         gui->endFrame();
 
