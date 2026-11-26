@@ -473,7 +473,8 @@ void SCMission::startMusic() {
 }
 // SoundFX_PlayOrUpdate : son numérisé de l'effet avec digital_fx, ou quand l'effet n'a pas de séquence XMIDI ; sinon sa
 // séquence XMIDI.
-void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, float distance) {
+void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position) {
+    float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
     int fx = this->sound.fxEffect(id);
     MemSound *sound = this->sound.effect(id);
     if (sound != nullptr && (this->digital_fx || fx < 0)) {

@@ -64,7 +64,7 @@ void RSSound::init() {
 }
 
 // Strike Commander : l'effet n (jusqu'à GUN_HIT) est le n-ième son de DSOUNDFX.PAK mis à plat ; le joueur touché et la chute dans l'eau
-// reprennent l'impact et l'explosion.
+// reprennent l'impact et l'explosion. Séquences XMIDI : numéros des effets de SOUNDFX.ADL (SOUND_EFFECTS.md § 2.2).
 void RSSound::initEffects() {
     for (size_t i = 0; i < this->sounds.size() && i <= SoundEffectIds::GUN_HIT; i++) {
         this->effects[(int)i].push_back(this->sounds[i]);
@@ -73,7 +73,32 @@ void RSSound::initEffects() {
         this->effects[SoundEffectIds::PLAYER_HIT].push_back(this->sounds[SoundEffectIds::GUN_IMPACT_1]);
         this->effects[SoundEffectIds::WATER_SPLASH].push_back(this->sounds[SoundEffectIds::EXPLOSION_1]);
     }
+    this->fx_effects[SoundEffectIds::AIM9_SHOOT] = 1;
+    this->fx_effects[SoundEffectIds::AIM120_SHOOT] = 1;
+    this->fx_effects[SoundEffectIds::POD_SHOOT] = 1;
+    this->fx_effects[SoundEffectIds::MAVERICK_SHOOT] = 1;
     this->fx_effects[SoundEffectIds::GUN_FIRE] = 2;
+    this->fx_effects[SoundEffectIds::EXPLOSION_1] = 3;
+    this->fx_effects[SoundEffectIds::EXPLOSION_2] = 3;
+    this->fx_effects[SoundEffectIds::EXPLOSION_3] = 3;
+    this->fx_effects[SoundEffectIds::EXPLOSION_4] = 3;
+    this->fx_effects[SoundEffectIds::WATER_SPLASH] = 3;
+    this->fx_effects[SoundEffectIds::GEARS_UP] = 4;
+    this->fx_effects[SoundEffectIds::GEARS_DOWN] = 5;
+    this->fx_effects[SoundEffectIds::MK82_DROP] = 8;
+    this->fx_effects[SoundEffectIds::MK20_DROP] = 8;
+    this->fx_effects[SoundEffectIds::PLAYER_HIT] = 9;
+    this->fx_effects[SoundEffectIds::GUN_IMPACT_1] = 10;
+    this->fx_effects[SoundEffectIds::GUN_IMPACT_2] = 10;
+    this->fx_effects[SoundEffectIds::GUN_IMPACT_3] = 10;
+    this->fx_effects[SoundEffectIds::GUN_IMPACT_4] = 10;
+    this->fx_effects[SoundEffectIds::GUN_IMPACT_5] = 10;
+    this->fx_effects[SoundEffectIds::GUN_IMPACT_6] = 10;
+    this->fx_effects[SoundEffectIds::GUN_HIT] = 10;
+    this->fx_effects[SoundEffectIds::PLANE_PASS_BY_1] = 11;
+    this->fx_effects[SoundEffectIds::PLANE_PASS_BY_2] = 11;
+    this->fx_effects[SoundEffectIds::PLANE_PASS_BY_3] = 11;
+    this->fx_effects[SoundEffectIds::TOUCH_DOWN] = 12;
 }
 
 // Numéro de la séquence XMIDI de l'effet ; -1 si le jeu n'en a pas.
