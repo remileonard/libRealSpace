@@ -1662,7 +1662,7 @@ void SCPlane::spawnDebris() {
         SCExplosion *piece = new SCExplosion(debr->objct, position);
         piece->falling = true;
         piece->area = mission->area;
-        piece->life_left = (float)debr->objct->debris_life_frames * ORIGINAL_FRAME_SECONDS;
+        piece->life_left = (float)debr->objct->debris_life_frames * 2 * ORIGINAL_FRAME_SECONDS;
         piece->velocity = {source_velocity.x * 0.6f + speed[0], source_velocity.y * 0.6f + speed[2], source_velocity.z * 0.6f - speed[1]};
         mission->explosions.push_back(piece);
         spawned++;
