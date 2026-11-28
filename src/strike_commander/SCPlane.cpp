@@ -1629,6 +1629,47 @@ void SCPlane::makeCrashCrater() {
     this->pilot->mission->area->addCrater({this->x, this->y, this->z}, radius, ID_MK82);
 }
 
+// Débris d'un avion touché (chunk DEBR, Debris_SpawnFromDebrList_3844F) : debris_count débris tirés au hasard dans la liste ;
+// position = avion + aléa de ±dispersion sur chaque axe ; vitesse = 0,6 × vitesse de l'avion + vitesse de l'enregistrement + aléa.
+// Ils tombent avec les effets de la mission (SCExplosion, falling).
+void SCPlane::spawnDebris() {
+    if (this->pilot == nullptr || this->pilot->mission == nullptr || this->object == nullptr) {
+        return;
+    }
+    RSEntity *entity = this->object->entity;
+    if (entity == nullptr || entity->debris.empty() || entity->debris_count == 0) {
+        printf("DEBRIS: %s touche, pas de chunk DEBR\n", this->pilot->actor_name.c_str());
+        return;
+    }
+    SCMission *mission = this->pilot->mission;
+    Vector3D source_velocity = this->worldVelocity();
+    int spawned = 0;
+    for (int i = 0; i < entity->debris_count; i++) {
+        RSEntity::DEBR *debr = entity->debris[(size_t)(std::rand() % (int)entity->debris.size())];
+        if (debr->objct == nullptr || debr->objct->animations.empty()) {
+            continue;
+        }
+        // repère du jeu (c0 est, c1 nord, c2 haut) vers libRealSpace : x = c0, y = c2, z = -c1
+        float spread[3];
+        float speed[3];
+        for (int k = 0; k < 3; k++) {
+            int d = debr->position_spread[k];
+            int j = debr->velocity_spread[k];
+            spread[k] = d > 0 ? (float)(std::rand() % (2 * d + 1) - d) : 0.0f;
+            speed[k] = (float)debr->velocity[k] + (j > 0 ? (float)(std::rand() % (2 * j + 1) - j) : 0.0f);
+        }
+        Vector3D position = {this->position.x + spread[0], this->position.y + spread[2], this->position.z - spread[1]};
+        SCExplosion *piece = new SCExplosion(debr->objct, position);
+        piece->falling = true;
+        piece->area = mission->area;
+        piece->life_left = (float)debr->objct->debris_life_frames * ORIGINAL_FRAME_SECONDS;
+        piece->velocity = {source_velocity.x * 0.6f + speed[0], source_velocity.y * 0.6f + speed[2], source_velocity.z * 0.6f - speed[1]};
+        mission->explosions.push_back(piece);
+        spawned++;
+    }
+    printf("DEBRIS: %s touche, %d debris (%zu modeles, %d demandes)\n", this->pilot->actor_name.c_str(), spawned, entity->debris.size(), entity->debris_count);
+}
+
 void SCPlane::RenderSmoke() {
     this->smoke_set->render(Renderer.camera.getPosition());
 }

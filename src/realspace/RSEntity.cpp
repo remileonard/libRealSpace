@@ -13,6 +13,7 @@
 #include "RLEShape.h"
 #include "RSImageSet.h"
 #include "../commons/RLEBuffer.h"
+#include "../commons/LZBuffer.h"
 
 
 RSEntity::~RSEntity() {
@@ -611,6 +612,7 @@ void RSEntity::parseREAL_OBJT_JETP_DEBR(uint8_t *data, size_t size) {
             debr->objct = new RSEntity();
             debr->objct->InitFromRAM(entry->data, entry->size, tmpname);
         }
+        printf("DEBRIS: %s, modele %s : %s, %zu images, taille %.0f\n", this->name.c_str(), tmpname.c_str(), entry != nullptr ? "trouve" : "absent", debr->objct != nullptr ? debr->objct->animations.size() : 0, debr->objct != nullptr ? debr->objct->anim_size : 0.0f);
         this->debris.push_back(debr);
     }
 }
@@ -1378,12 +1380,43 @@ void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
     PakArchive pak;
     uint8_t* data2 = (uint8_t*) malloc(size);
     memcpy(data2, data, size);
-    if (data2[0]=='L' && data2[1]=='Z'){
-        pak.InitFromRAM("SHAPE", data2, size);
+    pak.InitFromRAM("SHAPE", data2, size);
+    if (pak.IsReady()) {
         img_set->InitFromSubPakEntry(&pak);
     } else {
-        pak.InitFromRAM("SHAPE", data2, size);
-        img_set->InitFromSubPakEntry(&pak);    
+        // Images des débris (BLDGDEB*, GENDEB*) : le premier mot n'est pas la taille du bloc, que PakArchive exige ; le jeu ne lit que
+        // la table des décalages (mot bas, octet de poids fort ignoré : 193 pour ces fichiers), comme tools/sc_data.py.
+        uint8_t *shapes = data2;
+        size_t shapes_size = size;
+        if (size > 6 && data2[0] == 'L' && data2[1] == 'Z') {
+            LZBuffer lz;
+            size_t csize = 0;
+            shapes = lz.DecodeLZW(data2 + 6, size - 6, csize);
+            shapes_size = csize;
+        }
+        if (shapes != nullptr && shapes_size >= 8) {
+            uint32_t first = (shapes[4] | shapes[5] << 8 | shapes[6] << 16) & 0x00FFFFFF;
+            size_t count = first >= 4 ? (first - 4) / 4 : 0;
+            for (size_t i = 0; i < count && 4 + 4 * i + 3 < shapes_size; i++) {
+                const uint8_t *p = shapes + 4 + 4 * i;
+                uint32_t offset = (uint32_t)(p[0] | p[1] << 8 | p[2] << 16);
+                uint32_t end = (uint32_t)shapes_size;
+                if (i + 1 < count) {
+                    const uint8_t *q = shapes + 4 + 4 * (i + 1);
+                    end = (uint32_t)(q[0] | q[1] << 8 | q[2] << 16);
+                }
+                if (offset >= shapes_size || end > shapes_size || end <= offset) {
+                    continue;
+                }
+                RLEShape *shape = new RLEShape();
+                shape->init(shapes + offset, end - offset);
+                Point2D pos = {0, 0};
+                shape->SetPosition(&pos);
+                img_set->shapes.push_back(shape);
+                img_set->sequence.push_back((int)i);
+            }
+        }
+        printf("RSEntity: %s, images d'animation lues sans la taille du bloc : %zu\n", this->name.c_str(), img_set->shapes.size());
     }
     
     RSPalette palette;
@@ -1449,7 +1482,15 @@ void RSEntity::parseREAL_OBJT_DEBR(uint8_t *data, size_t size) {
     IFFSaxLexer lexer;
     std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
     handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM, this, std::placeholders::_1, std::placeholders::_2);
+    handlers["INFO"] = std::bind(&RSEntity::parseREAL_OBJT_DEBR_INFO, this, std::placeholders::_1, std::placeholders::_2);
     lexer.InitFromRAM(data, size, handlers);
+}
+void RSEntity::parseREAL_OBJT_DEBR_INFO(uint8_t *data, size_t size) {
+    if (size < 2) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->debris_life_frames = bs.ReadUShort();
 }
 void RSEntity::parseREAL_OBJT_SMKG(uint8_t *data, size_t size) {
     this->entity_type = EntityType::destroyed_object;

@@ -279,6 +279,10 @@ public:
     std::vector<DEBR *> debris;
     // Chunk INFO du FORM ANIM d'un objet animé : 2e mot (taille de l'image, hypothèse : en mètres)
     float anim_size{0.0f};
+    // Classe DEBR, chunk INFO (IFF_LoadInfoChunk, +0x37) : durée de vie d'un débris en images de l'original (20 par défaut), décomptée
+    // d'une image à chaque image (Timer_SetRelativeFrames_4F9BB, Timer_Tick_4F9E6 mode 1).
+    uint16_t debris_life_frames{20};
+    void parseREAL_OBJT_DEBR_INFO(uint8_t *data, size_t size);
     int32_t thrust_in_newton{0};
     int32_t weight_in_kg{0};
     int32_t drag{0};

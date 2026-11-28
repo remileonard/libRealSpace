@@ -30,7 +30,7 @@ void SCExplosion::render() {
 }
 
 // Chute d'un débris : gravité, frottement de l'air (coefficient ATMO, masse DYNM, densité de AIRDENS.TBL), comme
-// AgravSimulatedObject ; fini quand il passe sous le sol.
+// AgravSimulatedObject ; fini au bout de sa durée de vie ou quand il passe sous le sol.
 void SCExplosion::fall(float dt) {
     if (!this->airdens.isLoaded()) {
         TreEntry *airdens_entry = AssetManager::getInstance().GetEntryByName("..\\..\\DATA\\AIRDENS.TBL");
@@ -48,6 +48,11 @@ void SCExplosion::fall(float dt) {
     }
     this->velocity = this->velocity + acceleration * dt;
     this->position = this->position + this->velocity * dt;
+    this->life_left -= dt;
+    if (this->life_left <= 0.0f) {
+        this->is_finished = true;
+        return;
+    }
     if (this->area != nullptr && this->position.y < this->area->getY(this->position.x, this->position.z)) {
         this->is_finished = true;
     }

@@ -386,6 +386,7 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
     }
     int damage = weapon->obj->wdat->damage;
     if (this->plane != nullptr) {
+        this->plane->spawnDebris();
         int nb_systems = this->plane->system_health.size();
         int system_to_hit = std::rand() % nb_systems;
         std::string system_name;
@@ -426,7 +427,6 @@ void SCMissionActors::hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *att
             this->mission->explosions.push_back(explosion);
             this->mission->playEffect(weapon->obj->entity_type == EntityType::tracer ? SoundEffectIds::GUN_IMPACT_1 : SoundEffectIds::EXPLOSION_1, this->object->position);
         }
-        this->spawnDebris();
         attacker->score += 100;
         if (this->plane != nullptr) {
             attacker->plane_down += 1;
@@ -491,44 +491,6 @@ void SCMissionActors::onEvent(const EventMessage &event) {
         return;
     }
 }
-// Debris_SpawnFromDebrList_3844F : à la destruction, debris_count débris tirés au hasard dans la liste du chunk DEBR ; position =
-// source + aléa de ±dispersion sur chaque axe ; vitesse = 0,6 × vitesse de la source + vitesse de l'enregistrement + aléa.
-void SCMissionActors::spawnDebris() {
-    RSEntity *entity = this->object->entity;
-    if (entity == nullptr || entity->debris.empty() || entity->debris_count == 0) {
-        return;
-    }
-    Vector3D source_velocity = {0.0f, 0.0f, 0.0f};
-    if (this->plane != nullptr) {
-        source_velocity = this->plane->worldVelocity();
-    }
-    Vector3D source = this->plane != nullptr ? this->plane->position : this->object->position;
-    int spawned = 0;
-    for (int i = 0; i < entity->debris_count; i++) {
-        RSEntity::DEBR *debr = entity->debris[(size_t)(std::rand() % (int)entity->debris.size())];
-        if (debr->objct == nullptr || debr->objct->animations.empty()) {
-            continue;
-        }
-        // repère du jeu (c0 est, c1 nord, c2 haut) vers libRealSpace : x = c0, y = c2, z = -c1
-        float spread[3];
-        float speed[3];
-        for (int k = 0; k < 3; k++) {
-            int d = debr->position_spread[k];
-            int j = debr->velocity_spread[k];
-            spread[k] = d > 0 ? (float)(std::rand() % (2 * d + 1) - d) : 0.0f;
-            speed[k] = (float)debr->velocity[k] + (j > 0 ? (float)(std::rand() % (2 * j + 1) - j) : 0.0f);
-        }
-        Vector3D position = {source.x + spread[0], source.y + spread[2], source.z - spread[1]};
-        SCExplosion *piece = new SCExplosion(debr->objct, position);
-        piece->falling = true;
-        piece->area = this->mission->area;
-        piece->velocity = {source_velocity.x * 0.6f + speed[0], source_velocity.y * 0.6f + speed[2], source_velocity.z * 0.6f - speed[1]};
-        this->mission->explosions.push_back(piece);
-        spawned++;
-    }
-    printf("DEBRIS: %s detruit, %d debris\n", this->actor_name.c_str(), spawned);
-}
-
 void SCMissionActors::onGettingHit(const MissionEventActorHit &event) {
     if (event.attacker != nullptr && event.target != nullptr && event.target == this) {
         event.weapon->alive = false;
@@ -858,7 +820,6 @@ void SCMissionActorsPlayer::hasBeenHit(SCSimulatedObject *weapon, SCMissionActor
             this->mission->explosions.push_back(explosion);
             this->mission->playEffect(weapon->obj->entity_type == EntityType::tracer ? SoundEffectIds::GUN_IMPACT_1 : SoundEffectIds::EXPLOSION_1, this->object->position);
         }
-        this->spawnDebris();
         attacker->score += 100;
         if (this->plane != nullptr) {
             attacker->plane_down += 1;
