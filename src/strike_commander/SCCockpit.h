@@ -169,6 +169,7 @@ public:
     void RenderAlti(Point2D alti_pos, FrameBuffer *fb);
     void RenderSpeedOmetter(Point2D speed_top_left, FrameBuffer *fb);
     void RenderMasterWarning(Point2D master_warning_pos, FrameBuffer *fb);
+    void RenderMasterWarningShapes(Point2D master_warning_pos, FrameBuffer *fb, RLEShape *shape, int ir_warning, int rd_warning);
     bool RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb);
     void RenderMFDSCamera(Point2D pmfd_left, FrameBuffer *fb);
     virtual void SetCommActorTarget(int target);

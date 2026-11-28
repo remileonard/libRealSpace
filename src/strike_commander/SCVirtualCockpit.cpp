@@ -12,6 +12,8 @@ SCVirtualCockpit::~SCVirtualCockpit() {
     this->releaseTextures();
     delete this->mouse_framebuffer;
     this->mouse_framebuffer = nullptr;
+    delete this->mwrn_framebuffer;
+    this->mwrn_framebuffer = nullptr;
 }
 
 void SCVirtualCockpit::beginFrame() {

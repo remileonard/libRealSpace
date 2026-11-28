@@ -78,8 +78,53 @@ void SCJetVirtualCockpit::updateInstruments(const VirtualCockpitContext &ctx) {
     if (this->cockpit->comm_framebuffer != nullptr && this->renderComm()) {
         this->addPanel(this->cockpit->comm_framebuffer, this->layout.comm);
     }
+    this->addMasterWarning();
     if (ctx.mouse_control) {
         this->renderMouse();
         this->addPanel(this->mouse_framebuffer, this->layout.mouse);
     }
+}
+
+// Voyant d'alerte (MWRN) : images de la vue agrandie (plaque 0, alerte IR 1, radar 2), comme le RAWS du cockpit virtuel. Sa place
+// est celle qu'il a dans la vue agrandie du cockpit 2D par rapport au RAWS, reportée sur le panneau du RAWS.
+void SCJetVirtualCockpit::addMasterWarning() {
+    Moni &moni = this->cockpit->cockpit->MONI;
+    RAWSShape &raws = moni.INST.RAWS;
+    if (this->layout.raws.size() != 4 || moni.INST.MWRN.ARTS.GetNumImages() < 3 || raws.ZOOM.data == nullptr) {
+        return;
+    }
+    RLEShape *plate = moni.INST.MWRN.ARTS.GetShape(0);
+    int width = plate->GetWidth();
+    int height = plate->GetHeight();
+    int raws_width = raws.ZOOM.GetWidth();
+    int raws_height = raws.ZOOM.GetHeight();
+    if (width <= 0 || height <= 0 || raws_width <= 0 || raws_height <= 0) {
+        return;
+    }
+    if (this->mwrn_framebuffer == nullptr) {
+        this->mwrn_framebuffer = new FrameBuffer(width, height);
+    }
+    this->mwrn_framebuffer->fillWithColor(0);
+    this->cockpit->RenderMasterWarningShapes({0, 0}, this->mwrn_framebuffer, plate, 1, 2);
+    // coin haut gauche de la plaque dans la vue agrandie (ancre en bas à droite, comme RenderMasterWarning) ; RAWS en (84, 112)
+    // sans position propre, comme RenderRAWSBig
+    int raws_x = raws.zoom_x != 0 && raws.zoom_y != 0 ? raws.zoom_x : 84;
+    int raws_y = raws.zoom_x != 0 && raws.zoom_y != 0 ? raws.zoom_y : 112;
+    float left = (float)(moni.INST.MWRN.zoom_x - width + 1 - raws_x) / (float)raws_width;
+    float top = (float)(moni.INST.MWRN.zoom_y - height + 1 - raws_y) / (float)raws_height;
+    if (!this->mwrn_traced) {
+        this->mwrn_traced = true;
+        printf("VCOCKPIT: voyant d'alerte %dx%d en (%d, %d), RAWS %dx%d en (%d, %d) : panneau (%.2f, %.2f) a (%.2f, %.2f) du RAWS\n", width, height, moni.INST.MWRN.zoom_x - width + 1, moni.INST.MWRN.zoom_y - height + 1, raws_width, raws_height, raws_x, raws_y, left, top, left + (float)width / (float)raws_width, top + (float)height / (float)raws_height);
+    }
+    float right = left + (float)width / (float)raws_width;
+    float bottom = top + (float)height / (float)raws_height;
+    const std::vector<Vector3D> &q = this->layout.raws;
+    Vector3D across = q[1] - q[0];
+    Vector3D down = q[3] - q[0];
+    std::vector<Vector3D> quad;
+    quad.push_back(q[0] + across * left + down * top);
+    quad.push_back(q[0] + across * right + down * top);
+    quad.push_back(q[0] + across * right + down * bottom);
+    quad.push_back(q[0] + across * left + down * bottom);
+    this->addPanel(this->mwrn_framebuffer, quad);
 }

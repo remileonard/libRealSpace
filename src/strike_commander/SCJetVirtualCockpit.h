@@ -36,6 +36,8 @@ public:
 protected:
     const JetCockpitLayout &layout;
     void updateInstruments(const VirtualCockpitContext &ctx) override;
+    void addMasterWarning();
+    bool mwrn_traced{false};
 };
 
 #endif

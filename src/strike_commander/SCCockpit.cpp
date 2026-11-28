@@ -1993,6 +1993,11 @@ void SCCockpit::RenderMasterWarning(Point2D master_warning_pos, FrameBuffer *fb)
         return;
     }
     
+    this->RenderMasterWarningShapes(master_warning_pos, fb, shape, ir_warning, rd_warning);
+}
+
+// Voyant d'alerte : plaque, puis image IR ou radar clignotante quand un missile vise le joueur.
+void SCCockpit::RenderMasterWarningShapes(Point2D master_warning_pos, FrameBuffer *fb, RLEShape *shape, int ir_warning, int rd_warning) {
     shape->SetPosition(&master_warning_pos);
     fb->drawShape(shape);
     if (this->current_mission->player->weapon_shooted_at_me != nullptr) {

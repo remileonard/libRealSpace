@@ -49,6 +49,8 @@ protected:
 
     SCCockpit *cockpit{nullptr};
     FrameBuffer *mouse_framebuffer{nullptr};
+    // voyant d'alerte (MWRN, images de la vue agrandie), à la taille de sa plaque
+    FrameBuffer *mwrn_framebuffer{nullptr};
     // Cockpit frame of the panels, valid during render().
     Vector3D cockpit_pos{0.0f, 0.0f, 0.0f};
     Vector3D cockpit_rot{0.0f, 0.0f, 0.0f};
