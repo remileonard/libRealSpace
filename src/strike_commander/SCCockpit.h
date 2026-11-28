@@ -19,33 +19,44 @@ struct HudLine {
 
 class SCCockpit {
 protected:
+
     AssetManager &Assets = AssetManager::getInstance();
     RSFontManager &FontManager = RSFontManager::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
     RSVGA &VGA = RSVGA::getInstance();
     SCMouse &Mouse = SCMouse::getInstance();
-    std::vector<HudLine> horizon;
-    RSFont *font;
-    RSFont *big_font;
-    // durée d'affichage restante du message radio, en secondes (400 images à 60 images/s)
+
     float radio_mission_timer{0.0f};
-    // clignotement de l'alarme missile, image de l'animation en surimpression, pas de la secousse du cockpit touché
     float warning_flash_time{0.0f};
     float overlay_time{0.0f};
     float hit_step_time{0.0f};
-    std::unordered_map<uint32_t, uint8_t> palette_lut;
-    std::unordered_map<std::string, std::string> hud_text_tags;
+    bool betty_missile{false};
+    bool betty_pull_up{false};
+    bool betty_stall{false};
+    bool betty_fuel{false};
     bool palette_lut_dirty = true;
+
+    int warnings_frames{0};
+    int seeker_tone{-1};
     int current_weapon_id{-1};
-    Camera cockpit_camera;
-    MISN_PART *current_target{nullptr};
-    SCMissionActors *current_target_actor{nullptr};
-    bool hit_animation_playing{false};
     int cpt_x{0};
     int spd_x{0};
     int cpt_y{0};
     int spd_y{0};
     int nbframes{0};
+
+    std::vector<HudLine> horizon;
+    RSFont *font;
+    RSFont *big_font;
+    SCMission *warnings_mission{nullptr};
+    std::unordered_map<uint32_t, uint8_t> palette_lut;
+    std::unordered_map<std::string, std::string> hud_text_tags;
+    
+    Camera cockpit_camera;
+    MISN_PART *current_target{nullptr};
+    SCMissionActors *current_target_actor{nullptr};
+    bool hit_animation_playing{false};
+    
     MessageBus::SubscriptionId subscription_id{-1};
     void onEvent(const EventMessage &event);
     void onPlayerHit(const MissionEventActorHit &event);
@@ -61,19 +72,10 @@ protected:
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
     void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
     void BuildPaletteLUT();
-    // Cockpit_WarningsAndSeekerTone_15FD3 : alarmes Betty et tonalités du missile, à chaque image.
     void updateWarnings();
     void sayBetty(size_t entry, const char *reason);
     float pullUpLoadFactor();
     SCMissionActors *targetActor();
-    // Une alarme ne parle qu'une fois tant que sa condition dure : missile sur le joueur, sortie de piqué, décrochage, carburant.
-    bool betty_missile{false};
-    bool betty_pull_up{false};
-    bool betty_stall{false};
-    bool betty_fuel{false};
-    SCMission *warnings_mission{nullptr};
-    int warnings_frames{0};
-    int seeker_tone{-1};
     void printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font);
     
 public:
@@ -89,20 +91,20 @@ public:
     FrameBuffer *speed_framebuffer{nullptr};
     FrameBuffer *comm_framebuffer{nullptr};
     FrameBuffer *debug_framebuffer{nullptr};
+
     float pitch{0.0f};
     float roll{0.0f};
     float yaw{0.0f};
-
     float speed{0.0f};
     float mach{0.0f};
     float altitude{0.0f};
     float heading{0.0f};
-
     float g_limit{0.0f};
     float g_load{0.0f};
     float pitch_speed{0.0f};
     float yaw_speed{0.0f};
     float roll_speed{0.0f};
+    float way_az{0};
 
     bool gear{false};
     bool flaps{false};
@@ -114,12 +116,22 @@ public:
     bool show_comm{false};
     bool show_cam{false};
     bool target_in_range{false};
-    RadarMode radar_mode{RadarMode::AARD};
+    bool has_hud_eye_world = false;
+    bool debug_print{false};
+    bool big_cockpit{false};
+    bool is_3d_cockpit{false};
+    bool is_f16_cockpit{true};
+    bool is_shooting{false};
+
     int radar_zoom{1};
     int throttle{0};
     int comm_target{0};
+    int frame{0};
+
+    uint8_t *nav_point_id{nullptr};
+
+    RadarMode radar_mode{RadarMode::AARD};
     SCMissionActors *comm_actor{nullptr};
-    float way_az{0};
     MISN_PART *target{nullptr};
     MISN_PART *player{nullptr};
     RSProf *player_prof{nullptr};
@@ -129,21 +141,17 @@ public:
     Vector2D weapoint_coords;
     SCPlane *player_plane;
     SCMission *current_mission;
-    uint8_t *nav_point_id{nullptr};
+    
     Hud_weapon_mode weapon_mode{Hud_weapon_mode::WM_HUD_LCOS};
-    Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
-    bool has_hud_eye_world = false;
-    bool debug_print{false};
-    bool big_cockpit{false};
-    bool is_3d_cockpit{false};
-    bool is_f16_cockpit{true};
-    bool is_shooting{false};
+    
+    
     RSImageSet* crashed_animation_frames_p1;
     RSImageSet* crashed_animation_frames_p2;
     RSImageSet* eject_animation_frames;
     Vector2D cannonAngularOffset = {0.0f, 0.0f};
     Vector3D targetImpactPointWorld = {0.0f, 0.0f, 0.0f};
-    int frame{0};
+    Vector3D hud_eye_world = {0.0f, 0.0f, 0.0f};
+    
     SCCockpit();
     ~SCCockpit();
     virtual void init();
