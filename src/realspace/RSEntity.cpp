@@ -585,7 +585,35 @@ void RSEntity::parseREAL_OBJT_JETP_EXPL(uint8_t *data, size_t size) {
     }
     this->explos = expl;
 }
-void RSEntity::parseREAL_OBJT_JETP_DEBR(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_OBJT_JETP_DEBR(uint8_t *data, size_t size) {
+    if (size < 2) {
+        return;
+    }
+    ByteStream bs(data, size);
+    this->debris_count = bs.ReadUShort();
+    size_t records = (size - 2) / 26;
+    for (size_t i = 0; i < records; i++) {
+        DEBR *debr = new DEBR();
+        debr->name = bs.ReadString(8);
+        for (int k = 0; k < 3; k++) {
+            debr->position_spread[k] = bs.ReadShort();
+        }
+        for (int k = 0; k < 3; k++) {
+            debr->velocity[k] = bs.ReadShort();
+        }
+        for (int k = 0; k < 3; k++) {
+            debr->velocity_spread[k] = bs.ReadShort();
+        }
+        std::string tmpname = assetsManager.object_root_path + debr->name + ".IFF";
+        std::transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::toupper);
+        TreEntry *entry = assetsManager.GetEntryByName(tmpname);
+        if (entry != nullptr) {
+            debr->objct = new RSEntity();
+            debr->objct->InitFromRAM(entry->data, entry->size, tmpname);
+        }
+        this->debris.push_back(debr);
+    }
+}
 void RSEntity::parseREAL_OBJT_JETP_DEST(uint8_t *data, size_t size) {
     ByteStream bs(data, size);
     std::string tmpname = bs.ReadString(8);
@@ -1334,7 +1362,14 @@ void RSEntity::parseREAL_APPR_ANIM(uint8_t *data, size_t size) {
 
     lexer.InitFromRAM(data, size, handlers);
 }
-void RSEntity::parseREAL_APPR_ANIM_INFO(uint8_t *data, size_t size) {}
+void RSEntity::parseREAL_APPR_ANIM_INFO(uint8_t *data, size_t size) {
+    if (size < 4) {
+        return;
+    }
+    ByteStream bs(data, size);
+    bs.ReadUShort();
+    this->anim_size = (float)bs.ReadUShort();
+}
 void RSEntity::parseREAL_APPR_ANIM_SEQU(uint8_t *data, size_t size) {}
 void RSEntity::parseREAL_APPR_ANIM_SHAP(uint8_t *data, size_t size) {
     if (size < 1)
@@ -1411,6 +1446,10 @@ void RSEntity::parseREAL_OBJT_OMOB(uint8_t *data, size_t size) {
 }
 void RSEntity::parseREAL_OBJT_DEBR(uint8_t *data, size_t size) {
     this->entity_type = EntityType::debris;
+    IFFSaxLexer lexer;
+    std::unordered_map<std::string, std::function<void(uint8_t * data, size_t size)>> handlers;
+    handlers["DYNM"] = std::bind(&RSEntity::parseREAL_OBJT_MISS_DYNM, this, std::placeholders::_1, std::placeholders::_2);
+    lexer.InitFromRAM(data, size, handlers);
 }
 void RSEntity::parseREAL_OBJT_SMKG(uint8_t *data, size_t size) {
     this->entity_type = EntityType::destroyed_object;

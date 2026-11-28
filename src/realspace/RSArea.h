@@ -121,6 +121,17 @@ public:
     //Per block objects list
     std::vector<MapObject> objects;
     std::vector<AreaOverlay> objectOverlay;
+    // Cratères posés en vol (Terrain_AddCraterDecal_98CF0) : un triangle texturé chacun, 20 au plus, le plus ancien remplacé.
+    // craters_version change à chaque cratère : un rendu qui a construit sa géométrie la refait.
+    std::vector<AreaOverlay> craters;
+    size_t next_crater{0};
+    int craters_version{0};
+    // [Game] craters, lu par SCMission au chargement (option de détail byte_7234B de l'original)
+    bool craters_enabled{true};
+    // weapon_id : identifiant de l'arme (1 à 12), 6 (MK-82) pour le crash d'un avion ; radius en mètres.
+    void addCrater(Vector3D impact, float radius, int weapon_id);
+    // Type du sol (octet 4 du sommet de terrain) au sommet le plus proche ; -1 hors de la carte.
+    int vertexTypeAt(float x, float z);
     std::vector<Cloud> clouds;
     float elevation[BLOCKS_PER_MAP];
 	TreArchive *tre;

@@ -59,6 +59,7 @@ int main(int argc, char* argv[]) {
     bool show_texture = config.getBool("Game", "show_texture", true);
     bool show_fog     = config.getBool("Game", "show_fog", true);
     bool clouds_enabled = config.getBool("Game", "clouds_enabled", false);
+    bool craters = config.getBool("Game", "craters", true);
     // [Video]
     bool fx_cpc_palette  = config.getBool("Video", "fx_cpc_palette", false);
     bool fx_scanlines    = config.getBool("Video", "fx_scanlines", false);
@@ -170,6 +171,7 @@ int main(int argc, char* argv[]) {
                     ImGui::Checkbox(_labelPrefix("Show Texture").c_str(), &show_texture);
                     ImGui::Checkbox(_labelPrefix("Show Fog").c_str(), &show_fog);
                     ImGui::Checkbox(_labelPrefix("Clouds Enabled").c_str(), &clouds_enabled);
+                    ImGui::Checkbox(_labelPrefix("Craters").c_str(), &craters);
                     ImGui::SliderInt(_labelPrefix("Terrain Shadow Lift").c_str(), &terrain_shadow_lift, 0, 50);
                     ImGui::SliderInt(_labelPrefix("Terrain Shadow Range").c_str(), &terrain_shadow_range, 1, 100);
                     ImGui::Checkbox(_labelPrefix("Terrain Flat Shading").c_str(), &terrain_flat);
@@ -212,6 +214,7 @@ int main(int argc, char* argv[]) {
                     config.setBool("Game",   "show_texture",  show_texture);
                     config.setBool("Game",   "show_fog",      show_fog);
                     config.setBool("Game",   "clouds_enabled", clouds_enabled);
+                    config.setBool("Game",   "craters", craters);
                     config.setBool("Video",  "fx_cpc_palette", fx_cpc_palette);
                     config.setBool("Video",  "fx_scanlines",   fx_scanlines);
                     config.setInt ("Video",  "fx_pixel_scale",  fx_pixel_scale);

@@ -218,7 +218,7 @@ bool WorldScene::load(const WorldEntry &entry, std::string &error) {
     area_ = std::make_unique<RSArea>();
     area_->InitFromPAKFileName(entry.terrain.c_str());
     buildTerrain();
-    if (auto overlays = r4bridge::overlayModel(area_.get(), *palette_.GetColorPalette())) {
+    if (auto overlays = r4bridge::overlayModel(area_.get(), *palette_.GetColorPalette(), area_->objectOverlay, r4bridge::OVERLAY_IMAGE_BASE, 128.0f, false)) {
         for (const r4::assets::Mesh &m : overlays->meshes) {
             overlayTriangles += m.indices.size() / 3;
         }

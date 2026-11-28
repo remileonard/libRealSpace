@@ -351,6 +351,7 @@ public:
     void SetThrottle(int throttle);
     int GetThrottle();
     int damagePercent();
+    void makeCrashCrater();
     void playMissileLaunch(int weapon_id);
     void SetFlaps();
     void SetSpoilers();

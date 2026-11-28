@@ -79,6 +79,7 @@ const std::vector<Group> &groups() {
              {"Game", "show_texture", "Textures", Kind::BOOL, When::NOW, 0, 1, 1, {}, {}},
              {"Game", "show_fog", "Fog", Kind::BOOL, When::NOW, 0, 1, 1, {}, {}},
              {"Game", "clouds_enabled", "Clouds", Kind::BOOL, When::NOW, 0, 1, 0, {}, {}},
+             {"Game", "craters", "Craters", Kind::BOOL, When::MISSION, 0, 1, 1, {}, {}},
              {"Game", "object_gouraud", "Gouraud on the Objects", Kind::BOOL, When::NOW, 0, 1, 1, {}, {}},
              {"Game", "object_detail", "Object Detail", Kind::CHOICE, When::RESTART, 0, 0, 0, {"0", "1", "2"}, {"0 (most detail)", "1", "2 (least detail)"}},
              {"Game", "world_detail", "World Detail", Kind::CHOICE, When::RESTART, 0, 0, 0, {"0", "1", "2"}, {"0 (most detail)", "1", "2 (least detail)"}},

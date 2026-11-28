@@ -208,6 +208,7 @@ void PSMission::loadMission() {
     std::transform(area_fn.begin(), area_fn.end(), area_fn.begin(), ::toupper);
     this->area = new PSArea();
     this->area->InitFromZipFileName(area_fn);
+    this->area->craters_enabled = Config::getInstance().getBool("Game", "craters", true);
 
     Renderer.InvalidateAABBCache();
     Renderer.PrecomputeAABBs(this->area, 0, 1);

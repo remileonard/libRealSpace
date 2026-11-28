@@ -536,6 +536,8 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
         unshadowed_.clear();
         terrain_.reset();
         overlay_.reset();
+        craters_.reset();
+        craters_version_ = -1;
         clouds_.reset();
         keepOut_.clear();
     }
@@ -560,7 +562,7 @@ void R4Renderer::useArea(RSArea *area, const std::vector<r4::Vec3> *keepOut) {
         light.dynamic = settings_.sunTerrain;
         light.relief = settings_.terrainRelief;
         terrain = r4bridge::terrainModel(area, palette, {0, 40000, 100000, 1e30f}, light);
-        overlay = r4bridge::overlayModel(area, palette);
+        overlay = r4bridge::overlayModel(area, palette, area->objectOverlay, r4bridge::OVERLAY_IMAGE_BASE, 128.0f, false);
     }
     std::vector<r4::Vec3> around = keepOut_;
     for (const MapObject &object : area->objects) {
@@ -1450,6 +1452,29 @@ void R4Renderer::beginWorld(RSArea *area) {
     }
 }
 
+// Cratères posés en cours de mission (RSArea::addCrater) : leur géométrie est refaite quand la carte en a changé la liste.
+void R4Renderer::rebuildCraters(RSArea *area) {
+    craters_version_ = area->craters_version;
+    std::shared_ptr<r4::assets::Model> model = r4bridge::overlayModel(area, palette, area->craters, r4bridge::OVERLAY_IMAGE_BASE, 64.0f, true);
+    if (!model) {
+        craters_.reset();
+        return;
+    }
+    R4Screen *screen = R4Screen::current();
+    screen->device().beginHostInterop();
+    R4Screen::countInterop();
+    craters_ = renderer_->upload(*model);
+    screen->device().endHostInterop();
+    std::printf("[R4Renderer] %zu crateres (version %d)\n", area->craters.size(), craters_version_);
+}
+
+const r4::scene::NodePtr &R4Renderer::cratersOf(RSArea *area) {
+    if (area != nullptr && area->craters_version != craters_version_) {
+        this->rebuildCraters(area);
+    }
+    return craters_;
+}
+
 void R4Renderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     (void)LOD;
     (void)verticesPerBlock;
@@ -1459,6 +1484,9 @@ void R4Renderer::renderWorldSolid(RSArea *area, int LOD, int verticesPerBlock) {
     }
     if (overlay_) {
         items_.push_back({overlay_, r4::Mat4(1.0f)});
+    }
+    if (const r4::scene::NodePtr &craters = this->cratersOf(area)) {
+        items_.push_back({craters, r4::Mat4(1.0f)});
     }
     if (forests_) {
         items_.push_back({forests_, r4::Mat4(1.0f)});

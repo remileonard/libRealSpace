@@ -908,9 +908,9 @@ std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &
     return model;
 }
 
-std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &palette) {
+std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &palette, const std::vector<AreaOverlay> &overlays, int imageBase, float uvScale, bool clearHoles) {
     using namespace r4::assets;
-    if (!area || area->objectOverlay.empty()) {
+    if (!area || overlays.empty()) {
         return nullptr;
     }
     auto model = std::make_shared<Model>();
@@ -919,7 +919,7 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
     std::map<int, int> cellOf;
     std::vector<RSImage *> cellImage{nullptr};
     std::vector<int> cellColor{-1};
-    for (const AreaOverlay &ov : area->objectOverlay) {
+    for (const AreaOverlay &ov : overlays) {
         for (uint16_t j : ov.drawList) {
             if (j >= 400 || !ov.vertices) {
                 continue;
@@ -928,7 +928,7 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
             if (c == PALETTE_CLEAR || cellOf.count(c)) {
                 continue;
             }
-            RSImage *src = area->GetImageByID(c + OVERLAY_IMAGE_BASE);
+            RSImage *src = area->GetImageByID(c + imageBase);
             if (!src || !src->data || !src->width || !src->height || src->width > 128 || src->height > 128) {
                 continue;
             }
@@ -959,7 +959,8 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
                 d[0] = o.r;
                 d[1] = o.g;
                 d[2] = o.b;
-                d[3] = 255;
+                // les trous de l'image d'un cratère laissent voir le terrain ; ceux d'une piste prennent la couleur du triangle
+                d[3] = clearHoles && !t.a ? 0 : 255;
             }
         }
         if (src && scale > 1) {
@@ -1014,10 +1015,10 @@ std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &
     m.drawOrder = 1;
     model->materials.push_back(m);
 
-    const float kTriUvScale = 128.0f;
+    const float kTriUvScale = uvScale;
     Node root;
     root.name = "overlays";
-    for (const AreaOverlay &ov : area->objectOverlay) {
+    for (const AreaOverlay &ov : overlays) {
         if (!ov.vertices || ov.nbTriangles <= 0) {
             continue;
         }

@@ -97,6 +97,7 @@ void R4Strike::renderWorld() {
     // the sky, the graph of the mission and the effects of the game go in the same pass of the renderer
     r->beginWorld(this->area);
     r->addScene(m->world());
+    r->addScene(r->cratersOf(this->area));
     // the plane of the player is in the graph; this view hides it in the cockpit
     r->setCameraMask(~(uint32_t)R4Mission::LAYER_TRIGGERS & (playerPlaneShown() ? 0xffffffffu : ~(uint32_t)R4Mission::LAYER_PLAYER));
 

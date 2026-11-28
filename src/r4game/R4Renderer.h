@@ -106,6 +106,8 @@ public:
 
     // a graph drawn by the next pass, in world space (libRealSpace axes)
     void addScene(const r4::scene::NodePtr &root);
+    // les cratères de la carte (RSArea::craters), refaits quand la carte en a changé la liste ; nul s'il n'y en a pas
+    const r4::scene::NodePtr &cratersOf(RSArea *area);
     // the mask of the camera for the next pass (its nodes without one of these bits are not drawn); every bit after it
     void setCameraMask(uint32_t mask) {
         cameraMask_ = mask;
@@ -292,6 +294,10 @@ private:
     RSArea *area_ = nullptr;
     r4::scene::NodePtr terrain_;
     r4::scene::NodePtr overlay_;
+    // cratères de RSArea::craters, refaits quand craters_version change
+    r4::scene::NodePtr craters_;
+    int craters_version_ = -1;
+    void rebuildCraters(RSArea *area);
     r4::scene::NodePtr forests_;
     r4::scene::NodePtr buildings_;
     r4::scene::NodePtr clouds_;

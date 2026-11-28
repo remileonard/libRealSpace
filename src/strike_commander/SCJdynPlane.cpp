@@ -578,6 +578,7 @@ void SCJdynPlane::checkStatus() {
             this->yaw_speed = 0.0f;
             this->pitch_speed = 0.0f;
             this->roll_speed = 0;
+            this->makeCrashCrater();
             this->crached = true;
         }
         //this->ptw.v[3][1] = this->y = groundlevel;

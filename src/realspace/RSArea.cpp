@@ -639,6 +639,201 @@ float RSArea::getGroundLevel(int BLOC, float x, float y) {
     
 }*/
 
+int RSArea::vertexTypeAt(float x, float z) {
+    int centerX = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
+    int centerY = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE_DIV_2;
+    int blocX = (int)(x + centerX) / BLOCK_WIDTH;
+    int blocY = (int)(z + centerY) / BLOCK_WIDTH;
+    if (blocX < 0 || blocY < 0 || blocX >= BLOCK_PER_MAP_SIDE || blocY >= BLOCK_PER_MAP_SIDE) {
+        return -1;
+    }
+    const AreaBlock &block = blocks[0][blocY * BLOCK_PER_MAP_SIDE + blocX];
+    float best = (std::numeric_limits<float>::max)();
+    int type = -1;
+    for (int i = 0; i < block.sideSize * block.sideSize; i++) {
+        float dx = x - block.vertice[i].v.x;
+        float dz = z - block.vertice[i].v.z;
+        if (dx * dx + dz * dz < best) {
+            best = dx * dx + dz * dz;
+            type = block.vertice[i].type;
+        }
+    }
+    return type;
+}
+
+// Terrain_AddCraterDecal_98CF0 (analysis/known_functions.json) : triangle couché sur le terrain, autour du cercle de l'impact ;
+// texture = famille de l'arme (MK-20 3, Durandal 6, autres 0) + 20, 21 ou 19 selon le type du sol, dans les textures des surimpressions
+// (image texture + 255, comme les triangles des pistes).
+void RSArea::addCrater(Vector3D impact, float radius, int weapon_id) {
+    if (!this->craters_enabled || weapon_id < 1 || weapon_id > 11) {
+        return;
+    }
+    int type = this->vertexTypeAt(impact.x, impact.z);
+    if (type <= 0) {
+        printf("CRATER: pas de cratere (type du sol %d)\n", type);
+        return;
+    }
+    int texture = 0;
+    if (weapon_id == 5) {
+        texture = 3;
+    } else if (weapon_id == 7) {
+        texture = 6;
+    }
+    if (type == 1 || type == 6) {
+        texture += 20;
+    } else if (type == 2 || type == 5) {
+        texture += 21;
+    } else if (type == 3 || type == 4) {
+        texture += 19;
+    }
+    // repère du jeu (c0 = est, c1 = nord) : (c0 + r, c1 + 1,859 r), (c0 + r, c1 - r), (c0 - 1,859 r, c1 - r) ; le nord est vers -z
+    const float far_side = radius * 476.0f / 256.0f;
+    float corner_x[3];
+    float corner_z[3];
+    corner_x[0] = impact.x + radius;
+    corner_z[0] = impact.z - far_side;
+    corner_x[1] = impact.x + radius;
+    corner_z[1] = impact.z + radius;
+    corner_x[2] = impact.x - far_side;
+    corner_z[2] = impact.z + radius;
+    float corner_u[3];
+    float corner_v[3];
+    if (type <= 3) {
+        corner_u[0] = 2.0f;
+        corner_v[0] = 1.0f;
+        corner_u[1] = 63.0f;
+        corner_v[1] = 1.0f;
+        corner_u[2] = 63.0f;
+        corner_v[2] = 62.0f;
+    } else {
+        corner_u[0] = 0.0f;
+        corner_v[0] = 1.0f;
+        corner_u[1] = 0.0f;
+        corner_v[1] = 62.0f;
+        corner_u[2] = 61.0f;
+        corner_v[2] = 62.0f;
+    }
+    // le triangle du cratère est découpé selon les triangles du terrain (cases de la grille du niveau 0 et leur diagonale) : chaque
+    // morceau est plan sur le terrain, posé 1 m au-dessus ; ses coordonnées de texture suivent le triangle du cratère
+    const float lift = 1.0f;
+    const float half = BLOCK_WIDTH * BLOCK_PER_MAP_SIDE / 2.0f;
+    const float cell = BLOCK_WIDTH / (float)(std::max)(1, this->blocks[0][0].sideSize);
+    float min_x = (std::min)({corner_x[0], corner_x[1], corner_x[2]});
+    float max_x = (std::max)({corner_x[0], corner_x[1], corner_x[2]});
+    float min_z = (std::min)({corner_z[0], corner_z[1], corner_z[2]});
+    float max_z = (std::max)({corner_z[0], corner_z[1], corner_z[2]});
+    float area2 = (corner_x[1] - corner_x[0]) * (corner_z[2] - corner_z[0]) - (corner_x[2] - corner_x[0]) * (corner_z[1] - corner_z[0]);
+    AreaOverlay crater;
+    int triangles = 0;
+    for (int gz = (int)std::floor((min_z + half) / cell); gz <= (int)std::floor((max_z + half) / cell); gz++) {
+        for (int gx = (int)std::floor((min_x + half) / cell); gx <= (int)std::floor((max_x + half) / cell); gx++) {
+            for (int part = 0; part < 2; part++) {
+                // triangle du terrain dans la case : fx >= fz (vers la droite) ou fx < fz (vers le bas), comme r4bridge::groundHeight
+                std::vector<float> px(corner_x, corner_x + 3);
+                std::vector<float> pz(corner_z, corner_z + 3);
+                float x0 = gx * cell - half;
+                float z0 = gz * cell - half;
+                for (int edge = 0; edge < 5 && !px.empty(); edge++) {
+                    std::vector<float> qx;
+                    std::vector<float> qz;
+                    for (size_t k = 0; k < px.size(); k++) {
+                        size_t n = (k + 1) % px.size();
+                        float d0;
+                        float d1;
+                        float fa = (px[k] - x0) / cell;
+                        float ga = (pz[k] - z0) / cell;
+                        float fb = (px[n] - x0) / cell;
+                        float gb = (pz[n] - z0) / cell;
+                        if (edge == 0) {
+                            d0 = fa;
+                            d1 = fb;
+                        } else if (edge == 1) {
+                            d0 = 1.0f - fa;
+                            d1 = 1.0f - fb;
+                        } else if (edge == 2) {
+                            d0 = ga;
+                            d1 = gb;
+                        } else if (edge == 3) {
+                            d0 = 1.0f - ga;
+                            d1 = 1.0f - gb;
+                        } else if (part == 0) {
+                            d0 = fa - ga;
+                            d1 = fb - gb;
+                        } else {
+                            d0 = ga - fa;
+                            d1 = gb - fb;
+                        }
+                        if (d0 >= 0.0f) {
+                            qx.push_back(px[k]);
+                            qz.push_back(pz[k]);
+                        }
+                        if ((d0 >= 0.0f) != (d1 >= 0.0f)) {
+                            float t = d0 / (d0 - d1);
+                            qx.push_back(px[k] + t * (px[n] - px[k]));
+                            qz.push_back(pz[k] + t * (pz[n] - pz[k]));
+                        }
+                    }
+                    px = qx;
+                    pz = qz;
+                }
+                if (px.size() < 3) {
+                    continue;
+                }
+                size_t first = crater.verticesVec.size();
+                std::vector<UV> uvs;
+                for (size_t k = 0; k < px.size(); k++) {
+                    AoVPoints p;
+                    p.x = (int32_t)roundf(px[k]);
+                    p.z = (int32_t)roundf(pz[k]);
+                    p.y = (int32_t)roundf(this->getY((float)p.x, (float)p.z) + lift);
+                    p.pad = 0;
+                    crater.verticesVec.push_back(p);
+                    float w1 = ((px[k] - corner_x[0]) * (corner_z[2] - corner_z[0]) - (corner_x[2] - corner_x[0]) * (pz[k] - corner_z[0])) / area2;
+                    float w2 = ((corner_x[1] - corner_x[0]) * (pz[k] - corner_z[0]) - (px[k] - corner_x[0]) * (corner_z[1] - corner_z[0])) / area2;
+                    float w0 = 1.0f - w1 - w2;
+                    UV uv;
+                    uv.u = (uint8_t)std::clamp((int)roundf(w0 * corner_u[0] + w1 * corner_u[1] + w2 * corner_u[2]), 0, 63);
+                    uv.v = (uint8_t)std::clamp((int)roundf(w0 * corner_v[0] + w1 * corner_v[1] + w2 * corner_v[2]), 0, 63);
+                    uvs.push_back(uv);
+                }
+                for (size_t k = 1; k + 1 < px.size() && triangles < 400; k++) {
+                    AreaOverlayTriangles &tri = crater.trianles[triangles];
+                    tri.flag0 = 0;
+                    tri.verticesIdx[0] = (uint16_t)first;
+                    tri.verticesIdx[1] = (uint16_t)(first + k);
+                    tri.verticesIdx[2] = (uint16_t)(first + k + 1);
+                    tri.type = 6;
+                    tri.color = (uint16_t)texture;
+                    tri.uv[0] = uvs[0];
+                    tri.uv[1] = uvs[k];
+                    tri.uv[2] = uvs[k + 1];
+                    crater.drawList.push_back((uint16_t)triangles);
+                    triangles++;
+                }
+            }
+        }
+    }
+    if (triangles == 0) {
+        return;
+    }
+    crater.nbTriangles = triangles;
+    if (this->craters.capacity() < 20) {
+        this->craters.reserve(20);
+    }
+    if (this->craters.size() < 20) {
+        this->craters.push_back(std::move(crater));
+        this->next_crater = this->craters.size() % 20;
+    } else {
+        this->craters[this->next_crater] = std::move(crater);
+        this->next_crater = (this->next_crater + 1) % 20;
+    }
+    for (AreaOverlay &ov : this->craters) {
+        ov.vertices = ov.verticesVec.data();
+    }
+    this->craters_version++;
+    printf("CRATER: (%.0f, %.0f), rayon %.0f m, arme %d, type du sol %d, texture %d (image %d), %d triangles, %zu crateres\n", impact.x, impact.z, radius, weapon_id, type, texture, texture + 255, triangles, this->craters.size());
+}
+
 float RSArea::getY(float x, float z) {
     float height = 0.0f;
     if (this->ground && this->ground(x, z, height)) {

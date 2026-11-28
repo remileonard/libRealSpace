@@ -266,6 +266,19 @@ public:
     std::vector<CHLD *> chld;
     enum Property { SC_TRANSPARENT = 0x02 };
     EXPL *explos{nullptr};
+    // Chunk DEBR (Object_LoadCommonChunks_9BA85) : débris créés à la destruction. Enregistrement de 26 octets, repère du jeu
+    // (c0 est, c1 nord, c2 haut), en mètres et m/s.
+    struct DEBR {
+        std::string name;
+        int16_t position_spread[3];
+        int16_t velocity[3];
+        int16_t velocity_spread[3];
+        RSEntity *objct{nullptr};
+    };
+    uint16_t debris_count{0};
+    std::vector<DEBR *> debris;
+    // Chunk INFO du FORM ANIM d'un objet animé : 2e mot (taille de l'image, hypothèse : en mètres)
+    float anim_size{0.0f};
     int32_t thrust_in_newton{0};
     int32_t weight_in_kg{0};
     int32_t drag{0};

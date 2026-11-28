@@ -1614,6 +1614,21 @@ void SCPlane::playTouchDown() {
     this->pilot->mission->playEffect(SoundEffectIds::TOUCH_DOWN, this->position);
 }
 
+// Aircraft_OnCollision_9D910 : un avion qui s'écrase laisse le cratère d'une MK-82 (masque 20h), du rayon de son chunk EXPL, 20 m
+// sans EXPL ; une seule fois.
+void SCPlane::makeCrashCrater() {
+    if (this->crached || this->pilot == nullptr || this->pilot->mission == nullptr || this->pilot->mission->area == nullptr) {
+        return;
+    }
+    RSEntity *entity = this->object->entity;
+    float radius = 20.0f;
+    if (entity->explos != nullptr && entity->explos->x > 0) {
+        radius = (float)entity->explos->x;
+    }
+    printf("CRATER: %s s'ecrase\n", this->pilot->actor_name.c_str());
+    this->pilot->mission->area->addCrater({this->x, this->y, this->z}, radius, ID_MK82);
+}
+
 void SCPlane::RenderSmoke() {
     this->smoke_set->render(Renderer.camera.getPosition());
 }

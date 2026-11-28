@@ -30,6 +30,28 @@ void SCSimulatedObject::Render() {
     this->smoke_set.render(Renderer.camera.getPosition());
 }
 
+// Weapon_OnTerrainContact_A089D : une arme qui touche le sol, sauf le canon de 20 mm, laisse un cratère du rayon de son chunk EXPL
+// (une seule fois par arme).
+void SCSimulatedObject::makeCrater(Vector3D position) {
+    if (this->crater_made || this->obj == nullptr || this->obj->wdat == nullptr || this->obj->explos == nullptr) {
+        return;
+    }
+    this->crater_made = true;
+    if (this->obj->entity_type == EntityType::tracer || this->obj->wdat->weapon_id == ID_20MM || this->obj->explos->x <= 0) {
+        return;
+    }
+    this->mission->area->addCrater(position, (float)this->obj->explos->x, this->obj->wdat->weapon_id);
+}
+
+// Un missile qui touche directement un objectif au sol (pas un avion) laisse aussi son cratère.
+void SCSimulatedObject::craterOnGroundTarget(SCMissionActors *entity, Vector3D position) {
+    if (entity == nullptr || entity->plane != nullptr || this->obj->entity_type != EntityType::missiles) {
+        return;
+    }
+    printf("CRATER: missile sur %s\n", entity->actor_name.c_str());
+    this->makeCrater(position);
+}
+
 // Le chercheur se met à jour toutes les 5 images de l'original (0,2 s) : vrai quand c'est le moment.
 bool SCSimulatedObject::seekerDue(int tps) {
     this->seeker_delay -= 1.0f / (float)(std::max)(tps, 1);
@@ -274,6 +296,7 @@ void SCSimulatedObject::Simulate(int tps) {
             Vector3D target_position = {this->target->object->position.x, this->target->object->position.y,
                                         this->target->object->position.z};
             if ((target_position - current).Length() < (float)this->obj->missile_fuse_radius) {
+                this->craterOnGroundTarget(this->target, current);
                 auto hit_event = std::make_unique<MissionEventActorHit>();
                 hit_event->attacker = this->shooter;
                 hit_event->target = this->target;
@@ -294,6 +317,7 @@ void SCSimulatedObject::Simulate(int tps) {
     }
     if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
+            this->craterOnGroundTarget(this->target, position);
             auto hit_event = std::make_unique<MissionEventActorHit>();
             hit_event->attacker = this->shooter;
             hit_event->target = this->target;
@@ -305,6 +329,7 @@ void SCSimulatedObject::Simulate(int tps) {
     } else {
         for (auto entity: this->mission->actors) {
             if (this->CheckCollision(entity)) {
+                this->craterOnGroundTarget(entity, position);
                 auto hit_event = std::make_unique<MissionEventActorHit>();
                 hit_event->attacker = this->shooter;
                 hit_event->target = entity;
@@ -377,6 +402,7 @@ void SCSimulatedObject::Simulate(int tps) {
     this->distance += length_vect.Length();
     if (this->y < this->mission->area->getY(this->x, this->z)) {
         if (!this->is_simulated) {
+            this->makeCrater(position);
             this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, position));
             this->mission->playEffect(SoundEffectIds::EXPLOSION_1, position);
             for (auto entity: this->mission->actors) {
@@ -489,10 +515,16 @@ void GunSimulatedObject::Simulate(int tps) {
                 hit_event->weapon = this;
                 hit_event->mission = this->mission;
                 MessageBus::getInstance().publish(std::move(hit_event));
+                // une bombe qui touche directement un objectif au sol laisse aussi son cratère
+                if (entity->plane == nullptr && this->obj->entity_type == EntityType::bomb) {
+                    printf("CRATER: bombe sur %s\n", entity->actor_name.c_str());
+                    this->makeCrater(position);
+                }
                 break;
             }
         }
         if (this->y < this->mission->area->getY(this->x, this->z)) {
+            this->makeCrater(position);
             if (this->obj->wdat->radius > 5 && (this->obj->entity_type == EntityType::bomb ||
                                                 this->obj->entity_type == EntityType::torp ||
                                                 this->obj->entity_type == EntityType::nplm)) {
@@ -958,6 +990,7 @@ void AgmSimulatedObject::Simulate(int tps) {
         if (this->CheckCollision(this->target)) {
             printf("AGM %s t=%.2fs touche %s\n", this->obj->name.c_str(), this->elapsed,
                    this->target->actor_name.c_str());
+            this->craterOnGroundTarget(this->target, position);
             auto hit_event = std::make_unique<MissionEventActorHit>();
             hit_event->attacker = this->shooter;
             hit_event->target = this->target;
@@ -971,6 +1004,7 @@ void AgmSimulatedObject::Simulate(int tps) {
             if (this->CheckCollision(entity)) {
                 printf("AGM %s t=%.2fs touche %s (sans cible)\n", this->obj->name.c_str(),
                        this->elapsed, entity->actor_name.c_str());
+                this->craterOnGroundTarget(entity, position);
                 auto hit_event = std::make_unique<MissionEventActorHit>();
                 hit_event->attacker = this->shooter;
                 hit_event->target = entity;
@@ -1024,6 +1058,7 @@ void AgmSimulatedObject::Simulate(int tps) {
     if (this->y < this->mission->area->getY(this->x, this->z)) {
         printf("AGM %s t=%.2fs impact au sol\n", this->obj->name.c_str(), this->elapsed);
         if (!this->is_simulated) {
+            this->makeCrater(position);
             this->explode(position);
             for (auto entity : this->mission->actors) {
                 if (this->CheckCollision(entity)) {

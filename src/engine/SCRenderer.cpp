@@ -2134,6 +2134,38 @@ void SCRenderer::renderMapOverlay(RSArea *area) {
         }
     }
 
+    // Cratères posés en vol (RSArea::addCrater) : image = couleur + 255 comme les pistes, coordonnées de texture sur 64.
+    glPolygonOffset(-1.0f, -(float)this->overlay_offset);
+    // les pixels transparents de l'image du cratère laissent voir le terrain
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.5f);
+    for (const AreaOverlay &crater : area->craters) {
+        if (crater.vertices == nullptr || crater.nbTriangles <= 0) {
+            continue;
+        }
+        for (uint16_t j : crater.drawList) {
+            const AreaOverlayTriangles &tri = crater.trianles[j];
+            RSImage *tex = this->show_textured ? area->GetImageByID(tri.color + 255) : nullptr;
+            if (tex != nullptr) {
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(GL_TEXTURE_2D, tex->GetTexture()->id);
+                glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+            } else {
+                glDisable(GL_TEXTURE_2D);
+                const Texel *texel = palette.GetRGBColor(tri.color);
+                glColor4f(texel->r / 255.0f, texel->g / 255.0f, texel->b / 255.0f, 1.0f);
+            }
+            glBegin(GL_TRIANGLES);
+            for (int k = 0; k < 3; k++) {
+                const AoVPoints &p = crater.vertices[tri.verticesIdx[k]];
+                glTexCoord2f(tri.uv[k].u / 64.0f, tri.uv[k].v / 64.0f);
+                glVertex3f((GLfloat)p.x, (GLfloat)p.y, (GLfloat)p.z);
+            }
+            glEnd();
+        }
+    }
+    glDisable(GL_ALPHA_TEST);
+
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDepthMask(GL_TRUE);

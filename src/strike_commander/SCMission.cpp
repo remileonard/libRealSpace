@@ -243,6 +243,7 @@ void SCMission::loadMission() {
     std::transform(area_fn.begin(), area_fn.end(), area_fn.begin(), ::toupper);
     this->area = new RSArea();
     this->area->InitFromPAKFileName(area_fn.c_str());
+    this->area->craters_enabled = Config::getInstance().getBool("Game", "craters", true);
 
     Renderer.InvalidateAABBCache();           // ou InvalidateAABBCache(oldArea);
     Renderer.PrecomputeAABBs(this->area, 0, 1);  // optionnel: pré-calc LOD 0-1

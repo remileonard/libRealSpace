@@ -23,6 +23,7 @@ class RSEntity;
 struct MapObject;
 struct MISN_PART;
 struct VGAPalette;
+struct AreaOverlay;
 
 namespace r4bridge {
 
@@ -42,7 +43,9 @@ std::set<int> terrainImages(RSArea *area);
 std::shared_ptr<r4::assets::Model> terrainModel(RSArea *area, const VGAPalette &palette, const std::vector<float> &lodRanges = {0, 40000, 100000, 1e30f}, const TerrainLight &light = {});
 
 // The runways of an area, as SCRenderer::renderMapOverlay: a mesh by overlay drawn without depth after the terrain, in drawList order. Null without overlay.
-std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &palette);
+// overlays : surimpressions des pistes (.TRI, images OVERLAY_IMAGE_BASE + couleur, coordonnées sur 128) ou cratères (RSArea::craters,
+// image = couleur + OVERLAY_IMAGE_BASE, coordonnées sur 64). clearHoles : les pixels transparents de l'image restent transparents (cratères).
+std::shared_ptr<r4::assets::Model> overlayModel(RSArea *area, const VGAPalette &palette, const std::vector<AreaOverlay> &overlays, int imageBase, float uvScale, bool clearHoles);
 
 // NOISE: the green terrain types under a noise of woods and clearings; TEXTURES: the trees painted in the textures
 enum class ForestMode {

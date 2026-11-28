@@ -674,6 +674,7 @@ void SCJetpPlane::checkStatus() {
         } else {
             this->velocity = Vector3D(0.0f, 0.0f, 0.0f);
             this->vx = this->vy = this->vz = 0.0f;
+            this->makeCrashCrater();
             this->crached = true;
             this->object->alive = 0;
         }

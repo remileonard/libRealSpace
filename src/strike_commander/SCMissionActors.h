@@ -63,6 +63,7 @@ public:
     virtual int getDistanceToTarget(uint8_t arg);
     virtual int getDistanceToSpot(uint8_t arg);
     virtual void hasBeenHit(SCSimulatedObject *weapon, SCMissionActors *attacker);
+    void spawnDebris();
     SCMissionActors();
     ~SCMissionActors();
 private:

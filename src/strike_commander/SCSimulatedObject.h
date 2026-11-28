@@ -20,6 +20,9 @@ protected:
     // première mise à jour du chercheur à la 5e image de l'original, comme (run_iterations + 1) % 5 == 0
     float seeker_delay{4.0f * ORIGINAL_FRAME_SECONDS};
     bool seekerDue(int tps);
+    bool crater_made{false};
+    void makeCrater(Vector3D position);
+    void craterOnGroundTarget(SCMissionActors *entity, Vector3D position);
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
     float missile_roll{0.0f};
