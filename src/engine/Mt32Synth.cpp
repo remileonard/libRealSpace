@@ -25,14 +25,11 @@ Mt32Synth::~Mt32Synth() {
     close();
 }
 
-bool Mt32Synth::open(const std::string &romDir, int sampleRate) {
-    close();
-    std::lock_guard<std::mutex> lk(mtx);
-
+std::shared_ptr<const Mt32Roms> Mt32Synth::readRoms(const std::string &romDir) {
     boost::system::error_code ec;
     if (romDir.empty() || !boost::filesystem::is_directory(romDir, ec)) {
         std::printf("Mt32Synth: ROM directory '%s' not found\n", romDir.c_str());
-        return false;
+        return nullptr;
     }
     std::vector<boost::filesystem::path> files;
     for (boost::filesystem::directory_iterator it(romDir, ec), end; !ec && it != end; it.increment(ec)) {
@@ -42,6 +39,37 @@ bool Mt32Synth::open(const std::string &romDir, int sampleRate) {
     }
     // Deterministic choice when several machines are present: the last ROM of a type wins.
     std::sort(files.begin(), files.end());
+    auto roms = std::make_shared<Mt32Roms>();
+    roms->dir = romDir;
+    for (const auto &file : files) {
+        FILE *f = std::fopen(file.string().c_str(), "rb");
+        if (f == nullptr) {
+            continue;
+        }
+        std::vector<uint8_t> data;
+        uint8_t chunk[65536];
+        size_t n = 0;
+        while ((n = std::fread(chunk, 1, sizeof chunk, f)) > 0) {
+            data.insert(data.end(), chunk, chunk + n);
+        }
+        std::fclose(f);
+        roms->files.push_back(std::move(data));
+    }
+    return roms;
+}
+
+bool Mt32Synth::open(const std::string &romDir, int sampleRate) {
+    std::shared_ptr<const Mt32Roms> files = readRoms(romDir);
+    return files != nullptr && open(files, sampleRate);
+}
+
+bool Mt32Synth::open(std::shared_ptr<const Mt32Roms> romFiles, int sampleRate) {
+    close();
+    std::lock_guard<std::mutex> lk(mtx);
+    if (romFiles == nullptr) {
+        return false;
+    }
+    const std::string &romDir = romFiles->dir;
 
     mt32emu_report_handler_i handler;
     handler.v0 = nullptr;
@@ -52,8 +80,9 @@ bool Mt32Synth::open(const std::string &romDir, int sampleRate) {
     }
     bool control = false;
     bool pcm = false;
-    for (const auto &file : files) {
-        mt32emu_return_code rc = mt32emu_add_rom_file(ctx, file.string().c_str());
+    // the data are not copied: the synth keeps romFiles
+    for (const auto &file : romFiles->files) {
+        mt32emu_return_code rc = mt32emu_add_rom_data(ctx, file.data(), file.size(), nullptr);
         control = control || rc == MT32EMU_RC_ADDED_CONTROL_ROM;
         pcm = pcm || rc == MT32EMU_RC_ADDED_PCM_ROM;
     }
@@ -97,6 +126,7 @@ bool Mt32Synth::open(const std::string &romDir, int sampleRate) {
     mt32emu_play_sysex_now(ctx, kMt32Partials, sizeof kMt32Partials);
     mt32emu_play_sysex_now(ctx, kMt32Reverb, sizeof kMt32Reverb);
     this->context = ctx;
+    this->roms = romFiles;
     const char *wavPath = std::getenv("NEOSC_MT32_WAV");
     if (wavPath != nullptr && *wavPath != 0) {
         wav = std::fopen(wavPath, "wb");
@@ -145,6 +175,7 @@ void Mt32Synth::close() {
         mt32emu_free_context(this->context);
         this->context = nullptr;
     }
+    this->roms.reset();
 }
 
 void Mt32Synth::send(int status, int d1, int d2) {

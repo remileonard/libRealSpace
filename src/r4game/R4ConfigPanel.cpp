@@ -3,6 +3,9 @@
 //  libRealSpace
 //
 #include "R4ConfigPanel.h"
+#ifdef R4GAME_AUDIO
+#include "R4Mixer.h"
+#endif
 #include "R4Renderer.h"
 #include "R4Screen.h"
 
@@ -123,6 +126,10 @@ const std::vector<Group> &groups() {
         {"Sound",
          {
              {"Sound", "midi_music", "Music", Kind::CHOICE, When::RESTART, 0, 0, 0, {"0", "1", "2", "3"}, {"AdLib", "General MIDI", "MT-32", "MT-32 Emulation"}},
+             {"Sound", "music_volume", "Music Volume", Kind::INT, When::NOW, 0, 100, 100, {}, {}},
+             {"Sound", "sfx_volume", "Effects Volume", Kind::INT, When::NOW, 0, 100, 100, {}, {}},
+             {"Sound", "sfx_synth", "Effects Synthesizer", Kind::CHOICE, When::RESTART, 0, 0, 0, {"auto", "opl", "mt32"}, {"Same as the Music", "AdLib (OPL)", "MT-32 Emulation"}},
+             {"Sound", "hrtf", "HRTF (Headphones)", Kind::BOOL, When::RESTART, 0, 1, 0, {}, {}},
              {"Sound", "engine_volume", "Engine Volume", Kind::INT, When::RESTART, 0, 128, 100, {}, {}},
              {"Sound", "soundfont", "SoundFont (General MIDI)", Kind::TEXT, When::RESTART, 0, 0, 0, {}, {}},
              {"Sound", "mt32_rom_dir", "MT-32 ROM Folder", Kind::TEXT, When::RESTART, 0, 0, 0, {}, {}},
@@ -354,6 +361,11 @@ void applyNow() {
     if (R4Screen *screen = R4Screen::current()) {
         screen->initPostProcess();
     }
+#ifdef R4GAME_AUDIO
+    if (R4Mixer *mixer = R4Mixer::current()) {
+        mixer->loadVolumes();
+    }
+#endif
 }
 
 } // namespace

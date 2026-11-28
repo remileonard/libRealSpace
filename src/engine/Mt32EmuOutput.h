@@ -101,6 +101,8 @@ class Mt32EmuDevice : public MusicDevice {
 public:
     explicit Mt32EmuDevice(bool debug) : debugLog(debug) { timbres.synth = &synth; }
     bool open(const std::string &romDir, int sampleRate) { return synth.open(romDir, sampleRate); }
+    // from ROMs already read (Mt32Synth::readRoms)
+    bool open(std::shared_ptr<const Mt32Roms> roms, int sampleRate) { return synth.open(std::move(roms), sampleRate); }
     void send(int status, int d1, int d2) override {
         if (debugLog && (status & 0xF0) == 0xC0) {
             std::printf("MT-32 emu ch%d program %d\n", (status & 0x0F) + 1, d1);

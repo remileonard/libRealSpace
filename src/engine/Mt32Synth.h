@@ -10,11 +10,18 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 
 struct mt32emu_data;
+
+// The files of a ROM folder in memory, read once: several synths can start from them without reading the disk again
+struct Mt32Roms {
+    std::string dir;
+    std::vector<std::vector<uint8_t>> files;
+};
 
 class Mt32Synth {
 public:
@@ -22,6 +29,10 @@ public:
 
     // Loads every ROM image found in romDir and starts the synth at sampleRate.
     bool open(const std::string &romDir, int sampleRate);
+    // The same from ROMs already read (readRoms); the synth keeps them while it is open
+    bool open(std::shared_ptr<const Mt32Roms> roms, int sampleRate);
+    // the files of romDir, null when the folder is not there
+    static std::shared_ptr<const Mt32Roms> readRoms(const std::string &romDir);
     void close();
     bool active() const { return context != nullptr; }
 
@@ -34,6 +45,7 @@ public:
 private:
     std::mutex mtx;
     mt32emu_data *context{nullptr};
+    std::shared_ptr<const Mt32Roms> roms;
     std::vector<int16_t> buffer;
     // NEOSC_MT32_WAV=file: writes the synth output alone (without sound effects) as 16 bit stereo WAV, a debug aid
     FILE *wav{nullptr};
