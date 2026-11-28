@@ -27,7 +27,12 @@ protected:
     std::vector<HudLine> horizon;
     RSFont *font;
     RSFont *big_font;
-    int radio_mission_timer{0};
+    // durée d'affichage restante du message radio, en secondes (400 images à 60 images/s)
+    float radio_mission_timer{0.0f};
+    // clignotement de l'alarme missile, image de l'animation en surimpression, pas de la secousse du cockpit touché
+    float warning_flash_time{0.0f};
+    float overlay_time{0.0f};
+    float hit_step_time{0.0f};
     std::unordered_map<uint32_t, uint8_t> palette_lut;
     std::unordered_map<std::string, std::string> hud_text_tags;
     bool palette_lut_dirty = true;

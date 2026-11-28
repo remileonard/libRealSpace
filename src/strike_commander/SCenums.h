@@ -35,6 +35,8 @@ static std::unordered_map<Hud_weapon_mode, std::string> hud_weapon_mode_names = 
 // Une image de Strike Commander : le jeu est limité à 25 images par seconde. Les règles de l'original comptées en images
 // (un coup de canon par image, une mise à jour toutes les N images) se portent en secondes avec cette durée.
 constexpr float ORIGINAL_FRAME_SECONDS = 1.0f / 25.0f;
+// Une image de libRealSpace pour les animations réglées à 60 images par seconde (explosions, cockpit, fumée d'un avion abattu).
+constexpr float TUNED_FRAME_SECONDS = 1.0f / 60.0f;
 
 enum weapon_ids {
     ID_AIM9M = 1,

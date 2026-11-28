@@ -1517,28 +1517,34 @@ void SCCockpit::Render(CockpitFace face) {
         if (!this->hit_animation_playing) {
             fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
         } else if (this->nbframes > 0) {
-            nbframes--;
+            // la secousse avance d'un pas toutes les 1/60 s (20 pas)
+            this->hit_step_time += GameTimer::getInstance().getDeltaTime();
+            while (this->hit_step_time >= TUNED_FRAME_SECONDS && this->nbframes > 0) {
+                this->hit_step_time -= TUNED_FRAME_SECONDS;
+                nbframes--;
+                cpt_y+=spd_y;
+                cpt_x+=spd_x;
+                if (cpt_x > 4) {
+                    spd_x = -spd_x;
+                }
+                if (cpt_x < -4) {
+                    spd_x = -spd_x;
+                }
+                if (cpt_y > 4) {
+                    spd_y = -spd_y;
+                }
+                if (cpt_y < -4) {
+                    spd_y = -spd_y;
+                }
+            }
             FrameBuffer *hit_fb = new FrameBuffer(320,200);
             hit_fb->clear();
             hit_fb->drawShape(this->cockpit->ARTP.GetShape(this->face));
-            cpt_y+=spd_y;
-            cpt_x+=spd_x;
             fb->blit(hit_fb->framebuffer, cpt_x, cpt_y, hit_fb->width, hit_fb->height);
             delete hit_fb;
-            if (cpt_x > 4) {
-                spd_x = -spd_x;
-            }
-            if (cpt_x < -4) {
-                spd_x = -spd_x;
-            }
-            if (cpt_y > 4) {
-                spd_y = -spd_y;
-            }
-            if (cpt_y < -4) {
-                spd_y = -spd_y;
-            }   
             if (nbframes == 0) {
                 this->hit_animation_playing = false;
+                this->hit_step_time = 0.0f;
             }
         }
         
@@ -1991,9 +1997,9 @@ void SCCockpit::RenderMasterWarning(Point2D master_warning_pos, FrameBuffer *fb)
     fb->drawShape(shape);
     if (this->current_mission->player->weapon_shooted_at_me != nullptr) {
         if (this->current_mission->player->weapon_shooted_at_me->target == this->current_mission->player) {
-            static int flash_timer = 0;
-            flash_timer++;
-            if (flash_timer % 20 < 10) {
+            // allumée 1/6 s, éteinte 1/6 s (10 images sur 20 à 60 images/s)
+            this->warning_flash_time = fmodf(this->warning_flash_time + GameTimer::getInstance().getDeltaTime(), 20.0f * TUNED_FRAME_SECONDS);
+            if (this->warning_flash_time < 10.0f * TUNED_FRAME_SECONDS) {
                 RSEntity *weapon_entity = this->current_mission->player->weapon_shooted_at_me->obj;
                 int warning_type = 0;
                 if (weapon_entity != nullptr && weapon_entity->wdat != nullptr) {
@@ -2024,12 +2030,12 @@ bool SCCockpit::RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb) {
     }
     if (this->current_mission->radio_messages.size() > 0) {
         hasMessage = true;
-        if (this->radio_mission_timer == 0) {
+        if (this->radio_mission_timer == 0.0f) {
             if (this->current_mission->radio_messages[0]->sound != nullptr) {
                 Mixer.playSoundVoc(this->current_mission->radio_messages[0]->sound->data,
                                    this->current_mission->radio_messages[0]->sound->size);
             }
-            this->radio_mission_timer = 400;
+            this->radio_mission_timer = 400.0f * TUNED_FRAME_SECONDS;
         }
 
         RLEShape *background_message = this->cockpit->PLAQ.shapes.GetShape(2);
@@ -2041,12 +2047,12 @@ bool SCCockpit::RenderCommMessages(Point2D pmfd_text, FrameBuffer *fb) {
         std::string radio_message = this->current_mission->radio_messages[0]->message;
         std::transform(radio_message.begin(), radio_message.end(), radio_message.begin(), ::toupper);
         fb->printText(fnt, &radio_text, (char *)radio_message.c_str(), 0, 0, (uint32_t)radio_message.size(), 1, 2);
-        if (this->radio_mission_timer > 0) {
-            this->radio_mission_timer--;
+        if (this->radio_mission_timer > 0.0f) {
+            this->radio_mission_timer -= GameTimer::getInstance().getDeltaTime();
         }
-        if (this->radio_mission_timer <= 0) {
+        if (this->radio_mission_timer <= 0.0f) {
             this->current_mission->radio_messages.erase(this->current_mission->radio_messages.begin());
-            this->radio_mission_timer = 0;
+            this->radio_mission_timer = 0.0f;
         }
     }
     return hasMessage;
@@ -2629,14 +2635,15 @@ bool SCCockpit::RenderOverlayAnimation(RSImageSet *overlay_animation) {
     if (overlay_animation == nullptr) {
         return true;
     }
-    static int frame_counter = 0;
-    if (frame_counter == 0) {
+    // une image toutes les 0,2 s (12 images à 60 images/s)
+    if (this->overlay_time <= 0.0f) {
         frame++;
+        this->overlay_time += 12.0f * TUNED_FRAME_SECONDS;
     }
     if (frame >= overlay_animation->GetNumImages()) {
         return true;
     }
-    frame_counter = (frame_counter + 1) % 12; // Avancer d'une frame tous les 3 appels
+    this->overlay_time -= GameTimer::getInstance().getDeltaTime();
     FrameBuffer *fb = VGA.getFrameBuffer();
     RLEShape *anframe = overlay_animation->GetShape(frame);
     Point2D pos = {0,0};
@@ -2831,13 +2838,22 @@ void SCCockpit::updateWarnings() {
     if (!this->player_plane->weaps_load.empty()) {
         station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
     }
-    if (station != nullptr && station->objct->wdat != nullptr && station->objct->wdat->weapon_category == 1 && station->nb_weap > 0) {
+    // munitions de l'arme choisie sur tous les points d'emport (champ +143 du système d'armes), pas du seul point choisi
+    int ammo = 0;
+    if (station != nullptr) {
+        for (auto hardpoint : this->player_plane->weaps_load) {
+            if (hardpoint != nullptr && station->objct->wdat != nullptr && hardpoint->objct->wdat != nullptr && hardpoint->objct->wdat->weapon_id == station->objct->wdat->weapon_id) {
+                ammo += hardpoint->nb_weap;
+            }
+        }
+    }
+    if (station != nullptr && station->objct->wdat != nullptr && station->objct->wdat->weapon_category == 1 && ammo > 0) {
         SCMissionActors *actor = this->targetActor();
         bool locked = actor != nullptr && this->player_plane->seekerLocks(station->objct, actor);
         tone = locked ? SoundEffectIds::SEEKER_LOCK : SoundEffectIds::SEEKER_SEARCH;
     }
     if (tone != this->seeker_tone) {
-        printf("COCKPIT: tonalite du missile %d -> %d\n", this->seeker_tone, tone);
+        printf("COCKPIT: tonalite du missile %d -> %d (munitions %d)\n", this->seeker_tone, tone, ammo);
         if (this->seeker_tone != -1) {
             this->current_mission->stopEffect((SoundEffectIds)this->seeker_tone, this);
         }

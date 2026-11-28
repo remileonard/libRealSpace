@@ -6,7 +6,8 @@ private:
     SCRenderer &Renderer = SCRenderer::getInstance();
 public:
     RSEntity *obj{nullptr};
-    int fps{0};
+    // temps passé sur l'image courante ; une image toutes les 7 images à 60 images/s
+    float image_time{0.0f};
     int current_frame{0};
     Vector3D position{0, 0, 0};
     bool is_finished{false};

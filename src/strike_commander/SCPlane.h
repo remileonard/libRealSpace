@@ -129,7 +129,11 @@ protected:
     
     SCSmokeSet *smoke_set{nullptr};
     bool smoke_falling{ false };
+    // traînée de l'avion endommagé (80 % du seuil de perte du JINF), temps cumulé de la fumée de l'épave au sol
+    bool smoke_damaged{ false };
+    float crash_smoke_time{ 0.0f };
     void updateSmoke();
+    void emitSmokeTrail(float dt);
 
     Vector3D thrust_vector {0.0f, 0.0f, 0.0f};
     Vector3D lift_vector {0.0f, 0.0f, 0.0f};
@@ -338,6 +342,7 @@ public:
     virtual int isOnRunWay();
     void SetThrottle(int throttle);
     int GetThrottle();
+    int damagePercent();
     void playMissileLaunch(int weapon_id);
     void SetFlaps();
     void SetSpoilers();

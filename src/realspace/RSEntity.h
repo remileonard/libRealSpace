@@ -293,6 +293,7 @@ public:
     uint8_t combat_class{2};           // chunk JINF, modele +0x52 (9 et plus : chasseur)
     RSObjectSmoke smoke;               // chunk SMOK (MISS, JETP)
     uint8_t fall_smoke{ 6 };           // chunk JINF, octet 11 : fumée de la chute d'un avion abattu
+    uint16_t damage_loss_percent{ 30 }; // chunk JINF, champ 9 (octets 12 et 13) : dégâts (%) au-delà desquels l'avion est perdu
     bool has_smoke_generator{ false }; // classe SMKG
     RSSmokeGeneratorInfo smoke_generator; // chunk INFO de SMKG
     uint8_t bomb_guided{0};            // chunk DATA des BOMB, modele +0x5E

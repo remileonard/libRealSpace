@@ -1,10 +1,11 @@
 #include "precomp.h"
+#include "../engine/gametimer.h"
 
 void SCExplosion::render() {
     if (is_finished) return;
-    this->fps++;
-    if (this->fps > 6) {
-        this->fps = 0;
+    this->image_time += GameTimer::getInstance().getDeltaTime();
+    while (this->image_time >= 7.0f * TUNED_FRAME_SECONDS) {
+        this->image_time -= 7.0f * TUNED_FRAME_SECONDS;
         this->current_frame = this->current_frame + 1;
     }
     if (this->current_frame >= this->obj->animations.size()) {
@@ -18,7 +19,7 @@ void SCExplosion::render() {
     );
 }
 SCExplosion::SCExplosion(RSEntity *obj, Vector3D position)
-    : obj(obj), fps(0), position(position), current_frame(0), is_finished(false) {
+    : obj(obj), image_time(0.0f), position(position), current_frame(0), is_finished(false) {
     if (obj == nullptr) {
         is_finished = true; // If no object is provided, mark as finished
     }

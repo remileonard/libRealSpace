@@ -640,6 +640,13 @@ void RSEntity::parseREAL_OBJT_JETP_JINF(uint8_t *data, size_t size) {
     bs.ReadShort();
     this->combat_class = bs.ReadByte();
     this->fall_smoke = readJinfFallSmoke(data, size);
+    if (size >= 14) {
+        bs.ReadShort();
+        bs.ReadByte();
+        bs.ReadShort();
+        bs.ReadByte();
+        this->damage_loss_percent = bs.ReadUShort();
+    }
 }
 void RSEntity::parseREAL_OBJT_JETP_DAMG(uint8_t *data, size_t size) {
     if (size > 2) {

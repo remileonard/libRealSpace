@@ -1385,13 +1385,64 @@ void SCPlane::Render() {
         }
     }
 }
-// Avion abattu : traînée du modèle de chute (JINF) depuis le point du chunk SMOK (Aircraft_OnDestroyed_9D770). Au sol,
-// l'épave fume sur place et les particules montent de 1 m par tick.
+// DamageSys_DamagePercent_9CB2C : dégâts de l'avion en %, 100 si le pilote (composant PLAYER) est touché à mort, sinon
+// somme des dégâts × 100 / somme des résistances des composants SYSM.
+int SCPlane::damagePercent() {
+    int damage = 0;
+    int resistance = 0;
+    for (auto &system : this->object->entity->sysm) {
+        auto health_system = this->system_health.find(system.first);
+        for (auto &sub_system : system.second) {
+            int left = sub_system.second;
+            if (health_system != this->system_health.end()) {
+                auto health = health_system->second.find(sub_system.first);
+                if (health != health_system->second.end()) {
+                    left = health->second;
+                }
+            }
+            int lost = (int)sub_system.second - left;
+            if (sub_system.first == "PLAYER" && sub_system.second > 0 && lost >= (int)sub_system.second) {
+                return 100;
+            }
+            damage += lost;
+            resistance += (int)sub_system.second;
+        }
+    }
+    if (resistance <= 0) {
+        return 0;
+    }
+    return damage * 100 / resistance;
+}
+
+// Traînée depuis le point du chunk SMOK, entre la position de l'image et celle de l'image précédente.
+void SCPlane::emitSmokeTrail(float dt) {
+    RSEntity *entity = this->object->entity;
+    Vector3D position = {
+        this->x,
+        this->y,
+        this->z
+    };
+    Vector3D orientation = {
+        tenthOfDegreeToRad(this->yaw + 900),
+        tenthOfDegreeToRad(this->pitch),
+        -tenthOfDegreeToRad(this->roll)
+    };
+    Vector3D local = {
+        entity->smoke.x,
+        entity->smoke.y,
+        entity->smoke.z
+    };
+    this->smoke_set->emitTrail(smokeEmissionPoint(position, orientation, local), this->worldVelocity(), dt);
+}
+
+// Avion endommagé : traînée du chunk SMOK dès que les dégâts atteignent 80 % du seuil de perte du JINF (Aircraft_OnCollision_9D910,
+// SmokeTrail_EnableIfModelHasSmok_3D566). Avion abattu : traînée du modèle de chute (JINF) depuis le même point
+// (Aircraft_OnDestroyed_9D770). Au sol, l'épave fume sur place : une particule et 1 m de montée toutes les 1/60 s.
 void SCPlane::updateSmoke() {
     int rate = this->tps > 0 ? this->tps : 25;
     float dt = 1.0f / (float)rate;
+    RSEntity *entity = this->object->entity;
     if (this->object->alive == false) {
-        RSEntity *entity = this->object->entity;
         if (!this->smoke_falling) {
             this->smoke_falling = true;
             this->smoke_set->setModel(entity->fall_smoke);
@@ -1399,30 +1450,37 @@ void SCPlane::updateSmoke() {
                    this->smoke_set->getModel(), entity->fall_smoke, entity->smoke.present ? "présent" : "absent",
                    entity->smoke.x, entity->smoke.y, entity->smoke.z);
         }
-        Vector3D position = {
-            this->x,
-            this->y,
-            this->z
-        };
         if (this->crached) {
+            Vector3D position = {
+                this->x,
+                this->y,
+                this->z
+            };
             Vector3D rise = {
                 0.0f,
-                (float)rate,
+                1.0f / TUNED_FRAME_SECONDS,
                 0.0f
             };
-            this->smoke_set->spawn(position, rise);
+            this->crash_smoke_time += dt;
+            while (this->crash_smoke_time >= TUNED_FRAME_SECONDS) {
+                this->crash_smoke_time -= TUNED_FRAME_SECONDS;
+                this->smoke_set->spawn(position, rise);
+            }
         } else {
-            Vector3D orientation = {
-                tenthOfDegreeToRad(this->yaw + 900),
-                tenthOfDegreeToRad(this->pitch),
-                -tenthOfDegreeToRad(this->roll)
-            };
-            Vector3D local = {
-                entity->smoke.x,
-                entity->smoke.y,
-                entity->smoke.z
-            };
-            this->smoke_set->emitTrail(smokeEmissionPoint(position, orientation, local), this->worldVelocity(), dt);
+            this->emitSmokeTrail(dt);
+        }
+    } else {
+        if (!this->smoke_damaged && entity->smoke.present) {
+            int damage = this->damagePercent();
+            int threshold = (int)entity->damage_loss_percent * 8 / 10;
+            if (damage >= threshold && damage > 0) {
+                this->smoke_damaged = true;
+                this->smoke_set->setModel(entity->smoke.type);
+                printf("[SMOKE] avion endommagé : dégâts %d %% (seuil %d %%, perte %u %%), modèle %d\n", damage, threshold, entity->damage_loss_percent, this->smoke_set->getModel());
+            }
+        }
+        if (this->smoke_damaged) {
+            this->emitSmokeTrail(dt);
         }
     }
     this->smoke_set->update(dt);
