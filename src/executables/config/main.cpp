@@ -81,6 +81,7 @@ int main(int argc, char* argv[]) {
     int midi_music = config.getInt("Sound", "midi_music", 0);
     bool midi_debug = config.getInt("Sound", "midi_debug", 0) != 0;
     bool digital_fx = config.getBool("Sound", "digital_fx", true);
+    bool engine_nearest_only = config.getBool("Sound", "engine_nearest_only", false);
     char soundfont[512];
     snprintf(soundfont, sizeof(soundfont), "%s", config.getString("Sound", "soundfont", "").c_str());
     char mt32_rom_dir[512];
@@ -197,6 +198,7 @@ int main(int argc, char* argv[]) {
                     ImGui::InputText(_labelPrefix("MT-32 ROM Dir").c_str(), mt32_rom_dir, sizeof(mt32_rom_dir));
                     ImGui::Checkbox(_labelPrefix("MIDI Debug").c_str(), &midi_debug);
                     ImGui::Checkbox(_labelPrefix("Digital FX").c_str(), &digital_fx);
+                    ImGui::Checkbox(_labelPrefix("Nearest Engine Only").c_str(), &engine_nearest_only);
                 }
 
                 ImGui::Separator();
@@ -229,6 +231,7 @@ int main(int argc, char* argv[]) {
                     config.setString("Sound", "mt32_rom_dir", mt32_rom_dir);
                     config.setInt ("Sound",  "midi_debug", midi_debug ? 1 : 0);
                     config.setBool("Sound", "digital_fx", digital_fx);
+                    config.setBool("Sound", "engine_nearest_only", engine_nearest_only);
                     config.save(configPath);
                 }
                 ImGui::SameLine();

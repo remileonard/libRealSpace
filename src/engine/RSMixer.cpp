@@ -672,13 +672,82 @@ void RSMixer::playEffectAt(int effect, uint8_t *voc, size_t vocSize, const Vecto
     this->playSoundFxAtDistance(effect, distance);
 }
 
-void RSMixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance) {
+void RSMixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance, bool loop, float gain) {
     (void)position;
-    if (voc != nullptr) {
-        this->playOrUpdateSoundVoc(voc, vocSize, emitter, distance);
+    if (voc == nullptr) {
+        this->playOrUpdateSoundFx(effect, emitter, distance);
         return;
     }
-    this->playOrUpdateSoundFx(effect, emitter, distance);
+    if (shuttingDown) {
+        return;
+    }
+    int volume = distanceVolume(distance);
+    int mix_volume = (int)((float)(volume * MIX_MAX_VOLUME / 100) * gain);
+    for (auto &kv : vocEmitters) {
+        int c = kv.first;
+        if (kv.second == emitter && vocData[c] == voc && Mix_Playing(c) != 0) {
+            if (volume == 0) {
+                Mix_HaltChannel(c);
+            } else {
+                Mix_Volume(c, mix_volume);
+            }
+            return;
+        }
+    }
+    if (volume == 0) {
+        return;
+    }
+    int c = this->playSoundVocOnFreeChannel(voc, vocSize, loop ? -1 : 0);
+    if (c < 0) {
+        return;
+    }
+    Mix_Volume(c, mix_volume);
+    vocEmitters[c] = emitter;
+    vocData[c] = voc;
+}
+
+bool RSMixer::isEffectPlaying(int effect, uint8_t *voc, const void *emitter) {
+    if (shuttingDown) {
+        return false;
+    }
+    if (voc != nullptr) {
+        for (auto &kv : vocEmitters) {
+            if (kv.second == emitter && vocData[kv.first] == voc && Mix_Playing(kv.first) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (!this->music) {
+        return false;
+    }
+    auto set = this->music->soundfx_musics.find(0);
+    if (set == this->music->soundfx_musics.end() || effect < 0 || effect >= (int)set->second.size()) {
+        return false;
+    }
+    MemMusic *fx = set->second[effect];
+    std::lock_guard<std::recursive_mutex> lock(engineMutex);
+    for (int c = 0; c < SFX_CHANNELS; c++) {
+        if (sfxHandle[c] >= 0 && sfxEffect[c] == fx && sfxEmitter[c] == emitter) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void RSMixer::stopSoundVoc(uint8_t *voc, const void *emitter) {
+    if (shuttingDown) {
+        return;
+    }
+    for (auto &kv : vocEmitters) {
+        if (kv.second == emitter && vocData[kv.first] == voc && Mix_Playing(kv.first) != 0) {
+            Mix_HaltChannel(kv.first);
+        }
+    }
+}
+
+bool RSMixer::isSpatial() {
+    return false;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -686,28 +755,32 @@ void RSMixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, con
 // ---------------------------------------------------------------------------------------
 
 void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
+    this->playSoundVocOnFreeChannel(data, vocSize, 0);
+}
+
+int RSMixer::playSoundVocOnFreeChannel(uint8_t *data, size_t vocSize, int loops) {
     if (shuttingDown || !data) {
-        return;
+        return -1;
     }
 
     // Ne pas stocker le pointeur data, faire une copie si nécessaire
     SDL_RWops *rw = SDL_RWFromConstMem(data, static_cast<int>(vocSize));
     if (!rw) {
         printf("Erreur création RWops: %s\n", SDL_GetError());
-        return;
+        return -1;
     }
 
     Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 1); // 1 = SDL_RWops sera automatiquement libéré
     if (!chunk) {
         printf("Erreur chargement VOC: %s\n", Mix_GetError());
-        return;
+        return -1;
     }
 
-    int ch = Mix_PlayChannel(-1, chunk, 0);
+    int ch = Mix_PlayChannel(-1, chunk, loops);
     if (ch == -1) {
         printf("Erreur lecture son: %s\n", Mix_GetError());
         Mix_FreeChunk(chunk);
-        return;
+        return -1;
     }
     Mix_Volume(ch, MIX_MAX_VOLUME);
     vocEmitters.erase(ch);
@@ -720,6 +793,7 @@ void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize) {
     }
 
     channel = ch;
+    return ch;
 }
 
 void RSMixer::playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop) {

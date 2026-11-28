@@ -177,6 +177,7 @@ void SCJdynPlane::Simulate() {
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
     this->updateSmoke();
+    this->updateEngineSound();
     this->tick_counter++;
     this->azimuthf = this->yaw;
     this->elevationf = this->pitch;

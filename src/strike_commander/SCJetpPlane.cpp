@@ -651,6 +651,9 @@ void SCJetpPlane::checkStatus() {
         if (this->isOnRunWay()) {
             if (!this->on_ground) {
                 int rating = report_card(-this->climbspeed, this->roll, (int)this->vx, (int)(-this->vz * 1.944f), this->wheels);
+                if (rating != -1) {
+                    this->playTouchDown();
+                }
                 if (this->nocrash) {
                     if (rating == -1) {
                         this->status = MEXPLODE;
@@ -808,6 +811,7 @@ void SCJetpPlane::Simulate() {
     this->object->entity->position.z = this->z;
 
     this->updateSmoke();
+    this->updateEngineSound();
     this->tick_counter++;
     this->azimuthf = this->yaw;
     this->elevationf = this->pitch;

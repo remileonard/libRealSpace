@@ -203,10 +203,13 @@ void SCFlightOptions::init() {
     this->addButton(SCREEN_AUDIO, 129, 101, 59, 11, AUDIO_EXIT_UP, AUDIO_EXIT_DOWN, back);
 
     // EXIT GAME (RESTART.SHP) : élément vertical en mode 0.
-    this->addButton(SCREEN_EXIT_GAME, 54, 80, 66, 11, EXIT_GAME_RESTART_UP, EXIT_GAME_RESTART_DOWN, none);
-    this->addButton(SCREEN_EXIT_GAME, 126, 80, 66, 11, EXIT_GAME_ABORT_UP, EXIT_GAME_ABORT_DOWN, none);
-    this->addButton(SCREEN_EXIT_GAME, 198, 80, 69, 11, EXIT_GAME_CONTINUE_UP, EXIT_GAME_CONTINUE_DOWN, back);
-    this->addButton(SCREEN_EXIT_GAME, 290, 55, 11, 29, EXIT_GAME_VERTICAL_UP, EXIT_GAME_VERTICAL_DOWN, none);
+    this->addButton(SCREEN_EXIT_GAME, 54, 80, 66, 11, EXIT_GAME_RESTART_UP, EXIT_GAME_RESTART_DOWN,
+                    std::bind(&SCFlightOptions::onExitRestart, this));
+    this->addButton(SCREEN_EXIT_GAME, 126, 80, 66, 11, EXIT_GAME_ABORT_UP, EXIT_GAME_ABORT_DOWN,
+                    std::bind(&SCFlightOptions::onExitAbort, this));
+    this->addButton(SCREEN_EXIT_GAME, 198, 80, 69, 11, EXIT_GAME_CONTINUE_UP, EXIT_GAME_CONTINUE_DOWN,
+                    std::bind(&SCFlightOptions::onExitContinue, this));
+    this->exit_vertical_button = this->addButton(SCREEN_EXIT_GAME, 290, 55, 11, 29, EXIT_GAME_VERTICAL_UP, EXIT_GAME_VERTICAL_DOWN, none);
 }
 
 void SCFlightOptions::open() {
@@ -215,7 +218,66 @@ void SCFlightOptions::open() {
     this->screen_pending = false;
     this->close_pending = false;
     this->is_open = true;
+    this->exit_choice = EXIT_CHOICE_NONE;
+    this->opened_on_exit_game = false;
+    this->exit_mode = EXIT_MODE_CONFIGURATION;
+    this->setExitVerticalImages(EXIT_GAME_VERTICAL_UP, EXIT_GAME_VERTICAL_DOWN);
     printf("OPTIONS: panneau ouvert\n");
+}
+
+// Options_ExitGameScreen_9277C appelé hors du panneau de configuration (mode non nul) : pas de bandeau CONFIGURATION, et
+// l'élément vertical prend l'image 10, sans « EXIT ».
+void SCFlightOptions::openExitGame(ExitMode mode) {
+    this->open();
+    this->current = SCREEN_EXIT_GAME;
+    this->opened_on_exit_game = true;
+    this->exit_mode = mode;
+    this->setExitVerticalImages(EXIT_GAME_VERTICAL_PLAIN, EXIT_GAME_VERTICAL_PLAIN);
+    printf("OPTIONS: écran EXIT GAME, mode %d\n", (int)mode);
+}
+
+void SCFlightOptions::setExitVerticalImages(int up, int down) {
+    OptionsScreen &target = this->screens[SCREEN_EXIT_GAME];
+    if (this->exit_vertical_button == nullptr || !target.loaded) {
+        return;
+    }
+    PakEntry *up_entry = target.pack.GetEntry(up);
+    PakEntry *down_entry = target.pack.GetEntry(down);
+    if (up_entry == nullptr || down_entry == nullptr) {
+        return;
+    }
+    Point2D position = this->exit_vertical_button->position;
+    this->exit_vertical_button->appearance[SCButton::APR_UP].InitWithPosition(up_entry->data, up_entry->size, &position);
+    this->exit_vertical_button->appearance[SCButton::APR_DOWN].InitWithPosition(down_entry->data, down_entry->size, &position);
+}
+
+// RESTART : la mission recommence (code 6 de l'original).
+void SCFlightOptions::onExitRestart() {
+    this->exit_choice = EXIT_CHOICE_RESTART;
+    printf("OPTIONS: EXIT GAME, RESTART\n");
+    this->requestClose();
+}
+
+// ABORT : la mission se termine (code 4 de l'original).
+void SCFlightOptions::onExitAbort() {
+    this->exit_choice = EXIT_CHOICE_ABORT;
+    printf("OPTIONS: EXIT GAME, ABORT\n");
+    this->requestClose();
+}
+
+// CONTINUE : le vol reprend ; ouvert par Échap, le panneau se ferme, sinon retour à l'écran principal.
+void SCFlightOptions::onExitContinue() {
+    // code 1 seulement avec les modes 0 et 3 : après une éjection ou un crash, CONTINUE n'agit pas
+    if (this->exit_mode == EXIT_MODE_EJECTED || this->exit_mode == EXIT_MODE_DIED) {
+        printf("OPTIONS: EXIT GAME, CONTINUE sans effet (mode %d)\n", (int)this->exit_mode);
+        return;
+    }
+    printf("OPTIONS: EXIT GAME, CONTINUE\n");
+    if (this->opened_on_exit_game) {
+        this->requestClose();
+        return;
+    }
+    this->goTo(SCREEN_MAIN);
 }
 
 void SCFlightOptions::checkButtons() {
@@ -227,7 +289,9 @@ void SCFlightOptions::draw(FrameBuffer *frameBuffer) {
     if (!target.loaded) {
         return;
     }
-    frameBuffer->drawShape(&target.title);
+    if (!this->opened_on_exit_game) {
+        frameBuffer->drawShape(&target.title);
+    }
     target.panel.draw(frameBuffer);
     if (this->current == SCREEN_DETAIL) {
         this->drawDetailPreview(frameBuffer);

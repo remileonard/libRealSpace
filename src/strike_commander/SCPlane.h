@@ -134,6 +134,14 @@ protected:
     float crash_smoke_time{ 0.0f };
     void updateSmoke();
     void emitSmokeTrail(float dt);
+    // son du moteur en cours (rang de DSOUNDFX.PAK, -1 = aucun), cran de l'image précédente, temps écoulé depuis le début du son
+    int engine_sound{ -1 };
+    int engine_previous_notch{ 0 };
+    float engine_sound_time{ 0.0f };
+    void updateEngineSound();
+    void playTouchDown();
+    // au sol en mode cinématique à l'image précédente : -1 inconnu, 0 en l'air, 1 au sol
+    int kinematic_ground{ -1 };
 
     Vector3D thrust_vector {0.0f, 0.0f, 0.0f};
     Vector3D lift_vector {0.0f, 0.0f, 0.0f};

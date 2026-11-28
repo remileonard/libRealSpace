@@ -6,6 +6,7 @@
 //  Copyright (c) 2014 Fabien Sanglard. All rights reserved.
 //
 #include "precomp.h"
+#include "../engine/gametimer.h"
 #include "SCWeaponPredictor.h"
 #include <map>
 #include "SCPlane.h"
@@ -758,6 +759,7 @@ void SCPlane::Simulate() {
     this->object->entity->position.y = this->y;
     this->object->entity->position.z = this->z;
     this->updateSmoke();
+    this->updateEngineSound();
     this->tick_counter++;
     this->azimuthf = this->yaw;
     this->elevationf = this->pitch;
@@ -1028,6 +1030,9 @@ void SCPlane::checkStatus() {
                 this->min_throttle = -this->max_throttle;
                 rating = report_card(-this->climbspeed, this->roll, (int)(this->vx * this->tps),
                                         (int)(-this->vz * this->fps_knots), this->wheels);
+                if (rating != -1) {
+                    this->playTouchDown();
+                }
                 /* oops - you crashed	*/
                 if (this->nocrash) {
                     if (rating == -1) {
@@ -1485,6 +1490,130 @@ void SCPlane::updateSmoke() {
     }
     this->smoke_set->update(dt);
 }
+// Son du moteur de l'avion, tenu par l'avion à sa position : le mixer le place dans l'espace (version CD-ROM,
+// DigitalSFX_EngineTick_58BB4, SOUND_EFFECTS.md § 2.4). Cran 0 = coupé, 1 à 5 = MIL, 6 et plus = postcombustion ; transitions
+// arrêtées après 2,5 s, puis son en boucle. Quand un seul moteur est suivi (SCMission::engine_plane), les autres se taisent.
+void SCPlane::updateEngineSound() {
+    if (this->pilot == nullptr || this->pilot->mission == nullptr) {
+        return;
+    }
+    SCMission *mission = this->pilot->mission;
+    if (!this->pilot->is_active && this->pilot != mission->player) {
+        return;
+    }
+    int throttle = this->GetThrottle();
+    int notch = 0;
+    if (throttle > 0) {
+        notch = (std::max)(1, throttle / 10);
+    }
+    bool afb = notch >= 6;
+    bool heard = this->object != nullptr && this->object->alive && (!mission->engine_nearest_only || mission->engine_plane == this);
+    if (!heard) {
+        if (this->engine_sound != -1) {
+            printf("ENGINE %s: muet (%s)\n", this->pilot->actor_name.c_str(), this->object != nullptr && this->object->alive ? "pas le plus proche" : "detruit");
+            if (this->engine_sound != SoundEffectIds::ENGINE_OFF) {
+                mission->stopEffect((SoundEffectIds)this->engine_sound, this);
+            }
+            this->engine_sound = -1;
+        }
+        this->engine_previous_notch = notch;
+        return;
+    }
+    if (this->engine_sound != -1 && this->engine_sound != SoundEffectIds::ENGINE_OFF && !mission->isEffectPlaying((SoundEffectIds)this->engine_sound, this)) {
+        printf("ENGINE %s: son %d termine\n", this->pilot->actor_name.c_str(), this->engine_sound);
+        this->engine_sound = -1;
+    }
+    bool transition = this->engine_sound == SoundEffectIds::ENGINE_START_MIL || this->engine_sound == SoundEffectIds::ENGINE_START_AFB || this->engine_sound == SoundEffectIds::ENGINE_MIL_SHUT_DOWN || this->engine_sound == SoundEffectIds::ENGINE_AFB_TO_MIL;
+    if (transition) {
+        this->engine_sound_time += GameTimer::getInstance().getDeltaTime();
+        if (this->engine_sound_time > 2.5f) {
+            printf("ENGINE %s: transition %d arretee apres 2,5 s\n", this->pilot->actor_name.c_str(), this->engine_sound);
+            mission->stopEffect((SoundEffectIds)this->engine_sound, this);
+            this->engine_sound = -1;
+        }
+    }
+    int next = this->engine_sound;
+    const char *reason = "continue";
+    switch (this->engine_sound) {
+    case -1:
+    case SoundEffectIds::ENGINE_OFF:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_OFF;
+            reason = "cran 0";
+        } else if (this->engine_previous_notch == 0) {
+            next = afb ? SoundEffectIds::ENGINE_START_AFB : SoundEffectIds::ENGINE_START_MIL;
+            reason = "demarrage";
+        } else {
+            next = afb ? SoundEffectIds::ENGINE_AFB : SoundEffectIds::ENGINE_MIL;
+            reason = "boucle";
+        }
+        break;
+    case SoundEffectIds::ENGINE_MIL:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_SHUT_DOWN;
+            reason = "arret depuis MIL";
+        } else if (afb) {
+            next = SoundEffectIds::ENGINE_MIL_SHUT_DOWN;
+            reason = "MIL vers postcombustion";
+        }
+        break;
+    case SoundEffectIds::ENGINE_AFB:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_AFB_SHUT_DOWN;
+            reason = "arret depuis la postcombustion";
+        } else if (!afb) {
+            next = SoundEffectIds::ENGINE_AFB_TO_MIL;
+            reason = "postcombustion vers MIL";
+        }
+        break;
+    case SoundEffectIds::ENGINE_START_MIL:
+    case SoundEffectIds::ENGINE_AFB_TO_MIL:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_SHUT_DOWN;
+            reason = "arret depuis MIL";
+        } else if (afb) {
+            next = SoundEffectIds::ENGINE_MIL_SHUT_DOWN;
+            reason = "MIL vers postcombustion";
+        }
+        break;
+    case SoundEffectIds::ENGINE_START_AFB:
+    case SoundEffectIds::ENGINE_MIL_SHUT_DOWN:
+        if (notch == 0) {
+            next = SoundEffectIds::ENGINE_AFB_SHUT_DOWN;
+            reason = "arret depuis la postcombustion";
+        } else if (!afb) {
+            next = SoundEffectIds::ENGINE_AFB_TO_MIL;
+            reason = "postcombustion vers MIL";
+        }
+        break;
+    default:
+        break;
+    }
+    this->engine_previous_notch = notch;
+    if (next != this->engine_sound) {
+        printf("ENGINE %s: manette %d, cran %d, son %d -> %d (%s)\n", this->pilot->actor_name.c_str(), throttle, notch, this->engine_sound, next, reason);
+        if (this->engine_sound != -1 && this->engine_sound != SoundEffectIds::ENGINE_OFF) {
+            mission->stopEffect((SoundEffectIds)this->engine_sound, this);
+        }
+        this->engine_sound = next;
+        this->engine_sound_time = 0.0f;
+    }
+    if (this->engine_sound == -1 || this->engine_sound == SoundEffectIds::ENGINE_OFF) {
+        return;
+    }
+    bool loop = this->engine_sound == SoundEffectIds::ENGINE_MIL || this->engine_sound == SoundEffectIds::ENGINE_AFB;
+    mission->playOrUpdateEffect((SoundEffectIds)this->engine_sound, this, this->position, loop, mission->engine_gain);
+}
+
+// Toucher des roues sur la piste, contact accepté (Aircraft_OnCollision_9D910, effet 12), à la position de l'avion : joueur et IA.
+void SCPlane::playTouchDown() {
+    if (this->pilot == nullptr || this->pilot->mission == nullptr) {
+        return;
+    }
+    printf("SOUND: toucher des roues de %s\n", this->pilot->actor_name.c_str());
+    this->pilot->mission->playEffect(SoundEffectIds::TOUCH_DOWN, this->position);
+}
+
 void SCPlane::RenderSmoke() {
     this->smoke_set->render(Renderer.camera.getPosition());
 }
@@ -2132,6 +2261,12 @@ void SCPlane::simulateKinematic(float dt) {
     this->ptw.rotateM(tenthOfDegreeToRad(this->roll), 0, 0, 1);
     this->forward = Vector3D(-this->ptw.v[2][0], -this->ptw.v[2][1], -this->ptw.v[2][2]);
     this->groundlevel = this->area->getY(this->x, this->z) + this->ground_clearance;
+    // toucher des roues en mode cinématique : l'avion passe au niveau du sol sur une piste (la première image ne fait que relever l'état)
+    int touching = this->y <= this->groundlevel + 0.5f ? 1 : 0;
+    if (this->kinematic_ground == 0 && touching == 1 && this->isOnRunWay()) {
+        this->playTouchDown();
+    }
+    this->kinematic_ground = touching;
     this->syncKinematicVelocity(dt);
 }
 

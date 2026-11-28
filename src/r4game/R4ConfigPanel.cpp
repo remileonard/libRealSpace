@@ -130,6 +130,7 @@ const std::vector<Group> &groups() {
              {"Sound", "sfx_volume", "Effects Volume", Kind::INT, When::NOW, 0, 100, 100, {}, {}},
              {"Sound", "sfx_synth", "Effects Synthesizer", Kind::CHOICE, When::RESTART, 0, 0, 0, {"auto", "opl", "mt32"}, {"Same as the Music", "AdLib (OPL)", "MT-32 Emulation"}},
              {"Sound", "digital_fx", "Digitized Effects First", Kind::BOOL, When::MISSION, 0, 1, 1, {}, {}},
+             {"Sound", "engine_nearest_only", "Nearest Engine Only", Kind::BOOL, When::MISSION, 0, 1, 0, {}, {}},
              {"Sound", "hrtf", "HRTF (Headphones)", Kind::BOOL, When::RESTART, 0, 1, 0, {}, {}},
              {"Sound", "engine_volume", "Engine Volume", Kind::INT, When::RESTART, 0, 128, 100, {}, {}},
              {"Sound", "soundfont", "SoundFont (General MIDI)", Kind::TEXT, When::RESTART, 0, 0, 0, {}, {}},

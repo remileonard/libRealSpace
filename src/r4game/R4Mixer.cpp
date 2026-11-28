@@ -333,15 +333,16 @@ void R4Mixer::playEffectAt(int effect, uint8_t *voc, size_t vocSize, const Vecto
     oneShots_.push_back(src);
 }
 
-void R4Mixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance) {
+void R4Mixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance, bool loop, float gain) {
     if (!context_) {
-        RSMixer::playOrUpdateEffectAt(effect, voc, vocSize, emitter, position, distance);
+        RSMixer::playOrUpdateEffectAt(effect, voc, vocSize, emitter, position, distance, loop, gain);
         return;
     }
     auto key = std::make_pair(emitter, effect);
     auto it = emitters_.find(key);
     if (it != emitters_.end()) {
         it->second->position = vec(position);
+        it->second->gain = gain;
         if (!it->second->isPlaying()) {
             it->second->play();
         }
@@ -352,12 +353,31 @@ void R4Mixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, con
         return;
     }
     auto src = spatial(sound, position);
-    // a held sound (the gun): its introduction one time, then its loop until stopSoundFx
-    src->loop = voc == nullptr && effect >= 0 && effect < (int)effectPcm_.size() && effectPcm_[(size_t)effect].loops;
+    // a held sound (the gun, an engine): its introduction one time, then its loop until stopSoundFx
+    src->loop = loop || (voc == nullptr && effect >= 0 && effect < (int)effectPcm_.size() && effectPcm_[(size_t)effect].loops);
+    src->gain = gain;
     src->play();
     emitters_[key] = src;
     emitterLast_[key] = src->position;
-    std::printf("R4Mixer: held effect %d of %p, loop %d (%zu to %zu), distance %.0f\n", effect, emitter, src->loop ? 1 : 0, sound->loopStart(), sound->loopEnd(), distance);
+    std::printf("R4Mixer: held effect %d of %p, loop %d (%zu to %zu), gain %.2f, distance %.0f\n", effect, emitter, src->loop ? 1 : 0, sound->loopStart(), sound->loopEnd(), gain, distance);
+}
+
+bool R4Mixer::isEffectPlaying(int effect, uint8_t *voc, const void *emitter) {
+    if (!context_) {
+        return RSMixer::isEffectPlaying(effect, voc, emitter);
+    }
+    auto it = emitters_.find(std::make_pair(emitter, effect));
+    return it != emitters_.end() && it->second->isPlaying();
+}
+
+void R4Mixer::stopSoundVoc(uint8_t *voc, const void *emitter) {
+    if (!context_) {
+        RSMixer::stopSoundVoc(voc, emitter);
+    }
+}
+
+bool R4Mixer::isSpatial() {
+    return context_ != nullptr;
 }
 
 void R4Mixer::stopSoundFx(int effect, const void *emitter) {

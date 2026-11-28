@@ -50,11 +50,6 @@ protected:
     /** Volume (0..128) that runFrame() gives the engine sound channel (5) at the start of every frame; derived activities may raise it. */
     int engine_channel_volume{5};
 
-    /** Son du moteur en cours sur le canal 5 (rang de DSOUNDFX.PAK, -1 = aucun), cran de l'image précédente, images écoulées depuis le début du son. */
-    int engine_sound{-1};
-    int engine_previous_notch{0};
-    int engine_sound_frames{0};
-    void updateEngineSound();
     void stopAllSounds(const char *reason);
 
     /**
@@ -171,7 +166,14 @@ protected:
      * @brief Whether to use autopilot
      */
     bool autopilot{false};
-    int autopilot_timeout{0};
+    // recul de la caméra de la scène du pilote automatique, en mètres (de 400 à -1000)
+    float autopilot_timeout{0.0f};
+    // caméras du crash (éloignement, déplacement latéral) et de l'éjection (décalages vertical et arrière), en mètres ; remises à
+    // leur départ à l'entrée dans la séquence
+    float crash_cam_distance{20.0f};
+    float crash_cam_travel{0.1f};
+    float eject_cam_y_offset{15.0f};
+    float eject_cam_z_offset{-20.0f};
     float autopilot_target_azimuth{0};
     /**
      * @brief The pilot AI
@@ -269,6 +271,11 @@ protected:
     void sendCommRadioMessage(int message);
 
     virtual void keyEndMission();
+    void endMission();
+    void restartMission();
+    // temps écoulé dans la dernière phase d'un crash ou d'une éjection, -1 : pas d'écran EXIT GAME à ouvrir
+    float end_panel_time{-1.0f};
+    void updateEndPanel(SCFlightOptions::ExitMode mode);
     virtual void keyRudderLeft();
     virtual void keyRudderRight();
     virtual void keyThrottleUp();

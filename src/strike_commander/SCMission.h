@@ -93,7 +93,17 @@ public:
     bool aa_missile_launched_last{false};          
     float ai_clock_stagger{0.0f};                  
     void onWeaponSpawned(SCSimulatedObject *weapon);
-    void playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position);
+    void playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position, bool loop = false, float gain = 1.0f);
+    bool isEffectPlaying(SoundEffectIds id, const void *emitter);
+    int vocKey(SoundEffectIds id);
+    bool digitalChosen(SoundEffectIds id);
+    // Gain des moteurs ([Sound] engine_volume, 0 à 128) ; avion dont on entend le moteur quand un seul est suivi (le plus proche
+    // de la caméra) : sans placement dans l'espace (SDL_mixer) ou avec [Sound] engine_nearest_only.
+    float engine_gain{1.0f};
+    bool engine_nearest_only{false};
+    SCPlane *engine_plane{nullptr};
+    void updateEnginePlane();
+    void loadEngineSettings();
     void playEffect(SoundEffectIds id, Vector3D position);
     void playEffect(SoundEffectIds id);
     void stopEffect(SoundEffectIds id, const void *emitter);

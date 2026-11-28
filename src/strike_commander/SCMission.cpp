@@ -11,6 +11,7 @@ SCMission::SCMission() {
     this->tick_counter = 0;
     this->tps = 0;
     this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", true);
+    this->loadEngineSettings();
 }
 SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, RSEntity *> *objCache) {
     this->camera_director = new SCCameraDirector();
@@ -21,6 +22,7 @@ SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, R
     this->tick_counter = 0;
     this->tps = 0;
     this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", true);
+    this->loadEngineSettings();
     printf("SCMission: digital_fx %d\n", this->digital_fx ? 1 : 0);
     this->loadMission();
     subscription_id = this->messageBus.subscribeEvent(std::bind(&SCMission::onEvent, this, std::placeholders::_1));
@@ -475,17 +477,48 @@ void SCMission::startMusic() {
 }
 // SoundFX_PlayOrUpdate : son numérisé de l'effet avec digital_fx, ou quand l'effet n'a pas de séquence XMIDI ; sinon sa
 // séquence XMIDI.
-void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position) {
+// Clé d'un son numérique tenu dans le mixer : propre à l'identifiant, distincte des numéros de séquence XMIDI (0 et plus).
+int SCMission::vocKey(SoundEffectIds id) {
+    return -1 - (int)id;
+}
+
+// Vrai si l'effet est joué en son numérique : il en a un, et digital_fx est choisi ou l'effet n'a pas de séquence XMIDI.
+bool SCMission::digitalChosen(SoundEffectIds id) {
+    return this->sound.effect(id) != nullptr && (this->digital_fx || this->sound.fxEffect(id) < 0);
+}
+
+// Son tenu par un émetteur (canon, tourelle, moteur) : démarré s'il ne joue pas, sinon position et gain mis à jour. loop : le son
+// numérique boucle jusqu'à stopEffect.
+void SCMission::playOrUpdateEffect(SoundEffectIds id, const void *emitter, Vector3D position, bool loop, float gain) {
     float distance = (position - this->Renderer.getCamera()->getPosition()).Length();
     int fx = this->sound.fxEffect(id);
-    MemSound *sound = this->sound.effect(id);
-    if (sound != nullptr && (this->digital_fx || fx < 0)) {
-        this->traceEffect("son tenu", id, distance, "numerique");
-        this->Mixer.playOrUpdateEffectAt(fx, sound->data, sound->size, emitter, position, distance);
+    bool starting = !this->isEffectPlaying(id, emitter);
+    if (this->digitalChosen(id)) {
+        MemSound *sound = this->sound.effect(id);
+        if (starting) {
+            this->traceEffect("son tenu", id, distance, "numerique");
+        }
+        this->Mixer.playOrUpdateEffectAt(this->vocKey(id), sound->data, sound->size, emitter, position, distance, loop, gain);
         return;
     }
-    this->traceEffect("son tenu", id, distance, fx < 0 ? "aucun" : "synthese");
-    this->Mixer.playOrUpdateEffectAt(fx, nullptr, 0, emitter, position, distance);
+    if (starting) {
+        this->traceEffect("son tenu", id, distance, fx < 0 ? "aucun" : "synthese");
+    }
+    this->Mixer.playOrUpdateEffectAt(fx, nullptr, 0, emitter, position, distance, loop, gain);
+}
+
+bool SCMission::isEffectPlaying(SoundEffectIds id, const void *emitter) {
+    if (this->digitalChosen(id)) {
+        auto found = this->sound.effects.find(id);
+        for (MemSound *sound : found->second) {
+            if (this->Mixer.isEffectPlaying(this->vocKey(id), sound->data, emitter)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    int fx = this->sound.fxEffect(id);
+    return fx >= 0 && this->Mixer.isEffectPlaying(fx, nullptr, emitter);
 }
 
 // Effet ponctuel à une position, placé dans l'espace par le mixer (R4Mixer) ; même choix que playOrUpdateEffect.
@@ -519,7 +552,17 @@ void SCMission::playEffect(SoundEffectIds id) {
     this->Mixer.playSoundFxAtDistance(fx, 0.0f);
 }
 void SCMission::stopEffect(SoundEffectIds id, const void *emitter) {
-    this->Mixer.stopSoundFx(this->sound.fxEffect(id), emitter);
+    int fx = this->sound.fxEffect(id);
+    if (fx >= 0) {
+        this->Mixer.stopSoundFx(fx, emitter);
+    }
+    this->Mixer.stopSoundFx(this->vocKey(id), emitter);
+    auto found = this->sound.effects.find(id);
+    if (found != this->sound.effects.end()) {
+        for (MemSound *sound : found->second) {
+            this->Mixer.stopSoundVoc(sound->data, emitter);
+        }
+    }
 }
 void SCMission::onWeaponSpawned(SCSimulatedObject *weapon) {
     if (weapon->obj->wdat->target_domain == 1) {
@@ -558,6 +601,45 @@ RSEntity * SCMission::LoadEntity(std::string name) {
     }
     return nullptr;
 }
+// [Sound] engine_volume : gain des moteurs (0 à 128 ; -1 : 5 sur 128, l'ancien volume du canal du moteur) ; engine_nearest_only :
+// seul le moteur le plus proche de la caméra joue (toujours vrai sans placement dans l'espace, SDL_mixer).
+void SCMission::loadEngineSettings() {
+    int volume = Config::getInstance().getInt("Sound", "engine_volume", 100);
+    if (volume < 0) {
+        volume = 5;
+    }
+    this->engine_gain = (float)(std::min)(volume, 128) / 128.0f;
+    this->engine_nearest_only = Config::getInstance().getBool("Sound", "engine_nearest_only", false) || !this->Mixer.isSpatial();
+    printf("SCMission: moteurs, gain %.2f, seulement le plus proche %d\n", this->engine_gain, this->engine_nearest_only ? 1 : 0);
+}
+
+// L'avion vivant le plus proche de la caméra, dont on entend le moteur quand un seul est suivi.
+void SCMission::updateEnginePlane() {
+    SCPlane *previous = this->engine_plane;
+    this->engine_plane = nullptr;
+    if (!this->engine_nearest_only) {
+        return;
+    }
+    Vector3D camera = this->Renderer.getCamera()->getPosition();
+    float best = 0.0f;
+    for (auto actor : this->actors) {
+        if (actor->plane == nullptr || actor->object == nullptr || !actor->object->alive) {
+            continue;
+        }
+        if (!actor->is_active && actor != this->player) {
+            continue;
+        }
+        float distance = (actor->plane->position - camera).Length();
+        if (this->engine_plane == nullptr || distance < best) {
+            this->engine_plane = actor->plane;
+            best = distance;
+        }
+    }
+    if (this->engine_plane != previous && this->engine_plane != nullptr) {
+        printf("SCMission: moteur suivi : %s a %.0f m de la camera\n", this->engine_plane->pilot != nullptr ? this->engine_plane->pilot->actor_name.c_str() : "?", best);
+    }
+}
+
 void SCMission::update() {
     
     this->messageBus.processEvents();
@@ -566,6 +648,7 @@ void SCMission::update() {
         return;
     }
     this->tick_counter++;
+    this->updateEnginePlane();
     uint8_t area_id = this->getAreaID({this->player->plane->x, this->player->plane->y, this->player->plane->z});
     if (area_id != this->current_area_id) {
         this->current_area_id = area_id;

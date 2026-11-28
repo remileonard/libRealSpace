@@ -152,7 +152,13 @@ public:
     // selon la distance ; une sortie dans l'espace se sert de la position.
     virtual void playEffectAt(int effect, uint8_t *voc, size_t vocSize, const Vector3D &position, float distance);
     // Même chose, relancé ou mis à jour par émetteur.
-    virtual void playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance);
+    virtual void playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance, bool loop = false, float gain = 1.0f);
+    // L'effet tenu de cet émetteur joue encore (clé effect, ou le VOC voc avec SDL_mixer).
+    virtual bool isEffectPlaying(int effect, uint8_t *voc, const void *emitter);
+    // Arrête le VOC tenu voc de cet émetteur (SDL_mixer ; R4Mixer arrête par la clé de stopSoundFx).
+    virtual void stopSoundVoc(uint8_t *voc, const void *emitter);
+    // Vrai si le mixer place les sons dans l'espace (R4Mixer avec OpenAL) ; sinon le volume ne dépend que de la distance.
+    virtual bool isSpatial();
 
     virtual void stopSound();
     virtual void stopSound(int chanl);
@@ -160,6 +166,8 @@ public:
     virtual void playSoundVoc(uint8_t *data, size_t vocSize, int channel, int loop = 0);
     // Même règle que playOrUpdateSoundFx pour un son numérisé : relancé ou mis à jour par émetteur.
     virtual void playOrUpdateSoundVoc(uint8_t *data, size_t vocSize, const void *emitter, float distance);
+    // Son numérisé sur un canal libre, joué loops fois de plus (-1 : sans fin) ; rend le canal, -1 en cas d'échec.
+    int playSoundVocOnFreeChannel(uint8_t *data, size_t vocSize, int loops);
     // Son numérisé joué une fois, volume selon la distance.
     virtual void playSoundVocAtDistance(uint8_t *data, size_t vocSize, float distance);
     virtual void setVolume(int volume, int channel = -1);

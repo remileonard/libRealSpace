@@ -60,7 +60,10 @@ public:
     void playOrUpdateSoundFx(int effect, const void *emitter, float distance) override;
     void playSoundFxAtDistance(int effect, float distance) override;
     void playEffectAt(int effect, uint8_t *voc, size_t vocSize, const Vector3D &position, float distance) override;
-    void playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance) override;
+    void playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, const void *emitter, const Vector3D &position, float distance, bool loop = false, float gain = 1.0f) override;
+    bool isEffectPlaying(int effect, uint8_t *voc, const void *emitter) override;
+    void stopSoundVoc(uint8_t *voc, const void *emitter) override;
+    bool isSpatial() override;
 
     void stopSound() override;
     void stopSound(int chanl) override;

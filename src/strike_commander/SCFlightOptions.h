@@ -27,6 +27,23 @@ public:
     };
 
     bool is_open{ false };
+    // Choix de l'écran EXIT GAME (Options_ExitGameScreen_9277C), lu par SCStrike à la fermeture du panneau.
+    enum ExitChoice {
+        EXIT_CHOICE_NONE,
+        EXIT_CHOICE_RESTART,
+        EXIT_CHOICE_ABORT
+    };
+    ExitChoice exit_choice{ EXIT_CHOICE_NONE };
+    // Mode d'Options_ExitGameScreen_9277C : 0 depuis la configuration, 1 éjecté, 2 mort, 3 posé ; ESCAPE (touche Échap) est
+    // propre à libRealSpace. CONTINUE n'agit qu'avec les modes 0, 3 et ESCAPE.
+    enum ExitMode {
+        EXIT_MODE_CONFIGURATION = 0,
+        EXIT_MODE_EJECTED = 1,
+        EXIT_MODE_DIED = 2,
+        EXIT_MODE_LANDED = 3,
+        EXIT_MODE_ESCAPE = 4
+    };
+    ExitMode exit_mode{ EXIT_MODE_CONFIGURATION };
     // Terrain du vol en cours (TERRAIN GOURAUD), donné par SCStrike à l'ouverture.
     RSArea *area{ nullptr };
 
@@ -49,6 +66,8 @@ public:
     void init();
     // Ouvre le panneau sur l'écran principal.
     void open();
+    // Ouvre le panneau directement sur l'écran EXIT GAME (touche Échap, fin d'une éjection ou d'un crash) ; CONTINUE le ferme.
+    void openExitGame(ExitMode mode);
     // Souris sur les boutons de l'écran affiché (SCPanel::checkButtons).
     void checkButtons();
     // Bandeau, fond et boutons de l'écran affiché.
@@ -56,6 +75,16 @@ public:
     // Changement d'écran ou fermeture demandés par un clic, appliqués après checkButtons (un bouton ne
     // change pas l'écran pendant sa propre action).
     void applyPending();
+
+private:
+    bool opened_on_exit_game{ false };
+    SCButton *exit_vertical_button{ nullptr };
+    void setExitVerticalImages(int up, int down);
+    void onExitRestart();
+    void onExitAbort();
+    void onExitContinue();
+
+public:
 
 private:
     // Numéros d'image dans les fichiers FONTS\*.SHP. Les images 0 et 1 sont les mêmes pour tous les écrans ; un bouton
@@ -231,6 +260,8 @@ private:
         EXIT_GAME_CONTINUE_DOWN = 7,
         EXIT_GAME_VERTICAL_UP = 8,
         EXIT_GAME_VERTICAL_DOWN = 9,
+        // mode non nul d'Options_ExitGameScreen_9277C : les deux images de l'élément vertical deviennent 10 (plaque sans « EXIT »)
+        EXIT_GAME_VERTICAL_PLAIN = 10,
     };
 
     struct OptionsScreen {

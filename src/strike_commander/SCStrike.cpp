@@ -18,6 +18,7 @@
 #define SC_WORLD 1100
 #define RENDER_DISTANCE 40000.0f
 #define AUTOPILOTE_TIMEOUT 1000
+// mètres par image à 60 images/s : 240 m/s, la scène dure 1400 / 240 = 5,8 s à toutes les cadences
 #define AUTOPILOTE_SPEED 4
 
 static Matrix invertRigidBodyMatrix(const Matrix& m) {
@@ -352,7 +353,7 @@ void SCStrike::autopilotCompute() {
         }
     }
     this->camera_mode = View::AUTO_PILOT;
-    this->autopilot_timeout = 400;
+    this->autopilot_timeout = 400.0f;
 }
 
 /**
@@ -622,15 +623,48 @@ void SCStrike::checkKeyboard(void) {
     this->cockpit->mouse_control = this->mouse_control;
 }
 
+// Échap : écran EXIT GAME du panneau de configuration (RESTART, ABORT, CONTINUE).
 void SCStrike::keyEndMission() {
-    if (!this->confirmEndMission()) {
+    this->openFlightOptions();
+    this->flight_options->openExitGame(SCFlightOptions::EXIT_MODE_ESCAPE);
+}
+
+// Dernière phase d'un crash ou d'une éjection : l'écran EXIT GAME s'ouvre 4 s après son début, une seule fois.
+void SCStrike::updateEndPanel(SCFlightOptions::ExitMode mode) {
+    if (this->end_panel_time < 0.0f) {
         return;
     }
-    // Code du jeu pour cette touche non etabli ; regle conservee : ecrasement = 2.
+    this->end_panel_time += GameTimer::getInstance().getDeltaTime();
+    if (this->end_panel_time < 4.0f) {
+        return;
+    }
+    this->end_panel_time = -1.0f;
+    printf("MISSION: fin de la sequence, ecran EXIT GAME (mode %d)\n", (int)mode);
+    this->openFlightOptions();
+    this->flight_options->openExitGame(mode);
+}
+
+// ABORT : fin de la mission. Code du jeu pour cette fin non établi ; règle conservée : écrasement = 2.
+void SCStrike::endMission() {
     if (this->current_mission->exit_code == 0) {
         this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
     }
     this->stopAllSounds("fin de mission demandee");
+}
+
+// RESTART : la même mission recommence depuis son fichier.
+void SCStrike::restartMission() {
+    std::string mission_name = this->miss_file_name;
+    printf("MISSION: redemarrage de %s\n", mission_name.c_str());
+    this->stopAllSounds("redemarrage de la mission");
+    for (auto object : this->simulated_objects) {
+        delete object;
+    }
+    this->simulated_objects.clear();
+    this->ejected_object = nullptr;
+    this->autopilot_timeout = 0.0f;
+    this->end_panel_time = -1.0f;
+    this->setMission(mission_name.c_str());
 }
 
 void SCStrike::keyRudderLeft() {
@@ -672,19 +706,8 @@ void SCStrike::keyAutopilot() {
 
 void SCStrike::keyLandingGear() {
     this->player_plane->SetWheel();
-    if (this->current_mission->sound.sounds.size() > 0) {
-        if (this->player_plane->GetWheel()) {
-            MemSound *gears = this->current_mission->sound.effect(SoundEffectIds::GEARS_UP);
-            if (gears != nullptr) {
-                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
-            }
-        } else {
-            MemSound *gears = this->current_mission->sound.effect(SoundEffectIds::GEARS_DOWN);
-            if (gears != nullptr) {
-                Mixer.playSoundVoc(gears->data, gears->size, 4, 0);
-            }
-        }
-    }
+    // son du train à la position de l'avion, placé dans l'espace par le mixer
+    this->current_mission->playEffect(this->player_plane->GetWheel() ? SoundEffectIds::GEARS_UP : SoundEffectIds::GEARS_DOWN, this->player_plane->position);
 }
 
 void SCStrike::keyToggleBrakes() {
@@ -751,6 +774,8 @@ void SCStrike::keyCommRadio() {
 void SCStrike::keyEject() {
     this->cockpit->frame = 0;
     this->camera_mode = View::EJECT_VIEW_P1;
+    this->eject_cam_y_offset = 15.0f;
+    this->eject_cam_z_offset = -20.0f;
     this->player_plane->ejected = true;
 }
 
@@ -849,107 +874,6 @@ void SCStrike::keySingleTargetMode() {
 
 void SCStrike::setThrottlePreset(int throttle) {
     this->player_plane->SetThrottle(throttle);
-}
-
-// Son du moteur de l'avion du joueur sur le canal 5 (version CD-ROM, DigitalSFX_EngineTick_58BB4, SOUND_EFFECTS.md § 2.4) : cran
-// 0 = coupé, 1 à 5 = MIL, 6 et plus = postcombustion ; transitions arrêtées après 2,5 s, puis son en boucle.
-void SCStrike::updateEngineSound() {
-    int throttle = this->player_plane->GetThrottle();
-    int notch = 0;
-    if (throttle > 0) {
-        notch = (std::max)(1, throttle / 10);
-    }
-    bool afb = notch >= 6;
-    if (this->engine_sound != -1 && this->engine_sound != SoundEffectIds::ENGINE_OFF && !Mixer.isSoundPlaying(5)) {
-        printf("ENGINE: son %d termine\n", this->engine_sound);
-        this->engine_sound = -1;
-    }
-    bool transition = this->engine_sound == SoundEffectIds::ENGINE_START_MIL || this->engine_sound == SoundEffectIds::ENGINE_START_AFB || this->engine_sound == SoundEffectIds::ENGINE_MIL_SHUT_DOWN || this->engine_sound == SoundEffectIds::ENGINE_AFB_TO_MIL;
-    if (transition) {
-        this->engine_sound_frames++;
-        if (this->player_plane->tps > 0 && (float)this->engine_sound_frames / (float)this->player_plane->tps > 2.5f) {
-            printf("ENGINE: transition %d arretee apres 2,5 s\n", this->engine_sound);
-            Mixer.stopSound(5);
-            this->engine_sound = -1;
-        }
-    }
-    int next = this->engine_sound;
-    const char *reason = "continue";
-    switch (this->engine_sound) {
-    case -1:
-    case SoundEffectIds::ENGINE_OFF:
-        if (notch == 0) {
-            next = SoundEffectIds::ENGINE_OFF;
-            reason = "cran 0";
-        } else if (this->engine_previous_notch == 0) {
-            next = afb ? SoundEffectIds::ENGINE_START_AFB : SoundEffectIds::ENGINE_START_MIL;
-            reason = "demarrage";
-        } else {
-            next = afb ? SoundEffectIds::ENGINE_AFB : SoundEffectIds::ENGINE_MIL;
-            reason = "boucle";
-        }
-        break;
-    case SoundEffectIds::ENGINE_MIL:
-        if (notch == 0) {
-            next = SoundEffectIds::ENGINE_SHUT_DOWN;
-            reason = "arret depuis MIL";
-        } else if (afb) {
-            next = SoundEffectIds::ENGINE_MIL_SHUT_DOWN;
-            reason = "MIL vers postcombustion";
-        }
-        break;
-    case SoundEffectIds::ENGINE_AFB:
-        if (notch == 0) {
-            next = SoundEffectIds::ENGINE_AFB_SHUT_DOWN;
-            reason = "arret depuis la postcombustion";
-        } else if (!afb) {
-            next = SoundEffectIds::ENGINE_AFB_TO_MIL;
-            reason = "postcombustion vers MIL";
-        }
-        break;
-    case SoundEffectIds::ENGINE_START_MIL:
-    case SoundEffectIds::ENGINE_AFB_TO_MIL:
-        if (notch == 0) {
-            next = SoundEffectIds::ENGINE_SHUT_DOWN;
-            reason = "arret depuis MIL";
-        } else if (afb) {
-            next = SoundEffectIds::ENGINE_MIL_SHUT_DOWN;
-            reason = "MIL vers postcombustion";
-        }
-        break;
-    case SoundEffectIds::ENGINE_START_AFB:
-    case SoundEffectIds::ENGINE_MIL_SHUT_DOWN:
-        if (notch == 0) {
-            next = SoundEffectIds::ENGINE_AFB_SHUT_DOWN;
-            reason = "arret depuis la postcombustion";
-        } else if (!afb) {
-            next = SoundEffectIds::ENGINE_AFB_TO_MIL;
-            reason = "postcombustion vers MIL";
-        }
-        break;
-    default:
-        break;
-    }
-    this->engine_previous_notch = notch;
-    if (next == this->engine_sound) {
-        return;
-    }
-    printf("ENGINE: manette %d, cran %d, son %d -> %d (%s)\n", throttle, notch, this->engine_sound, next, reason);
-    if (this->engine_sound != -1 && Mixer.isSoundPlaying(5)) {
-        Mixer.stopSound(5);
-    }
-    this->engine_sound = next;
-    this->engine_sound_frames = 0;
-    if (next == SoundEffectIds::ENGINE_OFF) {
-        return;
-    }
-    MemSound *engine = this->current_mission->sound.effect((SoundEffectIds)next);
-    if (engine == nullptr) {
-        printf("ENGINE: pas de son pour %d\n", next);
-        return;
-    }
-    bool loop = next == SoundEffectIds::ENGINE_MIL || next == SoundEffectIds::ENGINE_AFB;
-    Mixer.playSoundVoc(engine->data, engine->size, 5, loop ? -1 : 0);
 }
 
 // Les crans 10 à 50 partagent leurs touches avec les messages radio : inactifs quand le menu radio est ouvert.
@@ -1235,9 +1159,6 @@ void SCStrike::setMission(char const *missionName) {
         this->current_mission = nullptr;
     } 
     this->miss_file_name = missionName;
-    this->engine_sound = -1;
-    this->engine_previous_notch = 0;
-    this->engine_sound_frames = 0;
     this->current_mission = this->createMission(missionName);
     ai_planes.clear();
     ai_planes.shrink_to_fit();
@@ -1477,7 +1398,6 @@ void SCStrike::runFrame(void) {
         this->mfd_timeout--;
         this->player_plane->Simulate();
         this->current_mission->cockpit_view = this->camera_mode == View::FRONT || this->camera_mode == View::RIGHT || this->camera_mode == View::LEFT || this->camera_mode == View::REAR;
-        this->updateEngineSound();
         this->current_mission->update();
         if (this->current_mission->mission_ended) {
             // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu).
@@ -1551,6 +1471,8 @@ void SCStrike::runFrame(void) {
     if (this->player_plane->crached && !this->player_plane->ejected && this->camera_mode != View::CRASH_VIEW_P2 && this->camera_mode != View::CRASH_VIEW_P3 && this->camera_mode != View::CRASH_VIEW_P1) {
         this->camera_mode = View::CRASH_VIEW_P1;
         this->cockpit->frame = 0;
+        this->crash_cam_distance = 20.0f;
+        this->crash_cam_travel = 0.1f;
     }
     switch (this->camera_mode) {
     case View::CAM_DIRECTOR: {
@@ -1562,7 +1484,7 @@ void SCStrike::runFrame(void) {
     } break;
     case View::AUTO_PILOT: {
         if (this->autopilot_timeout > -AUTOPILOTE_TIMEOUT) {
-            this->autopilot_timeout -= AUTOPILOTE_SPEED;
+            this->autopilot_timeout -= (float)AUTOPILOTE_SPEED / TUNED_FRAME_SECONDS * GameTimer::getInstance().getDeltaTime();
             Vector3D pos = {this->new_position.x +5, this->new_position.y + 5, 
                 this->new_position.z - (autopilot_timeout)};
             camera->SetPosition(&pos);
@@ -1613,18 +1535,19 @@ void SCStrike::runFrame(void) {
     break;
     case View::CRASH_VIEW_P3:
         {   
-            static float crash_cam_distance = 20.0f;
-            static float crash_cam_distance_max = 100.0f;
-            static float crash_cam_travel = 0.1f;
-            if (crash_cam_distance > crash_cam_distance_max) {
-                crash_cam_distance = crash_cam_distance_max;
+            const float crash_cam_distance_max = 100.0f;
+            if (this->crash_cam_distance > crash_cam_distance_max) {
+                this->crash_cam_distance = crash_cam_distance_max;
             }
-            if (crash_cam_travel > crash_cam_distance_max) {
-                crash_cam_travel = crash_cam_distance_max;
+            if (this->crash_cam_travel > crash_cam_distance_max) {
+                this->crash_cam_travel = crash_cam_distance_max;
             }
-            crash_cam_distance += 0.1f;
-            crash_cam_travel += 0.1f;
-            this->setCameraLookat(this->player_plane->position, {crash_cam_travel, 20, crash_cam_distance});
+            // 0,1 m par image à 60 images/s : 6 m/s à toutes les cadences
+            float crash_cam_step = 0.1f / TUNED_FRAME_SECONDS * GameTimer::getInstance().getDeltaTime();
+            this->crash_cam_distance += crash_cam_step;
+            this->crash_cam_travel += crash_cam_step;
+            this->setCameraLookat(this->player_plane->position, {this->crash_cam_travel, 20, this->crash_cam_distance});
+            this->updateEndPanel(SCFlightOptions::EXIT_MODE_DIED);
         }
         
     break;
@@ -1652,6 +1575,7 @@ void SCStrike::runFrame(void) {
                 this->ejected_object->mission = this->current_mission;
                 this->simulated_objects.push_back(this->ejected_object);
                 this->camera_mode = View::EJECT_VIEW_P3;
+                this->end_panel_time = 0.0f;
             }
             Vector3D cam_eject_pos = {
                 this->ejected_object->x,
@@ -1664,8 +1588,6 @@ void SCStrike::runFrame(void) {
     break;
     case EJECT_VIEW_P3:
         {
-            static float eject_cam_y_offset = 15.0f;
-            static float eject_cam_z_offset = -20.0f;
             Vector3D pos = {
                 this->ejected_object->x,
                 this->ejected_object->y,
@@ -1673,17 +1595,20 @@ void SCStrike::runFrame(void) {
             };
             Vector3D cam_eject_pos = {
                 this->ejected_object->x,
-                this->ejected_object->y + eject_cam_y_offset,
-                this->ejected_object->z - eject_cam_z_offset
+                this->ejected_object->y + this->eject_cam_y_offset,
+                this->ejected_object->z - this->eject_cam_z_offset
             };
-            eject_cam_y_offset -= 0.1f;
-            eject_cam_z_offset -= 0.1f;
-            if (eject_cam_y_offset < -25.0f) {
-                eject_cam_y_offset = -25.0f;
+            // 0,1 m par image à 60 images/s : 6 m/s à toutes les cadences
+            float eject_cam_step = 0.1f / TUNED_FRAME_SECONDS * GameTimer::getInstance().getDeltaTime();
+            this->eject_cam_y_offset -= eject_cam_step;
+            this->eject_cam_z_offset -= eject_cam_step;
+            if (this->eject_cam_y_offset < -25.0f) {
+                this->eject_cam_y_offset = -25.0f;
             }
-            if (eject_cam_z_offset < -160.0f) {
-                eject_cam_z_offset = -160.0f;
+            if (this->eject_cam_z_offset < -160.0f) {
+                this->eject_cam_z_offset = -160.0f;
             }
+            this->updateEndPanel(SCFlightOptions::EXIT_MODE_EJECTED);
             this->camera->SetPosition(&cam_eject_pos);
             this->camera->lookAt(&pos);
         }
@@ -1902,6 +1827,7 @@ void SCStrike::renderScene(int32_t viewportW, int32_t viewportH, float projVerti
         if (!forceVirtualCockpit) {
             if (this->cockpit->RenderCrashAnimationP2()) {
                 this->camera_mode = View::CRASH_VIEW_P3;
+                this->end_panel_time = 0.0f;
             }
             break;
         }
@@ -2046,14 +1972,13 @@ void SCStrike::renderPlayerPlane() {
 }
 
 // ALT+O (Input_AltKeyCommands_26F7E) : effets sonores coupés (SoundFX_StopAll_5AA95), vol figé, curseur des menus.
-// Arrête tous les sons de la simulation : voix et radio, moteur (canal 5), effets XMIDI et numériques. Le moteur repart de l'état
-// « rien » à la reprise (updateEngineSound).
+// Arrête tous les sons de la simulation : voix et radio, canal 5, effets XMIDI et numériques, dont les moteurs des avions. Chaque
+// moteur repart de l'état « rien » à la reprise (SCPlane::updateEngineSound).
 void SCStrike::stopAllSounds(const char *reason) {
     printf("SOUND: arret de tous les sons (%s)\n", reason);
     Mixer.stopSound();
     Mixer.stopSound(5);
     Mixer.stopAllSoundFx();
-    this->engine_sound = -1;
 }
 
 void SCStrike::openFlightOptions() {
@@ -2090,6 +2015,13 @@ void SCStrike::renderFlightOptions() {
     this->flight_options->applyPending();
     if (!this->flight_options->is_open) {
         this->closeFlightOptions();
+        SCFlightOptions::ExitChoice choice = this->flight_options->exit_choice;
+        this->flight_options->exit_choice = SCFlightOptions::EXIT_CHOICE_NONE;
+        if (choice == SCFlightOptions::EXIT_CHOICE_ABORT) {
+            this->endMission();
+        } else if (choice == SCFlightOptions::EXIT_CHOICE_RESTART) {
+            this->restartMission();
+        }
     }
     Mouse.draw();
     VGA.vSync();
