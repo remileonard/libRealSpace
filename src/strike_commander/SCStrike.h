@@ -33,249 +33,115 @@ static int mission_idx = 0;
  */
 class SCStrike : public IActivity, public Creatable<SCStrike> {
 protected:
-    /**
-     * @brief Hook, empty by default: called right after an aircraft has been drawn, with the world camera active.
-     * @param plane the aircraft
-     * @param position its world position
-     * @param thrust its throttle, 0..100
-     */
-    virtual void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) {}
-
-    /**
-     * @brief Hook, empty by default: called each frame right after the keyboard/mouse input has been processed and before the
-     *        simulation step.
-     */
-    virtual void afterInput() {}
-
-    /** Volume (0..128) that runFrame() gives the engine sound channel (5) at the start of every frame; derived activities may raise it. */
-    int engine_channel_volume{5};
-
-    void stopAllSounds(const char *reason);
-
-    /**
-     * @brief Hook, empty by default: called each frame once the camera of the current view has been placed, before the scene
-     *        is rendered.
-     */
-    virtual void afterCameraPlaced() {}
-
-    /**
-     * @brief Hook, empty by default: called in every cockpit view once the 3D scene (and the 3D cockpit model, if used) has
-     *        been drawn and before the 2D cockpit overlay, with the camera matrices of the view active.
-     */
-    virtual void afterCockpitSceneRendered() {}
-
-    /**
-     * @brief Hook, returns true by default: called when the player presses the end-mission key. The mission only ends
-     *        if it returns true.
-     */
-    virtual bool confirmEndMission() { return true; }
-
-    /**
-     * @brief Hook, empty by default: called once the complete frame (3D scene and 2D cockpit) has been drawn, for 2D overlays.
-     */
-    virtual void afterFrameRendered() {}
-
-    /**
-     * @brief Draws one view of the flight: the world, then the player's plane or the cockpit of the view.
-     */
-    virtual void renderScene(int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit);
-    /**
-     * @brief Draws the world of a view: terrain, actors, explosions, aim points and simulated objects.
-     */
-    virtual void renderWorld();
-    /**
-     * @brief Draws the player's plane in the outside views.
-     */
-    virtual void renderPlayerPlane();
-
-    bool air_weapons_mode{false};
-    /**
-     * @brief Path to current mission file
-     */
-    std::string miss_file_name;
-    /**
-     * @brief Current camera mode
-     */
     uint8_t camera_mode;
-    /**
-     * @brief Whether to control the plane with the mouse
-     */
+    uint8_t nav_point_id{0};
+    uint8_t current_target{0};
+    uint8_t current_object_to_view{0};
+
+    int32_t mfd_timeout{0};
+
+    int engine_channel_volume{5};
+    int world_lod{BLOCK_LOD_MAX};
+    int max_stick_x{0};
+    int max_stick_y{0};
+    int stick_sensitivity{1};
+    int eye_y{3};
+    int radio_mission_timer{0};
+    int music{2};
+    
+    bool air_weapons_mode{false};
     bool mouse_control;
-    /**
-     * @brief Whether to pause the simulation
-     */
     bool pause_simu{false};
-    /**
-     * @brief Panneau CONFIGURATION (ALT+O), créé à la première ouverture
-     */
-    SCFlightOptions *flight_options{ nullptr };
     bool options_pause_before{ false };
     bool options_mouse_before{ false };
-    void openFlightOptions();
-    void closeFlightOptions();
-    void renderFlightOptions();
-    /**
-     * @brief The main game camera
-     */
-    Camera *camera;
-    /**
-     * @brief The current position of the camera
-     */
-    Point3D camera_pos;
-    /**
-     * @brief The target position of the camera
-     */
-    Point3D target_camera_pos;
-    Point3D light{4.0f, 4.0f, 4.0f};
-    /**
-     * @brief The yaw of the camera
-     */
-    float yaw;
-    /**
-     * @brief The new position of the plane
-     */
-    Point3D new_position;
-    /**
-     * @brief The current lookat position of the pilot
-     */
-    Point2D pilote_lookat;
-    int eye_y{3};
-    /**
-     * @brief The new orientation of the plane
-     */
-    Quaternion new_orientation;
-    /**
-     * @brief The current area
-     */
-    RSArea *area;
-    /**
-     * @brief The navigation screen
-     */
-    SCNavMap *nav_screen;
-    /**
-     * @brief The player plane
-     */
-    SCPlane *player_plane;
-
-    /**
-     * @brief The cockpit
-     */
-    SCCockpit *cockpit;
-
-    /**
-     * @brief Whether to use autopilot
-     */
     bool autopilot{false};
-    // recul de la caméra de la scène du pilote automatique, en mètres (de 400 à -1000)
+    bool show_bbox{false};
+    bool follow_dynamic{false};
+    bool zoom_cockpit{false};
+    bool rudder_pressed{false};
+    bool axis_stick{false};
+    
+    float throttle_axis{-2.0f};
+    float end_panel_time{-1.0f};
+    float yaw{0.0f};
     float autopilot_timeout{0.0f};
-    // caméras du crash (éloignement, déplacement latéral) et de l'éjection (décalages vertical et arrière), en mètres ; remises à
-    // leur départ à l'entrée dans la séquence
     float crash_cam_distance{20.0f};
     float crash_cam_travel{0.1f};
     float eject_cam_y_offset{15.0f};
     float eject_cam_z_offset{-20.0f};
     float autopilot_target_azimuth{0};
-    /**
-     * @brief The pilot AI
-     */
-    SCPilot pilot;
-    /**
-     * @brief The player profile
-     */
-    RSProf *player_prof;
-    /**
-     * @brief A counter
-     */
-    float counter;
-    /**
-     * @brief The current navigation point
-     */
-    uint8_t nav_point_id{0};
-    /**
-     * @brief The current target
-     */
-    uint8_t current_target{0};
-    /**
-     * @brief A cache of objects
-     */
-    std::unordered_map<std::string, RSEntity *> object_cache;
-    /**
-     * @brief The AI planes
-     */
-    std::vector<SCAiPlane *> ai_planes;
-    /**
-     * @brief The MFD timeout
-     */
-    int32_t mfd_timeout{0};
+    float counter{0.0f};
+    float mouseAxisAccumX{0.0f};
+    float mouseAxisAccumY{0.0f};
 
-    uint8_t current_object_to_view{0};
+    Point3D camera_pos{0.0f, 0.0f, 0.0f};
+    Point3D target_camera_pos{0.0f, 0.0f, 0.0f};
+    Point3D light{4.0f, 4.0f, 4.0f};
+    Point3D new_position{0.0f, 0.0f, 0.0f};
 
-    SCMissionActors *target{nullptr};
-
-    SCMission *current_mission{nullptr};
-    int radio_mission_timer{0};
-    bool show_bbox{false};
-    bool follow_dynamic{false};
-    int music{2};
-    RSEntity * loadWeapon(std::string name);
-    void registerSimulatorInputs();
-    Keyboard *m_keyboard{nullptr};
-
-    // Dernière vue vue chez le directeur de caméra : quand elle change (début /
-    // fin de séquence scriptée), on recopie dans camera_mode.
-    View last_director_view{View::FRONT};
-
-
-    void autopilotCompute();
-    void findTarget();
-
-    float mouseAxisAccumX = 0.0f;
-    float mouseAxisAccumY = 0.0f;
-    SCState &GameState = SCState::getInstance();
-    /**
-     * @brief The 3D cockpit, created by createVirtualCockpit once the cockpit is initialized
-     */
-    SCVirtualCockpit *virtual_cockpit{nullptr};
-    void renderVirtualCockpit();
-    /**
-     * @brief Creates and initializes the cockpit and its virtual cockpit for the current mission and player plane
-     */
-    void initCockpit();
+    Point2D pilote_lookat{0, 0};
     Vector2D gunsight_hud_offset{0.0f, -0.077f};
-    bool zoom_cockpit{false};
-    int world_lod{BLOCK_LOD_MAX};
+
+    std::string miss_file_name;
+    
+    SCFlightOptions *flight_options{ nullptr };
+    
+    Camera *camera;
+    Quaternion new_orientation;
+
+    RSArea *area;
+    SCNavMap *nav_screen;
+    SCPlane *player_plane;
+    SCCockpit *cockpit;
+    SCPilot pilot;
+    RSProf *player_prof;
+    SCState &GameState = SCState::getInstance();
+    SCVirtualCockpit *virtual_cockpit{nullptr};
     std::vector<SCSimulatedObject*> simulated_objects;
     SCSimulatedObject* ejected_object{nullptr};
-    int max_stick_x{0};
-    int max_stick_y{0};
-    int stick_sensitivity{1};
+    std::unordered_map<std::string, RSEntity *> object_cache;
+    SCMissionActors *target{nullptr};
+    SCMission *current_mission{nullptr};
 
-    // Touches du simulateur : action (SimActionOfst) → fonction membre, table construite une seule fois et partagée,
-    // parcourue par checkKeyboard dans l'ordre des actions. Une autre version du jeu redéfinit keyCommandTable pour rendre
-    // sa propre table, ou seulement la fonction d'une touche (elles sont virtuelles).
+    Keyboard *m_keyboard{nullptr};
+    View last_director_view{View::FRONT};
+    
     typedef void (SCStrike::*KeyHandler)();
     struct KeyCommand {
         KeyHandler handler;
-        bool held{false};         // vrai : chaque frame tant que la touche est enfoncée, sinon à l'appui seulement
-        bool when_disabled{false}; // vrai : aussi après un écrasement ou une éjection
+        bool held{false};
+        bool when_disabled{false};
     };
-    virtual const std::map<int, KeyCommand> &keyCommandTable();
+    
     static std::map<int, KeyCommand> buildKeyCommandTable();
-    // Posé par keyRudderLeft / keyRudderRight pendant le parcours de la table ; sans palonnier, il revient au centre.
-    bool rudder_pressed{false};
-    // Les axes de vol : le manche normalise qu'ils ont pose, et la derniere position de l'axe des gaz appliquee.
-    bool axis_stick{false};
-    float throttle_axis{-2.0f};
-
+    RSEntity * loadWeapon(std::string name);
     void setThrottlePreset(int throttle);
     void sendCommRadioMessage(int message);
-
-    virtual void keyEndMission();
+    void renderVirtualCockpit();
+    void initCockpit();
+    void autopilotCompute();
+    void findTarget();
+    void registerSimulatorInputs();
+    void openFlightOptions();
+    void closeFlightOptions();
+    void renderFlightOptions();
+    void stopAllSounds(const char *reason);
     void endMission();
     void restartMission();
-    // temps écoulé dans la dernière phase d'un crash ou d'une éjection, -1 : pas d'écran EXIT GAME à ouvrir
-    float end_panel_time{-1.0f};
     void updateEndPanel(SCFlightOptions::ExitMode mode);
+
+    virtual const std::map<int, KeyCommand> &keyCommandTable();
+    virtual bool confirmEndMission() { return true; }
+
+    virtual void afterCameraPlaced() {}
+    virtual void afterCockpitSceneRendered() {}
+    virtual void afterFrameRendered() {}
+    virtual void renderScene(int32_t viewportW, int32_t viewportH, float projVerticalOffset, bool forceVirtualCockpit);
+    virtual void renderWorld();
+    virtual void renderPlayerPlane();
+    virtual void afterPlaneRendered(SCPlane *plane, Vector3D position, int thrust) {}
+    virtual void afterInput() {}
+    virtual void keyEndMission();
     virtual void keyRudderLeft();
     virtual void keyRudderRight();
     virtual void keyThrottleUp();
@@ -338,54 +204,27 @@ protected:
     virtual void keySpecKey2();
 public:
     float verticalOffset{0.45f};
-    // Chunk PLYR d'OP2MISN.IFF : chargement choisi par le joueur (départ par l'écran d'armement).
     bool player_loadout{false};
-    /**
-     * @brief Constructor
-     */
+    
     SCStrike();
-    /**
-     * @brief Destructor
-     */
     ~SCStrike();
-    /**
-     * @brief Initializes the game
-     */
     void init() override;
     void start(void) override;
-    /**
-     * @brief Sets the current mission
-     * @param missionName The name of the mission to load
-     */
-    virtual void setMission(char const *missionName);
-    /**
-     * @brief Creates the mission object for setMission, derived activities return their own mission type
-     */
-    virtual SCMission *createMission(char const *missionName);
-    /**
-     * @brief Creates the cockpit object for setMission, derived activities return their own cockpit type
-     */
-    virtual SCCockpit *createCockpit();
-    /**
-     * @brief Creates the 3D cockpit of an initialized cockpit, derived activities return their own virtual cockpits
-     */
-    virtual SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit);
-    virtual void firePrimary();
-    virtual void selectNextWeapon();
     void setCameraFront();
     void setCameraFollow(SCPlane *plane);
     void setCameraRLR();
     void setCameraRLRUpDown();
     void setCameraLookat(Vector3D obj_pos);
     void setCameraLookat(Vector3D obj_pos, Vector3D offset);
-    /**
-     * @brief Checks for keyboard input
-     */
     void checkKeyboard(void);
-    /**
-     * @brief Runs the game simulation
-     */
     void runFrame(void) override;
+
+    virtual void setMission(char const *missionName);
+    virtual void firePrimary();
+    virtual void selectNextWeapon();
+    virtual SCMission *createMission(char const *missionName);
+    virtual SCCockpit *createCockpit();
+    virtual SCVirtualCockpit *createVirtualCockpit(SCCockpit *cockpit);
 };
 
 #endif /* defined(__libRealSpace__SCStrike__) */

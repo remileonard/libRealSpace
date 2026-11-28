@@ -18,7 +18,6 @@
 #define SC_WORLD 1100
 #define RENDER_DISTANCE 40000.0f
 #define AUTOPILOTE_TIMEOUT 1000
-// mètres par image à 60 images/s : 240 m/s, la scène dure 1400 / 240 = 5,8 s à toutes les cadences
 #define AUTOPILOTE_SPEED 4
 
 static Matrix invertRigidBodyMatrix(const Matrix& m) {
@@ -105,12 +104,7 @@ void SCStrike::renderVirtualCockpit() {
     }
     this->afterCockpitSceneRendered();
 }
-/**
- * @brief Constructor
- *
- * Initializes the SCStrike object with a default camera position and
- * other variables.
- */
+
 SCStrike::SCStrike() {
     this->camera_mode = 0;
     this->camera_pos = {-169.0f, 79.0f, -189.0f};
@@ -167,8 +161,6 @@ void SCStrike::autopilotCompute() {
                 continue;
             }
             printf("check collision with Areas: %s\n", area->AreaName);
-            // Trajet a l'altitude d'arrivee (dest_y) : la zone n'est traversee que si cette altitude est dans sa plage,
-            // comme AREA::contains ; une sphere y est coupee en un disque.
             float flight_y = dest_y;
             float circle_radius = area->radius;
             if (area->AreaType == 'S') {
@@ -205,18 +197,16 @@ void SCStrike::autopilotCompute() {
                 }
                 continue;
             }
-            // Boite : de X - ouest a X + est, de Z - nord a Z + sud (le nord est vers -Z).
+        
             float left   = area->position.x - area->west;
             float right  = area->position.x + area->east;
             float top    = area->position.z - area->north;
             float bottom = area->position.z + area->south;
 
-            // Lambda to test if a point is inside the rectangle.
             auto pointInRect = [&](const Vector2D &pt) -> bool {
                 return (pt.x >= left && pt.x <= right && pt.y >= top && pt.y <= bottom);
             };
             if (pointInRect(origine)) {
-                // we know we are in this area already
                 printf("We are in area: %s\n", area->AreaName);
                 continue;
             }
@@ -241,7 +231,6 @@ void SCStrike::autopilotCompute() {
                 return std::nullopt;
             };
 
-            // Define rectangle edges (using two points per edge).
             Vector2D r1 = {left, top};
             Vector2D r2 = {right, top};
             Vector2D r3 = {right, bottom};
@@ -252,7 +241,6 @@ void SCStrike::autopilotCompute() {
             std::optional<Vector2D> i3 = doLinesIntersect(origine, destination, r3, r4);
             std::optional<Vector2D> i4 = doLinesIntersect(origine, destination, r4, r1);
 
-            // Check if the segment (origin,destination) intersects any rectangle edge.
             if (i1 != std::nullopt ||
                 i2 != std::nullopt ||
                 i3 != std::nullopt ||
@@ -286,7 +274,6 @@ void SCStrike::autopilotCompute() {
                 selectedPoint = pt;
             }
         }
-        // Un metre au-dela du bord, vers la destination : le point est dans la zone malgre l'arrondi (AREA::contains).
         float to_x = destination.x - selectedPoint.x;
         float to_z = destination.y - selectedPoint.y;
         float to_length = sqrtf(to_x * to_x + to_z * to_z);
@@ -327,7 +314,6 @@ void SCStrike::autopilotCompute() {
     for (auto team: this->current_mission->friendlies) {
         if (team->is_active) {
             if (team->plane != nullptr && team->plane != this->player_plane) {
-                // ailier en mode cinematique (formation, pilote automatique) : simulateKinematic ecraserait l'attitude
                 if (team->pilot != nullptr) {
                     team->pilot->disengageAutopilot();
                     team->pilot->CmdKinematic(false, team->plane->worldVelocity(), team->plane->forward, team->pilot->NosePitch());
@@ -356,19 +342,8 @@ void SCStrike::autopilotCompute() {
     this->autopilot_timeout = 400.0f;
 }
 
-/**
- * @brief Handle keyboard events
- *
- * This function peeks at the SDL event queue to check for keyboard events.
- * If a key is pressed, it updates the game state based on the key pressed.
- * The supported keys are escape, space, and return.
- *
- * @return None
- */
-// Appui sur la détente : tir de l'arme choisie.
 void SCStrike::firePrimary() {
     if (target != nullptr) {
-        // WeaponSystem_FrameUpdate_3F8C0 : le missile ne recoit la cible que si le point d'emport est accroche (+0x0B)
         SCMissionActors *weapon_target = target;
         SCWeaponLoadoutHardPoint *station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
         if (station != nullptr && station->objct->wdat->weapon_aspec != 0 && !this->player_plane->seekerLocks(station->objct, target)) {
@@ -378,8 +353,6 @@ void SCStrike::firePrimary() {
         this->cockpit->is_shooting = true;
     }
 }
-
-// Touche des armes : arme suivante et mode du viseur.
 void SCStrike::selectNextWeapon() {
     if (this->cockpit->show_weapons) {
         int nb_hardpoint = this->player_plane->object->entity->hpts.size() / 2 + 1;
@@ -443,8 +416,6 @@ void SCStrike::selectNextWeapon() {
         this->mfd_timeout = 400;
     }
 }
-
-// Table des touches du simulateur de Strike Commander : action → fonction membre.
 std::map<int, SCStrike::KeyCommand> SCStrike::buildKeyCommandTable() {
     std::map<int, KeyCommand> table;
     table[SimActionOfst::THROTTLE_UP] = { &SCStrike::keyThrottleUp, true };
@@ -500,8 +471,6 @@ std::map<int, SCStrike::KeyCommand> SCStrike::buildKeyCommandTable() {
     table[SimActionOfst::COMM_RADIO_M7] = { &SCStrike::keyCommRadioM7 };
     table[SimActionOfst::COMM_RADIO_M8] = { &SCStrike::keyCommRadioM8 };
     table[SimActionOfst::RADAR_MODE_TOGGLE] = { &SCStrike::keyRadarModeToggle };
-    //table[SimActionOfst::SPEC_KEY_1] = { &SCStrike::keySpecKey1 };
-    //table[SimActionOfst::SPEC_KEY_2] = { &SCStrike::keySpecKey2 };
     table[SimActionOfst::WEAPON_MODE_TOGGLE] = { &SCStrike::keyWeaponModeToggle };
     table[SimActionOfst::INFINIT_AMMO_TOGGLE] = { &SCStrike::keyInfiniteAmmoToggle };
     table[SimActionOfst::SINGLE_TARGET_MODE] = { &SCStrike::keySingleTargetMode };
@@ -511,7 +480,6 @@ std::map<int, SCStrike::KeyCommand> SCStrike::buildKeyCommandTable() {
     return table;
 }
 
-// Construite au premier appel, puis partagée par tous les SCStrike.
 const std::map<int, SCStrike::KeyCommand> &SCStrike::keyCommandTable() {
     static const std::map<int, KeyCommand> table = SCStrike::buildKeyCommandTable();
     return table;
@@ -526,12 +494,11 @@ void SCStrike::checkKeyboard(void) {
 
     msy = dy - (Screen->logical_height / 2);
     msx = dx - (Screen->logical_width / 2);
-    //Mouse.setPosition({(int)dx, (int)dy});
-    // Panneau CONFIGURATION ouvert : les commandes de vol sont ignorées.
+
     if (this->flight_options != nullptr && this->flight_options->is_open) {
         return;
     }
-    // ALT+O (Input_AltKeyCommands_26F7E), liaison avec KEY_MOD_ALT.
+
     if (m_keyboard->isActionJustPressed(CreateAction(InputAction::SIM_START, SimActionOfst::FLIGHT_OPTIONS))) {
         this->openFlightOptions();
         return;
@@ -552,7 +519,7 @@ void SCStrike::checkKeyboard(void) {
         this->pilote_lookat.x = ((Screen->width / 360) * msx) / 6;
         this->pilote_lookat.y = ((Screen->height / 360) * msy) / 6;
     }
-    // Après un écrasement ou une éjection, seules les touches when_disabled agissent.
+
     bool disabled = this->player_plane->crached || this->player_plane->ejected;
     if (!disabled) {
         this->cockpit->is_shooting = false;
@@ -577,7 +544,7 @@ void SCStrike::checkKeyboard(void) {
     } else {
         this->player_plane->rudder = (std::clamp)(this->player_plane->rudder, -10.0f, 10.0f);
     }
-    // Les axes de vol, de -1 a 1, sans dependre de la taille de l'ecran : le manche normalise de SCJetpPlane.
+
     float roll = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_ROLL));
     float pitch = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_PITCH));
     float yaw = m_keyboard->getActionValue(CreateAction(InputAction::SIM_START, SimActionOfst::AXIS_RUDDER));
@@ -590,7 +557,6 @@ void SCStrike::checkKeyboard(void) {
         this->axis_stick = true;
         this->mouse_control = false;
     } else if (this->axis_stick) {
-        // L'axe revient au centre : la souris et le clavier reprennent le manche.
         this->player_plane->SetNormalizedStick(false, 0.0f, 0.0f);
         this->player_plane->control_stick_x = 0;
         this->player_plane->control_stick_y = 0;
@@ -600,7 +566,6 @@ void SCStrike::checkKeyboard(void) {
         this->player_plane->rudder = yaw * 10.0f;
         this->rudder_pressed = true;
     }
-    // Les gaz suivent l'axe quand il bouge : les touches des gaz gardent la main entre deux mouvements.
     if (fabs(gas - this->throttle_axis) > 0.02f) {
         if (this->throttle_axis > -1.5f) {
             this->player_plane->SetThrottle(static_cast<int>(std::lround((1.0f - gas) * 50.0f)));
@@ -623,13 +588,11 @@ void SCStrike::checkKeyboard(void) {
     this->cockpit->mouse_control = this->mouse_control;
 }
 
-// Échap : écran EXIT GAME du panneau de configuration (RESTART, ABORT, CONTINUE).
 void SCStrike::keyEndMission() {
     this->openFlightOptions();
     this->flight_options->openExitGame(SCFlightOptions::EXIT_MODE_ESCAPE);
 }
 
-// Dernière phase d'un crash ou d'une éjection : l'écran EXIT GAME s'ouvre 4 s après son début, une seule fois.
 void SCStrike::updateEndPanel(SCFlightOptions::ExitMode mode) {
     if (this->end_panel_time < 0.0f) {
         return;
@@ -644,7 +607,6 @@ void SCStrike::updateEndPanel(SCFlightOptions::ExitMode mode) {
     this->flight_options->openExitGame(mode);
 }
 
-// ABORT : fin de la mission. Code du jeu pour cette fin non établi ; règle conservée : écrasement = 2.
 void SCStrike::endMission() {
     if (this->current_mission->exit_code == 0) {
         this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
@@ -652,7 +614,6 @@ void SCStrike::endMission() {
     this->stopAllSounds("fin de mission demandee");
 }
 
-// RESTART : la même mission recommence depuis son fichier.
 void SCStrike::restartMission() {
     std::string mission_name = this->miss_file_name;
     printf("MISSION: redemarrage de %s\n", mission_name.c_str());
@@ -706,7 +667,6 @@ void SCStrike::keyAutopilot() {
 
 void SCStrike::keyLandingGear() {
     this->player_plane->SetWheel();
-    // son du train à la position de l'avion, placé dans l'espace par le mixer
     this->current_mission->playEffect(this->player_plane->GetWheel() ? SoundEffectIds::GEARS_UP : SoundEffectIds::GEARS_DOWN, this->player_plane->position);
 }
 
@@ -876,7 +836,6 @@ void SCStrike::setThrottlePreset(int throttle) {
     this->player_plane->SetThrottle(throttle);
 }
 
-// Les crans 10 à 50 partagent leurs touches avec les messages radio : inactifs quand le menu radio est ouvert.
 void SCStrike::keyThrottle10() {
     if (!this->cockpit->show_comm) {
         this->setThrottlePreset(10);
@@ -927,7 +886,6 @@ void SCStrike::keyThrottle100() {
     this->setThrottlePreset(100);
 }
 
-// Menu radio ouvert : premier appui, choix du destinataire ; second appui, envoi du message.
 void SCStrike::sendCommRadioMessage(int message) {
     if (!this->cockpit->show_comm) {
         return;
@@ -1024,7 +982,6 @@ void SCStrike::findTarget() {
     const float target_range = 30000.0f;
     const float target_range_sq = target_range * target_range;
 
-    // 1. Collecter tous les ennemis valides dans la portée
     std::vector<int> candidates;
     for (int i = 0; i < (int)this->current_mission->enemies.size(); i++) {
         auto enemy = this->current_mission->enemies[i];
@@ -1044,7 +1001,6 @@ void SCStrike::findTarget() {
     }
 
     if (candidates.empty()) {
-        // Aucune cible disponible
         this->current_target = -1;
         this->target = nullptr;
         this->current_mission->player->target = nullptr;
@@ -1052,7 +1008,6 @@ void SCStrike::findTarget() {
         return;
     }
 
-    // 2. Trier les candidats par distance croissante
     std::sort(candidates.begin(), candidates.end(), [&](int a, int b) {
         auto ea = this->current_mission->enemies[a];
         auto eb = this->current_mission->enemies[b];
@@ -1065,8 +1020,7 @@ void SCStrike::findTarget() {
         return (dxa*dxa + dya*dya + dza*dza) < (dxb*dxb + dyb*dyb + dzb*dzb);
     });
 
-    // 3. Trouver la position de la cible actuelle dans la liste
-    int nextIndex = 0; // Par défaut: premier candidat (le plus proche)
+    int nextIndex = 0;
     for (int i = 0; i < (int)candidates.size(); i++) {
         if (candidates[i] == this->current_target) {
             // Cycler vers le suivant
@@ -1075,22 +1029,13 @@ void SCStrike::findTarget() {
         }
     }
 
-    // 4. Appliquer la nouvelle cible
     int selectedEnemyIndex = candidates[nextIndex];
     this->current_target = selectedEnemyIndex;
     this->target = this->current_mission->enemies[selectedEnemyIndex];
     this->current_mission->player->target = this->target;
     this->cockpit->target = this->target->object;
 }
-/**
- * SCStrike::Init
- *
- * Initialize the game state with default values and a starting mission.
- *
- * This function initializes the game state by setting the mouse control
- * flag to false, setting the mission to "TEMPLATE.IFF", initializing the
- * cockpit object, and setting the pilot's lookat position to the origin.
- */
+
 void SCStrike::start(void) {
     IActivity::start();
     if (this->current_mission != nullptr) {
@@ -1119,19 +1064,6 @@ RSEntity * SCStrike::loadWeapon(std::string name) {
     return nullptr;
 }
 
-/**
- * SetMission
- *
- * Sets the current mission to the one specified in the missionName argument.
- *
- * This function initializes the game state by setting the mission to the one
- * specified in the missionName argument, clearing the list of AI planes,
- * initializing the cockpit object, and setting the pilot's lookat position to
- * the origin. It also loads the necessary data from the mission file, such as
- * the player's coordinates and the objects in the mission.
- *
- * @param[in] missionName The name of the mission file to load.
- */
 SCCockpit *SCStrike::createCockpit() {
     return new SCCockpit();
 }
@@ -1146,7 +1078,6 @@ void SCStrike::initCockpit() {
     this->cockpit->current_mission = this->current_mission;
     this->cockpit->nav_point_id = &this->nav_point_id;
     delete this->virtual_cockpit;
-    // The virtual cockpit depends on the cockpit type, only known after init().
     this->virtual_cockpit = this->createVirtualCockpit(this->cockpit);
 }
 SCMission *SCStrike::createMission(char const *missionName) {
@@ -1160,8 +1091,6 @@ void SCStrike::setMission(char const *missionName) {
     } 
     this->miss_file_name = missionName;
     this->current_mission = this->createMission(missionName);
-    ai_planes.clear();
-    ai_planes.shrink_to_fit();
     
     MISN_PART *playerCoord = this->current_mission->player->object;
     this->area = this->current_mission->area;
@@ -1184,7 +1113,6 @@ void SCStrike::setMission(char const *missionName) {
         this->player_plane->vz = -20;
         this->player_plane->Simulate();
     }
-    // MissionScenario_LoadFromIFF_A8C44 : sans PLYR, l'avion garde les armes de son fichier.
     if (this->player_loadout && GameState.weapon_load_out.size() > 1) {
         this->player_plane->object->entity->weaps.clear();
         std::unordered_map<weapon_type_shp_id, std::string> weapon_names = {
@@ -1215,16 +1143,13 @@ void SCStrike::setMission(char const *missionName) {
             this->player_plane->object->entity->weaps.push_back(weap);
             loaded[weapon_type_shp_id(GameState.weapon_load_out[i])] = true;
         }
-        // Chargement PLYR : remplace l'emport posé au chargement de la mission (WeaponSys_LoadFormWEAP_9EF74).
         this->player_plane->InitLoadout();
     }
     this->current_mission->takeTeamWeaponsFromStock(this->player_loadout);
     this->player_prof = this->current_mission->player->profile;
     this->initCockpit();
 
-    // Déclencheur : plan d'ouverture STARTCAM. camera_mode suit le directeur : on
-    // le pose direct sur CAM_DIRECTOR et on synchronise last_director_view.
-    SCCameraSequence::s_debug = false;   // trace stdout pour le debug caméra
+    SCCameraSequence::s_debug = false;
     this->camera_mode = View::CAM_DIRECTOR;
     this->last_director_view = View::CAM_DIRECTOR;
     CameraViewRequest startcam;
@@ -1259,8 +1184,6 @@ void SCStrike::setCameraFollow(SCPlane *plane) {
     float cosE = cos(r_elev), sinE = sin(r_elev);
     float cosA = cos(r_azim), sinA = sin(r_azim);
 
-    // Compute the up vector as the second column of the composite rotation matrix
-    // R = Ry(azim) * Rx(elev) * Rz(twist)
     Vector3D up;
     up.x = -cosA * sinT + sinA * sinE * cosT;
     up.y = cosE * cosT;
@@ -1318,7 +1241,6 @@ void SCStrike::setCameraLookat(Vector3D obj_pos, Vector3D offset) {
     } else {
         dir.Normalize();
 
-        // Calcul de la taille réelle de la cible via sa BoundingBox
         float targetSize = 30.0f; // valeur par défaut
         if (this->target != nullptr && this->target->object != nullptr && this->target->object->entity != nullptr) {
             BoudingBox *bb = this->target->object->entity->GetBoudingBpx();
@@ -1326,18 +1248,15 @@ void SCStrike::setCameraLookat(Vector3D obj_pos, Vector3D offset) {
                 float sizeX = bb->max.x - bb->min.x;
                 float sizeY = bb->max.y - bb->min.y;
                 float sizeZ = bb->max.z - bb->min.z;
-                // On prend la diagonale de la bounding box comme taille de référence
                 targetSize = sqrt(sizeX*sizeX + sizeY*sizeY + sizeZ*sizeZ);
             }
         }
 
-        // On veut que la cible occupe toujours TARGET_ANGULAR_SIZE degrés à l'écran
-        // d = targetSize / (2 * tan(angle/2))
-        const float TARGET_ANGULAR_SIZE = 15.0f; // degrés
+        const float TARGET_ANGULAR_SIZE = 15.0f;
         float camDist = targetSize / (2.0f * tan(TARGET_ANGULAR_SIZE * ((float)M_PI / 180.0f) / 2.0f));
 
-        camDist = (std::max)(camDist, 10.0f); // pas trop près
-        camDist = (std::min)(camDist, len);   // pas au-delà de la cible
+        camDist = (std::max)(camDist, 10.0f);
+        camDist = (std::min)(camDist, len);
 
         camPos = {
             obj_pos.x - dir.x * camDist,
@@ -1368,22 +1287,7 @@ void SCStrike::setCameraLookat(Vector3D obj_pos) {
     Vector3D offset = {0, 0, 0};
     this->setCameraLookat(obj_pos, offset);
 }
-/**
- * @brief Executes a single frame of the game simulation.
- *
- * This function performs the main loop operations for each frame of the game
- * simulation. It handles keyboard input check, updates the states of the player
- * plane and AI planes, adjusts the camera view based on the current mode, and
- * renders the game world and cockpit.
- *
- * Key operations include:
- * - Checking and processing keyboard inputs.
- * - Simulating the player and AI planes' movements and autopilot systems.
- * - Updating positions and orientations of planes and mission objects.
- * - Configuring the camera based on the selected view mode.
- * - Rendering the world, mission objects, and cockpit interface.
- * - Managing the display of cockpit elements like communication and weapons.
- */
+
 void SCStrike::runFrame(void) {
     Mixer.setVolume(this->engine_channel_volume, 5);
     this->checkKeyboard();
@@ -1400,7 +1304,6 @@ void SCStrike::runFrame(void) {
         this->current_mission->cockpit_view = this->camera_mode == View::FRONT || this->camera_mode == View::RIGHT || this->camera_mode == View::LEFT || this->camera_mode == View::REAR;
         this->current_mission->update();
         if (this->current_mission->mission_ended) {
-            // Compte rendu de vol pour SCGameFlow (misn2op.iff du jeu).
             GameState.mission_report = this->current_mission->buildReport(this->miss_file_name);
             Renderer.clear();
             Screen->refresh();
@@ -1414,8 +1317,6 @@ void SCStrike::runFrame(void) {
         }
     }
     if (this->camera_mode == View::CAM_DIRECTOR) {
-        // Vue pilotée par le directeur de caméra (CHASE/TARGET/ROTA/COMP) :
-        // le FOV vient du fichier (RSCameraDef::fov), pas du zoom cockpit.
         Renderer.camera.fovy = this->current_mission->camera_director->fov();
         Renderer.camera.update();
     } else if (this->zoom_cockpit) {
@@ -1515,7 +1416,6 @@ void SCStrike::runFrame(void) {
     break;
     case View::FRONT: {
         this->setCameraFront();
-         // Apply a vertical offset to the projection matrix
     } break;
     case View::FOLLOW: {
         this->setCameraFollow(this->player_plane);
@@ -1542,7 +1442,6 @@ void SCStrike::runFrame(void) {
             if (this->crash_cam_travel > crash_cam_distance_max) {
                 this->crash_cam_travel = crash_cam_distance_max;
             }
-            // 0,1 m par image à 60 images/s : 6 m/s à toutes les cadences
             float crash_cam_step = 0.1f / TUNED_FRAME_SECONDS * GameTimer::getInstance().getDeltaTime();
             this->crash_cam_distance += crash_cam_step;
             this->crash_cam_travel += crash_cam_step;
@@ -1598,7 +1497,6 @@ void SCStrike::runFrame(void) {
                 this->ejected_object->y + this->eject_cam_y_offset,
                 this->ejected_object->z - this->eject_cam_z_offset
             };
-            // 0,1 m par image à 60 images/s : 6 m/s à toutes les cadences
             float eject_cam_step = 0.1f / TUNED_FRAME_SECONDS * GameTimer::getInstance().getDeltaTime();
             this->eject_cam_y_offset -= eject_cam_step;
             this->eject_cam_z_offset -= eject_cam_step;
@@ -1649,7 +1547,6 @@ void SCStrike::runFrame(void) {
         const float distanceBehind = -60.0f;
         float r_azim = degreeToRad(missile->azimuthf);
         float r_elev = degreeToRad(missile->elevationf);
-        float r_twist = 0.0f;
         Vector3D camPos;
         camPos.x = missil_pos.x - distanceBehind * cos(r_elev) * sin(r_azim);
         camPos.y = missil_pos.y + distanceBehind * sin(r_elev);
@@ -1670,9 +1567,7 @@ void SCStrike::runFrame(void) {
         camPos.x = this->new_position.x;
         camPos.y = this->new_position.y;
         camPos.z = this->new_position.z;
-        
-        // Compute the up vector as the second column of the composite rotation matrix
-        // R = Ry(azim) * Rx(elev) * Rz(twist)
+
         Vector3D up;
 
         float r_twist = tenthOfDegreeToRad(this->player_plane->twist);
@@ -1708,12 +1603,10 @@ void SCStrike::runFrame(void) {
     }
     this->afterCameraPlaced();
     if (this->virtual_cockpit != nullptr) {
-        // The instruments are updated once per frame, even when the cockpit is rendered for each VR eye.
         this->virtual_cockpit->beginFrame();
     }
 
 
-    // VR stéréo: rendu par oeil + cockpit VR uniquement.
     bool vrShouldRender = false;
     const uint32_t eyeCount = Screen ? Screen->vrStereoEyeCount() : 0;
     if (eyeCount >= 2 && Screen->vrPrepareStereoFrame(vrShouldRender)) {
@@ -1728,9 +1621,6 @@ void SCStrike::runFrame(void) {
 
         const Point3D camPos = camera->getPosition();
         Quaternion camOri = camera->getOrientation();
-        // Camera::orientation encode la rotation de vue (world->camera).
-        // Pour OpenXR, on a besoin d'un repère "local" (cockpit) vers le monde.
-        // Donc on prend l'inverse de la rotation (transpose pour une rotation pure).
         Matrix worldFromLocal = camOri.ToMatrix();
         worldFromLocal.Transpose();
         worldFromLocal.v[3][0] = camPos.x;
@@ -1872,7 +1762,7 @@ void SCStrike::renderWorld() {
                     actor->plane->z - this->player_plane->z
                 };
                 if (distance.Length() > RENDER_DISTANCE) {
-                    continue; // Skip rendering if the plane is too far away
+                    continue;
                 }
                 if (this->show_bbox) {
                     actor->plane->renderPlaneLined();
@@ -1912,7 +1802,7 @@ void SCStrike::renderWorld() {
                 actor_position.z - this->player_plane->z
             };
             if (distance.Length() > RENDER_DISTANCE) {
-                continue; // Skip rendering if the object is too far away
+                continue;
             }
             Renderer.drawModel(actor->object->entity, Renderer.lodLevel, actor_position, actor_orientation);
             if (actor->smoke != nullptr) {
@@ -1939,7 +1829,6 @@ void SCStrike::renderWorld() {
 
     for (auto expl: this->current_mission->explosions) {
         if (expl->is_finished) {
-            // Remove explosion when finished
             this->current_mission->explosions.erase(
                 std::remove_if(
                     this->current_mission->explosions.begin(),
@@ -1971,9 +1860,6 @@ void SCStrike::renderPlayerPlane() {
     this->afterPlaneRendered(this->player_plane, Vector3D(this->player_plane->x, this->player_plane->y, this->player_plane->z), this->player_plane->getThrust());
 }
 
-// ALT+O (Input_AltKeyCommands_26F7E) : effets sonores coupés (SoundFX_StopAll_5AA95), vol figé, curseur des menus.
-// Arrête tous les sons de la simulation : voix et radio, canal 5, effets XMIDI et numériques, dont les moteurs des avions. Chaque
-// moteur repart de l'état « rien » à la reprise (SCPlane::updateEngineSound).
 void SCStrike::stopAllSounds(const char *reason) {
     printf("SOUND: arret de tous les sons (%s)\n", reason);
     Mixer.stopSound();
@@ -2000,7 +1886,6 @@ void SCStrike::closeFlightOptions() {
     Game->direct_mouse_control = this->options_mouse_before;
 }
 
-// Options_DrawPanel_8FA4C : le panneau par-dessus l'image du vol, comme le cockpit 2D (zones à 255 transparentes).
 void SCStrike::renderFlightOptions() {
     bool upscale = VGA.upscale;
     bool wide_screen = VGA.wide_screen;

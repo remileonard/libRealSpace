@@ -124,7 +124,6 @@ public:
     MISN_PART *player{nullptr};
     RSProf *player_prof{nullptr};
     std::vector<MISN_PART *> parts;
-    std::vector<SCAiPlane *> ai_planes;
     Camera *cam;
     CockpitFace face{CockpitFace::CP_FRONT};
     Vector2D weapoint_coords;

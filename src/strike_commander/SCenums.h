@@ -32,10 +32,8 @@ static std::unordered_map<Hud_weapon_mode, std::string> hud_weapon_mode_names = 
     {WM_HUD_IRST, "IR"},
     {WM_HUD_NONE, ""}
 };
-// Une image de Strike Commander : le jeu est limité à 25 images par seconde. Les règles de l'original comptées en images
-// (un coup de canon par image, une mise à jour toutes les N images) se portent en secondes avec cette durée.
+
 constexpr float ORIGINAL_FRAME_SECONDS = 1.0f / 25.0f;
-// Une image de libRealSpace pour les animations réglées à 60 images par seconde (explosions, cockpit, fumée d'un avion abattu).
 constexpr float TUNED_FRAME_SECONDS = 1.0f / 60.0f;
 
 enum weapon_ids {
@@ -108,7 +106,7 @@ static std::unordered_map<weapon_ids, std::string> weapon_names = {
     {weapon_ids::ID_GBU15, "GBU-15"},
     {weapon_ids::ID_AIM120, "AIM-120"}
 };
-// Numero d'arme d'OPTEST.EXE (stock de la partie, chunks LOAD de GAMEFLOW.IFF) -> weapon_ids.
+
 static const weapon_ids optest_weapon_ids[9] = {
     ID_AIM9J,
     ID_AIM9M,
@@ -315,7 +313,7 @@ enum View {
     EJECT_VIEW_P1,
     EJECT_VIEW_P2,
     EJECT_VIEW_P3,
-    CAM_DIRECTOR   // caméra pilotée par SCCameraDirector (séquence COMP)
+    CAM_DIRECTOR
 };
 
 enum CatalogItems {
