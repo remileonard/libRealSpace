@@ -519,6 +519,15 @@ void SCMissionActors::onMissionUpdate(const MissionUpdateEvent &event) {
     /*if (this->is_active == false) {
         return;
     }*/
+    // un acteur détruit n'est plus simulé : ses tirs en vol disparaissent avec lui
+    if (this->is_destroyed && !this->weapons_shooted.empty()) {
+        printf("ACTOR %s#%d detruit : %zu tirs retires\n", this->actor_name.c_str(), this->actor_id, this->weapons_shooted.size());
+        for (auto weapon : this->weapons_shooted) {
+            event.mission->onWeaponRemoved(weapon);
+            delete weapon;
+        }
+        this->weapons_shooted.clear();
+    }
     if (this->is_destroyed == true && this->is_active == false) {
         return;
     }
