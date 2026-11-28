@@ -23,7 +23,14 @@ R4Renderer *activeRenderer() {
 
 } // namespace
 
-R4Strike::R4Strike() = default;
+// [Sound] engine_volume (0 to 128, as R4ConfigPanel; -1: as SCStrike, 5 of 128): the volume of the engine channel of the player
+R4Strike::R4Strike() {
+    int volume = (std::min)(128, Config::getInstance().getInt("Sound", "engine_volume", 100));
+    if (volume >= 0) {
+        this->engine_channel_volume = volume;
+    }
+    printf("R4Strike: engine sound volume %d of 128\n", this->engine_channel_volume);
+}
 
 R4Strike::~R4Strike() = default;
 

@@ -380,8 +380,9 @@ bool SCPlane::seekerLocks(RSEntity *weapon, SCMissionActors *target) {
 }
 
 void SCPlane::updateWeaponTimers(float dt) {
+    // le reste d'un intervalle est gardé (jusqu'à une image de l'original) : la cadence ne dépend pas des images du rendu
     for (float &timer : this->weapon_timers) {
-        timer = (std::max)(timer - dt, 0.0f);
+        timer = (std::max)(timer - dt, -ORIGINAL_FRAME_SECONDS);
     }
     if (!this->gun_firing && this->pilot != nullptr && this->pilot->mission != nullptr) {
         this->pilot->mission->stopEffect(SoundEffectIds::GUN_FIRE, this);
@@ -1607,7 +1608,8 @@ void SCPlane::fireStation(int weapon_hard_point_id, SCMissionActors *target, SCM
             }
         }
     }
-    this->weapon_timers[slot] = launcher->wdat->fire_interval;
+    // fire_interval 0 (canon) : un coup par image de l'original, 25 par seconde
+    this->weapon_timers[slot] += (std::max)(launcher->wdat->fire_interval, ORIGINAL_FRAME_SECONDS);
 }
 void SCPlane::launchDirect(int weapon_hard_point_id, SCMissionActors *target, SCMission *mission) {
     SCWeaponLoadoutHardPoint *weap_loadout{nullptr};

@@ -210,7 +210,7 @@ void PSPlane::firePacific(int weapon_hard_point_id, SCMissionActors *target, SCM
     } else {
         return;
     }
-    this->weapon_timers[slot] = launcher->wdat->fire_interval;
+    this->weapon_timers[slot] += (std::max)(launcher->wdat->fire_interval, ORIGINAL_FRAME_SECONDS);
 }
 
 

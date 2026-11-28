@@ -30,6 +30,16 @@ void SCSimulatedObject::Render() {
     this->smoke_set.render(Renderer.camera.getPosition());
 }
 
+// Le chercheur se met à jour toutes les 5 images de l'original (0,2 s) : vrai quand c'est le moment.
+bool SCSimulatedObject::seekerDue(int tps) {
+    this->seeker_delay -= 1.0f / (float)(std::max)(tps, 1);
+    if (this->seeker_delay > 0.0f) {
+        return false;
+    }
+    this->seeker_delay = (std::max)(this->seeker_delay + 5.0f * ORIGINAL_FRAME_SECONDS, 0.0f);
+    return true;
+}
+
 void SCSimulatedObject::GetPosition(Vector3D *position) {
     position->x = this->x;
     position->y = this->y;
@@ -164,10 +174,11 @@ std::tuple<Vector3D, Vector3D> SCSimulatedObject::ComputeTrajectory(int tps) {
 
     if (!this->is_simulated && this->run_iterations % tps == 0) {
         printf("MISSILE %s t=%.1fs speed=%.1f %s target=%s\n", this->obj->name.c_str(),
-               (float)this->run_iterations / (float)tps, velocity.Length(), this->no_thrust ? "cruise" : "boost",
+               this->elapsed, velocity.Length(), this->no_thrust ? "cruise" : "boost",
                this->target != nullptr ? this->target->actor_name.c_str() : (this->decoy_target != nullptr ? "decoy" : "none"));
     }
     this->run_iterations++;
+    this->elapsed += 1.0f / (float)(std::max)(tps, 1);
     Vector3D step = velocity * deltaTime;
     position = position + step;
     return {position, step};
@@ -216,7 +227,7 @@ void SCSimulatedObject::Simulate(int tps) {
     Vector3D position, velocity;
     if (this->obj->dynn_miss != nullptr) {
         Vector3D current = {this->x, this->y, this->z};
-        if ((float)(this->run_iterations + 1) / (float)tps >= (float)this->obj->missile_flight_time) {
+        if ((this->elapsed + 1.0f / (float)(std::max)(tps, 1)) >= (float)this->obj->missile_flight_time) {
             if (!this->is_simulated) {
                 this->mission->explosions.push_back(new SCExplosion(this->obj->explos->objct, current));
                 this->mission->playEffect(SoundEffectIds::EXPLOSION_1, current);
@@ -235,7 +246,7 @@ void SCSimulatedObject::Simulate(int tps) {
         if (this->decoy_target != nullptr && !this->decoy_target->alive) {
             this->decoy_target = nullptr;
         }
-        if (!this->is_simulated && this->obj->wdat->weapon_aspec != 0 && (this->run_iterations + 1) % 5 == 0) {
+        if (!this->is_simulated && this->obj->wdat->weapon_aspec != 0 && this->seekerDue(tps)) {
             float heading = this->azimuthf + (float)M_PI_2;
             Vector3D nose = {cosf(this->elevationf) * sinf(heading), sinf(this->elevationf),
                              cosf(this->elevationf) * cosf(heading)};
@@ -414,6 +425,7 @@ std::tuple<Vector3D, Vector3D> GunSimulatedObject::ComputeTrajectory(int tps) {
     velocity = velocity + acceleration * deltaTime;
     position = position + velocity * deltaTime;
     this->run_iterations++;
+    this->elapsed += 1.0f / (float)(std::max)(tps, 1);
     return { position, velocity };
 }
 std::tuple<Vector3D, Vector3D> GunSimulatedObject::ComputeTrajectoryUntilGround(int tps) {
@@ -707,13 +719,14 @@ std::tuple<Vector3D, Vector3D> GuidedBombSimulatedObject::ComputeTrajectory(int 
     }
 
     this->run_iterations++;
+    this->elapsed += 1.0f / (float)(std::max)(tps, 1);
     Vector3D step = velocity * deltaTime;
     position = position + step;
     return {position, step};
 }
 
 void GuidedBombSimulatedObject::Simulate(int tps) {
-    if ((float)this->run_iterations / (float)tps >= (float)this->obj->bomb_arming_delay) {
+    if (this->elapsed >= (float)this->obj->bomb_arming_delay) {
         SCSimulatedObject::Simulate(tps);
         return;
     }
@@ -737,7 +750,7 @@ void GuidedBombSimulatedObject::Simulate(int tps) {
 }
 
 void AgmSimulatedObject::dropTarget(const char *reason) {
-    printf("AGM %s t=%.2fs cible %s perdue : %s\n", this->obj->name.c_str(), (float)this->run_iterations / (float)this->tps,
+    printf("AGM %s t=%.2fs cible %s perdue : %s\n", this->obj->name.c_str(), this->elapsed,
            this->target->actor_name.c_str(), reason);
     this->target->weapon_shooted_at_me = nullptr;
     this->target = nullptr;
@@ -846,7 +859,7 @@ std::tuple<Vector3D, Vector3D> AgmSimulatedObject::ComputeTrajectory(int tps) {
             velocity = cruise;
             this->no_thrust = true;
             printf("AGM %s t=%.2fs fin de la propulsion : croisière à %.1f m/s\n", this->obj->name.c_str(),
-                   (float)this->run_iterations / (float)tps, miss->velovity_m_per_sec);
+                   this->elapsed, miss->velovity_m_per_sec);
         }
     } else if (this->target != nullptr) {
         velocity = cruise;
@@ -870,10 +883,11 @@ std::tuple<Vector3D, Vector3D> AgmSimulatedObject::ComputeTrajectory(int tps) {
     if (this->run_iterations % tps == 0 && this->target != nullptr) {
         Vector3D delta = this->target->object->position - position;
         printf("AGM %s t=%.1fs vitesse %.1f m/s %s cible %s à %.0f m, %.1f° du nez\n", this->obj->name.c_str(),
-               (float)this->run_iterations / (float)tps, velocity.Length(), this->no_thrust ? "croisière" : "propulsion",
+               this->elapsed, velocity.Length(), this->no_thrust ? "croisière" : "propulsion",
                this->target->actor_name.c_str(), delta.Length(), nose.AngleBetween(delta));
     }
     this->run_iterations++;
+    this->elapsed += 1.0f / (float)(std::max)(tps, 1);
     Vector3D step = velocity * deltaTime;
     position = position + step;
     return { position, step };
@@ -892,9 +906,9 @@ void AgmSimulatedObject::Simulate(int tps) {
         this->y,
         this->z
     };
-    if ((float)(this->run_iterations + 1) / (float)tps >= (float)this->obj->missile_flight_time) {
+    if ((this->elapsed + 1.0f / (float)(std::max)(tps, 1)) >= (float)this->obj->missile_flight_time) {
         printf("AGM %s t=%.2fs fin de la durée de vol (%d s)\n", this->obj->name.c_str(),
-               (float)this->run_iterations / (float)tps, this->obj->missile_flight_time);
+               this->elapsed, this->obj->missile_flight_time);
         if (!this->is_simulated) {
             this->explode(current);
         }
@@ -912,7 +926,7 @@ void AgmSimulatedObject::Simulate(int tps) {
             this->dropTarget("cible détruite");
         }
     }
-    if (!this->is_simulated && this->target != nullptr && (this->run_iterations + 1) % 5 == 0) {
+    if (!this->is_simulated && this->target != nullptr && this->seekerDue(tps)) {
         float heading = this->azimuthf + (float)M_PI_2;
         Vector3D nose = {
             cosf(this->elevationf) * sinf(heading),
@@ -942,7 +956,7 @@ void AgmSimulatedObject::Simulate(int tps) {
     }
     if (this->target != nullptr && !this->is_simulated) {
         if (this->CheckCollision(this->target)) {
-            printf("AGM %s t=%.2fs touche %s\n", this->obj->name.c_str(), (float)this->run_iterations / (float)tps,
+            printf("AGM %s t=%.2fs touche %s\n", this->obj->name.c_str(), this->elapsed,
                    this->target->actor_name.c_str());
             auto hit_event = std::make_unique<MissionEventActorHit>();
             hit_event->attacker = this->shooter;
@@ -956,7 +970,7 @@ void AgmSimulatedObject::Simulate(int tps) {
         for (auto entity : this->mission->actors) {
             if (this->CheckCollision(entity)) {
                 printf("AGM %s t=%.2fs touche %s (sans cible)\n", this->obj->name.c_str(),
-                       (float)this->run_iterations / (float)tps, entity->actor_name.c_str());
+                       this->elapsed, entity->actor_name.c_str());
                 auto hit_event = std::make_unique<MissionEventActorHit>();
                 hit_event->attacker = this->shooter;
                 hit_event->target = entity;
@@ -1008,7 +1022,7 @@ void AgmSimulatedObject::Simulate(int tps) {
     };
     this->distance += length_vect.Length();
     if (this->y < this->mission->area->getY(this->x, this->z)) {
-        printf("AGM %s t=%.2fs impact au sol\n", this->obj->name.c_str(), (float)this->run_iterations / (float)tps);
+        printf("AGM %s t=%.2fs impact au sol\n", this->obj->name.c_str(), this->elapsed);
         if (!this->is_simulated) {
             this->explode(position);
             for (auto entity : this->mission->actors) {

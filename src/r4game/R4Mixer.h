@@ -93,6 +93,7 @@ private:
         int loopsLeft = 0;
         int volume = 128;
     };
+    void normalize(R4SoundPcm &pcm, const char *kind, int number);
     std::shared_ptr<r4::audio::Sound> soundOf(const R4SoundPcm &pcm);
     std::shared_ptr<r4::audio::Sound> vocSound(uint8_t *data, size_t size);
     int effectIndex(MemMusic *fx) const;
@@ -115,6 +116,8 @@ private:
     std::vector<std::shared_ptr<r4::audio::Source>> oneShots_;
     // an effect for each emitter: (emitter, effect) -> its source
     std::map<std::pair<const void *, int>, std::shared_ptr<r4::audio::Source>> emitters_;
+    // the position of each emitter at the last update, for its velocity
+    std::map<std::pair<const void *, int>, r4::Vec3> emitterLast_;
     // the channels of playSoundFx (5)
     std::shared_ptr<r4::audio::Source> fxChannels_[5];
     Uint64 lastUpdate_ = 0;

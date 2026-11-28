@@ -60,6 +60,42 @@ void RSSound::init() {
             }
         }
     }
+    tre = Assets.GetEntryByName("..\\..\\DATA\\COCKPITS\\BETTY.PAK");
+    if (tre != nullptr) {
+        PakArchive *pak = new PakArchive();
+        pak->InitFromRAM("BETTY.PAK", tre->data, tre->size);
+        if (pak->IsReady()) {
+            for (size_t i = 0; i < pak->GetNumEntries(); ++i) {
+                PakEntry *entry = pak->GetEntry(i);
+                if (entry == nullptr) {
+                    continue;
+                }
+                PakArchive *subPak = new PakArchive();
+                std::string subPakName = "betty" + std::to_string(i);
+                subPak->InitFromRAM(subPakName.c_str(), entry->data, entry->size);
+                if (subPak->IsReady() && subPak->GetNumEntries() > 0) {
+                    for (size_t j = 0; j < subPak->GetNumEntries(); ++j) {
+                        PakEntry *subEntry = subPak->GetEntry(j);
+                        if (subEntry != nullptr) {
+                            MemSound *mem_sound = new MemSound();
+                            mem_sound->data = subEntry->data;
+                            mem_sound->size = subEntry->size;
+                            mem_sound->id = (uint8_t)this->betty.size();
+                            this->betty.push_back(mem_sound);
+                        }
+                    }
+                } else {
+                    MemSound *mem_sound = new MemSound();
+                    mem_sound->data = entry->data;
+                    mem_sound->size = entry->size;
+                    mem_sound->id = (uint8_t)this->betty.size();
+                    this->betty.push_back(mem_sound);
+                }
+                delete subPak;
+            }
+        }
+    }
+    printf("RSSound: BETTY.PAK, %zu alarmes\n", this->betty.size());
     this->initEffects();
 }
 
@@ -124,6 +160,8 @@ void RSSound::initEffects() {
     this->fx_effects[SoundEffectIds::GUN_IMPACT_1] = 10;
     this->fx_effects[SoundEffectIds::GUN_HIT] = 10;
     this->fx_effects[SoundEffectIds::TOUCH_DOWN] = 12;
+    this->fx_effects[SoundEffectIds::SEEKER_SEARCH] = 6;
+    this->fx_effects[SoundEffectIds::SEEKER_LOCK] = 7;
     printf("RSSound: %zu sons, %zu effets associes\n", this->sounds.size(), this->effects.size());
 }
 

@@ -20,6 +20,8 @@ SCMission::SCMission(std::string mission_name, std::unordered_map<std::string, R
     this->last_tick = 0;
     this->tick_counter = 0;
     this->tps = 0;
+    this->digital_fx = Config::getInstance().getBool("Sound", "digital_fx", true);
+    printf("SCMission: digital_fx %d\n", this->digital_fx ? 1 : 0);
     this->loadMission();
     subscription_id = this->messageBus.subscribeEvent(std::bind(&SCMission::onEvent, this, std::placeholders::_1));
 }

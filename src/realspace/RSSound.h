@@ -41,7 +41,9 @@ enum SoundEffectIds {
     PLAYER_HIT = 32,
     WATER_SPLASH = 33,
     GUN_FIRE = 34,
-    TURRET_FIRE = 35
+    TURRET_FIRE = 35,
+    SEEKER_SEARCH = 36,
+    SEEKER_LOCK = 37
 };
 
 struct MemSound {
@@ -62,6 +64,8 @@ private:
 public:
     std::unordered_map<uint8_t, InGameVoice *> inGameVoices;
     std::vector<MemSound *> sounds;
+    // Alarmes vocales du cockpit (COCKPITS\BETTY.PAK, Cockpit_LoadBettyPack) : entrée n = alarme n.
+    std::vector<MemSound *> betty;
     std::unordered_map<int, std::vector<MemSound *>> effects;
     // Effets joués en séquence XMIDI (SOUNDFX.ADL) : numéro de la séquence de chaque effet.
     std::unordered_map<int, int> fx_effects;

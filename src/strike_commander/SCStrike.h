@@ -55,6 +55,7 @@ protected:
     int engine_previous_notch{0};
     int engine_sound_frames{0};
     void updateEngineSound();
+    void stopAllSounds(const char *reason);
 
     /**
      * @brief Hook, empty by default: called each frame once the camera of the current view has been placed, before the scene

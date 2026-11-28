@@ -1867,6 +1867,7 @@ void SCCockpit::Update() {
     }
     this->cockpit_camera.update();
 
+    this->updateWarnings();
 }
 void SCCockpit::RenderHUD() {
     FrameBuffer *hud = this->hud_framebuffer;
@@ -2708,4 +2709,143 @@ bool SCCockpit::RenderCrashAnimationP2() {
     VGA.wide_screen = wide_screen;
     
     return is_done;
+}
+
+// Cockpit_LoadBettyPack : entrée de BETTY.PAK jouée par le lecteur des voix, seulement en vue cockpit.
+void SCCockpit::sayBetty(size_t entry, const char *reason) {
+    RSSound &sound = this->current_mission->sound;
+    if (!this->current_mission->cockpit_view) {
+        printf("COCKPIT: Betty %zu (%s) muette hors de la vue cockpit\n", entry, reason);
+        return;
+    }
+    if (entry >= sound.betty.size()) {
+        printf("COCKPIT: Betty %zu (%s), pas de son\n", entry, reason);
+        return;
+    }
+    printf("COCKPIT: Betty %zu (%s)\n", entry, reason);
+    Mixer.playSoundVoc(sound.betty[entry]->data, sound.betty[entry]->size);
+}
+
+// Physics_AllocGroundConstraintVector : facteur de charge nécessaire pour sortir du piqué avant le sol,
+// n = v² · sin θ · tan(θ / 2) / (g · h) + cos θ (θ = piqué de la vitesse, h = hauteur au-dessus du sol) ; 0 en montée,
+// 2000 sous le sol.
+float SCCockpit::pullUpLoadFactor() {
+    Vector3D velocity = this->player_plane->worldVelocity();
+    if (velocity.y >= 0.0f) {
+        return 0.0f;
+    }
+    float speed = velocity.Length();
+    float height = this->player_plane->y - this->current_mission->area->getY(this->player_plane->x, this->player_plane->z);
+    if (height <= 0.0f) {
+        return 2000.0f;
+    }
+    float dive = asinf((std::min)(1.0f, -velocity.y / speed));
+    float factor = sinf(dive) * tanf(dive / 2.0f);
+    if (factor <= 0.0f) {
+        return 0.0f;
+    }
+    return speed * speed * factor / (9.8f * (std::max)(1.0f, height)) + cosf(dive);
+}
+
+// L'acteur de la cible du cockpit.
+SCMissionActors *SCCockpit::targetActor() {
+    if (this->target == nullptr) {
+        return nullptr;
+    }
+    for (auto actor : this->current_mission->actors) {
+        if (actor->object == this->target) {
+            return actor;
+        }
+    }
+    return nullptr;
+}
+
+// Cockpit_WarningsAndSeekerTone_15FD3 (SOUND_EFFECTS.md § 2.3) : la première alarme vraie parle, une fois tant qu'elle dure ;
+// puis la tonalité du missile IR choisi : accrochage (effet 7) ou recherche (effet 6).
+void SCCockpit::updateWarnings() {
+    if (this->warnings_mission != this->current_mission) {
+        this->warnings_mission = this->current_mission;
+        this->warnings_frames = 0;
+        this->betty_missile = false;
+        this->betty_pull_up = false;
+        this->betty_stall = false;
+        this->betty_fuel = false;
+        this->seeker_tone = -1;
+    }
+    this->warnings_frames++;
+    SCMissionActors *player = this->current_mission->player;
+    bool missile_on_player = false;
+    for (auto actor : this->current_mission->actors) {
+        if (actor->plane != nullptr) {
+            for (auto weapon : actor->plane->weaps_object) {
+                if (weapon->alive && weapon->target == player && weapon->obj->entity_type == EntityType::missiles) {
+                    missile_on_player = true;
+                }
+            }
+        }
+        for (auto weapon : actor->weapons_shooted) {
+            if (weapon->alive && weapon->target == player && weapon->obj->entity_type == EntityType::missiles) {
+                missile_on_player = true;
+            }
+        }
+    }
+    if (missile_on_player) {
+        if (!this->betty_missile) {
+            this->betty_missile = true;
+            this->sayBetty(1, "missile sur le joueur");
+        }
+    } else {
+        this->betty_missile = false;
+        float load_factor = this->pullUpLoadFactor();
+        if (load_factor > 4.0f && this->warnings_frames > 2) {
+            if (!this->betty_pull_up) {
+                this->betty_pull_up = true;
+                printf("COCKPIT: sortie de piqué à %.1f g\n", load_factor);
+                this->sayBetty(2, "sortie de pique");
+            }
+        } else {
+            this->betty_pull_up = false;
+            if (this->player_plane->wing_stall != 0) {
+                if (!this->betty_stall) {
+                    this->betty_stall = true;
+                    this->sayBetty(0, "decrochage");
+                }
+            } else {
+                this->betty_stall = false;
+                RSEntity *entity = this->player_plane->object->entity;
+                bool low_fuel = entity->jdyn != nullptr && (float)this->player_plane->GetFuel() < (float)entity->jdyn->fuel_capacity / 8.0f;
+                if (low_fuel) {
+                    if (!this->betty_fuel) {
+                        this->betty_fuel = true;
+                        printf("COCKPIT: carburant %d sur %u\n", this->player_plane->GetFuel(), entity->jdyn->fuel_capacity);
+                        this->sayBetty(0, "carburant bas");
+                    }
+                } else {
+                    this->betty_fuel = false;
+                }
+            }
+        }
+    }
+    int tone = -1;
+    SCWeaponLoadoutHardPoint *station = nullptr;
+    if (!this->player_plane->weaps_load.empty()) {
+        station = this->player_plane->weaps_load[this->player_plane->selected_weapon];
+    }
+    if (station != nullptr && station->objct->wdat != nullptr && station->objct->wdat->weapon_category == 1 && station->nb_weap > 0) {
+        SCMissionActors *actor = this->targetActor();
+        bool locked = actor != nullptr && this->player_plane->seekerLocks(station->objct, actor);
+        tone = locked ? SoundEffectIds::SEEKER_LOCK : SoundEffectIds::SEEKER_SEARCH;
+    }
+    if (tone != this->seeker_tone) {
+        printf("COCKPIT: tonalite du missile %d -> %d\n", this->seeker_tone, tone);
+        if (this->seeker_tone != -1) {
+            this->current_mission->stopEffect((SoundEffectIds)this->seeker_tone, this);
+        }
+        this->seeker_tone = tone;
+    }
+    if (tone != -1) {
+        Camera *camera = SCRenderer::getInstance().getCamera();
+        Point3D position = camera->getPosition();
+        this->current_mission->playOrUpdateEffect((SoundEffectIds)tone, this, {position.x, position.y, position.z});
+    }
 }

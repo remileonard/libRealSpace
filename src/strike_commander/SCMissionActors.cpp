@@ -936,7 +936,7 @@ void SCMissionActorsSwpn::fireMissile() {
            weapon_entity->dynn_miss->acceleration, weapon_entity->dynn_miss->turn_degre_per_sec,
            weapon_entity->missile_flight_time, weapon_entity->missile_fuse_radius);
     this->object->entity->swpn_data->weapons_round--;
-    this->fire_delay = this->object->entity->swpn_data->fire_interval;
+    this->fire_delay += (std::max)(this->object->entity->swpn_data->fire_interval, ORIGINAL_FRAME_SECONDS);
 }
 
 void SCMissionActorsSwpn::fireGun() {
@@ -982,7 +982,8 @@ void SCMissionActorsSwpn::fireGun() {
     printf("SWPN %s#%d fire gun at %s speed=%.0f ammo=%d\n", this->actor_name.c_str(), this->actor_id,
            this->target->actor_name.c_str(), speed, data->weapons_round - 1);
     data->weapons_round--;
-    this->fire_delay = data->fire_interval;
+    // fire_interval 0 : un coup par image de l'original, 25 par seconde
+    this->fire_delay += (std::max)(data->fire_interval, ORIGINAL_FRAME_SECONDS);
 }
 
 void SCMissionActorsSwpn::onMissionUpdate(const MissionUpdateEvent &event) {
@@ -1005,12 +1006,15 @@ void SCMissionActorsSwpn::updateFire() {
         this->target = nullptr;
         return;
     }
-    this->frames++;
+    float dt = GameTimer::getInstance().getDeltaTime();
+    this->target_search_delay -= dt;
+    this->fire_delay = (std::max)(this->fire_delay - dt, -ORIGINAL_FRAME_SECONDS);
     if (this->fire_delay > 0.0f) {
-        this->fire_delay -= GameTimer::getInstance().getDeltaTime();
         return;
     }
-    if (this->frames % 10 == 0) {
+    // recherche de la cible toutes les 10 images de l'original (0,4 s)
+    if (this->target_search_delay <= 0.0f) {
+        this->target_search_delay = (std::max)(this->target_search_delay + 10.0f * ORIGINAL_FRAME_SECONDS, 0.0f);
         SCMissionActors *previous = this->target;
         this->target = this->findTarget();
         if (this->target != previous) {

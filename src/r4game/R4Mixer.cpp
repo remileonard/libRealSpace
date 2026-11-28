@@ -8,6 +8,7 @@
 #include "engine/SCRenderer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace {
@@ -151,6 +152,9 @@ bool R4Mixer::renderEffects(EffectSynth wanted) {
             opl.init(kRate);
             ok = renderSoundFx(opl, &bank->sfx_timbres, fx->data, fx->size, kRate, pcm);
         }
+        if (ok) {
+            normalize(pcm, "effet", (int)effects_.size());
+        }
         effects_.push_back(ok ? soundOf(pcm) : nullptr);
         loops += ok && pcm.loops ? 1 : 0;
         effectPcm_.push_back(std::move(pcm));
@@ -170,6 +174,24 @@ void R4Mixer::loadVolumes() {
     context_->setGroupGain(GROUP_EFFECTS, (float)std::max(0, std::min(100, cfg.getInt("Sound", "sfx_volume", 100))) / 100.0f);
 }
 
+// The XMIDI effects above the music: each one is amplified so that its highest sample is at -1 dB of the full scale (the gain of a
+// source stops at 1 in OpenAL). number: the effect. The VOC keep their level.
+void R4Mixer::normalize(R4SoundPcm &pcm, const char *kind, int number) {
+    int peak = 0;
+    for (int16_t v : pcm.samples) {
+        peak = std::max(peak, std::abs((int)v));
+    }
+    if (peak == 0) {
+        return;
+    }
+    const float target = 32767.0f * std::pow(10.0f, -1.0f / 20.0f);
+    const float gain = std::max(1.0f, target / (float)peak);
+    for (int16_t &v : pcm.samples) {
+        v = (int16_t)std::max(-32768.0f, std::min(32767.0f, std::round((float)v * gain)));
+    }
+    std::printf("R4Mixer: %s %d, crete %.1f dB, gain x%.1f\n", kind, number, 20.0f * std::log10((float)peak / 32767.0f), gain);
+}
+
 std::shared_ptr<r4::audio::Sound> R4Mixer::soundOf(const R4SoundPcm &pcm) {
     if (pcm.samples.empty()) {
         return nullptr;
@@ -186,7 +208,10 @@ std::shared_ptr<r4::audio::Sound> R4Mixer::vocSound(uint8_t *data, size_t size) 
         return it->second;
     }
     R4SoundPcm pcm;
-    std::shared_ptr<r4::audio::Sound> sound = decodeVoc(data, size, pcm) ? soundOf(pcm) : nullptr;
+    std::shared_ptr<r4::audio::Sound> sound = nullptr;
+    if (decodeVoc(data, size, pcm)) {
+        sound = soundOf(pcm);
+    }
     if (!sound) {
         std::printf("R4Mixer: a VOC of %zu bytes cannot be read\n", size);
     }
@@ -252,6 +277,18 @@ void R4Mixer::update() {
     }
     // a change of view moves the camera far in one frame: no Doppler effect from it
     const bool jump = r4::length(listener.position() - before) > kJump;
+    // the velocity of a held sound from its moves, as the listener: an emitter that moves with the camera has no Doppler effect
+    for (auto it = emitterLast_.begin(); it != emitterLast_.end();) {
+        auto emitter = emitters_.find(it->first);
+        if (emitter == emitters_.end()) {
+            it = emitterLast_.erase(it);
+            continue;
+        }
+        r4::audio::Source &src = *emitter->second;
+        src.velocity = dt > 0.0f && !jump ? (src.position - it->second) / dt : r4::Vec3(0.0f);
+        it->second = src.position;
+        ++it;
+    }
     if (jump) {
         context_->setDoppler(0);
     }
@@ -315,8 +352,12 @@ void R4Mixer::playOrUpdateEffectAt(int effect, uint8_t *voc, size_t vocSize, con
         return;
     }
     auto src = spatial(sound, position);
+    // a held sound (the gun): its introduction one time, then its loop until stopSoundFx
+    src->loop = voc == nullptr && effect >= 0 && effect < (int)effectPcm_.size() && effectPcm_[(size_t)effect].loops;
     src->play();
     emitters_[key] = src;
+    emitterLast_[key] = src->position;
+    std::printf("R4Mixer: held effect %d of %p, loop %d (%zu to %zu), distance %.0f\n", effect, emitter, src->loop ? 1 : 0, sound->loopStart(), sound->loopEnd(), distance);
 }
 
 void R4Mixer::stopSoundFx(int effect, const void *emitter) {

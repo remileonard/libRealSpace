@@ -56,6 +56,19 @@ protected:
     void RenderMFDSRadarImplementation(Point2D pmfd_left, float range, const char* mode_name, bool air_mode, FrameBuffer *fb);
     void RenderMFDSRadarSingleTargetImplementation(Point2D pmfd_left, float range, const char *mode_name, bool air_mode, FrameBuffer *fb);
     void BuildPaletteLUT();
+    // Cockpit_WarningsAndSeekerTone_15FD3 : alarmes Betty et tonalités du missile, à chaque image.
+    void updateWarnings();
+    void sayBetty(size_t entry, const char *reason);
+    float pullUpLoadFactor();
+    SCMissionActors *targetActor();
+    // Une alarme ne parle qu'une fois tant que sa condition dure : missile sur le joueur, sortie de piqué, décrochage, carburant.
+    bool betty_missile{false};
+    bool betty_pull_up{false};
+    bool betty_stall{false};
+    bool betty_fuel{false};
+    SCMission *warnings_mission{nullptr};
+    int warnings_frames{0};
+    int seeker_tone{-1};
     void printTTAG(Point2D pos, HUD_POS &tag, std::string name, FrameBuffer *fb, RSFont *font);
     
 public:

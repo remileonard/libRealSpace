@@ -630,9 +630,7 @@ void SCStrike::keyEndMission() {
     if (this->current_mission->exit_code == 0) {
         this->current_mission->setExitCode(this->player_plane->crached ? 2 : 1, "touche fin de mission");
     }
-    Mixer.stopSound();
-    Mixer.stopSound(5);
-    Mixer.stopAllSoundFx();
+    this->stopAllSounds("fin de mission demandee");
 }
 
 void SCStrike::keyRudderLeft() {
@@ -1490,6 +1488,7 @@ void SCStrike::runFrame(void) {
             if (this->virtual_cockpit != nullptr) {
                 this->virtual_cockpit->releaseTextures();
             }
+            this->stopAllSounds("fin de la simulation");
             Game->stopTopActivity();
             return;
         }
@@ -2047,6 +2046,16 @@ void SCStrike::renderPlayerPlane() {
 }
 
 // ALT+O (Input_AltKeyCommands_26F7E) : effets sonores coupés (SoundFX_StopAll_5AA95), vol figé, curseur des menus.
+// Arrête tous les sons de la simulation : voix et radio, moteur (canal 5), effets XMIDI et numériques. Le moteur repart de l'état
+// « rien » à la reprise (updateEngineSound).
+void SCStrike::stopAllSounds(const char *reason) {
+    printf("SOUND: arret de tous les sons (%s)\n", reason);
+    Mixer.stopSound();
+    Mixer.stopSound(5);
+    Mixer.stopAllSoundFx();
+    this->engine_sound = -1;
+}
+
 void SCStrike::openFlightOptions() {
     if (this->flight_options == nullptr) {
         this->flight_options = new SCFlightOptions();
@@ -2057,9 +2066,7 @@ void SCStrike::openFlightOptions() {
     this->options_mouse_before = Game->direct_mouse_control;
     this->pause_simu = true;
     Game->direct_mouse_control = false;
-    Mixer.stopSound();
-    Mixer.stopSound(5);
-    Mixer.stopAllSoundFx();
+    this->stopAllSounds("options de vol");
     this->flight_options->open();
 }
 

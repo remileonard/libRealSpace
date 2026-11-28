@@ -91,7 +91,7 @@ public:
 };
 
 class SCMissionActorsSwpn : public SCMissionActors {
-    int frames{0};
+    float target_search_delay{0.0f};
     float fire_delay{0.0f};
     SCMissionActors *findTarget();
     void fireMissile();

@@ -15,6 +15,11 @@ protected:
     int tps{30};
     SCSmokeSet smoke_set;
     int run_iterations{0};
+    // temps de vol en secondes, cumulé à chaque pas de ComputeTrajectory
+    float elapsed{0.0f};
+    // première mise à jour du chercheur à la 5e image de l'original, comme (run_iterations + 1) % 5 == 0
+    float seeker_delay{4.0f * ORIGINAL_FRAME_SECONDS};
+    bool seekerDue(int tps);
     SCRenderer &Renderer = SCRenderer::getInstance();
     RSMixer &Mixer = RSMixer::getInstance();
     float missile_roll{0.0f};
